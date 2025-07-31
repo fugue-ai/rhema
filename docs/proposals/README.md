@@ -239,6 +239,54 @@ Implement axiomatic mechanisms for AST transforms across the codebase through a 
 
 ---
 
+### 📁 [Rhema Cache Directory System](./0016-rhema-cache-directory-system.md)
+**Status**: ❌ **Not Started**  
+**Priority**: High  
+**Effort**: 8-12 weeks  
+
+Implement a `.rhema/cache` directory system that exists only in the root scope to provide centralized caching for implementation guides, temporary scripts, and other runtime artifacts.
+
+**Key Features**:
+- Centralized cache directory structure with implementation guides and scripts
+- Cross-scope access from any scope to root-scope-only cache
+- Automatic cleanup and lifecycle management with configurable policies
+- Comprehensive CLI commands for cache management and inspection
+- Integration with existing Rhema commands for seamless caching
+
+---
+
+### 🔄 [Multi-Agent Coordination Monitoring System](./0017-multi-agent-coordination-monitoring.md)
+**Status**: ❌ **Not Started**  
+**Priority**: Critical  
+**Effort**: 16-20 weeks  
+
+Implement a comprehensive monitoring and detection system for multi-agent coordination issues including over-coordination, phasing, deadlocks, and other common multi-agent problems in Rhema-based development workflows.
+
+**Key Features**:
+- Real-time coordination metrics collection and analysis
+- Pattern recognition for over-coordination, phasing, and deadlock detection
+- Intelligent intervention system with automatic and manual controls
+- Predictive analysis for early warning of coordination problems
+- Comprehensive dashboard for coordination monitoring and management
+
+---
+
+### 🔄 [CRDT Applications in Rhema](./0018-crdt-applications-in-rhema.md)
+**Status**: ❌ **Not Started**  
+**Priority**: High  
+**Effort**: 18-24 weeks  
+
+Implement Conflict-Free Replicated Data Types (CRDTs) in Rhema to enable distributed, offline-capable context synchronization across multiple developers, AI agents, and development environments.
+
+**Key Features**:
+- Automatic conflict resolution for context files without manual merges
+- Offline-first architecture enabling work without network connectivity
+- Multi-agent coordination with automatic context synchronization
+- Real-time collaboration with live context updates across team members
+- Branch-aware synchronization with automatic propagation across Git branches
+
+---
+
 ## Proposal Status Overview
 
 | Proposal | Status | Priority | Effort | Timeline |
@@ -258,6 +306,9 @@ Implement axiomatic mechanisms for AST transforms across the codebase through a 
 | Prompt Pattern Advanced Features | ✅ Accepted | High | 8-12 weeks | Q2 2025 |
 
 | AST Action Hooks | ❌ Not Started | High | 14-20 weeks | Q3-Q4 2025 |
+| Rhema Cache Directory System | ❌ Not Started | High | 8-12 weeks | Q2 2025 |
+| Multi-Agent Coordination Monitoring System | ❌ Not Started | Critical | 16-20 weeks | Q2-Q3 2025 |
+| CRDT Applications in Rhema | ❌ Not Started | High | 18-24 weeks | Q3-Q4 2025 |
 
 ## Priority Matrix
 
@@ -267,6 +318,7 @@ Implement axiomatic mechanisms for AST transforms across the codebase through a 
 - **Task Scoring for Agentic Development** - Essential for multi-agent coordination
 - **Action Protocol Integration** - Critical for safe agent-assisted development
 - **Rhema Enhancement TODO Tracking** - Comprehensive enhancement framework for AI agent context management
+- **Multi-Agent Coordination Monitoring System** - Critical for detecting and preventing coordination problems in multi-agent setups
 
 ### 🟡 High Priority (Next 4-6 months)
 - **LOCOMO Benchmarks Integration** - Performance validation and optimization

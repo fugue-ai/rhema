@@ -1,0 +1,29 @@
+[package]
+name = "rhema-integrations"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+description = "Third-party service integrations for the Rhema Protocol"
+keywords = ["integrations", "services", "external"]
+categories = ["development-tools"]
+
+[dependencies]
+rhema-core = { path = "../core" }
+reqwest = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+async-trait = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+assert_fs = { workspace = true }
+predicates = { workspace = true } 

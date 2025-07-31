@@ -1,0 +1,39 @@
+[package]
+name = "rhema-mcp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+description = "Model Context Protocol daemon functionality for the Rhema Protocol"
+keywords = ["mcp", "daemon", "protocol", "model-context"]
+categories = ["development-tools"]
+
+[dependencies]
+rhema-core = { path = "../core" }
+rhema-query = { path = "../query" }
+axum = { workspace = true }
+tower-http = { workspace = true }
+async-trait = { workspace = true }
+nix = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+dashmap = "5.5"
+notify = "6.1"
+uuid = { workspace = true, features = ["v4"] }
+chrono = { workspace = true }
+base64 = "0.21"
+redis = "0.23"
+regex = "1.10"
+serde_yaml = "0.9"
+
+[dev-dependencies]
+tempfile = { workspace = true }
+assert_fs = { workspace = true }
+predicates = { workspace = true } 

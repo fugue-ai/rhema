@@ -15,16 +15,19 @@
  */
 
 use clap::{Parser, Subcommand};
-use rhema_cli::{Rhema, RhemaResult};
-use rhema_cli::commands::{TodoSubcommands, InsightSubcommands, PatternSubcommands, DecisionSubcommands};
-use rhema_cli::git::GitSubcommands;
-use rhema_cli::performance::PerformanceSubcommands;
-
-// Import command modules
-use rhema_cli::context_rules::ContextRulesSubcommands;
-use rhema_cli::workflow::WorkflowSubcommands;
-use rhema_cli::template::TemplateSubcommands;
-use rhema_cli::prompt::PromptSubcommands;
+use crate::{Rhema, RhemaResult};
+use crate::{
+    TodoSubcommands, 
+    InsightSubcommands, 
+    PatternSubcommands, 
+    DecisionSubcommands,
+    ContextRulesSubcommands,
+    WorkflowSubcommands,
+    TemplateSubcommands,
+    PromptSubcommands
+};
+use crate::git::GitSubcommands;
+use crate::performance::PerformanceSubcommands;
 
 #[derive(Parser)]
 #[command(name = "rhema")]
@@ -348,7 +351,7 @@ enum Commands {
     /// Manage MCP daemon service
     Daemon {
         #[command(flatten)]
-        args: rhema_cli::daemon::DaemonArgs,
+        args: crate::daemon::DaemonArgs,
     },
     
     /// Performance monitoring and analytics
@@ -360,7 +363,7 @@ enum Commands {
     /// Manage configuration
     Config {
         #[command(subcommand)]
-        subcommand: rhema_cli::config::ConfigSubcommands,
+        subcommand: commands::config::ConfigSubcommands,
     },
     
     /// Manage prompt patterns
@@ -417,111 +420,111 @@ fn main() -> RhemaResult<()> {
     
     match cli.command {
         Commands::Init { scope_type, scope_name, auto_config } => {
-            rhema_cli::init::run(&rhema, scope_type.as_deref(), scope_name.as_deref(), auto_config)
+            crate::init::run(&rhema, scope_type.as_deref(), scope_name.as_deref(), auto_config)
         }
         Commands::Scopes => {
-            rhema_cli::scopes::run(&rhema)
+            crate::scopes::run(&rhema)
         }
         Commands::Scope { path } => {
-            rhema_cli::scopes::show_scope(&rhema, path.as_deref())
+            crate::scopes::show_scope(&rhema, path.as_deref())
         }
         Commands::Tree => {
-            rhema_cli::scopes::show_tree(&rhema)
+            crate::scopes::show_tree(&rhema)
         }
         Commands::Show { file, scope } => {
-            rhema_cli::show::run(&rhema, &file, scope.as_deref())
+            crate::show::run(&rhema, &file, scope.as_deref())
         }
         Commands::Query { query, stats, format, provenance, field_provenance } => {
             if field_provenance {
-                rhema_cli::query::run_with_field_provenance(&rhema, &query)
+                crate::query::run_with_field_provenance(&rhema, &query)
             } else if provenance {
-                rhema_cli::query::run_with_provenance(&rhema, &query)
+                crate::query::run_with_provenance(&rhema, &query)
             } else if stats {
-                rhema_cli::query::run_with_stats(&rhema, &query)
+                crate::query::run_with_stats(&rhema, &query)
             } else if format != "yaml" {
-                rhema_cli::query::run_formatted(&rhema, &query, format.as_str())
+                crate::query::run_formatted(&rhema, &query, format.as_str())
             } else {
-                rhema_cli::query::run(&rhema, &query)
+                crate::query::run(&rhema, &query)
             }
         }
         Commands::Search { term, in_file, regex } => {
-            rhema_cli::search::run(&rhema, &term, in_file.as_deref(), regex)
+            crate::search::run(&rhema, &term, in_file.as_deref(), regex)
         }
         Commands::Validate { recursive, json_schema, migrate } => {
-            rhema_cli::validate::run(&rhema, recursive, json_schema, migrate)
+            crate::validate::run(&rhema, recursive, json_schema, migrate)
         }
         Commands::Migrate { recursive, dry_run } => {
-            rhema_cli::migrate::run(&rhema, recursive, dry_run)
+            crate::migrate::run(&rhema, recursive, dry_run)
         }
         Commands::Schema { template_type, output_file } => {
-            rhema_cli::schema::run(&rhema, &template_type, output_file.as_deref())
+            rhema_core::schema::run(&rhema, &template_type, output_file.as_deref())
         }
         Commands::Health { scope } => {
-            rhema_cli::health::run(&rhema, scope.as_deref())
+            crate::health::run(&rhema, scope.as_deref())
         }
         Commands::Stats => {
-            rhema_cli::stats::run(&rhema)
+            crate::stats::run(&rhema)
         }
         Commands::Todo { subcommand } => {
-            rhema_cli::todo::run(&rhema, &subcommand)
+            crate::todo::run(&rhema, &subcommand)
         }
         Commands::Insight { subcommand } => {
-            rhema_cli::insight::run(&rhema, &subcommand)
+            crate::insight::run(&rhema, &subcommand)
         }
         Commands::Pattern { subcommand } => {
-            rhema_cli::pattern::run(&rhema, &subcommand)
+            crate::pattern::run(&rhema, &subcommand)
         }
         Commands::Decision { subcommand } => {
-            rhema_cli::decision::run(&rhema, &subcommand)
+            crate::decision::run(&rhema, &subcommand)
         }
         Commands::Dependencies => {
-            rhema_cli::dependencies::run(&rhema)
+            crate::dependencies::run(&rhema)
         }
         Commands::Impact { file } => {
-            rhema_cli::impact::run(&rhema, &file)
+            crate::impact::run(&rhema, &file)
         }
         Commands::SyncKnowledge => {
-            rhema_cli::sync::run(&rhema)
+            crate::sync::run(&rhema)
         }
         Commands::Git { subcommand } => {
-            rhema_cli::git::run(&rhema, &subcommand)
+            crate::git::run(&rhema, &subcommand)
         }
         Commands::ExportContext { format, output_file, scope_filter, include_protocol, include_knowledge, include_todos, include_decisions, include_patterns, include_conventions, summarize, ai_agent_format } => {
-            rhema_cli::export_context::run(&rhema, &format, output_file.as_deref(), scope_filter.as_deref(), include_protocol, include_knowledge, include_todos, include_decisions, include_patterns, include_conventions, summarize, ai_agent_format)
+            crate::export_context::run(&rhema, &format, output_file.as_deref(), scope_filter.as_deref(), include_protocol, include_knowledge, include_todos, include_decisions, include_patterns, include_conventions, summarize, ai_agent_format)
         }
         Commands::Primer { scope_name, output_dir, template_type, include_examples, validate } => {
-            rhema_cli::primer::run(&rhema, scope_name.as_deref(), output_dir.as_deref(), template_type.as_deref(), include_examples, validate)
+            crate::primer::run(&rhema, scope_name.as_deref(), output_dir.as_deref(), template_type.as_deref(), include_examples, validate)
         }
         Commands::GenerateReadme { scope_name, output_file, template, include_context, seo_optimized, custom_sections } => {
             let custom_sections_vec = custom_sections.as_ref().map(|s| s.split(',').map(|s| s.trim().to_string()).collect());
-            rhema_cli::generate_readme::run(&rhema, scope_name.as_deref(), output_file.as_deref(), template.as_deref(), include_context, seo_optimized, custom_sections_vec)
+            crate::generate_readme::run(&rhema, scope_name.as_deref(), output_file.as_deref(), template.as_deref(), include_context, seo_optimized, custom_sections_vec)
         }
         Commands::BootstrapContext { use_case, output_format, output_dir, scope_filter, include_all, optimize_for_ai, create_primer, create_readme } => {
-            rhema_cli::bootstrap_context::run(&rhema, &use_case, &output_format, output_dir.as_deref(), scope_filter.as_deref(), include_all, optimize_for_ai, create_primer, create_readme)
+            crate::bootstrap_context::run(&rhema, &use_case, &output_format, output_dir.as_deref(), scope_filter.as_deref(), include_all, optimize_for_ai, create_primer, create_readme)
         }
         Commands::Daemon { args } => {
-            tokio::runtime::Runtime::new()?.block_on(rhema_cli::daemon::execute_daemon(args))
+            tokio::runtime::Runtime::new()?.block_on(crate::daemon::execute_daemon(args))
         }
         Commands::Performance { subcommand } => {
-            tokio::runtime::Runtime::new()?.block_on(rhema_cli::performance::run_performance_command(&rhema, &subcommand))
+            tokio::runtime::Runtime::new()?.block_on(crate::performance::run_performance_command(&rhema, &subcommand))
         }
         Commands::Config { subcommand } => {
-            rhema_cli::config::run(&rhema, &subcommand)
+            crate::config::run(&rhema, &subcommand)
         }
         Commands::Prompt { subcommand } => {
-            rhema_cli::prompt::run(&rhema, &subcommand)
+            crate::prompt::run(&rhema, &subcommand)
         }
         Commands::ContextRules { subcommand } => {
-            rhema_cli::context_rules::run(&rhema, &subcommand)
+            crate::context_rules::run(&rhema, &subcommand)
         }
         Commands::Workflow { subcommand } => {
-            rhema_cli::workflow::run(&rhema, &subcommand)
+            crate::workflow::run(&rhema, &subcommand)
         }
         Commands::Template { subcommand } => {
-            rhema_cli::template::run(&rhema, &subcommand)
+            crate::template::run(&rhema, &subcommand)
         }
         Commands::Interactive { config, no_auto_complete, no_syntax_highlighting, no_context_aware } => {
-            rhema_cli::interactive::run_interactive_with_config(
+            crate::interactive::run_interactive_with_config(
                 rhema,
                 config.as_deref(),
                 no_auto_complete,

@@ -3,7 +3,6 @@ name = "rhema"
 version = "0.1.0"
 edition = "2021"
 authors = ["Cory Parent <cory.parent@gmail.com>"]
-description = "Rhema Protocol CLI - A standardized protocol for managing AI agent context through distributed YAML files in Git repositories"
 license = "Apache-2.0"
 repository = "https://github.com/fugue-ai/rhema"
 homepage = "https://github.com/fugue-ai/rhema"
@@ -12,7 +11,33 @@ readme = "README.md"
 keywords = ["git", "ai", "context", "yaml", "protocol", "agent", "cli"]
 categories = ["command-line-utilities", "development-tools", "configuration"]
 
-[dependencies]
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/query", 
+    "crates/git",
+    "crates/ai",
+    "crates/mcp",
+    "crates/config",
+    "crates/monitoring",
+    "crates/integrations",
+    "crates/cli"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Cory Parent <cory.parent@gmail.com>"]
+license = "Apache-2.0"
+repository = "https://github.com/fugue-ai/rhema"
+homepage = "https://github.com/fugue-ai/rhema"
+documentation = "https://docs.rs/rhema"
+readme = "README.md"
+keywords = ["git", "ai", "context", "yaml", "protocol", "agent", "cli"]
+categories = ["command-line-utilities", "development-tools", "configuration"]
+
+[workspace.dependencies]
 # Core dependencies
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
@@ -69,7 +94,17 @@ async-trait = "0.1"
 reqwest = { version = "0.11", features = ["json"] }
 notify = "6.1"
 
-[dev-dependencies]
+# AI Service dependencies
+openai = "1.0"
+anthropic = "0.0.8"
+
+# Additional CLI dependencies
+dialoguer = "0.11"
+console = "0.15"
+markdown = "0.3"
+syntect = "5.1"
+
+# Dev dependencies
 tempfile = "3.8"
 assert_fs = "1.1"
 predicates = "3.0"
@@ -85,9 +120,26 @@ trycmd = "0.15"
 env_logger = "0.10"
 rand = "0.8"
 
-[[bin]]
-name = "rhema"
-path = "src/main.rs"
+
+
+[dependencies]
+# Internal crates
+rhema-core = { path = "crates/core" }
+rhema-query = { path = "crates/query" }
+rhema-git = { path = "crates/git" }
+rhema-ai = { path = "crates/ai" }
+rhema-mcp = { path = "crates/mcp" }
+rhema-config = { path = "crates/config" }
+rhema-monitoring = { path = "crates/monitoring" }
+rhema-integrations = { path = "crates/integrations" }
+rhema-cli = { path = "crates/cli" }
+
+# External dependencies
+anyhow = "1.0"
+clap = { version = "4.4", features = ["derive"] }
+serde_yaml = "0.9"
+chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1.0", features = ["full"] }
 
 [profile.release]
 opt-level = 3

@@ -96,6 +96,68 @@ fn test_init_command_with_dependencies() -> Result<(), Box<dyn std::error::Error
 }
 
 #[test]
+fn test_init_command_with_existing_rhema_directory() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = TempDir::new()?;
+    let temp_path = temp_dir.path();
+    
+    // Initialize git repository
+    let _repo = git2::Repository::init(temp_path)?;
+    std::env::set_current_dir(temp_path)?;
+    
+    // Create .rhema directory but no rhema files
+    let rhema_dir = temp_path.join(".rhema");
+    std::fs::create_dir_all(&rhema_dir)?;
+    
+    // Add a non-rhema file to the directory
+    std::fs::write(rhema_dir.join("some_other_file.txt"), "This is not a rhema file")?;
+    
+    // Run init command - should succeed
+    let output = run_rhema_command(&["init", "--name", "test-scope", "--type", "service"])?;
+    
+    // Verify output contains expected content
+    assert!(output.contains("test-scope"));
+    assert!(output.contains("service"));
+    
+    // Verify rhema files were created
+    assert!(rhema_dir.join("rhema.yaml").exists());
+    assert!(rhema_dir.join("knowledge.yaml").exists());
+    assert!(rhema_dir.join("todos.yaml").exists());
+    assert!(rhema_dir.join("decisions.yaml").exists());
+    assert!(rhema_dir.join("patterns.yaml").exists());
+    assert!(rhema_dir.join("conventions.yaml").exists());
+    
+    // Verify the original non-rhema file still exists
+    assert!(rhema_dir.join("some_other_file.txt").exists());
+    
+    Ok(())
+}
+
+#[test]
+fn test_init_command_with_existing_rhema_files() {
+    let temp_dir = TempDir::new().unwrap();
+    let temp_path = temp_dir.path();
+    
+    // Initialize git repository
+    let _repo = git2::Repository::init(temp_path).unwrap();
+    std::env::set_current_dir(temp_path).unwrap();
+    
+    // Create .rhema directory with existing rhema files
+    let rhema_dir = temp_path.join(".rhema");
+    std::fs::create_dir_all(&rhema_dir).unwrap();
+    
+    // Create an existing rhema.yaml file
+    std::fs::write(rhema_dir.join("rhema.yaml"), "name: existing-scope").unwrap();
+    
+    // Run init command - should fail
+    let result = run_rhema_command(&["init", "--name", "test-scope", "--type", "service"]);
+    assert!(result.is_err());
+    
+    let error_msg = result.unwrap_err().to_string();
+    assert!(error_msg.contains("Rhema files already exist"));
+    assert!(error_msg.contains("rhema.yaml"));
+}
+
+#[test]
 fn test_query_command() -> Result<(), Box<dyn std::error::Error>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;

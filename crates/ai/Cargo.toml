@@ -1,0 +1,31 @@
+[package]
+name = "rhema-ai"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+description = "AI service integration and context injection for Rhema"
+keywords = ["ai", "context", "injection", "service"]
+categories = ["development-tools"]
+
+[dependencies]
+rhema-core = { path = "../core" }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+reqwest = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time"] }
+cached = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+assert_fs = { workspace = true }
+predicates = { workspace = true } 

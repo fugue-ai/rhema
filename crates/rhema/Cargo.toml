@@ -1,0 +1,51 @@
+[package]
+name = "rhema"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+description = "Rhema Protocol CLI - A standardized protocol for managing AI agent context through distributed YAML files in Git repositories"
+keywords = ["git", "ai", "context", "yaml", "protocol", "agent", "cli"]
+categories = ["command-line-utilities", "development-tools", "configuration"]
+
+[[bin]]
+name = "rhema"
+path = "src/main.rs"
+
+[dependencies]
+rhema-core = { path = "../core" }
+rhema-query = { path = "../query" }
+rhema-git = { path = "../git" }
+rhema-ai = { path = "../ai" }
+rhema-mcp = { path = "../mcp" }
+rhema-config = { path = "../config" }
+rhema-monitoring = { path = "../monitoring" }
+rhema-integrations = { path = "../integrations" }
+rhema-cli = { path = "../cli" }
+
+# Core dependencies for remaining modules
+serde = { workspace = true, features = ["derive"] }
+serde_yaml = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+walkdir = { workspace = true }
+git2 = { workspace = true }
+dirs = { workspace = true }
+lazy_static = { workspace = true }
+regex = { workspace = true }
+validator = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+toml = { workspace = true }
+rustyline = { workspace = true }
+reqwest = { workspace = true }
+redis = { workspace = true }
+notify = { workspace = true }
+bincode = { workspace = true }
+prometheus = { workspace = true } 
