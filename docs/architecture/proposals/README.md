@@ -438,6 +438,29 @@ Move the specification component of Rhema into its own dedicated repository call
 
 ---
 
+### 🏷️ [Agent Naming Convention Enforcement System](./0020-agent-naming-convention-enforcement.md)
+
+
+**Status**: ❌ **Not Started**  
+**Priority**: High  
+**Effort**: 16-20 weeks  
+
+Implement a comprehensive naming convention enforcement system that validates and enforces consistent naming patterns across different stages of the AI agent lifecycle, from context creation to code generation and deployment.
+
+**Key Features**:
+
+- Lifecycle-aware validation with stage-specific naming rules
+
+- Real-time enforcement during agent operations with auto-correction
+
+- Contextual rule application based on artifact type and language
+
+- Intelligent suggestion generation for naming violations
+
+- Team coordination features for consistent naming across multiple agents
+
+---
+
 ## Proposal Status Overview
 
 
@@ -462,6 +485,7 @@ Move the specification component of Rhema into its own dedicated repository call
 | Multi-Agent Coordination Monitoring System | ❌ Not Started | Critical | 16-20 weeks | Q2-Q3 2025 |
 | CRDT Applications in Rhema | ❌ Not Started | High | 18-24 weeks | Q3-Q4 2025 |
 | Rhema Specification Repository Separation | ❌ Not Started | High | 6-8 weeks | Q2 2025 |
+| Agent Naming Convention Enforcement System | ❌ Not Started | High | 16-20 weeks | Q2-Q3 2025 |
 
 ## Priority Matrix
 
