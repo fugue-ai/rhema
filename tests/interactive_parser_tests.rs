@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema::commands::interactive_parser::InteractiveCommandParser;
+use rhema_cli::interactive_parser::InteractiveCommandParser;
 
 #[test]
 fn test_parse_input_basic() {
@@ -113,4 +113,33 @@ fn test_reset() {
     parser.reset();
     assert_eq!(parser.command(), Some("todo"));
     assert_eq!(parser.next(), Some("todo"));
+}
+
+#[test]
+fn test_interactive_builder_integration() {
+    use rhema_cli::{Rhema, RhemaResult};
+    use rhema_cli::interactive_builder::InteractiveBuilder;
+    
+    // Test that we can create a builder instance
+    let rhema = Rhema::new().unwrap();
+    let builder = InteractiveBuilder::new(rhema);
+    
+    // Test that the builder can be created successfully
+    assert!(true); // Just verify it doesn't panic
+}
+
+#[test]
+fn test_interactive_parser_comprehensive() {
+    // Test comprehensive parsing scenarios
+    let test_cases = vec![
+        ("todo add \"Simple task\"", vec!["todo", "add", "Simple task"]),
+        ("todo add \"Task with spaces\" --priority high", vec!["todo", "add", "Task with spaces", "--priority", "high"]),
+        ("insight record \"Database optimization\" --content \"Optimized queries\"", vec!["insight", "record", "Database optimization", "--content", "Optimized queries"]),
+        ("pattern add \"Test Pattern\" --description \"A test pattern\"", vec!["pattern", "add", "Test Pattern", "--description", "A test pattern"]),
+    ];
+    
+    for (input, expected) in test_cases {
+        let parser = InteractiveCommandParser::new(input);
+        assert_eq!(parser.parts, expected, "Failed for input: {}", input);
+    }
 }

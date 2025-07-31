@@ -26,7 +26,7 @@ use colored::*;
 #[derive(Debug)]
 pub struct InteractiveCommandParser {
     _input: String,
-    parts: Vec<String>,
+    pub parts: Vec<String>,
     current_pos: usize,
 }
 
