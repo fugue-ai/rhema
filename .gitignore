@@ -78,3 +78,7 @@ docker-compose.override.yml
 # CI/CD
 .github/workflows/local.yml
 .gitlab-ci.local.yml 
+
+# MkDocs build output
+site/
+docs/.cache/ 
