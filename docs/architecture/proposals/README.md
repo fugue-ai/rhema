@@ -78,9 +78,11 @@ Integrate LOCOMO (Language Model Context Optimization) benchmarks into Rhema to 
 ### 🤖 [RAG (Retrieval-Augmented Generation) Integration](./0004-rag-integration.md)
 
 
-**Status**: ❌ **Not Started**  
+**Status**: ❌ **REJECTED**  
 **Priority**: High  
 **Effort**: 13-18 weeks  
+
+*This proposal has been rejected in favor of the [Unified RAG and K/V Local Store System](./0022-unified-rag-kv-store.md) proposal.*
 
 Integrate RAG capabilities to transform Rhema from a structured context management system into an intelligent, proactive knowledge assistant with semantic understanding.
 
@@ -461,6 +463,58 @@ Implement a comprehensive naming convention enforcement system that validates an
 
 ---
 
+### 🗄️ [Shared Global Cache System for Large Token Sets and Objects](./0021-shared-global-cache-system.md)
+
+
+**Status**: ❌ **REJECTED**  
+**Priority**: High  
+**Effort**: 10-16 weeks  
+
+*This proposal has been rejected in favor of the [Unified RAG and K/V Local Store System](./0022-unified-rag-kv-store.md) proposal.*
+
+Implement a comprehensive shared global cache system that enables Rhema's local MCP server to cache large token sets, documentation, and other expensive-to-compute objects across sessions, significantly reducing task overhead and improving performance.
+
+**Key Features**:
+
+- Multi-tier caching system with memory, disk, and optional Redis storage
+
+- Cross-session persistence for cache entries that survive MCP server restarts
+
+- Intelligent object lifecycle management with TTL and eviction policies
+
+- Automatic compression and serialization optimization for large objects
+
+- Comprehensive CLI commands for cache management and monitoring
+
+- Transparent integration with existing MCP server and lock file system
+
+---
+
+### 🧠 [Unified RAG and K/V Local Store System](./0022-unified-rag-kv-store.md)
+
+
+**Status**: ❌ **Not Started**  
+**Priority**: Critical  
+**Effort**: 16-22 weeks  
+
+Implement a unified system that combines Retrieval-Augmented Generation (RAG) capabilities with a sophisticated shared global cache system to create an intelligent, high-performance knowledge management platform for Rhema that provides semantic search, intelligent caching, and proactive context management.
+
+**Key Features**:
+
+- Unified knowledge engine combining semantic search, vector storage, and intelligent caching
+
+- Semantic-aware multi-tier storage with memory, disk, and network layers
+
+- Proactive context management with AI-driven suggestions and knowledge discovery
+
+- Cross-session persistence with semantic awareness and intelligent tiering
+
+- Comprehensive CLI integration with unified knowledge management commands
+
+- Advanced monitoring and analytics for both RAG and cache performance
+
+---
+
 ## Proposal Status Overview
 
 
@@ -469,7 +523,7 @@ Implement a comprehensive naming convention enforcement system that validates an
 | MCP Daemon Implementation | ✅ Completed | High | 3-4 weeks | December 2024 |
 | Task Scoring for Agentic Development | ✅ Accepted | Critical | 8-12 weeks | Q2 2025 |
 | LOCOMO Benchmarks Integration | ❌ Not Started | High | 10-14 weeks | Q2 2025 |
-| RAG Integration | ❌ Not Started | High | 13-18 weeks | Q3 2025 |
+| RAG Integration | ❌ Rejected | High | 13-18 weeks | Q3 2025 |
 | Action Protocol Integration | ❌ Not Started | Critical | 9-13 weeks | Q2 2025 |
 | Rhema Lock File System | ✅ Accepted | High | 4-6 weeks | Q1 2025 |
 | Enhanced Dependency Management | ❌ Not Started | High | 12 weeks | Q2 2025 |
@@ -486,6 +540,8 @@ Implement a comprehensive naming convention enforcement system that validates an
 | CRDT Applications in Rhema | ❌ Not Started | High | 18-24 weeks | Q3-Q4 2025 |
 | Rhema Specification Repository Separation | ❌ Not Started | High | 6-8 weeks | Q2 2025 |
 | Agent Naming Convention Enforcement System | ❌ Not Started | High | 16-20 weeks | Q2-Q3 2025 |
+| Shared Global Cache System for Large Token Sets and Objects | ❌ Rejected | High | 10-16 weeks | Q2-Q3 2025 |
+| Unified RAG and K/V Local Store System | ❌ Not Started | Critical | 16-22 weeks | Q2-Q3 2025 |
 
 ## Priority Matrix
 
@@ -503,12 +559,12 @@ Implement a comprehensive naming convention enforcement system that validates an
 
 - **Multi-Agent Coordination Monitoring System** - Critical for detecting and preventing coordination problems in multi-agent setups
 
+- **Unified RAG and K/V Local Store System** - Transformative knowledge management and caching platform for AI agents
+
 ### 🟡 High Priority (Next 4-6 months)
 
 
 - **LOCOMO Benchmarks Integration** - Performance validation and optimization
-
-- **RAG Integration** - Enhanced AI agent capabilities
 
 - **Enhanced Dependency Management** - Improved dependency tracking and impact analysis
 
