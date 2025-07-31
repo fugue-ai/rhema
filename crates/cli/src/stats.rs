@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use crate::{Rhema, RhemaResult};
 use crate::file_ops;
+use crate::{Rhema, RhemaResult};
 use colored::*;
 use serde_yaml;
 use std::collections::HashMap;
@@ -24,19 +24,19 @@ use walkdir::WalkDir;
 pub fn run(rhema: &Rhema) -> RhemaResult<()> {
     println!("📊 Rhema Statistics");
     println!("{}", "─".repeat(80));
-    
+
     let scopes = rhema.discover_scopes()?;
-    
+
     // Scope statistics
     println!("📁 Scope Statistics:");
     println!("  Total scopes: {}", scopes.len().to_string().bright_blue());
-    
+
     let mut scope_types = HashMap::new();
     let mut total_files = 0;
-    
+
     for scope in &scopes {
         *scope_types.entry(&scope.definition.scope_type).or_insert(0) += 1;
-        
+
         // Count files in scope
         for entry in WalkDir::new(&scope.path)
             .follow_links(true)
@@ -49,38 +49,45 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
             }
         }
     }
-    
-    println!("  Total YAML files: {}", total_files.to_string().bright_blue());
+
+    println!(
+        "  Total YAML files: {}",
+        total_files.to_string().bright_blue()
+    );
     println!("  Scope types:");
     for (scope_type, count) in scope_types {
         println!("    • {}: {}", scope_type, count.to_string().green());
     }
-    
+
     // Context entry statistics
     println!("\n📋 Context Entry Statistics:");
-    
+
     let mut total_todos = 0;
     let mut total_insights = 0;
     let mut total_patterns = 0;
     let mut total_decisions = 0;
     let mut total_conventions = 0;
-    
+
     let mut todo_status_counts = HashMap::new();
     let mut todo_priority_counts = HashMap::new();
     let mut insight_confidence_counts = HashMap::new();
     let mut pattern_usage_counts = HashMap::new();
     let mut decision_status_counts = HashMap::new();
-    
+
     for scope in &scopes {
         // Count todos
         if let Ok(todos) = file_ops::list_todos(&scope.path, None, None, None) {
             total_todos += todos.len();
             for todo in todos {
-                *todo_status_counts.entry(format!("{:?}", todo.status)).or_insert(0) += 1;
-                *todo_priority_counts.entry(format!("{:?}", todo.priority)).or_insert(0) += 1;
+                *todo_status_counts
+                    .entry(format!("{:?}", todo.status))
+                    .or_insert(0) += 1;
+                *todo_priority_counts
+                    .entry(format!("{:?}", todo.priority))
+                    .or_insert(0) += 1;
             }
         }
-        
+
         // Count insights
         if let Ok(insights) = file_ops::list_knowledge(&scope.path, None, None, None) {
             total_insights += insights.len();
@@ -90,23 +97,27 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
                 }
             }
         }
-        
+
         // Count patterns
         if let Ok(patterns) = file_ops::list_patterns(&scope.path, None, None, None) {
             total_patterns += patterns.len();
             for pattern in patterns {
-                *pattern_usage_counts.entry(format!("{:?}", pattern.usage)).or_insert(0) += 1;
+                *pattern_usage_counts
+                    .entry(format!("{:?}", pattern.usage))
+                    .or_insert(0) += 1;
             }
         }
-        
+
         // Count decisions
         if let Ok(decisions) = file_ops::list_decisions(&scope.path, None, None) {
             total_decisions += decisions.len();
             for decision in decisions {
-                *decision_status_counts.entry(format!("{:?}", decision.status)).or_insert(0) += 1;
+                *decision_status_counts
+                    .entry(format!("{:?}", decision.status))
+                    .or_insert(0) += 1;
             }
         }
-        
+
         // Count conventions
         let conventions_file = scope.path.join("conventions.yaml");
         if conventions_file.exists() {
@@ -117,7 +128,7 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
             }
         }
     }
-    
+
     println!("  📝 Todos: {}", total_todos.to_string().bright_blue());
     if !todo_status_counts.is_empty() {
         println!("    Status breakdown:");
@@ -131,40 +142,52 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
             println!("      • {}: {}", priority, count.to_string().green());
         }
     }
-    
-    println!("  💡 Insights: {}", total_insights.to_string().bright_blue());
+
+    println!(
+        "  💡 Insights: {}",
+        total_insights.to_string().bright_blue()
+    );
     if !insight_confidence_counts.is_empty() {
         println!("    Confidence breakdown:");
         for (confidence, count) in &insight_confidence_counts {
             println!("      • {}/10: {}", confidence, count.to_string().green());
         }
     }
-    
-    println!("  🔄 Patterns: {}", total_patterns.to_string().bright_blue());
+
+    println!(
+        "  🔄 Patterns: {}",
+        total_patterns.to_string().bright_blue()
+    );
     if !pattern_usage_counts.is_empty() {
         println!("    Usage breakdown:");
         for (usage, count) in &pattern_usage_counts {
             println!("      • {}: {}", usage, count.to_string().green());
         }
     }
-    
-    println!("  🎯 Decisions: {}", total_decisions.to_string().bright_blue());
+
+    println!(
+        "  🎯 Decisions: {}",
+        total_decisions.to_string().bright_blue()
+    );
     if !decision_status_counts.is_empty() {
         println!("    Status breakdown:");
         for (status, count) in &decision_status_counts {
             println!("      • {}: {}", status, count.to_string().green());
         }
     }
-    
-    println!("  📏 Conventions: {}", total_conventions.to_string().bright_blue());
-    
+
+    println!(
+        "  📏 Conventions: {}",
+        total_conventions.to_string().bright_blue()
+    );
+
     // Activity metrics
     println!("\n📈 Activity Metrics:");
-    
+
     let mut recent_activity = 0;
     let mut oldest_entry = None;
     let mut newest_entry = None;
-    
+
     for scope in &scopes {
         // Check todos
         if let Ok(todos) = file_ops::list_todos(&scope.path, None, None, None) {
@@ -174,7 +197,7 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
                         recent_activity += 1;
                     }
                 }
-                
+
                 if oldest_entry.is_none() || todo.created_at < oldest_entry.unwrap() {
                     oldest_entry = Some(todo.created_at);
                 }
@@ -183,7 +206,7 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
                 }
             }
         }
-        
+
         // Check insights
         if let Ok(insights) = file_ops::list_knowledge(&scope.path, None, None, None) {
             for insight in insights {
@@ -195,7 +218,7 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
                 }
             }
         }
-        
+
         // Check patterns
         if let Ok(patterns) = file_ops::list_patterns(&scope.path, None, None, None) {
             for pattern in patterns {
@@ -207,7 +230,7 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
                 }
             }
         }
-        
+
         // Check decisions
         if let Ok(decisions) = file_ops::list_decisions(&scope.path, None, None) {
             for decision in decisions {
@@ -220,22 +243,40 @@ pub fn run(rhema: &Rhema) -> RhemaResult<()> {
             }
         }
     }
-    
-    println!("  Recent activity (last 7 days): {} completed todos", recent_activity.to_string().bright_blue());
-    
+
+    println!(
+        "  Recent activity (last 7 days): {} completed todos",
+        recent_activity.to_string().bright_blue()
+    );
+
     if let Some(oldest) = oldest_entry {
-        println!("  Oldest entry: {}", oldest.format("%Y-%m-%d %H:%M").to_string().bright_blue());
+        println!(
+            "  Oldest entry: {}",
+            oldest.format("%Y-%m-%d %H:%M").to_string().bright_blue()
+        );
     }
-    
+
     if let Some(newest) = newest_entry {
-        println!("  Newest entry: {}", newest.format("%Y-%m-%d %H:%M").to_string().bright_blue());
+        println!(
+            "  Newest entry: {}",
+            newest.format("%Y-%m-%d %H:%M").to_string().bright_blue()
+        );
     }
-    
+
     // Summary
-    let total_entries = total_todos + total_insights + total_patterns + total_decisions + total_conventions;
+    let total_entries =
+        total_todos + total_insights + total_patterns + total_decisions + total_conventions;
     println!("\n📊 Summary:");
-    println!("  Total context entries: {}", total_entries.to_string().bright_blue());
-    println!("  Average entries per scope: {:.1}", (total_entries as f64 / scopes.len() as f64).to_string().bright_blue());
-    
+    println!(
+        "  Total context entries: {}",
+        total_entries.to_string().bright_blue()
+    );
+    println!(
+        "  Average entries per scope: {:.1}",
+        (total_entries as f64 / scopes.len() as f64)
+            .to_string()
+            .bright_blue()
+    );
+
     Ok(())
-} 
+}

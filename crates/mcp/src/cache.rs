@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-use std::sync::Arc;
-use std::time::{Duration, Instant};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
-
 use rhema_core::{RhemaError, RhemaResult};
-
 
 /// Cache entry with metadata
 #[derive(Debug, Clone)]
@@ -75,11 +73,15 @@ where
 
         let helper = CacheEntryHelper::deserialize(deserializer)?;
         let now = Instant::now();
-        
+
         Ok(CacheEntry {
             data: helper.data,
-            created_at: now.checked_sub(Duration::from_secs(helper.created_at)).unwrap_or(now),
-            accessed_at: now.checked_sub(Duration::from_secs(helper.accessed_at)).unwrap_or(now),
+            created_at: now
+                .checked_sub(Duration::from_secs(helper.created_at))
+                .unwrap_or(now),
+            accessed_at: now
+                .checked_sub(Duration::from_secs(helper.accessed_at))
+                .unwrap_or(now),
             access_count: helper.access_count,
             ttl: Duration::from_secs(helper.ttl),
         })
@@ -141,11 +143,12 @@ impl CacheManager {
     /// Create a new cache manager
     pub async fn new(config: &super::CacheManagerConfig) -> RhemaResult<Self> {
         let memory_cache = Arc::new(DashMap::new());
-        
+
         let redis_client = if config.redis_enabled {
             if let Some(redis_url) = &config.redis_url {
-                let client = redis::Client::open(redis_url.as_str())
-                    .map_err(|e| RhemaError::InvalidInput(format!("Failed to create Redis client: {}", e)))?;
+                let client = redis::Client::open(redis_url.as_str()).map_err(|e| {
+                    RhemaError::InvalidInput(format!("Failed to create Redis client: {}", e))
+                })?;
                 Some(Arc::new(client))
             } else {
                 None
@@ -189,7 +192,7 @@ impl CacheManager {
                     self.update_stats_miss().await;
                     return Ok(None);
                 }
-                
+
                 entry.touch();
                 self.update_stats_hit().await;
                 return Ok(Some(entry.data.clone()));
@@ -334,14 +337,14 @@ impl CacheManager {
     async fn set_in_memory(&self, key: &str, value: Value) {
         let ttl = Duration::from_secs(self.config.ttl_seconds);
         let entry = CacheEntry::new(value, ttl);
-        
+
         // Check if we need to evict entries
         if self.memory_cache.len() >= self.config.max_size {
             self.evict_lru().await;
         }
-        
+
         self.memory_cache.insert(key.to_string(), entry);
-        
+
         // Update stats
         let mut stats = self.stats.write().await;
         stats.total_entries = self.memory_cache.len();
@@ -367,32 +370,45 @@ impl CacheManager {
     }
 
     async fn get_from_redis(&self, client: &redis::Client, key: &str) -> RhemaResult<Value> {
-        let mut conn = client.get_async_connection().await
+        let mut conn = client
+            .get_async_connection()
+            .await
             .map_err(|e| RhemaError::InvalidInput(format!("Redis connection failed: {}", e)))?;
-        
+
         let result: Option<String> = redis::cmd("GET")
             .arg(key)
             .query_async(&mut conn)
             .await
             .map_err(|e| RhemaError::InvalidInput(format!("Redis GET failed: {}", e)))?;
-        
+
         match result {
             Some(data) => {
-                let value: Value = serde_json::from_str(&data)
-                    .map_err(|e| RhemaError::InvalidInput(format!("Failed to deserialize Redis value: {}", e)))?;
+                let value: Value = serde_json::from_str(&data).map_err(|e| {
+                    RhemaError::InvalidInput(format!("Failed to deserialize Redis value: {}", e))
+                })?;
                 Ok(value)
             }
-            None => Err(RhemaError::InvalidInput("Key not found in Redis".to_string())),
+            None => Err(RhemaError::InvalidInput(
+                "Key not found in Redis".to_string(),
+            )),
         }
     }
 
-    async fn set_in_redis(&self, client: &redis::Client, key: &str, value: Value, ttl: Duration) -> RhemaResult<()> {
-        let mut conn = client.get_async_connection().await
+    async fn set_in_redis(
+        &self,
+        client: &redis::Client,
+        key: &str,
+        value: Value,
+        ttl: Duration,
+    ) -> RhemaResult<()> {
+        let mut conn = client
+            .get_async_connection()
+            .await
             .map_err(|e| RhemaError::InvalidInput(format!("Redis connection failed: {}", e)))?;
-        
+
         let data = serde_json::to_string(&value)
             .map_err(|e| RhemaError::InvalidInput(format!("Failed to serialize value: {}", e)))?;
-        
+
         redis::cmd("SETEX")
             .arg(key)
             .arg(ttl.as_secs())
@@ -400,32 +416,36 @@ impl CacheManager {
             .query_async::<_, ()>(&mut conn)
             .await
             .map_err(|e| RhemaError::InvalidInput(format!("Redis SETEX failed: {}", e)))?;
-        
+
         Ok(())
     }
 
     async fn delete_from_redis(&self, client: &redis::Client, key: &str) -> RhemaResult<()> {
-        let mut conn = client.get_async_connection().await
+        let mut conn = client
+            .get_async_connection()
+            .await
             .map_err(|e| RhemaError::InvalidInput(format!("Redis connection failed: {}", e)))?;
-        
+
         redis::cmd("DEL")
             .arg(key)
             .query_async::<_, ()>(&mut conn)
             .await
             .map_err(|e| RhemaError::InvalidInput(format!("Redis DEL failed: {}", e)))?;
-        
+
         Ok(())
     }
 
     async fn clear_redis(&self, client: &redis::Client) -> RhemaResult<()> {
-        let mut conn = client.get_async_connection().await
+        let mut conn = client
+            .get_async_connection()
+            .await
             .map_err(|e| RhemaError::InvalidInput(format!("Redis connection failed: {}", e)))?;
-        
+
         redis::cmd("FLUSHDB")
             .query_async::<_, ()>(&mut conn)
             .await
             .map_err(|e| RhemaError::InvalidInput(format!("Redis FLUSHDB failed: {}", e)))?;
-        
+
         Ok(())
     }
 
@@ -472,10 +492,10 @@ mod tests {
         // Test set and get
         let key = "test_key";
         let value = serde_json::json!({"data": "test_value"});
-        
+
         cache.set(key, value.clone()).await.unwrap();
         let retrieved = cache.get(key).await.unwrap();
-        
+
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap(), value);
 
@@ -499,18 +519,18 @@ mod tests {
 
         let key = "expire_key";
         let value = serde_json::json!({"data": "will_expire"});
-        
+
         cache.set(key, value).await.unwrap();
-        
+
         // Should be available immediately
         assert!(cache.get(key).await.unwrap().is_some());
-        
+
         // Wait for expiration (reduced wait time to prevent hanging)
         tokio::time::sleep(Duration::from_millis(1100)).await;
-        
+
         // Manually evict expired entries
         cache.evict_expired().await.unwrap();
-        
+
         // Should be expired
         assert!(cache.get(key).await.unwrap().is_none());
     }
@@ -545,4 +565,4 @@ mod tests {
         assert_eq!(stats.hit_count, 3);
         assert!(stats.hit_rate > 0.0);
     }
-} 
+}

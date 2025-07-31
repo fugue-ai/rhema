@@ -15,46 +15,49 @@
  */
 
 // Import types from other modules
-use crate::context::{ContextProvider};
-use crate::cache::{CacheManager};
-use crate::watcher::{FileWatcher};
-use crate::auth::{AuthManager};
-use crate::sdk::{RhemaMcpServer, ContextProviderExt, Resource as SdkResource, Tool as SdkTool, Prompt as SdkPrompt, ToolResult as SdkToolResult};
+use crate::auth::AuthManager;
+use crate::cache::CacheManager;
+use crate::context::ContextProvider;
+use crate::sdk::{
+    ContextProviderExt, Prompt as SdkPrompt, Resource as SdkResource, RhemaMcpServer,
+    Tool as SdkTool, ToolResult as SdkToolResult,
+};
+use crate::watcher::FileWatcher;
 
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use tokio::sync::RwLock;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 /// MCP Daemon configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpConfig {
     /// Daemon host address
     pub host: String,
-    
+
     /// Daemon port
     pub port: u16,
-    
+
     /// Unix socket path for local communication
     pub unix_socket: Option<PathBuf>,
-    
+
     /// Redis connection URL for distributed caching
     pub redis_url: Option<String>,
-    
+
     /// Authentication settings
     pub auth: AuthConfig,
-    
+
     /// File system watching settings
     pub watcher: WatcherConfig,
-    
+
     /// Cache settings
     pub cache: CacheConfig,
-    
+
     /// Logging settings
     pub logging: LoggingConfig,
-    
+
     /// Use official MCP SDK (default: true)
     pub use_official_sdk: bool,
 }
@@ -64,13 +67,13 @@ pub struct McpConfig {
 pub struct AuthConfig {
     /// Enable authentication
     pub enabled: bool,
-    
+
     /// API key for client authentication
     pub api_key: Option<String>,
-    
+
     /// JWT secret for token-based auth
     pub jwt_secret: Option<String>,
-    
+
     /// Allowed origins for CORS
     pub allowed_origins: Vec<String>,
 }
@@ -80,19 +83,19 @@ pub struct AuthConfig {
 pub struct WatcherConfig {
     /// Enable file system watching
     pub enabled: bool,
-    
+
     /// Watch directories
     pub watch_dirs: Vec<PathBuf>,
-    
+
     /// File patterns to watch
     pub file_patterns: Vec<String>,
-    
+
     /// Debounce interval in milliseconds
     pub debounce_ms: u64,
-    
+
     /// Watch directories recursively
     pub recursive: bool,
-    
+
     /// Ignore hidden files and directories
     pub ignore_hidden: bool,
 }
@@ -102,16 +105,16 @@ pub struct WatcherConfig {
 pub struct CacheConfig {
     /// Enable in-memory caching
     pub memory_enabled: bool,
-    
+
     /// Enable Redis caching
     pub redis_enabled: bool,
-    
+
     /// Redis connection URL for distributed caching
     pub redis_url: Option<String>,
-    
+
     /// Cache TTL in seconds
     pub ttl_seconds: u64,
-    
+
     /// Maximum cache size
     pub max_size: usize,
 }
@@ -121,10 +124,10 @@ pub struct CacheConfig {
 pub struct LoggingConfig {
     /// Log level
     pub level: String,
-    
+
     /// Enable structured logging
     pub structured: bool,
-    
+
     /// Log file path
     pub file: Option<PathBuf>,
 }
@@ -226,7 +229,7 @@ impl McpDaemon {
             recursive: config.watcher.recursive,
             ignore_hidden: config.watcher.ignore_hidden,
         };
-        
+
         let cache_manager = Arc::new(CacheManager::new(&cache_config).await?);
         let file_watcher = Arc::new(FileWatcher::new(&watcher_config, repo_root).await?);
         let auth_manager = Arc::new(AuthManager::new(&config.auth)?);
@@ -257,32 +260,36 @@ impl McpDaemon {
 
     /// Start the MCP daemon
     pub async fn start(&self) -> RhemaResult<()> {
-        tracing::info!("Starting MCP daemon on {}:{}", self.config.host, self.config.port);
-        
+        tracing::info!(
+            "Starting MCP daemon on {}:{}",
+            self.config.host,
+            self.config.port
+        );
+
         // Start file watcher
         if self.config.watcher.enabled {
             self.file_watcher.start().await?;
         }
-        
+
         // Start official SDK server
         self.start_official_sdk_server().await?;
-        
+
         Ok(())
     }
 
     /// Stop the MCP daemon
     pub async fn stop(&self) -> RhemaResult<()> {
         tracing::info!("Stopping MCP daemon");
-        
+
         // Stop file watcher
         self.file_watcher.stop().await?;
-        
+
         // Close all connections
         let mut connections = self.connections.write().await;
         for (_, connection) in connections.drain() {
             connection.close().await?;
         }
-        
+
         Ok(())
     }
 
@@ -302,7 +309,11 @@ impl McpDaemon {
 
     async fn start_official_sdk_server(&self) -> RhemaResult<()> {
         if let Some(server) = &self.sdk_server {
-            tracing::info!("Starting official MCP SDK server on {}:{}", self.config.host, self.config.port);
+            tracing::info!(
+                "Starting official MCP SDK server on {}:{}",
+                self.config.host,
+                self.config.port
+            );
             server.start(&self.config).await?;
         }
         Ok(())
@@ -358,4 +369,4 @@ impl ClientConnection {
         // Implementation will be added
         Ok(())
     }
-} 
+}

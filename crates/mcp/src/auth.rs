@@ -20,8 +20,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 // use std::time::{Duration, Instant};
-use uuid::Uuid;
 use base64::Engine;
+use uuid::Uuid;
 
 /// Authentication token types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,7 +77,7 @@ impl AuthManager {
     pub fn new(config: &crate::mcp::AuthConfig) -> RhemaResult<Self> {
         let api_keys = Arc::new(RwLock::new(HashMap::new()));
         let active_sessions = Arc::new(RwLock::new(HashMap::new()));
-        
+
         let stats = Arc::new(RwLock::new(AuthStats {
             total_requests: 0,
             successful_auths: 0,
@@ -109,7 +109,7 @@ impl AuthManager {
 
         let api_keys_count = self.api_keys.read().await.len();
         let sessions_count = self.active_sessions.read().await.len();
-        
+
         let mut stats = self.stats.write().await;
         stats.active_tokens = api_keys_count + sessions_count;
         stats.total_requests += 1;
@@ -197,10 +197,19 @@ impl AuthManager {
             match self.verify_jwt_token(token, secret).await {
                 Ok(claims) => Ok(AuthResult {
                     authenticated: true,
-                    user_id: claims.get("sub").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                    permissions: claims.get("permissions")
+                    user_id: claims
+                        .get("sub")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string()),
+                    permissions: claims
+                        .get("permissions")
                         .and_then(|v| v.as_array())
-                        .map(|arr| arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|v| v.as_str())
+                                .map(|s| s.to_string())
+                                .collect()
+                        })
                         .unwrap_or_default(),
                     token_id: Some(Uuid::new_v4().to_string()),
                     error: None,
@@ -228,7 +237,7 @@ impl AuthManager {
     async fn verify_jwt_token(&self, token: &str, _secret: &str) -> RhemaResult<serde_json::Value> {
         // In a real implementation, you would use a JWT library like jsonwebtoken
         // For now, we'll implement a simple verification
-        
+
         let parts: Vec<&str> = token.split('.').collect();
         if parts.len() != 3 {
             return Err(RhemaError::InvalidInput("Invalid JWT format".to_string()));
@@ -272,11 +281,15 @@ impl AuthManager {
     }
 
     /// Create a new API key
-    pub async fn create_api_key(&self, user_id: &str, permissions: Vec<String>, ttl_hours: Option<u64>) -> RhemaResult<String> {
+    pub async fn create_api_key(
+        &self,
+        user_id: &str,
+        permissions: Vec<String>,
+        ttl_hours: Option<u64>,
+    ) -> RhemaResult<String> {
         let api_key = Uuid::new_v4().to_string();
-        let expires_at = ttl_hours.map(|hours| {
-            chrono::Utc::now() + chrono::Duration::hours(hours as i64)
-        });
+        let expires_at =
+            ttl_hours.map(|hours| chrono::Utc::now() + chrono::Duration::hours(hours as i64));
 
         let token = AuthToken {
             id: Uuid::new_v4().to_string(),
@@ -295,8 +308,15 @@ impl AuthManager {
     }
 
     /// Create a JWT token
-    pub async fn create_jwt_token(&self, user_id: &str, permissions: Vec<String>, ttl_hours: u64) -> RhemaResult<String> {
-        let _secret = self.jwt_secret.as_ref()
+    pub async fn create_jwt_token(
+        &self,
+        user_id: &str,
+        permissions: Vec<String>,
+        ttl_hours: u64,
+    ) -> RhemaResult<String> {
+        let _secret = self
+            .jwt_secret
+            .as_ref()
             .ok_or_else(|| RhemaError::InvalidInput("JWT secret not configured".to_string()))?;
 
         let now = chrono::Utc::now();
@@ -339,7 +359,7 @@ impl AuthManager {
         let api_keys = self.api_keys.read().await;
         let sessions = self.active_sessions.read().await;
         let mut stats = self.stats.write().await;
-        
+
         stats.active_tokens = api_keys.len() + sessions.len();
         let result = stats.clone();
         result
@@ -351,8 +371,8 @@ impl AuthManager {
             return false;
         }
 
-        auth_result.permissions.contains(&"*".to_string()) || 
-        auth_result.permissions.contains(&permission.to_string())
+        auth_result.permissions.contains(&"*".to_string())
+            || auth_result.permissions.contains(&permission.to_string())
     }
 
     /// Validate CORS origin
@@ -430,7 +450,7 @@ mod tests {
 
         let auth_manager = AuthManager::new(&config).unwrap();
         let result = auth_manager.authenticate(None).await.unwrap();
-        
+
         assert!(result.authenticated);
         assert_eq!(result.permissions, vec!["*"]);
     }
@@ -445,14 +465,20 @@ mod tests {
         };
 
         let auth_manager = AuthManager::new(&config).unwrap();
-        
+
         // Test valid API key
-        let result = auth_manager.authenticate(Some("ApiKey test_key")).await.unwrap();
+        let result = auth_manager
+            .authenticate(Some("ApiKey test_key"))
+            .await
+            .unwrap();
         assert!(result.authenticated);
         assert_eq!(result.user_id, Some("api_user".to_string()));
 
         // Test invalid API key
-        let result = auth_manager.authenticate(Some("ApiKey invalid_key")).await.unwrap();
+        let result = auth_manager
+            .authenticate(Some("ApiKey invalid_key"))
+            .await
+            .unwrap();
         assert!(!result.authenticated);
     }
 
@@ -467,7 +493,7 @@ mod tests {
 
         let auth_manager = AuthManager::new(&config).unwrap();
         let result = auth_manager.authenticate(None).await.unwrap();
-        
+
         assert!(!result.authenticated);
         assert!(result.error.is_some());
     }
@@ -482,8 +508,11 @@ mod tests {
         };
 
         let auth_manager = AuthManager::new(&config).unwrap();
-        let auth_result = auth_manager.authenticate(Some("ApiKey test_key")).await.unwrap();
-        
+        let auth_result = auth_manager
+            .authenticate(Some("ApiKey test_key"))
+            .await
+            .unwrap();
+
         assert!(auth_manager.has_permission(&auth_result, "read").await);
         assert!(auth_manager.has_permission(&auth_result, "write").await);
     }
@@ -498,8 +527,8 @@ mod tests {
         };
 
         let auth_manager = AuthManager::new(&config).unwrap();
-        
+
         assert!(auth_manager.validate_origin("https://example.com"));
         assert!(!auth_manager.validate_origin("https://malicious.com"));
     }
-} 
+}

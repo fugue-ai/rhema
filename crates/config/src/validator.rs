@@ -19,15 +19,11 @@ pub use super::SafetyValidator;
 
 // Re-export individual validators for direct access
 pub use super::invariants::{
-    ContextValidator,
-    DependencyValidator,
-    AgentValidator,
-    LockValidator,
-    SyncValidator,
+    AgentValidator, ContextValidator, DependencyValidator, LockValidator, SyncValidator,
 };
 
 // Re-export error types
 pub use super::SafetyViolation;
 
 // Re-export statistics
-pub use super::ValidationStatistics; 
+pub use super::ValidationStatistics;

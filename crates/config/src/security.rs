@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
+use super::global::GlobalConfig;
 use crate::config::{SafetyValidator, SafetyViolation};
 use crate::{Config, CURRENT_CONFIG_VERSION};
-use super::global::GlobalConfig;
+use chrono::{DateTime, Utc};
+use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use chrono::{DateTime, Utc};
 use validator::Validate;
-use rhema_core::RhemaResult;
 /// Security manager for Rhema CLI configuration
 pub struct SecurityManager {
     config: SecurityConfig,
@@ -39,25 +39,25 @@ pub struct SecurityConfig {
     /// Configuration version
     #[validate(length(min = 1))]
     pub version: String,
-    
+
     /// Encryption settings
     pub encryption: EncryptionSettings,
-    
+
     /// Access control settings
     pub access_control: AccessControlSettings,
-    
+
     /// Audit settings
     pub audit: AuditSettings,
-    
+
     /// Compliance settings
     pub compliance: ComplianceSettings,
-    
+
     /// Key management settings
     pub key_management: KeyManagementSettings,
-    
+
     /// Security policies
     pub policies: Vec<SecurityPolicy>,
-    
+
     /// Last updated timestamp
     pub updated_at: DateTime<Utc>,
 }
@@ -67,25 +67,25 @@ pub struct SecurityConfig {
 pub struct EncryptionSettings {
     /// Enable encryption
     pub enabled: bool,
-    
+
     /// Encryption algorithm
     pub algorithm: EncryptionAlgorithm,
-    
+
     /// Key size
     pub key_size: u32,
-    
+
     /// Key derivation function
     pub kdf: KeyDerivationFunction,
-    
+
     /// Salt size
     pub salt_size: u32,
-    
+
     /// Iteration count
     pub iteration_count: u32,
-    
+
     /// Master password required
     pub master_password_required: bool,
-    
+
     /// Key file path
     pub key_file: Option<PathBuf>,
 }
@@ -113,16 +113,16 @@ pub enum KeyDerivationFunction {
 pub struct AccessControlSettings {
     /// Enable access control
     pub enabled: bool,
-    
+
     /// Authentication method
     pub authentication_method: AuthenticationMethod,
-    
+
     /// Authorization model
     pub authorization_model: AuthorizationModel,
-    
+
     /// Session management
     pub session_management: SessionManagement,
-    
+
     /// Permission model
     pub permission_model: PermissionModel,
 }
@@ -152,13 +152,13 @@ pub enum AuthorizationModel {
 pub struct SessionManagement {
     /// Session timeout (minutes)
     pub session_timeout: u64,
-    
+
     /// Max failed attempts
     pub max_failed_attempts: u32,
-    
+
     /// Lockout duration (minutes)
     pub lockout_duration: u64,
-    
+
     /// Session storage
     pub session_storage: SessionStorage,
 }
@@ -178,10 +178,10 @@ pub enum SessionStorage {
 pub struct PermissionModel {
     /// Permission granularity
     pub granularity: PermissionGranularity,
-    
+
     /// Permission inheritance
     pub inheritance: bool,
-    
+
     /// Permission caching
     pub caching: PermissionCaching,
 }
@@ -201,10 +201,10 @@ pub enum PermissionGranularity {
 pub struct PermissionCaching {
     /// Enable caching
     pub enabled: bool,
-    
+
     /// Cache timeout (minutes)
     pub timeout: u64,
-    
+
     /// Cache size
     pub size: usize,
 }
@@ -214,16 +214,16 @@ pub struct PermissionCaching {
 pub struct AuditSettings {
     /// Enable audit logging
     pub enabled: bool,
-    
+
     /// Audit level
     pub level: AuditLevel,
-    
+
     /// Audit events
     pub events: Vec<AuditEvent>,
-    
+
     /// Audit storage
     pub storage: AuditStorage,
-    
+
     /// Audit retention
     pub retention: AuditRetention,
 }
@@ -260,10 +260,10 @@ pub enum AuditEvent {
 pub struct AuditStorage {
     /// Storage type
     pub storage_type: AuditStorageType,
-    
+
     /// Storage path
     pub path: Option<PathBuf>,
-    
+
     /// Storage configuration
     pub config: HashMap<String, String>,
 }
@@ -282,10 +282,10 @@ pub enum AuditStorageType {
 pub struct AuditRetention {
     /// Retention period (days)
     pub period: u32,
-    
+
     /// Retention policy
     pub policy: RetentionPolicy,
-    
+
     /// Archive policy
     pub archive_policy: Option<ArchivePolicy>,
 }
@@ -304,10 +304,10 @@ pub enum RetentionPolicy {
 pub struct ArchivePolicy {
     /// Archive format
     pub format: String,
-    
+
     /// Archive location
     pub location: PathBuf,
-    
+
     /// Archive compression
     pub compression: bool,
 }
@@ -317,13 +317,13 @@ pub struct ArchivePolicy {
 pub struct ComplianceSettings {
     /// Compliance framework
     pub framework: ComplianceFramework,
-    
+
     /// Compliance level
     pub level: ComplianceLevel,
-    
+
     /// Compliance checks
     pub checks: Vec<ComplianceCheck>,
-    
+
     /// Compliance reporting
     pub reporting: ComplianceReporting,
 }
@@ -353,16 +353,16 @@ pub enum ComplianceLevel {
 pub struct ComplianceCheck {
     /// Check name
     pub name: String,
-    
+
     /// Check description
     pub description: String,
-    
+
     /// Check type
     pub check_type: ComplianceCheckType,
-    
+
     /// Check criteria
     pub criteria: Vec<String>,
-    
+
     /// Check severity
     pub severity: ComplianceSeverity,
 }
@@ -392,13 +392,13 @@ pub enum ComplianceSeverity {
 pub struct ComplianceReporting {
     /// Enable reporting
     pub enabled: bool,
-    
+
     /// Report format
     pub format: ReportFormat,
-    
+
     /// Report schedule
     pub schedule: String,
-    
+
     /// Report recipients
     pub recipients: Vec<String>,
 }
@@ -418,13 +418,13 @@ pub enum ReportFormat {
 pub struct KeyManagementSettings {
     /// Key rotation
     pub key_rotation: KeyRotation,
-    
+
     /// Key storage
     pub key_storage: KeyStorage,
-    
+
     /// Key backup
     pub key_backup: KeyBackup,
-    
+
     /// Key recovery
     pub key_recovery: KeyRecovery,
 }
@@ -434,13 +434,13 @@ pub struct KeyManagementSettings {
 pub struct KeyRotation {
     /// Enable key rotation
     pub enabled: bool,
-    
+
     /// Rotation interval (days)
     pub interval: u32,
-    
+
     /// Rotation method
     pub method: RotationMethod,
-    
+
     /// Rotation notification
     pub notification: bool,
 }
@@ -458,10 +458,10 @@ pub enum RotationMethod {
 pub struct KeyStorage {
     /// Storage type
     pub storage_type: KeyStorageType,
-    
+
     /// Storage path
     pub path: Option<PathBuf>,
-    
+
     /// Storage configuration
     pub config: HashMap<String, String>,
 }
@@ -480,13 +480,13 @@ pub enum KeyStorageType {
 pub struct KeyBackup {
     /// Enable backup
     pub enabled: bool,
-    
+
     /// Backup location
     pub location: PathBuf,
-    
+
     /// Backup encryption
     pub encryption: bool,
-    
+
     /// Backup frequency
     pub frequency: String,
 }
@@ -496,10 +496,10 @@ pub struct KeyBackup {
 pub struct KeyRecovery {
     /// Enable recovery
     pub enabled: bool,
-    
+
     /// Recovery method
     pub method: RecoveryMethod,
-    
+
     /// Recovery verification
     pub verification: bool,
 }
@@ -518,13 +518,13 @@ pub enum RecoveryMethod {
 pub struct SecurityPolicy {
     /// Policy name
     pub name: String,
-    
+
     /// Policy description
     pub description: String,
-    
+
     /// Policy rules
     pub rules: Vec<SecurityRule>,
-    
+
     /// Policy enforcement
     pub enforcement: PolicyEnforcement,
 }
@@ -534,16 +534,16 @@ pub struct SecurityPolicy {
 pub struct SecurityRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule description
     pub description: String,
-    
+
     /// Rule condition
     pub condition: String,
-    
+
     /// Rule action
     pub action: SecurityAction,
-    
+
     /// Rule priority
     pub priority: u32,
 }
@@ -620,8 +620,14 @@ impl SecurityManager {
     }
 
     /// Check access permission
-    pub fn check_permission(&self, _user: &str, _resource: &str, _action: &str) -> RhemaResult<bool> {
-        self.access_control.check_permission(_user, _resource, _action)
+    pub fn check_permission(
+        &self,
+        _user: &str,
+        _resource: &str,
+        _action: &str,
+    ) -> RhemaResult<bool> {
+        self.access_control
+            .check_permission(_user, _resource, _action)
     }
 
     /// Log audit event
@@ -711,7 +717,12 @@ impl AccessControlManager {
     }
 
     /// Check permission
-    pub fn check_permission(&self, _user: &str, _resource: &str, _action: &str) -> RhemaResult<bool> {
+    pub fn check_permission(
+        &self,
+        _user: &str,
+        _resource: &str,
+        _action: &str,
+    ) -> RhemaResult<bool> {
         if !self.config.access_control.enabled {
             return Ok(true);
         }
@@ -756,12 +767,7 @@ impl AuditLogger {
             return Ok(());
         }
 
-        let log_entry = format!(
-            "{} - {:?} - {}\n",
-            Utc::now(),
-            event,
-            details
-        );
+        let log_entry = format!("{} - {:?} - {}\n", Utc::now(), event, details);
 
         // This is a simplified implementation
         // In a real implementation, you'd want to write to the log file
@@ -814,13 +820,13 @@ impl ComplianceChecker {
 pub struct ComplianceReport {
     /// Report timestamp
     pub timestamp: DateTime<Utc>,
-    
+
     /// Check results
     pub results: Vec<ComplianceCheckResult>,
-    
+
     /// Overall status
     pub overall_status: ComplianceStatus,
-    
+
     /// Summary
     pub summary: String,
 }
@@ -830,13 +836,13 @@ pub struct ComplianceReport {
 pub struct ComplianceCheckResult {
     /// Check name
     pub check_name: String,
-    
+
     /// Status
     pub status: ComplianceStatus,
-    
+
     /// Details
     pub details: String,
-    
+
     /// Timestamp
     pub timestamp: DateTime<Utc>,
 }
@@ -869,7 +875,8 @@ impl ComplianceReport {
 
     /// Update overall status
     fn update_overall_status(&mut self) {
-        let non_compliant_count = self.results
+        let non_compliant_count = self
+            .results
             .iter()
             .filter(|r| r.status == ComplianceStatus::NonCompliant)
             .count();
@@ -882,7 +889,10 @@ impl ComplianceReport {
 
         self.summary = format!(
             "{} checks passed, {} failed",
-            self.results.iter().filter(|r| r.status == ComplianceStatus::Compliant).count(),
+            self.results
+                .iter()
+                .filter(|r| r.status == ComplianceStatus::Compliant)
+                .count(),
             non_compliant_count
         );
     }
@@ -906,17 +916,18 @@ impl SecurityConfig {
     /// Load security configuration from file
     pub fn load() -> RhemaResult<Self> {
         let config_path = Self::get_config_path()?;
-        
+
         if config_path.exists() {
             let content = std::fs::read_to_string(&config_path)
                 .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-            
-            let config: Self = serde_yaml::from_str(&content)
-                .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+
+            let config: Self = serde_yaml::from_str(&content).map_err(|e| {
+                rhema_core::RhemaError::InvalidYaml {
                     file: config_path.display().to_string(),
                     message: e.to_string(),
-                })?;
-            
+                }
+            })?;
+
             config.validate_config()?;
             Ok(config)
         } else {
@@ -930,31 +941,33 @@ impl SecurityConfig {
     /// Save security configuration to file
     pub fn save(&self) -> RhemaResult<()> {
         let config_path = Self::get_config_path()?;
-        
+
         // Ensure directory exists
         if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| rhema_core::RhemaError::IoError(e))?;
+            std::fs::create_dir_all(parent).map_err(|e| rhema_core::RhemaError::IoError(e))?;
         }
-        
-        let content = serde_yaml::to_string(self)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+
+        let content =
+            serde_yaml::to_string(self).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: config_path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
-        std::fs::write(&config_path, content)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
+
+        std::fs::write(&config_path, content).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
         Ok(())
     }
 
     /// Get configuration file path
     fn get_config_path() -> RhemaResult<PathBuf> {
         let config_dir = dirs::config_dir()
-            .ok_or_else(|| rhema_core::RhemaError::ConfigError("Could not determine config directory".to_string()))?
+            .ok_or_else(|| {
+                rhema_core::RhemaError::ConfigError(
+                    "Could not determine config directory".to_string(),
+                )
+            })?
             .join("rhema");
-        
+
         Ok(config_dir.join("security.yaml"))
     }
 
@@ -969,40 +982,40 @@ impl Config for SecurityConfig {
     fn version(&self) -> &str {
         &self.version
     }
-    
+
     fn validate_config(&self) -> RhemaResult<()> {
-        self.validate()
-            .map_err(|e| rhema_core::RhemaError::ConfigError(format!("Validation failed: {}", e)))?;
+        self.validate().map_err(|e| {
+            rhema_core::RhemaError::ConfigError(format!("Validation failed: {}", e))
+        })?;
         Ok(())
     }
-    
+
     fn load_from_file(path: &Path) -> RhemaResult<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
-        let config: Self = serde_yaml::from_str(&content)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+        let content =
+            std::fs::read_to_string(path).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
+        let config: Self =
+            serde_yaml::from_str(&content).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
+
         config.validate_config()?;
         Ok(config)
     }
-    
+
     fn save_to_file(&self, path: &Path) -> RhemaResult<()> {
-        let content = serde_yaml::to_string(self)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+        let content =
+            serde_yaml::to_string(self).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
-        std::fs::write(path, content)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
+
+        std::fs::write(path, content).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
         Ok(())
     }
-    
+
     fn schema() -> serde_json::Value {
         serde_json::json!({
             "type": "object",
@@ -1018,7 +1031,7 @@ impl Config for SecurityConfig {
             "required": ["version", "encryption", "access_control", "audit", "compliance", "key_management", "policies"]
         })
     }
-    
+
     fn documentation() -> &'static str {
         "Security configuration for Rhema CLI containing encryption settings, access control, audit logging, compliance requirements, and key management."
     }
@@ -1104,9 +1117,11 @@ impl Default for AuditStorage {
     fn default() -> Self {
         Self {
             storage_type: AuditStorageType::File,
-            path: Some(dirs::data_dir()
-                .unwrap_or_else(|| PathBuf::from("~/.local/share"))
-                .join("rhema/audit.log")),
+            path: Some(
+                dirs::data_dir()
+                    .unwrap_or_else(|| PathBuf::from("~/.local/share"))
+                    .join("rhema/audit.log"),
+            ),
             config: HashMap::new(),
         }
     }
@@ -1170,9 +1185,11 @@ impl Default for KeyStorage {
     fn default() -> Self {
         Self {
             storage_type: KeyStorageType::File,
-            path: Some(dirs::config_dir()
-                .unwrap_or_else(|| PathBuf::from("~/.config"))
-                .join("rhema/keys")),
+            path: Some(
+                dirs::config_dir()
+                    .unwrap_or_else(|| PathBuf::from("~/.config"))
+                    .join("rhema/keys"),
+            ),
             config: HashMap::new(),
         }
     }
@@ -1197,4 +1214,4 @@ impl Default for KeyRecovery {
             verification: true,
         }
     }
-} 
+}

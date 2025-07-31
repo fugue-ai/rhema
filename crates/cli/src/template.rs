@@ -1,15 +1,18 @@
-use crate::{Rhema, RhemaResult, RhemaError};
+use crate::{Rhema, RhemaError, RhemaResult};
 use rhema_core::schema::{
-    TemplateLibrary, SharedTemplate, TemplateMetadata, TemplateComplexity, 
-    TemplateAccessControl, TemplateUsageStats, TemplateExport, ExportMetadata,
-    PromptPattern, Prompts, PromptInjectionMethod, UsageAnalytics, PromptVersion
+    ExportMetadata, PromptInjectionMethod, PromptPattern, PromptVersion, Prompts, SharedTemplate,
+    TemplateAccessControl, TemplateComplexity, TemplateExport, TemplateLibrary, TemplateMetadata,
+    TemplateUsageStats, UsageAnalytics,
 };
 // TODO: Implement these functions or import from appropriate module
-use crate::{load_template_library, save_template_library, load_template_export, save_template_export, load_prompts, save_prompts};
+use crate::{
+    load_prompts, load_template_export, load_template_library, save_prompts, save_template_export,
+    save_template_library,
+};
+use chrono::Utc;
 use clap::Subcommand;
 use std::path::PathBuf;
 use uuid::Uuid;
-use chrono::Utc;
 
 #[derive(Subcommand)]
 pub enum TemplateSubcommands {
@@ -79,36 +82,75 @@ pub enum TemplateSubcommands {
 
 pub fn run(rhema: &Rhema, subcommand: &TemplateSubcommands) -> RhemaResult<()> {
     match subcommand {
-        TemplateSubcommands::CreateLibrary { name, description, owner, tags, public, scope } => {
-            create_library(rhema, name, description, owner, tags, *public, scope)
-        }
-        TemplateSubcommands::ListLibraries { scope, tags } => {
-            list_libraries(rhema, scope, tags)
-        }
-        TemplateSubcommands::AddTemplate { library, name, template, description, category, complexity, language, dependencies, examples, tags, scope } => {
-            add_template(rhema, library, name, template, description, category, complexity, language, dependencies, examples, tags, scope)
-        }
-        TemplateSubcommands::ExportTemplates { templates, output_file, description, tags, scope } => {
-            export_templates(rhema, templates, output_file, description, tags, scope)
-        }
-        TemplateSubcommands::ImportTemplates { input_file, library, scope } => {
-            import_templates(rhema, input_file, library, scope)
-        }
-        TemplateSubcommands::ShareLibrary { library, target_scope, scope } => {
-            share_library(rhema, library, target_scope, scope)
-        }
-        TemplateSubcommands::DownloadTemplate { library, template, scope } => {
-            download_template(rhema, library, template, scope)
-        }
-        TemplateSubcommands::RateTemplate { library, template, rating, scope } => {
-            rate_template(rhema, library, template, *rating, scope)
-        }
-        TemplateSubcommands::ShowLibrary { library, scope } => {
-            show_library(rhema, library, scope)
-        }
-        TemplateSubcommands::ShowTemplate { library, template, scope } => {
-            show_template(rhema, library, template, scope)
-        }
+        TemplateSubcommands::CreateLibrary {
+            name,
+            description,
+            owner,
+            tags,
+            public,
+            scope,
+        } => create_library(rhema, name, description, owner, tags, *public, scope),
+        TemplateSubcommands::ListLibraries { scope, tags } => list_libraries(rhema, scope, tags),
+        TemplateSubcommands::AddTemplate {
+            library,
+            name,
+            template,
+            description,
+            category,
+            complexity,
+            language,
+            dependencies,
+            examples,
+            tags,
+            scope,
+        } => add_template(
+            rhema,
+            library,
+            name,
+            template,
+            description,
+            category,
+            complexity,
+            language,
+            dependencies,
+            examples,
+            tags,
+            scope,
+        ),
+        TemplateSubcommands::ExportTemplates {
+            templates,
+            output_file,
+            description,
+            tags,
+            scope,
+        } => export_templates(rhema, templates, output_file, description, tags, scope),
+        TemplateSubcommands::ImportTemplates {
+            input_file,
+            library,
+            scope,
+        } => import_templates(rhema, input_file, library, scope),
+        TemplateSubcommands::ShareLibrary {
+            library,
+            target_scope,
+            scope,
+        } => share_library(rhema, library, target_scope, scope),
+        TemplateSubcommands::DownloadTemplate {
+            library,
+            template,
+            scope,
+        } => download_template(rhema, library, template, scope),
+        TemplateSubcommands::RateTemplate {
+            library,
+            template,
+            rating,
+            scope,
+        } => rate_template(rhema, library, template, *rating, scope),
+        TemplateSubcommands::ShowLibrary { library, scope } => show_library(rhema, library, scope),
+        TemplateSubcommands::ShowTemplate {
+            library,
+            template,
+            scope,
+        } => show_template(rhema, library, template, scope),
     }
 }
 
@@ -127,8 +169,11 @@ fn create_library(
         rhema.get_current_scope_path()?
     };
 
-    let library_path = scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", name));
-    
+    let library_path = scope_path
+        .join(".rhema")
+        .join("template-libraries")
+        .join(format!("{}.yaml", name));
+
     // Create directory if it doesn't exist
     if let Some(parent) = library_path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -164,7 +209,11 @@ fn create_library(
 
     save_template_library(&library_path, &new_library)?;
 
-    println!("✅ Created template library '{}' at {}", name, library_path.display());
+    println!(
+        "✅ Created template library '{}' at {}",
+        name,
+        library_path.display()
+    );
     println!("   Owner: {}", owner);
     println!("   Public: {}", public);
     println!("   Use 'rhema template add-template' to add templates to this library");
@@ -172,11 +221,7 @@ fn create_library(
     Ok(())
 }
 
-fn list_libraries(
-    rhema: &Rhema,
-    scope: &Option<String>,
-    tags: &Option<String>,
-) -> RhemaResult<()> {
+fn list_libraries(rhema: &Rhema, scope: &Option<String>, tags: &Option<String>) -> RhemaResult<()> {
     let scope_path = if let Some(scope_name) = scope {
         rhema.find_scope_path(scope_name)?
     } else {
@@ -184,14 +229,14 @@ fn list_libraries(
     };
 
     let libraries_dir = scope_path.join(".rhema").join("template-libraries");
-    
+
     if !libraries_dir.exists() {
         println!("No template libraries found in {}", scope_path.display());
         return Ok(());
     }
 
     let mut libraries = Vec::new();
-    
+
     // Load all library files
     for entry in std::fs::read_dir(&libraries_dir)? {
         let entry = entry?;
@@ -206,7 +251,8 @@ fn list_libraries(
     // Filter by tags if specified
     let filtered_libraries = if let Some(tags_str) = tags {
         let filter_tags: Vec<String> = tags_str.split(',').map(|s| s.trim().to_string()).collect();
-        libraries.into_iter()
+        libraries
+            .into_iter()
             .filter(|lib| {
                 if let Some(lib_tags) = &lib.tags {
                     filter_tags.iter().any(|tag| lib_tags.contains(tag))
@@ -226,7 +272,7 @@ fn list_libraries(
 
     println!("📚 Template Libraries in {}:", scope_path.display());
     println!("{}", "=".repeat(60));
-    
+
     for library in filtered_libraries {
         println!("Name: {}", library.name);
         if let Some(desc) = library.description {
@@ -268,12 +314,16 @@ fn add_template(
         rhema.get_current_scope_path()?
     };
 
-    let library_path = scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", library));
-    
+    let library_path = scope_path
+        .join(".rhema")
+        .join("template-libraries")
+        .join(format!("{}.yaml", library));
+
     if !library_path.exists() {
-        return Err(RhemaError::InvalidCommand(
-            format!("Template library '{}' not found", library)
-        ));
+        return Err(RhemaError::InvalidCommand(format!(
+            "Template library '{}' not found",
+            library
+        )));
     }
 
     let mut template_library = load_template_library(&library_path)?;
@@ -300,7 +350,12 @@ fn add_template(
 
     // Parse examples
     let examples_vec = if let Some(examples_str) = examples {
-        Some(examples_str.split('|').map(|s| s.trim().to_string()).collect())
+        Some(
+            examples_str
+                .split('|')
+                .map(|s| s.trim().to_string())
+                .collect(),
+        )
     } else {
         None
     };
@@ -339,11 +394,14 @@ fn add_template(
     // Add template to library
     template_library.templates.push(new_template);
     template_library.updated_at = Utc::now();
-    
+
     save_template_library(&library_path, &template_library)?;
 
     println!("✅ Added template '{}' to library '{}'", name, library);
-    println!("   Template ID: {}", template_library.templates.last().unwrap().id);
+    println!(
+        "   Template ID: {}",
+        template_library.templates.last().unwrap().id
+    );
     if let Some(cat) = category {
         println!("   Category: {}", cat);
     }
@@ -369,26 +427,28 @@ fn export_templates(
     };
 
     let prompts_path = scope_path.join(".rhema").join("prompts.yaml");
-    
+
     if !prompts_path.exists() {
         return Err(RhemaError::InvalidCommand(
-            "No prompts.yaml found".to_string()
+            "No prompts.yaml found".to_string(),
         ));
     }
 
     let prompts = load_prompts(&prompts_path)?;
-    
+
     // Parse template names/IDs
     let template_names: Vec<String> = templates.split(',').map(|s| s.trim().to_string()).collect();
-    
+
     // Find matching templates
     let mut exported_templates = Vec::new();
     for template_name in template_names {
-        let template = prompts.prompts.iter()
+        let template = prompts
+            .prompts
+            .iter()
             .find(|p| p.id == template_name || p.name == template_name)
-            .ok_or_else(|| RhemaError::InvalidCommand(
-                format!("Template '{}' not found", template_name)
-            ))?;
+            .ok_or_else(|| {
+                RhemaError::InvalidCommand(format!("Template '{}' not found", template_name))
+            })?;
 
         // Convert PromptPattern to SharedTemplate
         let shared_template = SharedTemplate {
@@ -438,9 +498,16 @@ fn export_templates(
     let output_path = PathBuf::from(output_file);
     save_template_export(&output_path, &export)?;
 
-    println!("✅ Exported {} templates to {}", export.templates.len(), output_file);
+    println!(
+        "✅ Exported {} templates to {}",
+        export.templates.len(),
+        output_file
+    );
     println!("   Export version: {}", export.export_version);
-    println!("   Exported at: {}", export.exported_at.format("%Y-%m-%d %H:%M"));
+    println!(
+        "   Exported at: {}",
+        export.exported_at.format("%Y-%m-%d %H:%M")
+    );
 
     Ok(())
 }
@@ -459,45 +526,55 @@ fn import_templates(
 
     let input_path = PathBuf::from(input_file);
     if !input_path.exists() {
-        return Err(RhemaError::InvalidCommand(
-            format!("Import file '{}' not found", input_file)
-        ));
+        return Err(RhemaError::InvalidCommand(format!(
+            "Import file '{}' not found",
+            input_file
+        )));
     }
 
     let export = load_template_export(&input_path)?;
 
     if let Some(library_name) = library {
         // Import to specific library
-        let library_path = scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", library_name));
-        
+        let library_path = scope_path
+            .join(".rhema")
+            .join("template-libraries")
+            .join(format!("{}.yaml", library_name));
+
         if !library_path.exists() {
-            return Err(RhemaError::InvalidCommand(
-                format!("Template library '{}' not found", library_name)
-            ));
+            return Err(RhemaError::InvalidCommand(format!(
+                "Template library '{}' not found",
+                library_name
+            )));
         }
 
         let mut template_library = load_template_library(&library_path)?;
-        
+
         // Store the count before moving
         let template_count = export.templates.len();
-        
+
         // Add imported templates
         for template in export.templates {
             template_library.templates.push(template);
         }
-        
+
         template_library.updated_at = Utc::now();
         save_template_library(&library_path, &template_library)?;
 
-        println!("✅ Imported {} templates to library '{}'", template_count, library_name);
+        println!(
+            "✅ Imported {} templates to library '{}'",
+            template_count, library_name
+        );
     } else {
         // Import to prompts.yaml
         let prompts_path = scope_path.join(".rhema").join("prompts.yaml");
-        
+
         let mut prompts = if prompts_path.exists() {
             load_prompts(&prompts_path)?
         } else {
-            Prompts { prompts: Vec::new() }
+            Prompts {
+                prompts: Vec::new(),
+            }
         };
 
         // Import templates to prompts.yaml
@@ -518,11 +595,17 @@ fn import_templates(
 
         save_prompts(&prompts_path, &prompts)?;
 
-        println!("✅ Imported {} templates to prompts.yaml", export.templates.len());
+        println!(
+            "✅ Imported {} templates to prompts.yaml",
+            export.templates.len()
+        );
     }
 
     println!("   Source: {}", export.metadata.source_scope);
-    println!("   Exported: {}", export.exported_at.format("%Y-%m-%d %H:%M"));
+    println!(
+        "   Exported: {}",
+        export.exported_at.format("%Y-%m-%d %H:%M")
+    );
 
     Ok(())
 }
@@ -541,13 +624,20 @@ fn share_library(
 
     let target_scope_path = rhema.find_scope_path(target_scope)?;
 
-    let source_library_path = source_scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", library));
-    let target_library_path = target_scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", library));
+    let source_library_path = source_scope_path
+        .join(".rhema")
+        .join("template-libraries")
+        .join(format!("{}.yaml", library));
+    let target_library_path = target_scope_path
+        .join(".rhema")
+        .join("template-libraries")
+        .join(format!("{}.yaml", library));
 
     if !source_library_path.exists() {
-        return Err(RhemaError::InvalidCommand(
-            format!("Template library '{}' not found", library)
-        ));
+        return Err(RhemaError::InvalidCommand(format!(
+            "Template library '{}' not found",
+            library
+        )));
     }
 
     // Create target directory if it doesn't exist
@@ -558,7 +648,10 @@ fn share_library(
     // Copy library file
     std::fs::copy(&source_library_path, &target_library_path)?;
 
-    println!("✅ Shared library '{}' with scope '{}'", library, target_scope);
+    println!(
+        "✅ Shared library '{}' with scope '{}'",
+        library, target_scope
+    );
     println!("   Source: {}", source_library_path.display());
     println!("   Target: {}", target_library_path.display());
 
@@ -577,32 +670,49 @@ fn download_template(
         rhema.get_current_scope_path()?
     };
 
-    let library_path = scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", library));
-    
+    let library_path = scope_path
+        .join(".rhema")
+        .join("template-libraries")
+        .join(format!("{}.yaml", library));
+
     if !library_path.exists() {
-        return Err(RhemaError::InvalidCommand(
-            format!("Template library '{}' not found", library)
-        ));
+        return Err(RhemaError::InvalidCommand(format!(
+            "Template library '{}' not found",
+            library
+        )));
     }
 
     let mut template_library = load_template_library(&library_path)?;
-    
+
     // Find template
-    let template_index = template_library.templates.iter()
+    let template_index = template_library
+        .templates
+        .iter()
         .position(|t| t.id == template || t.name == template)
-        .ok_or_else(|| RhemaError::InvalidCommand(
-            format!("Template '{}' not found in library '{}'", template, library)
-        ))?;
+        .ok_or_else(|| {
+            RhemaError::InvalidCommand(format!(
+                "Template '{}' not found in library '{}'",
+                template, library
+            ))
+        })?;
 
     // Record download
-    template_library.templates[template_index].usage_stats.record_download();
+    template_library.templates[template_index]
+        .usage_stats
+        .record_download();
     save_template_library(&library_path, &template_library)?;
 
     let template_entry = &template_library.templates[template_index];
-    
-    println!("✅ Downloaded template '{}' from library '{}'", template_entry.name, library);
+
+    println!(
+        "✅ Downloaded template '{}' from library '{}'",
+        template_entry.name, library
+    );
     println!("   Template ID: {}", template_entry.id);
-    println!("   Downloads: {}", template_entry.usage_stats.total_downloads);
+    println!(
+        "   Downloads: {}",
+        template_entry.usage_stats.total_downloads
+    );
     println!("   Template:");
     println!("{}", template_entry.template);
 
@@ -622,60 +732,80 @@ fn rate_template(
         rhema.get_current_scope_path()?
     };
 
-    let library_path = scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", library));
-    
+    let library_path = scope_path
+        .join(".rhema")
+        .join("template-libraries")
+        .join(format!("{}.yaml", library));
+
     if !library_path.exists() {
-        return Err(RhemaError::InvalidCommand(
-            format!("Template library '{}' not found", library)
-        ));
+        return Err(RhemaError::InvalidCommand(format!(
+            "Template library '{}' not found",
+            library
+        )));
     }
 
     let mut template_library = load_template_library(&library_path)?;
-    
+
     // Find template
-    let template_index = template_library.templates.iter()
+    let template_index = template_library
+        .templates
+        .iter()
         .position(|t| t.id == template || t.name == template)
-        .ok_or_else(|| RhemaError::InvalidCommand(
-            format!("Template '{}' not found in library '{}'", template, library)
-        ))?;
+        .ok_or_else(|| {
+            RhemaError::InvalidCommand(format!(
+                "Template '{}' not found in library '{}'",
+                template, library
+            ))
+        })?;
 
     // Validate rating
     if rating < 1.0 || rating > 5.0 {
         return Err(RhemaError::InvalidCommand(
-            "Rating must be between 1.0 and 5.0".to_string()
+            "Rating must be between 1.0 and 5.0".to_string(),
         ));
     }
 
     // Add rating
-    template_library.templates[template_index].usage_stats.add_rating(rating);
+    template_library.templates[template_index]
+        .usage_stats
+        .add_rating(rating);
     save_template_library(&library_path, &template_library)?;
 
     let template_entry = &template_library.templates[template_index];
-    
-    println!("✅ Rated template '{}' with {} stars", template_entry.name, rating);
-    println!("   Average rating: {:.1}/5.0", template_entry.usage_stats.average_rating.unwrap_or(0.0));
-    println!("   Total ratings: {}", template_entry.usage_stats.rating_count);
+
+    println!(
+        "✅ Rated template '{}' with {} stars",
+        template_entry.name, rating
+    );
+    println!(
+        "   Average rating: {:.1}/5.0",
+        template_entry.usage_stats.average_rating.unwrap_or(0.0)
+    );
+    println!(
+        "   Total ratings: {}",
+        template_entry.usage_stats.rating_count
+    );
 
     Ok(())
 }
 
-fn show_library(
-    rhema: &Rhema,
-    library: &str,
-    scope: &Option<String>,
-) -> RhemaResult<()> {
+fn show_library(rhema: &Rhema, library: &str, scope: &Option<String>) -> RhemaResult<()> {
     let scope_path = if let Some(scope_name) = scope {
         rhema.find_scope_path(scope_name)?
     } else {
         rhema.get_current_scope_path()?
     };
 
-    let library_path = scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", library));
-    
+    let library_path = scope_path
+        .join(".rhema")
+        .join("template-libraries")
+        .join(format!("{}.yaml", library));
+
     if !library_path.exists() {
-        return Err(RhemaError::InvalidCommand(
-            format!("Template library '{}' not found", library)
-        ));
+        return Err(RhemaError::InvalidCommand(format!(
+            "Template library '{}' not found",
+            library
+        )));
     }
 
     let template_library = load_template_library(&library_path)?;
@@ -687,14 +817,20 @@ fn show_library(
     }
     println!("Owner: {}", template_library.owner);
     println!("Version: {}", template_library.version);
-    println!("Created: {}", template_library.created_at.format("%Y-%m-%d %H:%M"));
-    println!("Updated: {}", template_library.updated_at.format("%Y-%m-%d %H:%M"));
-    
+    println!(
+        "Created: {}",
+        template_library.created_at.format("%Y-%m-%d %H:%M")
+    );
+    println!(
+        "Updated: {}",
+        template_library.updated_at.format("%Y-%m-%d %H:%M")
+    );
+
     if let Some(access) = &template_library.access_control {
         println!("Public: {}", access.public);
         println!("Read-only: {}", access.read_only);
     }
-    
+
     if let Some(tags) = &template_library.tags {
         println!("Tags: {}", tags.join(", "));
     }
@@ -702,7 +838,7 @@ fn show_library(
 
     println!("📋 Templates ({}):", template_library.templates.len());
     println!("{}", "-".repeat(40));
-    
+
     for template in &template_library.templates {
         println!("• {}", template.name);
         if let Some(desc) = &template.description {
@@ -713,7 +849,10 @@ fn show_library(
         println!("  Downloads: {}", template.usage_stats.total_downloads);
         println!("  Uses: {}", template.usage_stats.total_uses);
         if let Some(rating) = template.usage_stats.average_rating {
-            println!("  Rating: {:.1}/5.0 ({} ratings)", rating, template.usage_stats.rating_count);
+            println!(
+                "  Rating: {:.1}/5.0 ({} ratings)",
+                rating, template.usage_stats.rating_count
+            );
         }
         if let Some(category) = &template.metadata.category {
             println!("  Category: {}", category);
@@ -739,22 +878,31 @@ fn show_template(
         rhema.get_current_scope_path()?
     };
 
-    let library_path = scope_path.join(".rhema").join("template-libraries").join(format!("{}.yaml", library));
-    
+    let library_path = scope_path
+        .join(".rhema")
+        .join("template-libraries")
+        .join(format!("{}.yaml", library));
+
     if !library_path.exists() {
-        return Err(RhemaError::InvalidCommand(
-            format!("Template library '{}' not found", library)
-        ));
+        return Err(RhemaError::InvalidCommand(format!(
+            "Template library '{}' not found",
+            library
+        )));
     }
 
     let template_library = load_template_library(&library_path)?;
-    
+
     // Find template
-    let template_entry = template_library.templates.iter()
+    let template_entry = template_library
+        .templates
+        .iter()
         .find(|t| t.id == template || t.name == template)
-        .ok_or_else(|| RhemaError::InvalidCommand(
-            format!("Template '{}' not found in library '{}'", template, library)
-        ))?;
+        .ok_or_else(|| {
+            RhemaError::InvalidCommand(format!(
+                "Template '{}' not found in library '{}'",
+                template, library
+            ))
+        })?;
 
     println!("📝 Template: {}", template_entry.name);
     println!("{}", "=".repeat(60));
@@ -763,9 +911,15 @@ fn show_template(
         println!("Description: {}", desc);
     }
     println!("Version: {}", template_entry.metadata.version);
-    println!("Created: {}", template_entry.metadata.created_at.format("%Y-%m-%d %H:%M"));
-    println!("Updated: {}", template_entry.metadata.updated_at.format("%Y-%m-%d %H:%M"));
-    
+    println!(
+        "Created: {}",
+        template_entry.metadata.created_at.format("%Y-%m-%d %H:%M")
+    );
+    println!(
+        "Updated: {}",
+        template_entry.metadata.updated_at.format("%Y-%m-%d %H:%M")
+    );
+
     if let Some(author) = &template_entry.metadata.author {
         println!("Author: {}", author);
     }
@@ -787,14 +941,23 @@ fn show_template(
     println!();
 
     println!("📊 Usage Statistics:");
-    println!("   Downloads: {}", template_entry.usage_stats.total_downloads);
+    println!(
+        "   Downloads: {}",
+        template_entry.usage_stats.total_downloads
+    );
     println!("   Uses: {}", template_entry.usage_stats.total_uses);
     if let Some(rating) = template_entry.usage_stats.average_rating {
         println!("   Average rating: {:.1}/5.0", rating);
-        println!("   Rating count: {}", template_entry.usage_stats.rating_count);
+        println!(
+            "   Rating count: {}",
+            template_entry.usage_stats.rating_count
+        );
     }
     if let Some(last_downloaded) = template_entry.usage_stats.last_downloaded {
-        println!("   Last downloaded: {}", last_downloaded.format("%Y-%m-%d %H:%M"));
+        println!(
+            "   Last downloaded: {}",
+            last_downloaded.format("%Y-%m-%d %H:%M")
+        );
     }
     if let Some(last_used) = template_entry.usage_stats.last_used {
         println!("   Last used: {}", last_used.format("%Y-%m-%d %H:%M"));
@@ -814,4 +977,4 @@ fn show_template(
     println!("{}", template_entry.template);
 
     Ok(())
-} 
+}

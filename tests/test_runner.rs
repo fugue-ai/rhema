@@ -1,16 +1,16 @@
 //! Comprehensive test runner for Rhema CLI
 //! Provides orchestration, reporting, and execution management for all test types
 
+use colored::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::path::PathBuf;
-use serde::{Serialize, Deserialize};
-use colored::*;
+use std::time::{Duration, Instant};
 
-use crate::test_config::TestConfig;
 use crate::common::{TestEnv, TestFixtures};
+use crate::test_config::TestConfig;
 
 /// Test result status
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,59 +79,59 @@ impl TestRunner {
     pub fn run_all_tests(&mut self) -> Result<TestRunnerReport, Box<dyn std::error::Error>> {
         println!("{}", "🚀 Starting Rhema CLI Test Suite".bold().green());
         println!("Configuration: {:?}", self.config);
-        
+
         let mut report = TestRunnerReport::new();
-        
+
         // Run unit tests
         if self.config.should_run_unit_tests() {
             report.unit_tests = self.run_unit_tests()?;
         }
-        
+
         // Run integration tests
         if self.config.should_run_integration_tests() {
             report.integration_tests = self.run_integration_tests()?;
         }
-        
+
         // Run performance tests
         if self.config.should_run_performance_tests() {
             report.performance_tests = self.run_performance_tests()?;
         }
-        
+
         // Run security tests
         if self.config.should_run_security_tests() {
             report.security_tests = self.run_security_tests()?;
         }
-        
+
         // Run property tests
         if self.config.should_run_property_tests() {
             report.property_tests = self.run_property_tests()?;
         }
-        
+
         // Run stress tests
         if self.config.should_run_stress_tests() {
             report.stress_tests = self.run_stress_tests()?;
         }
-        
+
         // Run load tests
         if self.config.should_run_load_tests() {
             report.load_tests = self.run_load_tests()?;
         }
-        
+
         // Run benchmarks
         if self.config.should_run_benchmarks() {
             report.benchmarks = self.run_benchmarks()?;
         }
-        
+
         report.total_duration = self.start_time.elapsed();
         self.print_summary(&report);
-        
+
         Ok(report)
     }
 
     /// Run unit tests
     fn run_unit_tests(&self) -> Result<TestSuiteResult, Box<dyn std::error::Error>> {
         println!("{}", "📋 Running Unit Tests".bold().blue());
-        
+
         let mut suite_result = TestSuiteResult {
             name: "Unit Tests".to_string(),
             total_tests: 0,
@@ -141,23 +141,35 @@ impl TestRunner {
             duration: Duration::ZERO,
             results: Vec::new(),
         };
-        
+
         let start_time = Instant::now();
-        
+
         // Run unit tests from unit_tests.rs
         let unit_test_results = self.run_test_module("unit_tests")?;
         suite_result.results.extend(unit_test_results);
-        
+
         // Run unit tests from unit/ directory
         let unit_dir_results = self.run_test_directory("unit")?;
         suite_result.results.extend(unit_dir_results);
-        
+
         suite_result.duration = start_time.elapsed();
         suite_result.total_tests = suite_result.results.len();
-        suite_result.passed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Passed)).count();
-        suite_result.failed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Failed(_))).count();
-        suite_result.skipped = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Skipped(_))).count();
-        
+        suite_result.passed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Passed))
+            .count();
+        suite_result.failed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Failed(_)))
+            .count();
+        suite_result.skipped = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Skipped(_)))
+            .count();
+
         self.print_suite_summary(&suite_result);
         Ok(suite_result)
     }
@@ -165,7 +177,7 @@ impl TestRunner {
     /// Run integration tests
     fn run_integration_tests(&self) -> Result<TestSuiteResult, Box<dyn std::error::Error>> {
         println!("{}", "🔗 Running Integration Tests".bold().blue());
-        
+
         let mut suite_result = TestSuiteResult {
             name: "Integration Tests".to_string(),
             total_tests: 0,
@@ -175,23 +187,35 @@ impl TestRunner {
             duration: Duration::ZERO,
             results: Vec::new(),
         };
-        
+
         let start_time = Instant::now();
-        
+
         // Run integration tests from integration_tests.rs
         let integration_test_results = self.run_test_module("integration_tests")?;
         suite_result.results.extend(integration_test_results);
-        
+
         // Run integration tests from integration/ directory
         let integration_dir_results = self.run_test_directory("integration")?;
         suite_result.results.extend(integration_dir_results);
-        
+
         suite_result.duration = start_time.elapsed();
         suite_result.total_tests = suite_result.results.len();
-        suite_result.passed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Passed)).count();
-        suite_result.failed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Failed(_))).count();
-        suite_result.skipped = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Skipped(_))).count();
-        
+        suite_result.passed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Passed))
+            .count();
+        suite_result.failed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Failed(_)))
+            .count();
+        suite_result.skipped = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Skipped(_)))
+            .count();
+
         self.print_suite_summary(&suite_result);
         Ok(suite_result)
     }
@@ -199,7 +223,7 @@ impl TestRunner {
     /// Run performance tests
     fn run_performance_tests(&self) -> Result<TestSuiteResult, Box<dyn std::error::Error>> {
         println!("{}", "⚡ Running Performance Tests".bold().blue());
-        
+
         let mut suite_result = TestSuiteResult {
             name: "Performance Tests".to_string(),
             total_tests: 0,
@@ -209,19 +233,31 @@ impl TestRunner {
             duration: Duration::ZERO,
             results: Vec::new(),
         };
-        
+
         let start_time = Instant::now();
-        
+
         // Run performance tests from performance/ directory
         let performance_results = self.run_test_directory("performance")?;
         suite_result.results.extend(performance_results);
-        
+
         suite_result.duration = start_time.elapsed();
         suite_result.total_tests = suite_result.results.len();
-        suite_result.passed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Passed)).count();
-        suite_result.failed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Failed(_))).count();
-        suite_result.skipped = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Skipped(_))).count();
-        
+        suite_result.passed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Passed))
+            .count();
+        suite_result.failed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Failed(_)))
+            .count();
+        suite_result.skipped = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Skipped(_)))
+            .count();
+
         self.print_suite_summary(&suite_result);
         Ok(suite_result)
     }
@@ -229,7 +265,7 @@ impl TestRunner {
     /// Run security tests
     fn run_security_tests(&self) -> Result<TestSuiteResult, Box<dyn std::error::Error>> {
         println!("{}", "🔒 Running Security Tests".bold().blue());
-        
+
         let mut suite_result = TestSuiteResult {
             name: "Security Tests".to_string(),
             total_tests: 0,
@@ -239,19 +275,31 @@ impl TestRunner {
             duration: Duration::ZERO,
             results: Vec::new(),
         };
-        
+
         let start_time = Instant::now();
-        
+
         // Run security tests from security/ directory
         let security_results = self.run_test_directory("security")?;
         suite_result.results.extend(security_results);
-        
+
         suite_result.duration = start_time.elapsed();
         suite_result.total_tests = suite_result.results.len();
-        suite_result.passed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Passed)).count();
-        suite_result.failed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Failed(_))).count();
-        suite_result.skipped = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Skipped(_))).count();
-        
+        suite_result.passed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Passed))
+            .count();
+        suite_result.failed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Failed(_)))
+            .count();
+        suite_result.skipped = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Skipped(_)))
+            .count();
+
         self.print_suite_summary(&suite_result);
         Ok(suite_result)
     }
@@ -259,7 +307,7 @@ impl TestRunner {
     /// Run property tests
     fn run_property_tests(&self) -> Result<TestSuiteResult, Box<dyn std::error::Error>> {
         println!("{}", "🎲 Running Property Tests".bold().blue());
-        
+
         let mut suite_result = TestSuiteResult {
             name: "Property Tests".to_string(),
             total_tests: 0,
@@ -269,19 +317,31 @@ impl TestRunner {
             duration: Duration::ZERO,
             results: Vec::new(),
         };
-        
+
         let start_time = Instant::now();
-        
+
         // Run property tests using proptest
         let property_results = self.run_property_test_suite()?;
         suite_result.results.extend(property_results);
-        
+
         suite_result.duration = start_time.elapsed();
         suite_result.total_tests = suite_result.results.len();
-        suite_result.passed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Passed)).count();
-        suite_result.failed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Failed(_))).count();
-        suite_result.skipped = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Skipped(_))).count();
-        
+        suite_result.passed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Passed))
+            .count();
+        suite_result.failed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Failed(_)))
+            .count();
+        suite_result.skipped = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Skipped(_)))
+            .count();
+
         self.print_suite_summary(&suite_result);
         Ok(suite_result)
     }
@@ -289,7 +349,7 @@ impl TestRunner {
     /// Run stress tests
     fn run_stress_tests(&self) -> Result<TestSuiteResult, Box<dyn std::error::Error>> {
         println!("{}", "💪 Running Stress Tests".bold().blue());
-        
+
         let mut suite_result = TestSuiteResult {
             name: "Stress Tests".to_string(),
             total_tests: 0,
@@ -299,19 +359,31 @@ impl TestRunner {
             duration: Duration::ZERO,
             results: Vec::new(),
         };
-        
+
         let start_time = Instant::now();
-        
+
         // Run stress tests
         let stress_results = self.run_stress_test_suite()?;
         suite_result.results.extend(stress_results);
-        
+
         suite_result.duration = start_time.elapsed();
         suite_result.total_tests = suite_result.results.len();
-        suite_result.passed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Passed)).count();
-        suite_result.failed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Failed(_))).count();
-        suite_result.skipped = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Skipped(_))).count();
-        
+        suite_result.passed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Passed))
+            .count();
+        suite_result.failed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Failed(_)))
+            .count();
+        suite_result.skipped = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Skipped(_)))
+            .count();
+
         self.print_suite_summary(&suite_result);
         Ok(suite_result)
     }
@@ -319,7 +391,7 @@ impl TestRunner {
     /// Run load tests
     fn run_load_tests(&self) -> Result<TestSuiteResult, Box<dyn std::error::Error>> {
         println!("{}", "📊 Running Load Tests".bold().blue());
-        
+
         let mut suite_result = TestSuiteResult {
             name: "Load Tests".to_string(),
             total_tests: 0,
@@ -329,19 +401,31 @@ impl TestRunner {
             duration: Duration::ZERO,
             results: Vec::new(),
         };
-        
+
         let start_time = Instant::now();
-        
+
         // Run load tests
         let load_results = self.run_load_test_suite()?;
         suite_result.results.extend(load_results);
-        
+
         suite_result.duration = start_time.elapsed();
         suite_result.total_tests = suite_result.results.len();
-        suite_result.passed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Passed)).count();
-        suite_result.failed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Failed(_))).count();
-        suite_result.skipped = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Skipped(_))).count();
-        
+        suite_result.passed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Passed))
+            .count();
+        suite_result.failed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Failed(_)))
+            .count();
+        suite_result.skipped = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Skipped(_)))
+            .count();
+
         self.print_suite_summary(&suite_result);
         Ok(suite_result)
     }
@@ -349,7 +433,7 @@ impl TestRunner {
     /// Run benchmarks
     fn run_benchmarks(&self) -> Result<TestSuiteResult, Box<dyn std::error::Error>> {
         println!("{}", "🏃 Running Benchmarks".bold().blue());
-        
+
         let mut suite_result = TestSuiteResult {
             name: "Benchmarks".to_string(),
             total_tests: 0,
@@ -359,32 +443,50 @@ impl TestRunner {
             duration: Duration::ZERO,
             results: Vec::new(),
         };
-        
+
         let start_time = Instant::now();
-        
+
         // Run benchmarks using criterion
         let benchmark_results = self.run_benchmark_suite()?;
         suite_result.results.extend(benchmark_results);
-        
+
         suite_result.duration = start_time.elapsed();
         suite_result.total_tests = suite_result.results.len();
-        suite_result.passed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Passed)).count();
-        suite_result.failed = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Failed(_))).count();
-        suite_result.skipped = suite_result.results.iter().filter(|r| matches!(r.status, TestStatus::Skipped(_))).count();
-        
+        suite_result.passed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Passed))
+            .count();
+        suite_result.failed = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Failed(_)))
+            .count();
+        suite_result.skipped = suite_result
+            .results
+            .iter()
+            .filter(|r| matches!(r.status, TestStatus::Skipped(_)))
+            .count();
+
         self.print_suite_summary(&suite_result);
         Ok(suite_result)
     }
 
     /// Run a test module
-    fn run_test_module(&self, module_name: &str) -> Result<Vec<TestResult>, Box<dyn std::error::Error>> {
+    fn run_test_module(
+        &self,
+        module_name: &str,
+    ) -> Result<Vec<TestResult>, Box<dyn std::error::Error>> {
         // This would integrate with the actual test runner
         // For now, return empty results
         Ok(Vec::new())
     }
 
     /// Run tests from a directory
-    fn run_test_directory(&self, dir_name: &str) -> Result<Vec<TestResult>, Box<dyn std::error::Error>> {
+    fn run_test_directory(
+        &self,
+        dir_name: &str,
+    ) -> Result<Vec<TestResult>, Box<dyn std::error::Error>> {
         // This would integrate with the actual test runner
         // For now, return empty results
         Ok(Vec::new())
@@ -425,8 +527,9 @@ impl TestRunner {
         } else {
             "❌".red()
         };
-        
-        println!("{} {}: {}/{} passed, {} failed, {} skipped ({:?})",
+
+        println!(
+            "{} {}: {}/{} passed, {} failed, {} skipped ({:?})",
             status,
             suite.name,
             suite.passed,
@@ -441,15 +544,15 @@ impl TestRunner {
     fn print_summary(&self, report: &TestRunnerReport) {
         println!("\n{}", "📊 Test Summary".bold().green());
         println!("Total Duration: {:?}", report.total_duration);
-        
+
         let total_tests = report.total_tests();
         let total_passed = report.total_passed();
         let total_failed = report.total_failed();
-        
+
         println!("Total Tests: {}", total_tests);
         println!("Passed: {}", total_passed.to_string().green());
         println!("Failed: {}", total_failed.to_string().red());
-        
+
         if total_failed > 0 {
             println!("{}", "❌ Some tests failed!".bold().red());
             std::process::exit(1);
@@ -492,42 +595,90 @@ impl TestRunnerReport {
     /// Get total number of tests
     pub fn total_tests(&self) -> usize {
         let mut total = 0;
-        if let Some(suite) = &self.unit_tests { total += suite.total_tests; }
-        if let Some(suite) = &self.integration_tests { total += suite.total_tests; }
-        if let Some(suite) = &self.performance_tests { total += suite.total_tests; }
-        if let Some(suite) = &self.security_tests { total += suite.total_tests; }
-        if let Some(suite) = &self.property_tests { total += suite.total_tests; }
-        if let Some(suite) = &self.stress_tests { total += suite.total_tests; }
-        if let Some(suite) = &self.load_tests { total += suite.total_tests; }
-        if let Some(suite) = &self.benchmarks { total += suite.total_tests; }
+        if let Some(suite) = &self.unit_tests {
+            total += suite.total_tests;
+        }
+        if let Some(suite) = &self.integration_tests {
+            total += suite.total_tests;
+        }
+        if let Some(suite) = &self.performance_tests {
+            total += suite.total_tests;
+        }
+        if let Some(suite) = &self.security_tests {
+            total += suite.total_tests;
+        }
+        if let Some(suite) = &self.property_tests {
+            total += suite.total_tests;
+        }
+        if let Some(suite) = &self.stress_tests {
+            total += suite.total_tests;
+        }
+        if let Some(suite) = &self.load_tests {
+            total += suite.total_tests;
+        }
+        if let Some(suite) = &self.benchmarks {
+            total += suite.total_tests;
+        }
         total
     }
 
     /// Get total number of passed tests
     pub fn total_passed(&self) -> usize {
         let mut total = 0;
-        if let Some(suite) = &self.unit_tests { total += suite.passed; }
-        if let Some(suite) = &self.integration_tests { total += suite.passed; }
-        if let Some(suite) = &self.performance_tests { total += suite.passed; }
-        if let Some(suite) = &self.security_tests { total += suite.passed; }
-        if let Some(suite) = &self.property_tests { total += suite.passed; }
-        if let Some(suite) = &self.stress_tests { total += suite.passed; }
-        if let Some(suite) = &self.load_tests { total += suite.passed; }
-        if let Some(suite) = &self.benchmarks { total += suite.passed; }
+        if let Some(suite) = &self.unit_tests {
+            total += suite.passed;
+        }
+        if let Some(suite) = &self.integration_tests {
+            total += suite.passed;
+        }
+        if let Some(suite) = &self.performance_tests {
+            total += suite.passed;
+        }
+        if let Some(suite) = &self.security_tests {
+            total += suite.passed;
+        }
+        if let Some(suite) = &self.property_tests {
+            total += suite.passed;
+        }
+        if let Some(suite) = &self.stress_tests {
+            total += suite.passed;
+        }
+        if let Some(suite) = &self.load_tests {
+            total += suite.passed;
+        }
+        if let Some(suite) = &self.benchmarks {
+            total += suite.passed;
+        }
         total
     }
 
     /// Get total number of failed tests
     pub fn total_failed(&self) -> usize {
         let mut total = 0;
-        if let Some(suite) = &self.unit_tests { total += suite.failed; }
-        if let Some(suite) = &self.integration_tests { total += suite.failed; }
-        if let Some(suite) = &self.performance_tests { total += suite.failed; }
-        if let Some(suite) = &self.security_tests { total += suite.failed; }
-        if let Some(suite) = &self.property_tests { total += suite.failed; }
-        if let Some(suite) = &self.stress_tests { total += suite.failed; }
-        if let Some(suite) = &self.load_tests { total += suite.failed; }
-        if let Some(suite) = &self.benchmarks { total += suite.failed; }
+        if let Some(suite) = &self.unit_tests {
+            total += suite.failed;
+        }
+        if let Some(suite) = &self.integration_tests {
+            total += suite.failed;
+        }
+        if let Some(suite) = &self.performance_tests {
+            total += suite.failed;
+        }
+        if let Some(suite) = &self.security_tests {
+            total += suite.failed;
+        }
+        if let Some(suite) = &self.property_tests {
+            total += suite.failed;
+        }
+        if let Some(suite) = &self.stress_tests {
+            total += suite.failed;
+        }
+        if let Some(suite) = &self.load_tests {
+            total += suite.failed;
+        }
+        if let Some(suite) = &self.benchmarks {
+            total += suite.failed;
+        }
         total
     }
 }
@@ -542,4 +693,4 @@ impl TestConfigExt for TestConfig {
         // Unit tests are always run unless explicitly disabled
         !std::env::var("RHEMA_SKIP_UNIT_TESTS").is_ok()
     }
-} 
+}

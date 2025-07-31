@@ -135,7 +135,7 @@ pub fn assert_rhema_structure(path: &Path) {
         "Rhema directory should exist at {}",
         path.display()
     );
-    
+
     let rhema_yaml = rhema_dir.join("rhema.yaml");
     assert!(
         rhema_yaml.exists() && rhema_yaml.is_file(),
@@ -157,12 +157,13 @@ pub fn assert_valid_scope_yaml(content: &str) {
 /// Assert that search results contain expected patterns
 #[allow(dead_code)]
 pub fn assert_search_results_contain(results: &[String], expected_pattern: &str) {
-    let found = results.iter().any(|result| result.contains(expected_pattern));
+    let found = results
+        .iter()
+        .any(|result| result.contains(expected_pattern));
     assert!(
         found,
         "Search results should contain pattern '{}', but got: {:?}",
-        expected_pattern,
-        results
+        expected_pattern, results
     );
 }
 
@@ -183,11 +184,11 @@ pub fn assert_error_contains(error: &dyn std::error::Error, expected: &str) {
 pub fn assert_valid_structure(value: &Value) {
     // Basic validation - ensure it's not null and can be serialized
     assert!(!value.is_null(), "Value should not be null");
-    
+
     let serialized = serde_yaml::to_string(value);
     assert!(
         serialized.is_ok(),
         "Value should be serializable: {}",
         serialized.unwrap_err()
     );
-} 
+}

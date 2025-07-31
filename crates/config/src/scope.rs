@@ -15,52 +15,54 @@
  */
 
 use crate::config::{SafetyValidator, SafetyViolation};
-use crate::{ConfigAuditLog, ConfigHealth, ConfigStats, Config, ConfigEnvironment, CURRENT_CONFIG_VERSION};
+use crate::{
+    Config, ConfigAuditLog, ConfigEnvironment, ConfigHealth, ConfigStats, CURRENT_CONFIG_VERSION,
+};
+use chrono::{DateTime, Utc};
+use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use chrono::{DateTime, Utc};
 use validator::Validate;
-use rhema_core::RhemaResult;
 /// Scope configuration for Rhema CLI
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ScopeConfig {
     /// Configuration version
     #[validate(length(min = 1))]
     pub version: String,
-    
+
     /// Scope information
     pub scope: ScopeInfo,
-    
+
     /// Scope settings
     pub settings: ScopeSettings,
-    
+
     /// Dependencies configuration
     pub dependencies: DependenciesConfig,
-    
+
     /// Protocol configuration
     pub protocol: ProtocolConfig,
-    
+
     /// Content configuration
     pub content: ContentConfig,
-    
+
     /// Security configuration
     pub security: ScopeSecurityConfig,
-    
+
     /// Custom settings
     #[serde(flatten)]
     pub custom: HashMap<String, serde_json::Value>,
-    
+
     /// Audit log
     pub audit_log: ConfigAuditLog,
-    
+
     /// Health status
     pub health: ConfigHealth,
-    
+
     /// Statistics
     pub stats: ConfigStats,
-    
+
     /// Last updated timestamp
     pub updated_at: DateTime<Utc>,
 }
@@ -71,26 +73,26 @@ pub struct ScopeInfo {
     /// Scope name
     #[validate(length(min = 1))]
     pub name: String,
-    
+
     /// Scope type
     #[validate(length(min = 1))]
     pub scope_type: String,
-    
+
     /// Scope description
     pub description: Option<String>,
-    
+
     /// Scope version
     pub version: String,
-    
+
     /// Scope owner
     pub owner: String,
-    
+
     /// Scope maintainers
     pub maintainers: Vec<String>,
-    
+
     /// Scope tags
     pub tags: Vec<String>,
-    
+
     /// Scope metadata
     pub metadata: HashMap<String, String>,
 }
@@ -100,16 +102,16 @@ pub struct ScopeInfo {
 pub struct ScopeSettings {
     /// Scope visibility
     pub visibility: ScopeVisibility,
-    
+
     /// Scope access control
     pub access_control: ScopeAccessControl,
-    
+
     /// Scope lifecycle
     pub lifecycle: ScopeLifecycle,
-    
+
     /// Scope governance
     pub governance: ScopeGovernance,
-    
+
     /// Scope quality
     pub quality: ScopeQuality,
 }
@@ -128,13 +130,13 @@ pub enum ScopeVisibility {
 pub struct ScopeAccessControl {
     /// Read access
     pub read_access: Vec<String>,
-    
+
     /// Write access
     pub write_access: Vec<String>,
-    
+
     /// Admin access
     pub admin_access: Vec<String>,
-    
+
     /// Access policies
     pub policies: Vec<AccessPolicy>,
 }
@@ -144,13 +146,13 @@ pub struct ScopeAccessControl {
 pub struct AccessPolicy {
     /// Policy name
     pub name: String,
-    
+
     /// Policy description
     pub description: Option<String>,
-    
+
     /// Policy rules
     pub rules: Vec<AccessRule>,
-    
+
     /// Policy effect
     pub effect: PolicyEffect,
 }
@@ -160,13 +162,13 @@ pub struct AccessPolicy {
 pub struct AccessRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule pattern
     pub pattern: String,
-    
+
     /// Rule permissions
     pub permissions: Vec<String>,
-    
+
     /// Rule conditions
     pub conditions: HashMap<String, String>,
 }
@@ -184,10 +186,10 @@ pub enum PolicyEffect {
 pub struct ScopeLifecycle {
     /// Lifecycle stage
     pub stage: LifecycleStage,
-    
+
     /// Lifecycle transitions
     pub transitions: Vec<LifecycleTransition>,
-    
+
     /// Lifecycle rules
     pub rules: Vec<LifecycleRule>,
 }
@@ -210,16 +212,16 @@ pub enum LifecycleStage {
 pub struct LifecycleTransition {
     /// Transition name
     pub name: String,
-    
+
     /// From stage
     pub from: LifecycleStage,
-    
+
     /// To stage
     pub to: LifecycleStage,
-    
+
     /// Transition conditions
     pub conditions: Vec<String>,
-    
+
     /// Transition actions
     pub actions: Vec<String>,
 }
@@ -229,13 +231,13 @@ pub struct LifecycleTransition {
 pub struct LifecycleRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule description
     pub description: String,
-    
+
     /// Rule conditions
     pub conditions: Vec<String>,
-    
+
     /// Rule actions
     pub actions: Vec<String>,
 }
@@ -245,13 +247,13 @@ pub struct LifecycleRule {
 pub struct ScopeGovernance {
     /// Governance model
     pub model: GovernanceModel,
-    
+
     /// Decision making process
     pub decision_making: DecisionMakingProcess,
-    
+
     /// Review process
     pub review_process: ReviewProcess,
-    
+
     /// Compliance requirements
     pub compliance: Vec<ComplianceRequirement>,
 }
@@ -270,13 +272,13 @@ pub enum GovernanceModel {
 pub struct DecisionMakingProcess {
     /// Decision makers
     pub decision_makers: Vec<String>,
-    
+
     /// Decision criteria
     pub criteria: Vec<String>,
-    
+
     /// Decision timeline
     pub timeline: String,
-    
+
     /// Appeal process
     pub appeal_process: Option<String>,
 }
@@ -286,13 +288,13 @@ pub struct DecisionMakingProcess {
 pub struct ReviewProcess {
     /// Reviewers
     pub reviewers: Vec<String>,
-    
+
     /// Review criteria
     pub criteria: Vec<String>,
-    
+
     /// Review timeline
     pub timeline: String,
-    
+
     /// Review outcomes
     pub outcomes: Vec<String>,
 }
@@ -302,13 +304,13 @@ pub struct ReviewProcess {
 pub struct ComplianceRequirement {
     /// Requirement name
     pub name: String,
-    
+
     /// Requirement description
     pub description: String,
-    
+
     /// Requirement type
     pub requirement_type: String,
-    
+
     /// Requirement status
     pub status: ComplianceStatus,
 }
@@ -327,10 +329,10 @@ pub enum ComplianceStatus {
 pub struct ScopeQuality {
     /// Quality metrics
     pub metrics: Vec<QualityMetric>,
-    
+
     /// Quality gates
     pub gates: Vec<QualityGate>,
-    
+
     /// Quality standards
     pub standards: Vec<String>,
 }
@@ -340,16 +342,16 @@ pub struct ScopeQuality {
 pub struct QualityMetric {
     /// Metric name
     pub name: String,
-    
+
     /// Metric description
     pub description: String,
-    
+
     /// Metric value
     pub value: f64,
-    
+
     /// Metric threshold
     pub threshold: f64,
-    
+
     /// Metric unit
     pub unit: String,
 }
@@ -359,13 +361,13 @@ pub struct QualityMetric {
 pub struct QualityGate {
     /// Gate name
     pub name: String,
-    
+
     /// Gate description
     pub description: String,
-    
+
     /// Gate conditions
     pub conditions: Vec<String>,
-    
+
     /// Gate status
     pub status: GateStatus,
 }
@@ -384,10 +386,10 @@ pub enum GateStatus {
 pub struct DependenciesConfig {
     /// Dependencies
     pub dependencies: Vec<ScopeDependency>,
-    
+
     /// Dependency resolution
     pub resolution: DependencyResolution,
-    
+
     /// Dependency validation
     pub validation: DependencyValidation,
 }
@@ -397,16 +399,16 @@ pub struct DependenciesConfig {
 pub struct ScopeDependency {
     /// Dependency path
     pub path: String,
-    
+
     /// Dependency type
     pub dependency_type: DependencyType,
-    
+
     /// Dependency version
     pub version: Option<String>,
-    
+
     /// Dependency description
     pub description: Option<String>,
-    
+
     /// Dependency metadata
     pub metadata: HashMap<String, String>,
 }
@@ -426,10 +428,10 @@ pub enum DependencyType {
 pub struct DependencyResolution {
     /// Resolution strategy
     pub strategy: ResolutionStrategy,
-    
+
     /// Resolution rules
     pub rules: Vec<ResolutionRule>,
-    
+
     /// Conflict resolution
     pub conflict_resolution: ConflictResolution,
 }
@@ -448,13 +450,13 @@ pub enum ResolutionStrategy {
 pub struct ResolutionRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule pattern
     pub pattern: String,
-    
+
     /// Rule strategy
     pub strategy: ResolutionStrategy,
-    
+
     /// Rule priority
     pub priority: u32,
 }
@@ -464,7 +466,7 @@ pub struct ResolutionRule {
 pub struct ConflictResolution {
     /// Resolution method
     pub method: ConflictResolutionMethod,
-    
+
     /// Resolution rules
     pub rules: Vec<ConflictResolutionRule>,
 }
@@ -482,10 +484,10 @@ pub enum ConflictResolutionMethod {
 pub struct ConflictResolutionRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule pattern
     pub pattern: String,
-    
+
     /// Resolution action
     pub action: String,
 }
@@ -495,10 +497,10 @@ pub struct ConflictResolutionRule {
 pub struct DependencyValidation {
     /// Validation enabled
     pub enabled: bool,
-    
+
     /// Validation rules
     pub rules: Vec<ValidationRule>,
-    
+
     /// Validation severity
     pub severity: ValidationSeverity,
 }
@@ -508,13 +510,13 @@ pub struct DependencyValidation {
 pub struct ValidationRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule description
     pub description: String,
-    
+
     /// Rule pattern
     pub pattern: String,
-    
+
     /// Rule severity
     pub severity: ValidationSeverity,
 }
@@ -533,19 +535,19 @@ pub enum ValidationSeverity {
 pub struct ProtocolConfig {
     /// Protocol version
     pub version: String,
-    
+
     /// Protocol description
     pub description: Option<String>,
-    
+
     /// Protocol concepts
     pub concepts: Vec<ConceptDefinition>,
-    
+
     /// Protocol examples
     pub examples: Vec<ProtocolExample>,
-    
+
     /// Protocol patterns
     pub patterns: Vec<ProtocolPattern>,
-    
+
     /// Protocol integrations
     pub integrations: Vec<ProtocolIntegration>,
 }
@@ -555,13 +557,13 @@ pub struct ProtocolConfig {
 pub struct ConceptDefinition {
     /// Concept name
     pub name: String,
-    
+
     /// Concept description
     pub description: String,
-    
+
     /// Related concepts
     pub related: Option<Vec<String>>,
-    
+
     /// Usage examples
     pub examples: Option<Vec<String>>,
 }
@@ -571,13 +573,13 @@ pub struct ConceptDefinition {
 pub struct ProtocolExample {
     /// Example name
     pub name: String,
-    
+
     /// Example description
     pub description: String,
-    
+
     /// Example query
     pub query: String,
-    
+
     /// Example output
     pub output: Option<String>,
 }
@@ -587,13 +589,13 @@ pub struct ProtocolExample {
 pub struct ProtocolPattern {
     /// Pattern name
     pub name: String,
-    
+
     /// Pattern description
     pub description: String,
-    
+
     /// Pattern usage
     pub usage: String,
-    
+
     /// Pattern examples
     pub examples: Vec<String>,
 }
@@ -603,13 +605,13 @@ pub struct ProtocolPattern {
 pub struct ProtocolIntegration {
     /// Integration name
     pub name: String,
-    
+
     /// Integration description
     pub description: String,
-    
+
     /// Integration setup
     pub setup: Vec<String>,
-    
+
     /// Integration configuration
     pub configuration: HashMap<String, String>,
 }
@@ -619,13 +621,13 @@ pub struct ProtocolIntegration {
 pub struct ContentConfig {
     /// Knowledge configuration
     pub knowledge: KnowledgeConfig,
-    
+
     /// Todos configuration
     pub todos: TodosConfig,
-    
+
     /// Decisions configuration
     pub decisions: DecisionsConfig,
-    
+
     /// Patterns configuration
     pub patterns: PatternsConfig,
 }
@@ -635,16 +637,16 @@ pub struct ContentConfig {
 pub struct KnowledgeConfig {
     /// Knowledge categories
     pub categories: Vec<String>,
-    
+
     /// Knowledge tags
     pub tags: Vec<String>,
-    
+
     /// Knowledge confidence levels
     pub confidence_levels: Vec<u8>,
-    
+
     /// Knowledge sources
     pub sources: Vec<String>,
-    
+
     /// Knowledge validation
     pub validation: ContentValidation,
 }
@@ -654,16 +656,16 @@ pub struct KnowledgeConfig {
 pub struct TodosConfig {
     /// Todo priorities
     pub priorities: Vec<String>,
-    
+
     /// Todo statuses
     pub statuses: Vec<String>,
-    
+
     /// Todo assignees
     pub assignees: Vec<String>,
-    
+
     /// Todo categories
     pub categories: Vec<String>,
-    
+
     /// Todo validation
     pub validation: ContentValidation,
 }
@@ -673,13 +675,13 @@ pub struct TodosConfig {
 pub struct DecisionsConfig {
     /// Decision statuses
     pub statuses: Vec<String>,
-    
+
     /// Decision makers
     pub decision_makers: Vec<String>,
-    
+
     /// Decision types
     pub types: Vec<String>,
-    
+
     /// Decision validation
     pub validation: ContentValidation,
 }
@@ -689,13 +691,13 @@ pub struct DecisionsConfig {
 pub struct PatternsConfig {
     /// Pattern types
     pub types: Vec<String>,
-    
+
     /// Pattern usage contexts
     pub usage_contexts: Vec<String>,
-    
+
     /// Pattern effectiveness levels
     pub effectiveness_levels: Vec<u8>,
-    
+
     /// Pattern validation
     pub validation: ContentValidation,
 }
@@ -705,13 +707,13 @@ pub struct PatternsConfig {
 pub struct ContentValidation {
     /// Validation enabled
     pub enabled: bool,
-    
+
     /// Required fields
     pub required_fields: Vec<String>,
-    
+
     /// Field validation rules
     pub field_rules: HashMap<String, String>,
-    
+
     /// Content validation rules
     pub content_rules: Vec<String>,
 }
@@ -721,13 +723,13 @@ pub struct ContentValidation {
 pub struct ScopeSecurityConfig {
     /// Security scanning
     pub security_scanning: SecurityScanningConfig,
-    
+
     /// Access control
     pub access_control: ScopeAccessControl,
-    
+
     /// Data protection
     pub data_protection: DataProtectionConfig,
-    
+
     /// Audit logging
     pub audit_logging: AuditLoggingConfig,
 }
@@ -737,13 +739,13 @@ pub struct ScopeSecurityConfig {
 pub struct SecurityScanningConfig {
     /// Scanning enabled
     pub enabled: bool,
-    
+
     /// Scanning tools
     pub tools: Vec<String>,
-    
+
     /// Scanning schedule
     pub schedule: String,
-    
+
     /// Vulnerability thresholds
     pub vulnerability_thresholds: VulnerabilityThresholds,
 }
@@ -753,13 +755,13 @@ pub struct SecurityScanningConfig {
 pub struct VulnerabilityThresholds {
     /// Critical threshold
     pub critical: u32,
-    
+
     /// High threshold
     pub high: u32,
-    
+
     /// Medium threshold
     pub medium: u32,
-    
+
     /// Low threshold
     pub low: u32,
 }
@@ -769,10 +771,10 @@ pub struct VulnerabilityThresholds {
 pub struct DataProtectionConfig {
     /// Data classification
     pub data_classification: DataClassification,
-    
+
     /// Data retention
     pub data_retention: DataRetentionConfig,
-    
+
     /// Data encryption
     pub data_encryption: DataEncryptionConfig,
 }
@@ -791,10 +793,10 @@ pub enum DataClassification {
 pub struct DataRetentionConfig {
     /// Retention period (days)
     pub retention_period: u32,
-    
+
     /// Retention policy
     pub retention_policy: String,
-    
+
     /// Archive policy
     pub archive_policy: Option<String>,
 }
@@ -804,10 +806,10 @@ pub struct DataRetentionConfig {
 pub struct DataEncryptionConfig {
     /// Encryption enabled
     pub enabled: bool,
-    
+
     /// Encryption algorithm
     pub algorithm: String,
-    
+
     /// Key management
     pub key_management: KeyManagementConfig,
 }
@@ -817,10 +819,10 @@ pub struct DataEncryptionConfig {
 pub struct KeyManagementConfig {
     /// Key rotation
     pub key_rotation: bool,
-    
+
     /// Key rotation period (days)
     pub rotation_period: u32,
-    
+
     /// Key storage
     pub key_storage: String,
 }
@@ -830,13 +832,13 @@ pub struct KeyManagementConfig {
 pub struct AuditLoggingConfig {
     /// Audit logging enabled
     pub enabled: bool,
-    
+
     /// Audit events
     pub events: Vec<String>,
-    
+
     /// Audit retention
     pub retention: u32,
-    
+
     /// Audit format
     pub format: String,
 }
@@ -865,34 +867,37 @@ impl ScopeConfig {
     fn find_config_file(scope_path: &Path) -> Result<PathBuf, rhema_core::RhemaError> {
         // Define the possible locations in order of preference
         let mut all_locations = Vec::new();
-        
+
         // First priority: files in the scope directory itself
         all_locations.push(scope_path.join("scope.yaml"));
         all_locations.push(scope_path.join("rhema.yaml"));
-        
+
         // Second priority: files in parent directory (if we're in a .rhema directory)
         if scope_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
             let parent = scope_path.parent().unwrap_or(scope_path);
             all_locations.push(parent.join("scope.yaml"));
             all_locations.push(parent.join("rhema.yaml"));
         }
-        
+
         // Find the first existing file
         for location in &all_locations {
             if location.exists() {
                 return Ok(location.clone());
             }
         }
-        
+
         // If no file found, return error with all checked locations
-        let checked_locations = all_locations.iter()
+        let checked_locations = all_locations
+            .iter()
             .map(|p| p.display().to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        
-        Err(rhema_core::RhemaError::FileNotFound(
-            format!("No scope configuration file found in {} (checked: {})", scope_path.display(), checked_locations)
-        ))
+
+        Err(rhema_core::RhemaError::FileNotFound(format!(
+            "No scope configuration file found in {} (checked: {})",
+            scope_path.display(),
+            checked_locations
+        )))
     }
 
     /// Load scope configuration from file
@@ -901,13 +906,14 @@ impl ScopeConfig {
             Ok(config_path) => {
                 let content = std::fs::read_to_string(&config_path)
                     .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-                
-                let config: Self = serde_yaml::from_str(&content)
-                    .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+
+                let config: Self = serde_yaml::from_str(&content).map_err(|e| {
+                    rhema_core::RhemaError::InvalidYaml {
                         file: config_path.display().to_string(),
                         message: e.to_string(),
-                    })?;
-                
+                    }
+                })?;
+
                 config.validate_config()?;
                 Ok(config)
             }
@@ -923,22 +929,20 @@ impl ScopeConfig {
     /// Save scope configuration to file
     pub fn save(&self, scope_path: &Path) -> RhemaResult<()> {
         let config_path = scope_path.join("scope.yaml");
-        
+
         // Ensure directory exists
         if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| rhema_core::RhemaError::IoError(e))?;
+            std::fs::create_dir_all(parent).map_err(|e| rhema_core::RhemaError::IoError(e))?;
         }
-        
-        let content = serde_yaml::to_string(self)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+
+        let content =
+            serde_yaml::to_string(self).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: config_path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
-        std::fs::write(&config_path, content)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
+
+        std::fs::write(&config_path, content).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
         Ok(())
     }
 
@@ -953,11 +957,11 @@ impl ScopeConfig {
         let parts: Vec<&str> = path.split('.').collect();
         let value = serde_json::to_value(self).ok()?;
         let mut current = value;
-        
+
         for part in parts {
             current = current.get(part)?.clone();
         }
-        
+
         Some(current)
     }
 
@@ -967,11 +971,12 @@ impl ScopeConfig {
             let key = path.trim_start_matches("custom.");
             self.custom.insert(key.to_string(), value);
         } else {
-            return Err(rhema_core::RhemaError::ConfigError(
-                format!("Cannot set value for path: {}", path)
-            ));
+            return Err(rhema_core::RhemaError::ConfigError(format!(
+                "Cannot set value for path: {}",
+                path
+            )));
         }
-        
+
         self.update()
     }
 
@@ -979,19 +984,17 @@ impl ScopeConfig {
     pub fn export(&self, format: &str) -> RhemaResult<String> {
         match format.to_lowercase().as_str() {
             "yaml" => {
-                serde_yaml::to_string(self)
-                    .map_err(|e| rhema_core::RhemaError::InvalidYaml {
-                        file: "export".to_string(),
-                        message: e.to_string(),
-                    })
+                serde_yaml::to_string(self).map_err(|e| rhema_core::RhemaError::InvalidYaml {
+                    file: "export".to_string(),
+                    message: e.to_string(),
+                })
             }
-            "json" => {
-                serde_json::to_string_pretty(self)
-                    .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))
-            }
-            _ => Err(rhema_core::RhemaError::ConfigError(
-                format!("Unsupported export format: {}", format)
-            ))
+            "json" => serde_json::to_string_pretty(self)
+                .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string())),
+            _ => Err(rhema_core::RhemaError::ConfigError(format!(
+                "Unsupported export format: {}",
+                format
+            ))),
         }
     }
 
@@ -999,23 +1002,21 @@ impl ScopeConfig {
     pub fn import(&mut self, content: &str, format: &str) -> RhemaResult<()> {
         let imported: Self = match format.to_lowercase().as_str() {
             "yaml" => {
-                serde_yaml::from_str(content)
-                    .map_err(|e| rhema_core::RhemaError::InvalidYaml {
-                        file: "import".to_string(),
-                        message: e.to_string(),
-                    })?
+                serde_yaml::from_str(content).map_err(|e| rhema_core::RhemaError::InvalidYaml {
+                    file: "import".to_string(),
+                    message: e.to_string(),
+                })?
             }
-            "json" => {
-                serde_json::from_str(content)
-                    .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?
-            }
+            "json" => serde_json::from_str(content)
+                .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?,
             _ => {
-                return Err(rhema_core::RhemaError::ConfigError(
-                    format!("Unsupported import format: {}", format)
-                ));
+                return Err(rhema_core::RhemaError::ConfigError(format!(
+                    "Unsupported import format: {}",
+                    format
+                )));
             }
         };
-        
+
         imported.validate_config()?;
         *self = imported;
         self.update()
@@ -1026,40 +1027,40 @@ impl Config for ScopeConfig {
     fn version(&self) -> &str {
         &self.version
     }
-    
+
     fn validate_config(&self) -> RhemaResult<()> {
-        self.validate()
-            .map_err(|e| rhema_core::RhemaError::ConfigError(format!("Validation failed: {}", e)))?;
+        self.validate().map_err(|e| {
+            rhema_core::RhemaError::ConfigError(format!("Validation failed: {}", e))
+        })?;
         Ok(())
     }
-    
+
     fn load_from_file(path: &Path) -> RhemaResult<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
-        let config: Self = serde_yaml::from_str(&content)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+        let content =
+            std::fs::read_to_string(path).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
+        let config: Self =
+            serde_yaml::from_str(&content).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
+
         config.validate_config()?;
         Ok(config)
     }
-    
+
     fn save_to_file(&self, path: &Path) -> RhemaResult<()> {
-        let content = serde_yaml::to_string(self)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+        let content =
+            serde_yaml::to_string(self).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
-        std::fs::write(path, content)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
+
+        std::fs::write(path, content).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
         Ok(())
     }
-    
+
     fn schema() -> serde_json::Value {
         serde_json::json!({
             "type": "object",
@@ -1075,7 +1076,7 @@ impl Config for ScopeConfig {
             "required": ["version", "scope", "settings", "dependencies", "protocol", "content", "security"]
         })
     }
-    
+
     fn documentation() -> &'static str {
         "Scope configuration for Rhema CLI containing scope-specific settings, dependencies, protocol configuration, content settings, and security configuration."
     }
@@ -1145,7 +1146,10 @@ impl Default for DecisionMakingProcess {
     fn default() -> Self {
         Self {
             decision_makers: vec!["owner".to_string()],
-            criteria: vec!["Technical feasibility".to_string(), "Business value".to_string()],
+            criteria: vec![
+                "Technical feasibility".to_string(),
+                "Business value".to_string(),
+            ],
             timeline: "1 week".to_string(),
             appeal_process: None,
         }
@@ -1158,7 +1162,11 @@ impl Default for ReviewProcess {
             reviewers: vec!["owner".to_string()],
             criteria: vec!["Code quality".to_string(), "Security".to_string()],
             timeline: "3 days".to_string(),
-            outcomes: vec!["Approved".to_string(), "Rejected".to_string(), "Changes requested".to_string()],
+            outcomes: vec![
+                "Approved".to_string(),
+                "Rejected".to_string(),
+                "Changes requested".to_string(),
+            ],
         }
     }
 }
@@ -1239,10 +1247,18 @@ impl Default for ContentConfig {
 impl Default for KnowledgeConfig {
     fn default() -> Self {
         Self {
-            categories: vec!["architecture".to_string(), "design".to_string(), "implementation".to_string()],
+            categories: vec![
+                "architecture".to_string(),
+                "design".to_string(),
+                "implementation".to_string(),
+            ],
             tags: Vec::new(),
             confidence_levels: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            sources: vec!["documentation".to_string(), "code".to_string(), "discussion".to_string()],
+            sources: vec![
+                "documentation".to_string(),
+                "code".to_string(),
+                "discussion".to_string(),
+            ],
             validation: ContentValidation::default(),
         }
     }
@@ -1251,10 +1267,24 @@ impl Default for KnowledgeConfig {
 impl Default for TodosConfig {
     fn default() -> Self {
         Self {
-            priorities: vec!["low".to_string(), "medium".to_string(), "high".to_string(), "critical".to_string()],
-            statuses: vec!["pending".to_string(), "in_progress".to_string(), "completed".to_string(), "cancelled".to_string()],
+            priorities: vec![
+                "low".to_string(),
+                "medium".to_string(),
+                "high".to_string(),
+                "critical".to_string(),
+            ],
+            statuses: vec![
+                "pending".to_string(),
+                "in_progress".to_string(),
+                "completed".to_string(),
+                "cancelled".to_string(),
+            ],
             assignees: Vec::new(),
-            categories: vec!["feature".to_string(), "bug".to_string(), "improvement".to_string()],
+            categories: vec![
+                "feature".to_string(),
+                "bug".to_string(),
+                "improvement".to_string(),
+            ],
             validation: ContentValidation::default(),
         }
     }
@@ -1263,9 +1293,18 @@ impl Default for TodosConfig {
 impl Default for DecisionsConfig {
     fn default() -> Self {
         Self {
-            statuses: vec!["proposed".to_string(), "approved".to_string(), "rejected".to_string(), "implemented".to_string()],
+            statuses: vec![
+                "proposed".to_string(),
+                "approved".to_string(),
+                "rejected".to_string(),
+                "implemented".to_string(),
+            ],
             decision_makers: vec!["owner".to_string()],
-            types: vec!["architectural".to_string(), "technical".to_string(), "business".to_string()],
+            types: vec![
+                "architectural".to_string(),
+                "technical".to_string(),
+                "business".to_string(),
+            ],
             validation: ContentValidation::default(),
         }
     }
@@ -1274,8 +1313,16 @@ impl Default for DecisionsConfig {
 impl Default for PatternsConfig {
     fn default() -> Self {
         Self {
-            types: vec!["architectural".to_string(), "design".to_string(), "implementation".to_string()],
-            usage_contexts: vec!["recommended".to_string(), "optional".to_string(), "deprecated".to_string()],
+            types: vec![
+                "architectural".to_string(),
+                "design".to_string(),
+                "implementation".to_string(),
+            ],
+            usage_contexts: vec![
+                "recommended".to_string(),
+                "optional".to_string(),
+                "deprecated".to_string(),
+            ],
             effectiveness_levels: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             validation: ContentValidation::default(),
         }
@@ -1377,4 +1424,4 @@ impl Default for AuditLoggingConfig {
     }
 }
 
-// ConfigHealth Default implementation moved to mod.rs to avoid conflicts 
+// ConfigHealth Default implementation moved to mod.rs to avoid conflicts

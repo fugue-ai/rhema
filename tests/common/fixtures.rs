@@ -19,7 +19,7 @@ schema_version: "1.0.0"
 dependencies: null
 "#
     }
-    
+
     /// Get a complex scope definition
     pub fn complex_scope() -> &'static str {
         r#"
@@ -37,7 +37,7 @@ dependencies:
     version: "2.0.0"
 "#
     }
-    
+
     /// Get sample todos data
     pub fn todos_data() -> &'static str {
         r#"
@@ -68,7 +68,7 @@ todos:
     outcome: "Documentation updated successfully"
 "#
     }
-    
+
     /// Get sample insights data
     pub fn insights_data() -> &'static str {
         r#"
@@ -89,7 +89,7 @@ insights:
     created_at: "2024-01-16T10:00:00Z"
 "#
     }
-    
+
     /// Get sample patterns data
     pub fn patterns_data() -> &'static str {
         r#"
@@ -119,7 +119,7 @@ patterns:
     created_at: "2024-01-16T10:00:00Z"
 "#
     }
-    
+
     /// Get sample decisions data
     pub fn decisions_data() -> &'static str {
         r#"
@@ -158,7 +158,7 @@ decisions:
     decision_makers: ["dba", "architect"]
 "#
     }
-    
+
     /// Get schema definitions
     pub fn schema_definitions() -> &'static str {
         r#"
@@ -243,7 +243,7 @@ schemas:
         description: "Completion outcome"
 "#
     }
-    
+
     /// Get test queries
     pub fn test_queries() -> HashMap<&'static str, &'static str> {
         let mut queries = HashMap::new();
@@ -251,19 +251,31 @@ schemas:
         queries.insert("filtered", "simple.items WHERE active=true");
         queries.insert("ordered", "simple.items ORDER BY created_at DESC");
         queries.insert("limited", "simple.items LIMIT 5");
-        queries.insert("complex", "complex.todos WHERE priority=high AND status=pending ORDER BY due_date ASC LIMIT 10");
+        queries.insert(
+            "complex",
+            "complex.todos WHERE priority=high AND status=pending ORDER BY due_date ASC LIMIT 10",
+        );
         queries
     }
-    
+
     /// Get file structures
     pub fn file_structures() -> HashMap<&'static str, Vec<&'static str>> {
         let mut structures = HashMap::new();
         structures.insert("basic", vec!["rhema.yaml", "simple.yaml"]);
-        structures.insert("complex", vec!["rhema.yaml", "todos.yaml", "insights.yaml", "patterns.yaml", "decisions.yaml"]);
+        structures.insert(
+            "complex",
+            vec![
+                "rhema.yaml",
+                "todos.yaml",
+                "insights.yaml",
+                "patterns.yaml",
+                "decisions.yaml",
+            ],
+        );
         structures.insert("nested", vec!["rhema.yaml", "data/", "schemas/", "docs/"]);
         structures
     }
-    
+
     /// Get git commits
     pub fn git_commits() -> Vec<(&'static str, &'static str)> {
         vec![
@@ -274,17 +286,20 @@ schemas:
             ("Add decisions", "Add decision tracking"),
         ]
     }
-    
+
     /// Get error scenarios
     pub fn error_scenarios() -> HashMap<&'static str, &'static str> {
         let mut scenarios = HashMap::new();
         scenarios.insert("invalid_yaml", "name: scope\n  invalid: yaml: structure");
         scenarios.insert("missing_required", "scope_type: service\nversion: 1.0.0");
-        scenarios.insert("invalid_version", "name: scope\nscope_type: service\nversion: invalid");
+        scenarios.insert(
+            "invalid_version",
+            "name: scope\nscope_type: service\nversion: invalid",
+        );
         scenarios.insert("circular_dependency", "name: scope1\ndependencies:\n  - path: ../scope2\nname: scope2\ndependencies:\n  - path: ../scope1");
         scenarios
     }
-    
+
     /// Get performance data
     pub fn performance_data() -> HashMap<&'static str, usize> {
         let mut data = HashMap::new();
@@ -294,4 +309,4 @@ schemas:
         data.insert("huge_dataset", 100000);
         data
     }
-} 
+}

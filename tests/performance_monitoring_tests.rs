@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-use rhema::{RhemaResult, PerformanceMonitor, PerformanceConfig, SystemPerformanceData, UxData, UsageData, ReportPeriod};
 use chrono::Utc;
+use rhema::{
+    PerformanceConfig, PerformanceMonitor, ReportPeriod, RhemaResult, SystemPerformanceData,
+    UsageData, UxData,
+};
 use std::sync::Arc;
 
 #[tokio::test]
 async fn test_performance_monitor_creation() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     assert!(monitor.config.system_monitoring_enabled);
     assert!(monitor.config.ux_monitoring_enabled);
     assert!(monitor.config.usage_analytics_enabled);
     assert!(monitor.config.performance_reporting_enabled);
-    
+
     Ok(())
 }
 
@@ -35,22 +38,22 @@ async fn test_performance_monitor_creation() -> RhemaResult<()> {
 async fn test_performance_monitor_start_stop() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     // Start monitoring
     monitor.start().await?;
-    
+
     // Check if running
     let running = monitor.running.read().await;
     assert!(*running);
     drop(running);
-    
+
     // Stop monitoring
     monitor.stop().await?;
-    
+
     // Check if stopped
     let running = monitor.running.read().await;
     assert!(!*running);
-    
+
     Ok(())
 }
 
@@ -58,14 +61,14 @@ async fn test_performance_monitor_start_stop() -> RhemaResult<()> {
 async fn test_system_metrics_recording() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     let data = SystemPerformanceData {
         timestamp: Utc::now(),
         cpu_usage_percent: 50.0,
         memory_usage_bytes: 1024 * 1024 * 256, // 256 MB
         memory_usage_percent: 25.0,
         disk_io_ops: 100,
-        disk_io_bytes: 1024 * 1024, // 1 MB
+        disk_io_bytes: 1024 * 1024,   // 1 MB
         network_io_bytes: 1024 * 512, // 512 KB
         network_latency_ms: 10.0,
         fs_operations: 50,
@@ -74,9 +77,9 @@ async fn test_system_metrics_recording() -> RhemaResult<()> {
         thread_count: 200,
         open_file_descriptors: 1000,
     };
-    
+
     monitor.record_system_metrics(data).await?;
-    
+
     Ok(())
 }
 
@@ -84,7 +87,7 @@ async fn test_system_metrics_recording() -> RhemaResult<()> {
 async fn test_ux_metrics_recording() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     let data = UxData {
         timestamp: Utc::now(),
         command_name: "query".to_string(),
@@ -95,9 +98,9 @@ async fn test_ux_metrics_recording() -> RhemaResult<()> {
         error_message: None,
         satisfaction_score: Some(9.0),
     };
-    
+
     monitor.record_ux_metrics(data).await?;
-    
+
     Ok(())
 }
 
@@ -105,7 +108,7 @@ async fn test_ux_metrics_recording() -> RhemaResult<()> {
 async fn test_usage_analytics_recording() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     let data = UsageData {
         timestamp: Utc::now(),
         user_id: "user123".to_string(),
@@ -116,9 +119,9 @@ async fn test_usage_analytics_recording() -> RhemaResult<()> {
         usage_pattern: "interactive".to_string(),
         user_behavior: "exploratory".to_string(),
     };
-    
+
     monitor.record_usage_analytics(data).await?;
-    
+
     Ok(())
 }
 
@@ -126,20 +129,20 @@ async fn test_usage_analytics_recording() -> RhemaResult<()> {
 async fn test_performance_report_generation() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     let period = ReportPeriod {
         start: Utc::now() - chrono::Duration::hours(24),
         end: Utc::now(),
         duration_seconds: 86400,
     };
-    
+
     let report = monitor.generate_performance_report(period).await?;
-    
+
     assert!(!report.report_id.is_empty());
     assert_eq!(report.period.duration_seconds, 86400);
     assert_eq!(report.trends.len(), 2); // Based on mock data
     assert_eq!(report.recommendations.len(), 2); // Based on mock data
-    
+
     Ok(())
 }
 
@@ -147,7 +150,7 @@ async fn test_performance_report_generation() -> RhemaResult<()> {
 async fn test_threshold_checking() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     // Test system metrics above thresholds
     let high_cpu_data = SystemPerformanceData {
         timestamp: Utc::now(),
@@ -164,9 +167,9 @@ async fn test_threshold_checking() -> RhemaResult<()> {
         thread_count: 200,
         open_file_descriptors: 1000,
     };
-    
+
     monitor.record_system_metrics(high_cpu_data).await?;
-    
+
     // Test UX metrics above thresholds
     let slow_command_data = UxData {
         timestamp: Utc::now(),
@@ -178,16 +181,16 @@ async fn test_threshold_checking() -> RhemaResult<()> {
         error_message: None,
         satisfaction_score: Some(5.0),
     };
-    
+
     monitor.record_ux_metrics(slow_command_data).await?;
-    
+
     Ok(())
 }
 
 #[tokio::test]
 async fn test_performance_config_validation() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
-    
+
     // Test default values
     assert_eq!(config.metrics_interval, 60);
     assert_eq!(config.thresholds.cpu_threshold, 80.0);
@@ -195,18 +198,18 @@ async fn test_performance_config_validation() -> RhemaResult<()> {
     assert_eq!(config.thresholds.command_execution_threshold, 5000);
     assert_eq!(config.thresholds.response_time_threshold, 1000);
     assert_eq!(config.thresholds.error_rate_threshold, 10.0);
-    
+
     // Test reporting config
     assert!(config.reporting.automated_reports);
     assert_eq!(config.reporting.report_interval, 24);
     assert!(config.reporting.dashboard.enabled);
     assert_eq!(config.reporting.dashboard.port, 8080);
-    
+
     // Test storage config
     assert_eq!(config.storage.retention.retention_days, 30);
     assert!(config.storage.retention.aggregate_old_metrics);
     assert!(config.storage.retention.archive_old_metrics);
-    
+
     Ok(())
 }
 
@@ -214,10 +217,10 @@ async fn test_performance_config_validation() -> RhemaResult<()> {
 async fn test_performance_monitor_integration() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     // Start monitoring
     monitor.start().await?;
-    
+
     // Record various metrics
     let system_data = SystemPerformanceData {
         timestamp: Utc::now(),
@@ -234,7 +237,7 @@ async fn test_performance_monitor_integration() -> RhemaResult<()> {
         thread_count: 100,
         open_file_descriptors: 500,
     };
-    
+
     let ux_data = UxData {
         timestamp: Utc::now(),
         command_name: "test_command".to_string(),
@@ -245,7 +248,7 @@ async fn test_performance_monitor_integration() -> RhemaResult<()> {
         error_message: None,
         satisfaction_score: Some(8.0),
     };
-    
+
     let usage_data = UsageData {
         timestamp: Utc::now(),
         user_id: "test_user".to_string(),
@@ -256,31 +259,31 @@ async fn test_performance_monitor_integration() -> RhemaResult<()> {
         usage_pattern: "test_pattern".to_string(),
         user_behavior: "test_behavior".to_string(),
     };
-    
+
     // Record all metrics
     monitor.record_system_metrics(system_data).await?;
     monitor.record_ux_metrics(ux_data).await?;
     monitor.record_usage_analytics(usage_data).await?;
-    
+
     // Generate report
     let period = ReportPeriod {
         start: Utc::now() - chrono::Duration::hours(1),
         end: Utc::now(),
         duration_seconds: 3600,
     };
-    
+
     let report = monitor.generate_performance_report(period).await?;
-    
+
     // Verify report contains expected data
     assert!(!report.report_id.is_empty());
     assert_eq!(report.period.duration_seconds, 3600);
     assert!(report.system_performance.avg_cpu_usage > 0.0);
     assert!(report.ux_summary.avg_command_execution_time > 0.0);
     assert!(report.usage_summary.total_commands > 0);
-    
+
     // Stop monitoring
     monitor.stop().await?;
-    
+
     Ok(())
 }
 
@@ -288,7 +291,7 @@ async fn test_performance_monitor_integration() -> RhemaResult<()> {
 async fn test_performance_monitor_error_handling() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     // Test with invalid data (should not panic)
     let invalid_data = SystemPerformanceData {
         timestamp: Utc::now(),
@@ -305,10 +308,10 @@ async fn test_performance_monitor_error_handling() -> RhemaResult<()> {
         thread_count: 0,
         open_file_descriptors: 0,
     };
-    
+
     // Should not panic even with invalid data
     monitor.record_system_metrics(invalid_data).await?;
-    
+
     Ok(())
 }
 
@@ -316,13 +319,13 @@ async fn test_performance_monitor_error_handling() -> RhemaResult<()> {
 async fn test_performance_monitor_concurrent_access() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = Arc::new(PerformanceMonitor::new(config)?);
-    
+
     // Start monitoring
     monitor.start().await?;
-    
+
     // Spawn multiple tasks to record metrics concurrently
     let mut handles = vec![];
-    
+
     for i in 0..10 {
         let monitor_clone = monitor.clone();
         let handle = tokio::spawn(async move {
@@ -341,20 +344,20 @@ async fn test_performance_monitor_concurrent_access() -> RhemaResult<()> {
                 thread_count: 20 + i,
                 open_file_descriptors: 100 + i,
             };
-            
+
             monitor_clone.record_system_metrics(system_data).await
         });
         handles.push(handle);
     }
-    
+
     // Wait for all tasks to complete
     for handle in handles {
         handle.await??;
     }
-    
+
     // Stop monitoring
     monitor.stop().await?;
-    
+
     Ok(())
 }
 
@@ -362,7 +365,7 @@ async fn test_performance_monitor_concurrent_access() -> RhemaResult<()> {
 async fn test_performance_monitor_memory_usage() -> RhemaResult<()> {
     let config = PerformanceMonitor::default_config();
     let monitor = PerformanceMonitor::new(config)?;
-    
+
     // Record many metrics to test memory usage
     for i in 0..1000 {
         let data = SystemPerformanceData {
@@ -380,21 +383,21 @@ async fn test_performance_monitor_memory_usage() -> RhemaResult<()> {
             thread_count: (i % 400) as u64,
             open_file_descriptors: (i % 1000) as u64,
         };
-        
+
         monitor.record_system_metrics(data).await?;
     }
-    
+
     // Generate report to test memory usage during analysis
     let period = ReportPeriod {
         start: Utc::now() - chrono::Duration::hours(1),
         end: Utc::now(),
         duration_seconds: 3600,
     };
-    
+
     let report = monitor.generate_performance_report(period).await?;
-    
+
     // Verify report was generated successfully
     assert!(!report.report_id.is_empty());
-    
+
     Ok(())
-} 
+}

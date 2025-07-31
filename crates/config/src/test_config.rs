@@ -57,7 +57,10 @@ mod tests {
     fn test_backup_manager_creation() -> RhemaResult<()> {
         let global_config = GlobalConfig::new();
         let manager = BackupManager::new(&global_config)?;
-        assert!(manager.get_backup_directory().exists() || manager.get_backup_directory().parent().unwrap().exists());
+        assert!(
+            manager.get_backup_directory().exists()
+                || manager.get_backup_directory().parent().unwrap().exists()
+        );
         Ok(())
     }
 
@@ -73,7 +76,7 @@ mod tests {
             old_value: None,
             new_value: Some(serde_json::Value::String("test".to_string())),
         };
-        
+
         audit_log.add_change(change);
         assert_eq!(audit_log.changes.len(), 1);
     }
@@ -86,7 +89,7 @@ mod tests {
             recommendations: vec!["Test recommendation".to_string()],
             last_check: Utc::now(),
         };
-        
+
         assert_eq!(health.status, ConfigHealthStatus::Healthy);
         assert_eq!(health.recommendations.len(), 1);
     }
@@ -99,4 +102,4 @@ mod tests {
         assert_eq!(stats.repository_configs, 0);
         assert_eq!(stats.scope_configs, 0);
     }
-} 
+}

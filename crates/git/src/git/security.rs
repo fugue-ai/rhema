@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-use rhema_core::RhemaResult;
-use git2::{Repository, Commit};
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use chrono::Utc;
+use git2::{Commit, Repository};
+use rhema_core::RhemaResult;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Security configuration for Git integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityConfig {
     /// Enable security features
     pub enabled: bool,
-    
+
     /// Access control settings
     pub access_control: AccessControlConfig,
-    
+
     /// Audit logging settings
     pub audit_logging: AuditLoggingConfig,
-    
+
     /// Security validation settings
     pub validation: SecurityValidationConfig,
-    
+
     /// Encryption settings
     pub encryption: EncryptionConfig,
-    
+
     /// Threat detection settings
     pub threat_detection: ThreatDetectionConfig,
 }
@@ -49,16 +49,16 @@ pub struct SecurityConfig {
 pub struct AccessControlConfig {
     /// Require authentication for all operations
     pub require_authentication: bool,
-    
+
     /// Role-based access control
     pub rbac_enabled: bool,
-    
+
     /// User roles and permissions
     pub roles: HashMap<String, RolePermissions>,
-    
+
     /// Branch protection rules
     pub branch_protection: HashMap<String, BranchProtectionRule>,
-    
+
     /// File access control
     pub file_access_control: FileAccessControl,
 }
@@ -68,16 +68,16 @@ pub struct AccessControlConfig {
 pub struct RolePermissions {
     /// Role name
     pub name: String,
-    
+
     /// Allowed operations
     pub allowed_operations: Vec<Operation>,
-    
+
     /// Allowed branches
     pub allowed_branches: Vec<String>,
-    
+
     /// Allowed file patterns
     pub allowed_files: Vec<String>,
-    
+
     /// Denied file patterns
     pub denied_files: Vec<String>,
 }
@@ -102,22 +102,22 @@ pub enum Operation {
 pub struct BranchProtectionRule {
     /// Branch name pattern
     pub pattern: String,
-    
+
     /// Require code review
     pub require_review: bool,
-    
+
     /// Require status checks
     pub require_status_checks: bool,
-    
+
     /// Require up-to-date branches
     pub require_up_to_date: bool,
-    
+
     /// Restrict pushes
     pub restrict_pushes: bool,
-    
+
     /// Allowed users
     pub allowed_users: Vec<String>,
-    
+
     /// Allowed teams
     pub allowed_teams: Vec<String>,
 }
@@ -127,13 +127,13 @@ pub struct BranchProtectionRule {
 pub struct FileAccessControl {
     /// Sensitive file patterns
     pub sensitive_files: Vec<String>,
-    
+
     /// Read-only file patterns
     pub read_only_files: Vec<String>,
-    
+
     /// Admin-only file patterns
     pub admin_only_files: Vec<String>,
-    
+
     /// Encryption required patterns
     pub encryption_required: Vec<String>,
 }
@@ -143,16 +143,16 @@ pub struct FileAccessControl {
 pub struct AuditLoggingConfig {
     /// Enable audit logging
     pub enabled: bool,
-    
+
     /// Log file path
     pub log_file: PathBuf,
-    
+
     /// Log level
     pub log_level: LogLevel,
-    
+
     /// Events to log
     pub events: Vec<AuditEvent>,
-    
+
     /// Retention policy
     pub retention: RetentionPolicy,
 }
@@ -187,13 +187,13 @@ pub enum AuditEvent {
 pub struct RetentionPolicy {
     /// Keep logs for N days
     pub retention_days: u32,
-    
+
     /// Maximum log file size (MB)
     pub max_file_size_mb: u64,
-    
+
     /// Archive old logs
     pub archive_old_logs: bool,
-    
+
     /// Archive directory
     pub archive_directory: Option<PathBuf>,
 }
@@ -203,19 +203,19 @@ pub struct RetentionPolicy {
 pub struct SecurityValidationConfig {
     /// Validate commit signatures
     pub validate_signatures: bool,
-    
+
     /// Check for suspicious patterns
     pub check_suspicious_patterns: bool,
-    
+
     /// Validate file permissions
     pub validate_permissions: bool,
-    
+
     /// Check for secrets in code
     pub check_secrets: bool,
-    
+
     /// Validate dependencies
     pub validate_dependencies: bool,
-    
+
     /// Security scanning
     pub security_scanning: SecurityScanningConfig,
 }
@@ -225,16 +225,16 @@ pub struct SecurityValidationConfig {
 pub struct SecurityScanningConfig {
     /// Enable security scanning
     pub enabled: bool,
-    
+
     /// Scan for common vulnerabilities
     pub scan_vulnerabilities: bool,
-    
+
     /// Scan for malware
     pub scan_malware: bool,
-    
+
     /// Scan for secrets
     pub scan_secrets: bool,
-    
+
     /// Custom security rules
     pub custom_rules: Vec<SecurityRule>,
 }
@@ -244,16 +244,16 @@ pub struct SecurityScanningConfig {
 pub struct SecurityRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule pattern
     pub pattern: String,
-    
+
     /// Rule severity
     pub severity: SecuritySeverity,
-    
+
     /// Rule description
     pub description: String,
-    
+
     /// Rule action
     pub action: SecurityAction,
 }
@@ -281,16 +281,16 @@ pub enum SecurityAction {
 pub struct EncryptionConfig {
     /// Enable encryption
     pub enabled: bool,
-    
+
     /// Encryption algorithm
     pub algorithm: EncryptionAlgorithm,
-    
+
     /// Key management
     pub key_management: KeyManagementConfig,
-    
+
     /// Encrypt sensitive files
     pub encrypt_sensitive_files: bool,
-    
+
     /// Encrypt context files
     pub encrypt_context_files: bool,
 }
@@ -308,10 +308,10 @@ pub enum EncryptionAlgorithm {
 pub struct KeyManagementConfig {
     /// Key storage location
     pub key_storage: KeyStorage,
-    
+
     /// Key rotation policy
     pub key_rotation: KeyRotationPolicy,
-    
+
     /// Backup keys
     pub backup_keys: bool,
 }
@@ -330,10 +330,10 @@ pub enum KeyStorage {
 pub struct KeyRotationPolicy {
     /// Rotate keys every N days
     pub rotation_days: u32,
-    
+
     /// Auto-rotate keys
     pub auto_rotate: bool,
-    
+
     /// Notify before rotation
     pub notify_before_rotation: bool,
 }
@@ -343,13 +343,13 @@ pub struct KeyRotationPolicy {
 pub struct ThreatDetectionConfig {
     /// Enable threat detection
     pub enabled: bool,
-    
+
     /// Detection rules
     pub rules: Vec<ThreatDetectionRule>,
-    
+
     /// Machine learning models
     pub ml_models: Vec<MLModel>,
-    
+
     /// Alerting
     pub alerting: AlertingConfig,
 }
@@ -359,16 +359,16 @@ pub struct ThreatDetectionConfig {
 pub struct ThreatDetectionRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule type
     pub rule_type: ThreatRuleType,
-    
+
     /// Rule pattern
     pub pattern: String,
-    
+
     /// Threshold
     pub threshold: f64,
-    
+
     /// Action
     pub action: ThreatAction,
 }
@@ -396,13 +396,13 @@ pub enum ThreatAction {
 pub struct MLModel {
     /// Model name
     pub name: String,
-    
+
     /// Model type
     pub model_type: MLModelType,
-    
+
     /// Model path
     pub model_path: PathBuf,
-    
+
     /// Confidence threshold
     pub confidence_threshold: f64,
 }
@@ -421,13 +421,13 @@ pub enum MLModelType {
 pub struct AlertingConfig {
     /// Email alerts
     pub email: Option<EmailAlertConfig>,
-    
+
     /// Slack alerts
     pub slack: Option<SlackAlertConfig>,
-    
+
     /// Webhook alerts
     pub webhook: Option<WebhookAlertConfig>,
-    
+
     /// Alert severity levels
     pub severity_levels: Vec<SecuritySeverity>,
 }
@@ -487,162 +487,202 @@ impl SecurityManager {
         } else {
             None
         };
-        
+
         Ok(Self {
             repo,
             config,
             audit_logger,
         })
     }
-    
+
     /// Validate access for a user
-    pub fn validate_access(&self, user: &str, operation: &Operation, resource: &str) -> RhemaResult<bool> {
+    pub fn validate_access(
+        &self,
+        user: &str,
+        operation: &Operation,
+        resource: &str,
+    ) -> RhemaResult<bool> {
         if !self.config.enabled {
             return Ok(true);
         }
-        
+
         // Check if user has role
         let user_role = self.get_user_role(user)?;
-        
+
         // Check role permissions
         if let Some(permissions) = self.config.access_control.roles.get(&user_role) {
             if !permissions.allowed_operations.contains(operation) {
                 self.log_audit_event(
                     AuditEvent::SecurityViolation,
-                    &format!("User {} attempted unauthorized operation {:?} on {}", user, operation, resource),
+                    &format!(
+                        "User {} attempted unauthorized operation {:?} on {}",
+                        user, operation, resource
+                    ),
                     LogLevel::Warn,
                 )?;
                 return Ok(false);
             }
         }
-        
+
         self.log_audit_event(
             AuditEvent::FileAccess,
-            &format!("User {} performed operation {:?} on {}", user, operation, resource),
+            &format!(
+                "User {} performed operation {:?} on {}",
+                user, operation, resource
+            ),
             LogLevel::Info,
         )?;
-        
+
         Ok(true)
     }
-    
+
     /// Validate commit security
-    pub fn validate_commit_security(&self, commit: &Commit) -> RhemaResult<SecurityValidationResult> {
+    pub fn validate_commit_security(
+        &self,
+        commit: &Commit,
+    ) -> RhemaResult<SecurityValidationResult> {
         let mut result = SecurityValidationResult::new();
-        
+
         if self.config.validation.validate_signatures {
             self.validate_commit_signature(commit, &mut result)?;
         }
-        
+
         if self.config.validation.check_suspicious_patterns {
             self.check_suspicious_patterns(commit, &mut result)?;
         }
-        
+
         if self.config.validation.check_secrets {
             self.check_for_secrets(commit, &mut result)?;
         }
-        
+
         self.log_audit_event(
             AuditEvent::Commit,
             &format!("Security validation for commit {}", commit.id()),
             LogLevel::Info,
         )?;
-        
+
         Ok(result)
     }
-    
+
     /// Validate commit signature
-    fn validate_commit_signature(&self, _commit: &Commit, result: &mut SecurityValidationResult) -> RhemaResult<()> {
+    fn validate_commit_signature(
+        &self,
+        _commit: &Commit,
+        result: &mut SecurityValidationResult,
+    ) -> RhemaResult<()> {
         // TODO: Implement signature validation
         result.add_warning("Signature validation not yet implemented".to_string());
         Ok(())
     }
-    
+
     /// Check for suspicious patterns
-    fn check_suspicious_patterns(&self, _commit: &Commit, result: &mut SecurityValidationResult) -> RhemaResult<()> {
+    fn check_suspicious_patterns(
+        &self,
+        _commit: &Commit,
+        result: &mut SecurityValidationResult,
+    ) -> RhemaResult<()> {
         // TODO: Implement suspicious pattern detection
         result.add_info("Suspicious pattern detection not yet implemented".to_string());
         Ok(())
     }
-    
+
     /// Check for secrets in commit
-    fn check_for_secrets(&self, _commit: &Commit, result: &mut SecurityValidationResult) -> RhemaResult<()> {
+    fn check_for_secrets(
+        &self,
+        _commit: &Commit,
+        result: &mut SecurityValidationResult,
+    ) -> RhemaResult<()> {
         // TODO: Implement secret detection
         result.add_info("Secret detection not yet implemented".to_string());
         Ok(())
     }
-    
+
     /// Get user role
     fn get_user_role(&self, _user: &str) -> RhemaResult<String> {
         // TODO: Implement role lookup
         Ok("default".to_string())
     }
-    
+
     /// Log audit event
-    fn log_audit_event(&self, event: AuditEvent, message: &str, level: LogLevel) -> RhemaResult<()> {
+    fn log_audit_event(
+        &self,
+        event: AuditEvent,
+        message: &str,
+        level: LogLevel,
+    ) -> RhemaResult<()> {
         if let Some(logger) = &self.audit_logger {
             logger.log(event, message, level)?;
         }
         Ok(())
     }
-    
+
     /// Run security scan
     pub fn run_security_scan(&self, path: &Path) -> RhemaResult<SecurityScanResult> {
         let mut result = SecurityScanResult::new();
-        
+
         if self.config.validation.security_scanning.enabled {
-            if self.config.validation.security_scanning.scan_vulnerabilities {
+            if self
+                .config
+                .validation
+                .security_scanning
+                .scan_vulnerabilities
+            {
                 self.scan_vulnerabilities(path, &mut result)?;
             }
-            
+
             if self.config.validation.security_scanning.scan_malware {
                 self.scan_malware(path, &mut result)?;
             }
-            
+
             if self.config.validation.security_scanning.scan_secrets {
                 self.scan_secrets(path, &mut result)?;
             }
         }
-        
+
         Ok(result)
     }
-    
+
     /// Scan for vulnerabilities
-    fn scan_vulnerabilities(&self, _path: &Path, result: &mut SecurityScanResult) -> RhemaResult<()> {
+    fn scan_vulnerabilities(
+        &self,
+        _path: &Path,
+        result: &mut SecurityScanResult,
+    ) -> RhemaResult<()> {
         // TODO: Implement vulnerability scanning
         result.add_info("Vulnerability scanning not yet implemented".to_string());
         Ok(())
     }
-    
+
     /// Scan for malware
     fn scan_malware(&self, _path: &Path, result: &mut SecurityScanResult) -> RhemaResult<()> {
         // TODO: Implement malware scanning
         result.add_info("Malware scanning not yet implemented".to_string());
         Ok(())
     }
-    
+
     /// Scan for secrets
     fn scan_secrets(&self, _path: &Path, result: &mut SecurityScanResult) -> RhemaResult<()> {
         // TODO: Implement secret scanning
         result.add_info("Secret scanning not yet implemented".to_string());
         Ok(())
     }
-    
+
     /// Encrypt file
     pub fn encrypt_file(&self, _file_path: &Path) -> RhemaResult<()> {
         if !self.config.encryption.enabled {
             return Ok(());
         }
-        
+
         // TODO: Implement file encryption
         Ok(())
     }
-    
+
     /// Decrypt file
     pub fn decrypt_file(&self, _file_path: &Path) -> RhemaResult<()> {
         if !self.config.encryption.enabled {
             return Ok(());
         }
-        
+
         // TODO: Implement file decryption
         Ok(())
     }
@@ -655,13 +695,13 @@ impl AuditLogger {
         if let Some(parent) = log_file.parent() {
             fs::create_dir_all(parent)?;
         }
-        
+
         Ok(Self {
             log_file,
             log_level,
         })
     }
-    
+
     /// Log an audit event
     pub fn log(&self, event: AuditEvent, message: &str, level: LogLevel) -> RhemaResult<()> {
         let timestamp = Utc::now();
@@ -672,10 +712,10 @@ impl AuditLogger {
             format!("{:?}", event),
             message
         );
-        
+
         // TODO: Implement proper file writing with rotation
         println!("AUDIT: {}", log_entry.trim());
-        
+
         Ok(())
     }
 }
@@ -808,7 +848,11 @@ pub fn default_security_config() -> SecurityConfig {
             roles: HashMap::new(),
             branch_protection: HashMap::new(),
             file_access_control: FileAccessControl {
-                sensitive_files: vec!["*.key".to_string(), "*.pem".to_string(), "secrets/*".to_string()],
+                sensitive_files: vec![
+                    "*.key".to_string(),
+                    "*.pem".to_string(),
+                    "secrets/*".to_string(),
+                ],
                 read_only_files: vec!["*.md".to_string(), "docs/*".to_string()],
                 admin_only_files: vec!["admin/*".to_string()],
                 encryption_required: vec!["secrets/*".to_string()],
@@ -871,4 +915,4 @@ pub fn default_security_config() -> SecurityConfig {
             },
         },
     }
-} 
+}

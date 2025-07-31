@@ -14,46 +14,46 @@
  * limitations under the License.
  */
 
-use rhema_core::{RhemaError, RhemaResult};
-use git2::{Repository, Commit, DiffOptions, BlameOptions};
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use git2::{BlameOptions, Commit, DiffOptions, Repository};
+use rhema_core::{RhemaError, RhemaResult};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 /// Enhanced context evolution entry
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextEvolution {
     /// Commit hash
     pub commit_hash: String,
-    
+
     /// Commit message
     pub commit_message: String,
-    
+
     /// Author information
     pub author: AuthorInfo,
-    
+
     /// Timestamp
     pub timestamp: DateTime<Utc>,
-    
+
     /// Context changes
     pub changes: Vec<ContextChange>,
-    
+
     /// Impact analysis
     pub impact: Option<ImpactAnalysis>,
-    
+
     /// Related knowledge entries
     pub related_knowledge: Vec<String>,
-    
+
     /// Tags and labels
     pub tags: Vec<String>,
-    
+
     /// Advanced evolution features
     pub advanced_features: AdvancedEvolutionFeatures,
-    
+
     /// Context analytics
     pub analytics: ContextAnalytics,
-    
+
     /// Context metadata
     pub metadata: ContextMetadata,
 }
@@ -77,25 +77,25 @@ impl std::fmt::Display for AuthorInfo {
 pub struct ContextChange {
     /// File path
     pub file_path: PathBuf,
-    
+
     /// Change type
     pub change_type: ChangeType,
-    
+
     /// Change description
     pub description: String,
-    
+
     /// Lines added
     pub lines_added: Option<usize>,
-    
+
     /// Lines removed
     pub lines_removed: Option<usize>,
-    
+
     /// Specific changes
     pub specific_changes: Vec<SpecificChange>,
-    
+
     /// Impact level
     pub impact_level: ImpactLevel,
-    
+
     /// Related scopes
     pub related_scopes: Vec<String>,
 }
@@ -115,13 +115,13 @@ pub enum ChangeType {
 pub struct SpecificChange {
     /// Field or section changed
     pub field: String,
-    
+
     /// Old value
     pub old_value: Option<String>,
-    
+
     /// New value
     pub new_value: Option<String>,
-    
+
     /// Change description
     pub description: String,
 }
@@ -140,16 +140,16 @@ pub enum ImpactLevel {
 pub struct ImpactAnalysis {
     /// Affected scopes
     pub affected_scopes: Vec<String>,
-    
+
     /// Affected dependencies
     pub affected_dependencies: Vec<String>,
-    
+
     /// Breaking changes
     pub breaking_changes: Vec<String>,
-    
+
     /// Risk assessment
     pub risk_assessment: RiskAssessment,
-    
+
     /// Recommendations
     pub recommendations: Vec<String>,
 }
@@ -159,10 +159,10 @@ pub struct ImpactAnalysis {
 pub struct RiskAssessment {
     /// Overall risk level
     pub risk_level: RiskLevel,
-    
+
     /// Risk factors
     pub risk_factors: Vec<RiskFactor>,
-    
+
     /// Mitigation strategies
     pub mitigations: Vec<String>,
 }
@@ -189,28 +189,28 @@ pub struct RiskFactor {
 pub struct ContextBlame {
     /// File path
     pub file_path: PathBuf,
-    
+
     /// Line number
     pub line_number: usize,
-    
+
     /// Commit hash
     pub commit_hash: String,
-    
+
     /// Author information
     pub author: AuthorInfo,
-    
+
     /// Line content
     pub content: String,
-    
+
     /// Context entry type
     pub entry_type: Option<String>,
-    
+
     /// Entry identifier
     pub entry_id: Option<String>,
-    
+
     /// Advanced blame features
     pub advanced_features: AdvancedBlameFeatures,
-    
+
     /// Blame analytics
     pub analytics: BlameAnalytics,
 }
@@ -220,31 +220,31 @@ pub struct ContextBlame {
 pub struct ContextVersion {
     /// Version identifier
     pub version: String,
-    
+
     /// Commit hash
     pub commit_hash: String,
-    
+
     /// Version type
     pub version_type: VersionType,
-    
+
     /// Creation timestamp
     pub created_at: DateTime<Utc>,
-    
+
     /// Description
     pub description: String,
-    
+
     /// Context snapshot
     pub snapshot: ContextSnapshot,
-    
+
     /// Tags
     pub tags: Vec<String>,
-    
+
     /// Advanced version features
     pub advanced_features: AdvancedVersionFeatures,
-    
+
     /// Version analytics
     pub analytics: VersionAnalytics,
-    
+
     /// Version metadata
     pub metadata: VersionMetadata,
 }
@@ -264,19 +264,19 @@ pub enum VersionType {
 pub struct ContextSnapshot {
     /// Scope definitions
     pub scopes: HashMap<String, String>,
-    
+
     /// Knowledge entries
     pub knowledge: HashMap<String, String>,
-    
+
     /// Todo items
     pub todos: HashMap<String, String>,
-    
+
     /// Decisions
     pub decisions: HashMap<String, String>,
-    
+
     /// Patterns
     pub patterns: HashMap<String, String>,
-    
+
     /// Conventions
     pub conventions: HashMap<String, String>,
 }
@@ -286,25 +286,25 @@ pub struct ContextSnapshot {
 pub struct AdvancedEvolutionFeatures {
     /// Evolution type
     pub evolution_type: EvolutionType,
-    
+
     /// Evolution category
     pub evolution_category: EvolutionCategory,
-    
+
     /// Evolution priority
     pub evolution_priority: EvolutionPriority,
-    
+
     /// Evolution complexity
     pub evolution_complexity: EvolutionComplexity,
-    
+
     /// Evolution risk level
     pub evolution_risk: EvolutionRisk,
-    
+
     /// Evolution dependencies
     pub evolution_dependencies: Vec<String>,
-    
+
     /// Evolution blockers
     pub evolution_blockers: Vec<String>,
-    
+
     /// Evolution approvals
     pub evolution_approvals: Vec<Approval>,
 }
@@ -387,25 +387,25 @@ pub enum ApprovalStatus {
 pub struct ContextAnalytics {
     /// Change frequency
     pub change_frequency: f64,
-    
+
     /// Change velocity
     pub change_velocity: f64,
-    
+
     /// Change impact score
     pub impact_score: f64,
-    
+
     /// Change complexity score
     pub complexity_score: f64,
-    
+
     /// Change risk score
     pub risk_score: f64,
-    
+
     /// Change quality score
     pub quality_score: f64,
-    
+
     /// Change maturity score
     pub maturity_score: f64,
-    
+
     /// Change stability score
     pub stability_score: f64,
 }
@@ -415,31 +415,31 @@ pub struct ContextAnalytics {
 pub struct ContextMetadata {
     /// Context version
     pub version: String,
-    
+
     /// Context schema version
     pub schema_version: String,
-    
+
     /// Context checksum
     pub checksum: String,
-    
+
     /// Context size
     pub size: u64,
-    
+
     /// Context compression ratio
     pub compression_ratio: Option<f64>,
-    
+
     /// Context encryption status
     pub encrypted: bool,
-    
+
     /// Context backup status
     pub backed_up: bool,
-    
+
     /// Context validation status
     pub validation_status: ValidationStatus,
-    
+
     /// Context dependencies
     pub dependencies: Vec<String>,
-    
+
     /// Context references
     pub references: Vec<String>,
 }
@@ -449,19 +449,19 @@ pub struct ContextMetadata {
 pub struct AdvancedBlameFeatures {
     /// Blame type
     pub blame_type: BlameType,
-    
+
     /// Blame category
     pub blame_category: BlameCategory,
-    
+
     /// Blame severity
     pub blame_severity: BlameSeverity,
-    
+
     /// Blame impact
     pub blame_impact: BlameImpact,
-    
+
     /// Blame context
     pub blame_context: BlameContext,
-    
+
     /// Blame history
     pub blame_history: Vec<BlameHistoryEntry>,
 }
@@ -513,19 +513,19 @@ pub enum BlameImpact {
 pub struct BlameContext {
     /// Related files
     pub related_files: Vec<PathBuf>,
-    
+
     /// Related commits
     pub related_commits: Vec<String>,
-    
+
     /// Related issues
     pub related_issues: Vec<String>,
-    
+
     /// Related pull requests
     pub related_prs: Vec<String>,
-    
+
     /// Context scope
     pub context_scope: String,
-    
+
     /// Context domain
     pub context_domain: String,
 }
@@ -545,19 +545,19 @@ pub struct BlameHistoryEntry {
 pub struct BlameAnalytics {
     /// Blame frequency
     pub blame_frequency: f64,
-    
+
     /// Blame velocity
     pub blame_velocity: f64,
-    
+
     /// Blame impact score
     pub impact_score: f64,
-    
+
     /// Blame complexity score
     pub complexity_score: f64,
-    
+
     /// Blame risk score
     pub risk_score: f64,
-    
+
     /// Blame quality score
     pub quality_score: f64,
 }
@@ -567,22 +567,22 @@ pub struct BlameAnalytics {
 pub struct AdvancedVersionFeatures {
     /// Version stability
     pub stability: VersionStability,
-    
+
     /// Version maturity
     pub maturity: VersionMaturity,
-    
+
     /// Version compatibility
     pub compatibility: VersionCompatibility,
-    
+
     /// Version dependencies
     pub dependencies: Vec<VersionDependency>,
-    
+
     /// Version breaking changes
     pub breaking_changes: Vec<BreakingChange>,
-    
+
     /// Version deprecations
     pub deprecations: Vec<Deprecation>,
-    
+
     /// Version migrations
     pub migrations: Vec<Migration>,
 }
@@ -689,19 +689,19 @@ pub struct MigrationStep {
 pub struct VersionAnalytics {
     /// Version adoption rate
     pub adoption_rate: f64,
-    
+
     /// Version stability score
     pub stability_score: f64,
-    
+
     /// Version maturity score
     pub maturity_score: f64,
-    
+
     /// Version quality score
     pub quality_score: f64,
-    
+
     /// Version performance score
     pub performance_score: f64,
-    
+
     /// Version security score
     pub security_score: f64,
 }
@@ -711,25 +711,25 @@ pub struct VersionAnalytics {
 pub struct VersionMetadata {
     /// Version checksum
     pub checksum: String,
-    
+
     /// Version size
     pub size: u64,
-    
+
     /// Version compression ratio
     pub compression_ratio: Option<f64>,
-    
+
     /// Version encryption status
     pub encrypted: bool,
-    
+
     /// Version backup status
     pub backed_up: bool,
-    
+
     /// Version validation status
     pub validation_status: ValidationStatus,
-    
+
     /// Version signatures
     pub signatures: Vec<Signature>,
-    
+
     /// Version certificates
     pub certificates: Vec<Certificate>,
 }
@@ -760,19 +760,19 @@ pub struct Certificate {
 pub struct CommitMessageConfig {
     /// Enable automated commit messages
     pub enabled: bool,
-    
+
     /// Commit message template
     pub template: String,
-    
+
     /// Commit message format
     pub format: CommitMessageFormat,
-    
+
     /// Commit message rules
     pub rules: Vec<CommitMessageRule>,
-    
+
     /// Commit message validation
     pub validation: CommitMessageValidation,
-    
+
     /// Commit message automation
     pub automation: CommitMessageAutomation,
 }
@@ -800,19 +800,19 @@ pub struct CommitMessageRule {
 pub struct CommitMessageValidation {
     /// Validate commit message format
     pub validate_format: bool,
-    
+
     /// Validate commit message length
     pub validate_length: bool,
-    
+
     /// Validate commit message content
     pub validate_content: bool,
-    
+
     /// Validate commit message references
     pub validate_references: bool,
-    
+
     /// Maximum commit message length
     pub max_length: Option<usize>,
-    
+
     /// Minimum commit message length
     pub min_length: Option<usize>,
 }
@@ -822,16 +822,16 @@ pub struct CommitMessageValidation {
 pub struct CommitMessageAutomation {
     /// Auto-generate commit messages
     pub auto_generate: bool,
-    
+
     /// Auto-format commit messages
     pub auto_format: bool,
-    
+
     /// Auto-validate commit messages
     pub auto_validate: bool,
-    
+
     /// Auto-correct commit messages
     pub auto_correct: bool,
-    
+
     /// Auto-suggest commit messages
     pub auto_suggest: bool,
 }
@@ -875,32 +875,36 @@ impl ContextHistoryManager {
             version_cache: HashMap::new(),
         }
     }
-    
+
     /// Track context evolution for a specific scope
-    pub fn track_context_evolution(&mut self, scope_path: &str, limit: Option<usize>) -> RhemaResult<Vec<ContextEvolution>> {
+    pub fn track_context_evolution(
+        &mut self,
+        scope_path: &str,
+        limit: Option<usize>,
+    ) -> RhemaResult<Vec<ContextEvolution>> {
         let cache_key = scope_path.to_string();
-        
+
         if let Some(cached) = self.evolution_cache.get(&cache_key) {
             return Ok(cached.clone());
         }
-        
+
         let mut evolution = Vec::new();
         let mut revwalk = self.repo.revwalk()?;
-        
+
         // Add HEAD to start walking from the latest commit
         revwalk.push_head()?;
-        
+
         let limit = limit.unwrap_or(100);
         let mut count = 0;
-        
+
         for oid in revwalk {
             if count >= limit {
                 break;
             }
-            
+
             let oid = oid?;
             let commit = self.repo.find_commit(oid)?;
-            
+
             // Check if this commit affects the scope
             if self.commit_affects_scope(&commit, scope_path)? {
                 let evolution_entry = self.create_evolution_entry(&commit, scope_path)?;
@@ -908,11 +912,11 @@ impl ContextHistoryManager {
                 count += 1;
             }
         }
-        
+
         self.evolution_cache.insert(cache_key, evolution.clone());
         Ok(evolution)
     }
-    
+
     /// Check if a commit affects a specific scope
     fn commit_affects_scope(&self, commit: &Commit, scope_path: &str) -> RhemaResult<bool> {
         let tree = commit.tree()?;
@@ -921,14 +925,16 @@ impl ContextHistoryManager {
         } else {
             None
         };
-        
+
         let mut diff_options = DiffOptions::new();
         let diff = if let Some(parent_tree) = parent_tree {
-            self.repo.diff_tree_to_tree(Some(&parent_tree), Some(&tree), Some(&mut diff_options))?
+            self.repo
+                .diff_tree_to_tree(Some(&parent_tree), Some(&tree), Some(&mut diff_options))?
         } else {
-            self.repo.diff_tree_to_tree(None, Some(&tree), Some(&mut diff_options))?
+            self.repo
+                .diff_tree_to_tree(None, Some(&tree), Some(&mut diff_options))?
         };
-        
+
         for delta in diff.deltas() {
             if let Some(new_file) = delta.new_file().path() {
                 if new_file.to_string_lossy().contains(scope_path) {
@@ -941,15 +947,19 @@ impl ContextHistoryManager {
                 }
             }
         }
-        
+
         Ok(false)
     }
-    
+
     /// Create evolution entry from commit
-    fn create_evolution_entry(&self, commit: &Commit, scope_path: &str) -> RhemaResult<ContextEvolution> {
+    fn create_evolution_entry(
+        &self,
+        commit: &Commit,
+        scope_path: &str,
+    ) -> RhemaResult<ContextEvolution> {
         let changes = self.analyze_commit_changes(commit, scope_path)?;
         let impact = self.analyze_commit_impact(commit, scope_path)?;
-        
+
         Ok(ContextEvolution {
             commit_hash: commit.id().to_string(),
             commit_message: commit.message().unwrap_or("").to_string(),
@@ -999,9 +1009,13 @@ impl ContextHistoryManager {
             },
         })
     }
-    
+
     /// Analyze changes in a commit
-    fn analyze_commit_changes(&self, commit: &Commit, scope_path: &str) -> RhemaResult<Vec<ContextChange>> {
+    fn analyze_commit_changes(
+        &self,
+        commit: &Commit,
+        scope_path: &str,
+    ) -> RhemaResult<Vec<ContextChange>> {
         let mut changes = Vec::new();
         let tree = commit.tree()?;
         let parent_tree = if let Ok(parent) = commit.parent(0) {
@@ -1009,14 +1023,16 @@ impl ContextHistoryManager {
         } else {
             None
         };
-        
+
         let mut diff_options = DiffOptions::new();
         let diff = if let Some(parent_tree) = parent_tree {
-            self.repo.diff_tree_to_tree(Some(&parent_tree), Some(&tree), Some(&mut diff_options))?
+            self.repo
+                .diff_tree_to_tree(Some(&parent_tree), Some(&tree), Some(&mut diff_options))?
         } else {
-            self.repo.diff_tree_to_tree(None, Some(&tree), Some(&mut diff_options))?
+            self.repo
+                .diff_tree_to_tree(None, Some(&tree), Some(&mut diff_options))?
         };
-        
+
         for delta in diff.deltas() {
             if let Some(new_file) = delta.new_file().path() {
                 if new_file.to_string_lossy().contains(scope_path) {
@@ -1025,12 +1041,16 @@ impl ContextHistoryManager {
                 }
             }
         }
-        
+
         Ok(changes)
     }
-    
+
     /// Create context change from delta
-    fn create_context_change(&self, delta: git2::DiffDelta, file_path: &Path) -> RhemaResult<ContextChange> {
+    fn create_context_change(
+        &self,
+        delta: git2::DiffDelta,
+        file_path: &Path,
+    ) -> RhemaResult<ContextChange> {
         let change_type = match delta.status() {
             git2::Delta::Added => ChangeType::Added,
             git2::Delta::Modified => ChangeType::Modified,
@@ -1038,10 +1058,10 @@ impl ContextHistoryManager {
             git2::Delta::Renamed => ChangeType::Renamed,
             _ => ChangeType::Modified,
         };
-        
+
         let (lines_added, lines_removed) = self.calculate_line_changes(&delta)?;
         let specific_changes = self.analyze_specific_changes(&delta)?;
-        
+
         Ok(ContextChange {
             file_path: file_path.to_path_buf(),
             change_type: change_type.clone(),
@@ -1053,57 +1073,68 @@ impl ContextHistoryManager {
             related_scopes: self.extract_related_scopes(file_path),
         })
     }
-    
+
     /// Calculate line changes
-    fn calculate_line_changes(&self, _delta: &git2::DiffDelta) -> RhemaResult<(Option<usize>, Option<usize>)> {
+    fn calculate_line_changes(
+        &self,
+        _delta: &git2::DiffDelta,
+    ) -> RhemaResult<(Option<usize>, Option<usize>)> {
         // TODO: Implement line change calculation
         // This would analyze the actual diff to count added/removed lines
         Ok((None, None))
     }
-    
+
     /// Analyze specific changes
-    fn analyze_specific_changes(&self, _delta: &git2::DiffDelta) -> RhemaResult<Vec<SpecificChange>> {
+    fn analyze_specific_changes(
+        &self,
+        _delta: &git2::DiffDelta,
+    ) -> RhemaResult<Vec<SpecificChange>> {
         // TODO: Implement specific change analysis
         // This would parse the diff to identify specific field changes
         Ok(Vec::new())
     }
-    
+
     /// Assess impact level
     fn assess_impact_level(&self, _delta: &git2::DiffDelta) -> ImpactLevel {
         // TODO: Implement impact level assessment
         // This would analyze the type and scope of changes
         ImpactLevel::Medium
     }
-    
+
     /// Extract related scopes
     fn extract_related_scopes(&self, _file_path: &Path) -> Vec<String> {
         // TODO: Implement scope extraction
         // This would analyze the file path and content to identify related scopes
         Vec::new()
     }
-    
+
     /// Analyze commit impact
-    fn analyze_commit_impact(&self, _commit: &Commit, _scope_path: &str) -> RhemaResult<Option<ImpactAnalysis>> {
+    fn analyze_commit_impact(
+        &self,
+        _commit: &Commit,
+        _scope_path: &str,
+    ) -> RhemaResult<Option<ImpactAnalysis>> {
         // TODO: Implement impact analysis
         // This would analyze the broader impact of the commit
         Ok(None)
     }
-    
+
     /// Get Git blame for context entries
     pub fn get_context_blame(&mut self, file_path: &Path) -> RhemaResult<Vec<ContextBlame>> {
         if let Some(cached) = self.blame_cache.get(file_path) {
             return Ok(cached.clone());
         }
-        
+
         let mut blame_options = BlameOptions::new();
         let blame = self.repo.blame_file(file_path, Some(&mut blame_options))?;
-        
+
         let mut context_blame = Vec::new();
-        
+
         for hunk in blame.iter() {
             let commit = self.repo.find_commit(hunk.final_commit_id())?;
-            let line_content = self.get_line_content(file_path, hunk.final_start_line().try_into().unwrap_or(0))?;
-            
+            let line_content =
+                self.get_line_content(file_path, hunk.final_start_line().try_into().unwrap_or(0))?;
+
             let blame_entry = ContextBlame {
                 file_path: file_path.to_path_buf(),
                 line_number: hunk.final_start_line() as usize,
@@ -1141,47 +1172,53 @@ impl ContextHistoryManager {
                     quality_score: 0.0,
                 },
             };
-            
+
             context_blame.push(blame_entry);
         }
-        
-        self.blame_cache.insert(file_path.to_path_buf(), context_blame.clone());
+
+        self.blame_cache
+            .insert(file_path.to_path_buf(), context_blame.clone());
         Ok(context_blame)
     }
-    
+
     /// Get line content from file
     fn get_line_content(&self, file_path: &Path, line_number: u32) -> RhemaResult<String> {
         let content = std::fs::read_to_string(file_path)?;
         let lines: Vec<&str> = content.lines().collect();
-        
+
         if line_number < lines.len() as u32 {
             Ok(lines[line_number as usize].to_string())
         } else {
             Ok(String::new())
         }
     }
-    
+
     /// Extract entry type from line content
     fn extract_entry_type(&self, _content: &str) -> Option<String> {
         // TODO: Implement entry type extraction
         // This would parse the YAML content to identify entry types
         None
     }
-    
+
     /// Extract entry ID from line content
     fn extract_entry_id(&self, _content: &str) -> Option<String> {
         // TODO: Implement entry ID extraction
         // This would parse the YAML content to identify entry IDs
         None
     }
-    
+
     /// Create context version
-    pub fn create_context_version(&mut self, version: &str, version_type: VersionType, description: &str) -> RhemaResult<ContextVersion> {
+    pub fn create_context_version(
+        &mut self,
+        version: &str,
+        version_type: VersionType,
+        description: &str,
+    ) -> RhemaResult<ContextVersion> {
         let head = self.repo.head()?;
         let commit = head.peel_to_commit()?;
-        
+
         let snapshot = self.create_context_snapshot()?;
-        
+
         let context_version = ContextVersion {
             version: version.to_string(),
             commit_hash: commit.id().to_string(),
@@ -1224,20 +1261,22 @@ impl ContextHistoryManager {
                 certificates: Vec::new(),
             },
         };
-        
-        self.version_cache.insert(version.to_string(), context_version.clone());
-        
+
+        self.version_cache
+            .insert(version.to_string(), context_version.clone());
+
         // Create Git tag for the version
         self.create_version_tag(version, &commit)?;
-        
+
         Ok(context_version)
     }
-    
+
     /// Create context snapshot
     fn create_context_snapshot(&self) -> RhemaResult<ContextSnapshot> {
-        let repo_path = self.repo.path().parent()
-            .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?;
-        
+        let repo_path = self.repo.path().parent().ok_or_else(|| {
+            RhemaError::GitError(git2::Error::from_str("Invalid repository path"))
+        })?;
+
         let mut snapshot = ContextSnapshot {
             scopes: HashMap::new(),
             knowledge: HashMap::new(),
@@ -1246,7 +1285,7 @@ impl ContextHistoryManager {
             patterns: HashMap::new(),
             conventions: HashMap::new(),
         };
-        
+
         // Walk through repository to find context files
         for entry in walkdir::WalkDir::new(repo_path)
             .into_iter()
@@ -1255,11 +1294,12 @@ impl ContextHistoryManager {
             let path = entry.path();
             if path.is_file() && self.is_context_file(path) {
                 if let Ok(content) = std::fs::read_to_string(path) {
-                    let relative_path = path.strip_prefix(repo_path)
+                    let relative_path = path
+                        .strip_prefix(repo_path)
                         .unwrap_or(path)
                         .to_string_lossy()
                         .to_string();
-                    
+
                     match path.file_name().and_then(|s| s.to_str()) {
                         Some("rhema.yaml") => {
                             snapshot.scopes.insert(relative_path, content);
@@ -1284,47 +1324,54 @@ impl ContextHistoryManager {
                 }
             }
         }
-        
+
         Ok(snapshot)
     }
-    
+
     /// Check if a file is a context file
     fn is_context_file(&self, path: &Path) -> bool {
         if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
-            matches!(file_name, 
-                "rhema.yaml" | 
-                "knowledge.yaml" | 
-                "todos.yaml" | 
-                "decisions.yaml" | 
-                "patterns.yaml" | 
-                "conventions.yaml"
+            matches!(
+                file_name,
+                "rhema.yaml"
+                    | "knowledge.yaml"
+                    | "todos.yaml"
+                    | "decisions.yaml"
+                    | "patterns.yaml"
+                    | "conventions.yaml"
             )
         } else {
             false
         }
     }
-    
+
     /// Create version tag
     fn create_version_tag(&self, version: &str, commit: &Commit) -> RhemaResult<()> {
         let tag_name = format!("v{}", version);
         let signature = self.repo.signature()?;
-        
+
         let commit_obj = commit.as_object();
-        self.repo.tag(&tag_name, commit_obj, &signature, &format!("Context version {}", version), false)?;
-        
+        self.repo.tag(
+            &tag_name,
+            commit_obj,
+            &signature,
+            &format!("Context version {}", version),
+            false,
+        )?;
+
         Ok(())
     }
-    
+
     /// Get context version
     pub fn get_context_version(&self, version: &str) -> RhemaResult<Option<&ContextVersion>> {
         Ok(self.version_cache.get(version))
     }
-    
+
     /// List all context versions
     pub fn list_context_versions(&self) -> Vec<&ContextVersion> {
         self.version_cache.values().collect()
     }
-    
+
     /// Rollback to context version
     pub fn rollback_to_version(&self, version: &str) -> RhemaResult<()> {
         if let Some(_context_version) = self.version_cache.get(version) {
@@ -1332,38 +1379,42 @@ impl ContextHistoryManager {
             // This would restore the context files to the specified version
             println!("Rolling back to version: {}", version);
         }
-        
+
         Ok(())
     }
-    
+
     /// Get context change history
-    pub fn get_change_history(&self, file_path: &Path, limit: Option<usize>) -> RhemaResult<Vec<ContextEvolution>> {
+    pub fn get_change_history(
+        &self,
+        file_path: &Path,
+        limit: Option<usize>,
+    ) -> RhemaResult<Vec<ContextEvolution>> {
         let mut history = Vec::new();
         let mut revwalk = self.repo.revwalk()?;
-        
+
         revwalk.push_head()?;
-        
+
         let limit = limit.unwrap_or(50);
         let mut count = 0;
-        
+
         for oid in revwalk {
             if count >= limit {
                 break;
             }
-            
+
             let oid = oid?;
             let commit = self.repo.find_commit(oid)?;
-            
+
             if self.commit_affects_file(&commit, file_path)? {
                 let evolution_entry = self.create_file_evolution_entry(&commit, file_path)?;
                 history.push(evolution_entry);
                 count += 1;
             }
         }
-        
+
         Ok(history)
     }
-    
+
     /// Check if a commit affects a specific file
     fn commit_affects_file(&self, commit: &Commit, file_path: &Path) -> RhemaResult<bool> {
         let tree = commit.tree()?;
@@ -1372,14 +1423,16 @@ impl ContextHistoryManager {
         } else {
             None
         };
-        
+
         let mut diff_options = DiffOptions::new();
         let diff = if let Some(parent_tree) = parent_tree {
-            self.repo.diff_tree_to_tree(Some(&parent_tree), Some(&tree), Some(&mut diff_options))?
+            self.repo
+                .diff_tree_to_tree(Some(&parent_tree), Some(&tree), Some(&mut diff_options))?
         } else {
-            self.repo.diff_tree_to_tree(None, Some(&tree), Some(&mut diff_options))?
+            self.repo
+                .diff_tree_to_tree(None, Some(&tree), Some(&mut diff_options))?
         };
-        
+
         for delta in diff.deltas() {
             if let Some(new_file) = delta.new_file().path() {
                 if new_file == file_path {
@@ -1392,14 +1445,18 @@ impl ContextHistoryManager {
                 }
             }
         }
-        
+
         Ok(false)
     }
-    
+
     /// Create file evolution entry
-    fn create_file_evolution_entry(&self, commit: &Commit, file_path: &Path) -> RhemaResult<ContextEvolution> {
+    fn create_file_evolution_entry(
+        &self,
+        commit: &Commit,
+        file_path: &Path,
+    ) -> RhemaResult<ContextEvolution> {
         let changes = self.analyze_file_changes(commit, file_path)?;
-        
+
         Ok(ContextEvolution {
             commit_hash: commit.id().to_string(),
             commit_message: commit.message().unwrap_or("").to_string(),
@@ -1449,96 +1506,121 @@ impl ContextHistoryManager {
             },
         })
     }
-    
+
     /// Analyze file changes
-    fn analyze_file_changes(&self, _commit: &Commit, _file_path: &Path) -> RhemaResult<Vec<ContextChange>> {
+    fn analyze_file_changes(
+        &self,
+        _commit: &Commit,
+        _file_path: &Path,
+    ) -> RhemaResult<Vec<ContextChange>> {
         // TODO: Implement file-specific change analysis
         Ok(Vec::new())
     }
-    
+
     /// Generate context evolution report
-    pub fn generate_evolution_report(&mut self, scope_path: &str, since: Option<DateTime<Utc>>) -> RhemaResult<EvolutionReport> {
+    pub fn generate_evolution_report(
+        &mut self,
+        scope_path: &str,
+        since: Option<DateTime<Utc>>,
+    ) -> RhemaResult<EvolutionReport> {
         let evolution = self.track_context_evolution(scope_path, None)?;
-        
+
         let filtered_evolution = if let Some(since) = since {
-            evolution.into_iter()
+            evolution
+                .into_iter()
                 .filter(|e| e.timestamp >= since)
                 .collect()
         } else {
             evolution
         };
-        
+
         let report = EvolutionReport {
             scope_path: scope_path.to_string(),
             period: since,
-            start_date: filtered_evolution.first().map_or(Utc::now(), |e| e.timestamp),
-            end_date: filtered_evolution.last().map_or(Utc::now(), |e| e.timestamp),
+            start_date: filtered_evolution
+                .first()
+                .map_or(Utc::now(), |e| e.timestamp),
+            end_date: filtered_evolution
+                .last()
+                .map_or(Utc::now(), |e| e.timestamp),
             total_commits: filtered_evolution.len(),
             changes_by_type: self.analyze_changes_by_type(&filtered_evolution),
             top_contributors: self.analyze_top_contributors(&filtered_evolution),
             impact_summary: self.generate_impact_summary(&filtered_evolution),
             recommendations: self.generate_recommendations(&filtered_evolution),
         };
-        
+
         Ok(report)
     }
-    
+
     /// Analyze changes by type
-    fn analyze_changes_by_type(&self, evolution: &[ContextEvolution]) -> HashMap<ChangeType, usize> {
+    fn analyze_changes_by_type(
+        &self,
+        evolution: &[ContextEvolution],
+    ) -> HashMap<ChangeType, usize> {
         let mut changes_by_type = HashMap::new();
-        
+
         for entry in evolution {
             for change in &entry.changes {
-                *changes_by_type.entry(change.change_type.clone()).or_insert(0) += 1;
+                *changes_by_type
+                    .entry(change.change_type.clone())
+                    .or_insert(0) += 1;
             }
         }
-        
+
         changes_by_type
     }
-    
+
     /// Analyze top contributors
     fn analyze_top_contributors(&self, evolution: &[ContextEvolution]) -> Vec<ContributorStats> {
         let mut contributor_stats = HashMap::new();
-        
+
         for entry in evolution {
             let author = &entry.author.name;
-            let stats = contributor_stats.entry(author.clone()).or_insert(ContributorStats {
-                name: author.clone(),
-                commits: 0,
-                changes: 0,
-                impact_score: 0.0,
-            });
-            
+            let stats = contributor_stats
+                .entry(author.clone())
+                .or_insert(ContributorStats {
+                    name: author.clone(),
+                    commits: 0,
+                    changes: 0,
+                    impact_score: 0.0,
+                });
+
             stats.commits += 1;
             stats.changes += entry.changes.len();
             stats.impact_score += self.calculate_impact_score(&entry.changes);
         }
-        
+
         let mut stats: Vec<ContributorStats> = contributor_stats.into_values().collect();
-        stats.sort_by(|a, b| b.impact_score.partial_cmp(&a.impact_score).unwrap_or(std::cmp::Ordering::Equal));
-        
+        stats.sort_by(|a, b| {
+            b.impact_score
+                .partial_cmp(&a.impact_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
         stats.truncate(10); // Top 10 contributors
         stats
     }
-    
+
     /// Calculate impact score
     fn calculate_impact_score(&self, changes: &[ContextChange]) -> f64 {
-        changes.iter().map(|change| {
-            match change.impact_level {
+        changes
+            .iter()
+            .map(|change| match change.impact_level {
                 ImpactLevel::Low => 1.0,
                 ImpactLevel::Medium => 2.0,
                 ImpactLevel::High => 3.0,
                 ImpactLevel::Critical => 5.0,
-            }
-        }).sum()
+            })
+            .sum()
     }
-    
+
     /// Generate impact summary
     fn generate_impact_summary(&self, evolution: &[ContextEvolution]) -> ImpactSummary {
         let mut total_impact = 0.0;
         let mut critical_changes = 0;
         let mut affected_scopes = std::collections::HashSet::new();
-        
+
         for entry in evolution {
             for change in &entry.changes {
                 total_impact += match change.impact_level {
@@ -1547,44 +1629,51 @@ impl ContextHistoryManager {
                     ImpactLevel::High => 3.0,
                     ImpactLevel::Critical => 5.0,
                 };
-                
+
                 if matches!(change.impact_level, ImpactLevel::Critical) {
                     critical_changes += 1;
                 }
-                
+
                 for scope in &change.related_scopes {
                     affected_scopes.insert(scope.clone());
                 }
             }
         }
-        
+
         ImpactSummary {
             total_impact,
             critical_changes,
             affected_scopes_count: affected_scopes.len(),
-            average_impact_per_commit: if evolution.is_empty() { 0.0 } else { total_impact / evolution.len() as f64 },
+            average_impact_per_commit: if evolution.is_empty() {
+                0.0
+            } else {
+                total_impact / evolution.len() as f64
+            },
         }
     }
-    
+
     /// Generate recommendations
     fn generate_recommendations(&self, evolution: &[ContextEvolution]) -> Vec<String> {
         let mut recommendations = Vec::new();
-        
+
         // Analyze patterns and generate recommendations
-        let critical_changes = evolution.iter()
+        let critical_changes = evolution
+            .iter()
             .flat_map(|e| &e.changes)
             .filter(|c| matches!(c.impact_level, ImpactLevel::Critical))
             .count();
-        
+
         if critical_changes > 5 {
-            recommendations.push("Consider implementing stricter review processes for critical changes".to_string());
+            recommendations.push(
+                "Consider implementing stricter review processes for critical changes".to_string(),
+            );
         }
-        
+
         let frequent_changes = evolution.len();
         if frequent_changes > 100 {
             recommendations.push("Consider consolidating frequent small changes into larger, more meaningful commits".to_string());
         }
-        
+
         recommendations
     }
 }
@@ -1619,4 +1708,4 @@ pub struct ImpactSummary {
     pub critical_changes: usize,
     pub affected_scopes_count: usize,
     pub average_impact_per_commit: f64,
-} 
+}

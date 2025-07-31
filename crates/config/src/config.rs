@@ -23,25 +23,25 @@ use thiserror::Error;
 pub enum SafetyViolation {
     #[error("Context consistency violation: {0}")]
     ContextConsistency(String),
-    
+
     #[error("Dependency integrity violation: {0}")]
     DependencyIntegrity(String),
-    
+
     #[error("Agent coordination violation: {0}")]
     AgentCoordination(String),
-    
+
     #[error("Lock consistency violation: {0}")]
     LockConsistency(String),
-    
+
     #[error("Sync status consistency violation: {0}")]
     SyncStatusConsistency(String),
-    
+
     #[error("Resource bounds violation: {0}")]
     ResourceBounds(String),
-    
+
     #[error("Circular dependency violation: {0}")]
     CircularDependency(String),
-    
+
     #[error("Deadlock violation: {0}")]
     Deadlock(String),
 }
@@ -64,25 +64,39 @@ impl SafetyValidator {
     }
 
     /// Validate scope references
-    pub fn validate_scope_references(&self, _scope: &str, _all_scopes: &[String]) -> RhemaResult<()> {
+    pub fn validate_scope_references(
+        &self,
+        _scope: &str,
+        _all_scopes: &[String],
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
 
     /// Validate no circular dependencies
-    pub fn validate_no_circular_dependencies(&self, _dependencies: &HashMap<String, Vec<String>>) -> RhemaResult<()> {
+    pub fn validate_no_circular_dependencies(
+        &self,
+        _dependencies: &HashMap<String, Vec<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
 
     /// Validate dependency graph
-    pub fn validate_dependency_graph(&self, _graph: &HashMap<String, Vec<String>>) -> RhemaResult<()> {
+    pub fn validate_dependency_graph(
+        &self,
+        _graph: &HashMap<String, Vec<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
 
     /// Validate dependency bounds
-    pub fn validate_dependency_bounds(&self, _deps: &[String], _max_deps: usize) -> RhemaResult<()> {
+    pub fn validate_dependency_bounds(
+        &self,
+        _deps: &[String],
+        _max_deps: usize,
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
@@ -100,37 +114,61 @@ impl SafetyValidator {
     }
 
     /// Validate concurrent agents
-    pub fn validate_concurrent_agents(&self, _locks: &HashMap<String, Option<String>>, _max_concurrent: usize) -> RhemaResult<()> {
+    pub fn validate_concurrent_agents(
+        &self,
+        _locks: &HashMap<String, Option<String>>,
+        _max_concurrent: usize,
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
 
     /// Validate agent progress
-    pub fn validate_agent_progress(&self, _agent_id: &str, _state: &str, _max_block_time: std::time::Duration) -> RhemaResult<()> {
+    pub fn validate_agent_progress(
+        &self,
+        _agent_id: &str,
+        _state: &str,
+        _max_block_time: std::time::Duration,
+    ) -> RhemaResult<()> {
         // TODO: Implement when agent types are available
         Ok(())
     }
 
     /// Validate lock ownership
-    pub fn validate_lock_ownership(&self, _locks: &HashMap<String, Option<String>>, _agents: &[String]) -> RhemaResult<()> {
+    pub fn validate_lock_ownership(
+        &self,
+        _locks: &HashMap<String, Option<String>>,
+        _agents: &[String],
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
 
     /// Validate one lock per agent
-    pub fn validate_one_lock_per_agent(&self, _locks: &HashMap<String, Option<String>>) -> RhemaResult<()> {
+    pub fn validate_one_lock_per_agent(
+        &self,
+        _locks: &HashMap<String, Option<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
 
     /// Validate lock timeouts
-    pub fn validate_lock_timeouts(&self, _locks: &HashMap<String, Option<String>>, _timeouts: &HashMap<String, std::time::Instant>) -> RhemaResult<()> {
+    pub fn validate_lock_timeouts(
+        &self,
+        _locks: &HashMap<String, Option<String>>,
+        _timeouts: &HashMap<String, std::time::Instant>,
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
 
     /// Validate sync status consistency
-    pub fn validate_sync_status_consistency(&self, _sync_status: &HashMap<String, String>, _sync_dependencies: &HashMap<String, Vec<String>>) -> RhemaResult<()> {
+    pub fn validate_sync_status_consistency(
+        &self,
+        _sync_status: &HashMap<String, String>,
+        _sync_dependencies: &HashMap<String, Vec<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
@@ -161,7 +199,10 @@ impl SafetyValidator {
     }
 
     /// Validate dependency integrity
-    pub fn validate_dependency_integrity(&self, _dependencies: &HashMap<String, Vec<String>>) -> RhemaResult<()> {
+    pub fn validate_dependency_integrity(
+        &self,
+        _dependencies: &HashMap<String, Vec<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement when validator types are available
         Ok(())
     }
@@ -210,9 +251,15 @@ pub struct ValidationStatistics {
 
 impl std::fmt::Display for ValidationStatistics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Validation Statistics: context={}, dependency={}, agent={}, lock={}, sync={}",
-            self.context_validations, self.dependency_validations, self.agent_validations,
-            self.lock_validations, self.sync_validations)
+        write!(
+            f,
+            "Validation Statistics: context={}, dependency={}, agent={}, lock={}, sync={}",
+            self.context_validations,
+            self.dependency_validations,
+            self.agent_validations,
+            self.lock_validations,
+            self.sync_validations
+        )
     }
 }
 
@@ -236,7 +283,9 @@ mod tests {
     fn test_validate_scope_references() {
         let validator = SafetyValidator::new();
         let scopes = vec!["scope1".to_string(), "scope2".to_string()];
-        assert!(validator.validate_scope_references("scope1", &scopes).is_ok());
+        assert!(validator
+            .validate_scope_references("scope1", &scopes)
+            .is_ok());
     }
 
     #[test]
@@ -258,7 +307,9 @@ mod tests {
         let validator = SafetyValidator::new();
         let sync_status = HashMap::new();
         let sync_dependencies = HashMap::new();
-        assert!(validator.validate_sync_status_consistency(&sync_status, &sync_dependencies).is_ok());
+        assert!(validator
+            .validate_sync_status_consistency(&sync_status, &sync_dependencies)
+            .is_ok());
     }
 
     #[test]
@@ -269,8 +320,16 @@ mod tests {
         let sync_status = HashMap::new();
         let sync_dependencies = HashMap::new();
         let dependencies = HashMap::new();
-        assert!(validator.validate_all_safety_invariants(
-            &agents, &locks, &sync_status, &sync_dependencies, &dependencies, 5, std::time::Duration::from_secs(30)
-        ).is_ok());
+        assert!(validator
+            .validate_all_safety_invariants(
+                &agents,
+                &locks,
+                &sync_status,
+                &sync_dependencies,
+                &dependencies,
+                5,
+                std::time::Duration::from_secs(30)
+            )
+            .is_ok());
     }
-} 
+}

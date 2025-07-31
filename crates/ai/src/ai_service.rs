@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
+use cached::TimedCache;
+use chrono::{DateTime, Utc};
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{instrument};
-use chrono::{DateTime, Utc};
+use tracing::instrument;
 use uuid::Uuid;
-use cached::TimedCache;
 // use std::num::NonZeroU32;
 // use governor::{Quota, RateLimiter};
 // use governor::state::InMemoryState;
@@ -108,7 +108,7 @@ impl AIService {
     /// Create a new AI service instance
     pub async fn new(config: AIServiceConfig) -> RhemaResult<Self> {
         let cache = Arc::new(TimedCache::with_lifespan(config.cache_ttl_seconds));
-        
+
         // let rate_limiter = if config.enable_rate_limiting {
         //     Arc::new(RateLimiter::new(
         //         Quota::per_minute(NonZeroU32::new(config.rate_limit_per_minute).unwrap()),
@@ -151,7 +151,7 @@ impl AIService {
     #[instrument(skip(self, request))]
     pub async fn process_request(&self, request: AIRequest) -> RhemaResult<AIResponse> {
         let start_time = std::time::Instant::now();
-        
+
         // Check rate limiting
         // if self.config.enable_rate_limiting {
         //     let key = request.user_id.clone().unwrap_or_else(|| "anonymous".to_string());
@@ -171,7 +171,7 @@ impl AIService {
 
         // Process request
         let response = self.call_ai_api(&request).await?;
-        
+
         // Cache the response
         if self.config.enable_caching {
             // self.cache.insert(cache_key, response.clone());
@@ -179,7 +179,13 @@ impl AIService {
 
         // Update metrics
         let processing_time = start_time.elapsed().as_millis() as u64;
-        self.update_metrics(false, processing_time, response.tokens_used, self.calculate_cost(&response)).await;
+        self.update_metrics(
+            false,
+            processing_time,
+            response.tokens_used,
+            self.calculate_cost(&response),
+        )
+        .await;
 
         Ok(response)
     }
@@ -194,7 +200,8 @@ impl AIService {
             "max_tokens": request.max_tokens,
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&format!("{}/v1/completions", self.config.base_url))
             .header("Authorization", format!("Bearer {}", self.config.api_key))
             .header("Content-Type", "application/json")
@@ -204,21 +211,26 @@ impl AIService {
             .map_err(|e| RhemaError::ConfigError(format!("AI API request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(RhemaError::ConfigError(format!("AI API error: {}", error_text)));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(RhemaError::ConfigError(format!(
+                "AI API error: {}",
+                error_text
+            )));
         }
 
-        let response_json: serde_json::Value = response.json().await
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to parse AI API response: {}", e)))?;
+        let response_json: serde_json::Value = response.json().await.map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to parse AI API response: {}", e))
+        })?;
 
         let content = response_json["choices"][0]["text"]
             .as_str()
             .unwrap_or("")
             .to_string();
 
-        let tokens_used = response_json["usage"]["total_tokens"]
-            .as_u64()
-            .unwrap_or(0) as u32;
+        let tokens_used = response_json["usage"]["total_tokens"].as_u64().unwrap_or(0) as u32;
 
         Ok(AIResponse {
             id: Uuid::new_v4().to_string(),
@@ -243,14 +255,20 @@ impl AIService {
         request.model.hash(&mut hasher);
         request.temperature.to_bits().hash(&mut hasher);
         request.max_tokens.hash(&mut hasher);
-        
+
         format!("ai_cache_{:x}", hasher.finish())
     }
 
     /// Update service metrics
-    async fn update_metrics(&self, cache_hit: bool, processing_time_ms: u64, tokens_used: u32, cost: f64) {
+    async fn update_metrics(
+        &self,
+        cache_hit: bool,
+        processing_time_ms: u64,
+        tokens_used: u32,
+        cost: f64,
+    ) {
         let mut metrics = self.metrics.write().await;
-        
+
         metrics.total_requests += 1;
         if cache_hit {
             metrics.cache_hits += 1;
@@ -258,14 +276,15 @@ impl AIService {
             metrics.cache_misses += 1;
             metrics.successful_requests += 1;
         }
-        
+
         metrics.total_tokens_processed += tokens_used as u64;
         metrics.total_cost += cost;
-        
+
         // Update average response time
-        let total_time = metrics.average_response_time_ms * (metrics.total_requests - 1) + processing_time_ms;
+        let total_time =
+            metrics.average_response_time_ms * (metrics.total_requests - 1) + processing_time_ms;
         metrics.average_response_time_ms = total_time / metrics.total_requests;
-        
+
         metrics.last_updated = Utc::now();
     }
 
@@ -313,7 +332,8 @@ impl AIService {
     /// Health check
     pub async fn health_check(&self) -> RhemaResult<()> {
         // Simple health check - could be more comprehensive
-        let response = self.client
+        let response = self
+            .client
             .get(&format!("{}/health", self.config.base_url))
             .send()
             .await
@@ -322,7 +342,9 @@ impl AIService {
         if response.status().is_success() {
             Ok(())
         } else {
-            Err(RhemaError::ConfigError("Health check returned non-success status".to_string()))
+            Err(RhemaError::ConfigError(
+                "Health check returned non-success status".to_string(),
+            ))
         }
     }
 }
@@ -366,7 +388,7 @@ mod tests {
         };
 
         let service = AIService::new(config).await.unwrap();
-        
+
         let request = AIRequest {
             id: "test_id".to_string(),
             prompt: "Hello, world!".to_string(),
@@ -382,4 +404,4 @@ mod tests {
         assert!(!cache_key.is_empty());
         assert!(cache_key.starts_with("ai_cache_"));
     }
-} 
+}

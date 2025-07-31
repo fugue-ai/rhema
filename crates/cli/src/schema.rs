@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-use crate::{RhemaResult};
-pub use rhema_core::schema::CURRENT_SCHEMA_VERSION;
+use crate::RhemaResult;
 use colored::*;
+pub use rhema_core::schema::CURRENT_SCHEMA_VERSION;
 use std::path::Path;
 
-pub fn run(_rhema: &crate::Rhema, template_type: &str, output_file: Option<&str>) -> RhemaResult<()> {
+pub fn run(
+    _rhema: &crate::Rhema,
+    template_type: &str,
+    output_file: Option<&str>,
+) -> RhemaResult<()> {
     println!("📋 Generating Rhema schema template...");
     println!("{}", "─".repeat(80));
-    
+
     let template = match template_type {
         "scope" => generate_scope_template(),
         "knowledge" => generate_knowledge_template(),
@@ -37,18 +41,20 @@ pub fn run(_rhema: &crate::Rhema, template_type: &str, output_file: Option<&str>
             ));
         }
     };
-    
+
     if let Some(output_path) = output_file {
         // Write to file
         let output_path = Path::new(output_path);
-        std::fs::write(output_path, template)
-            .map_err(|e| crate::RhemaError::IoError(e))?;
-        println!("✅ Template written to: {}", output_path.display().to_string().green());
+        std::fs::write(output_path, template).map_err(|e| crate::RhemaError::IoError(e))?;
+        println!(
+            "✅ Template written to: {}",
+            output_path.display().to_string().green()
+        );
     } else {
         // Print to console
         println!("{}", template);
     }
-    
+
     Ok(())
 }
 
@@ -72,8 +78,7 @@ dependencies:
 # Custom fields for extensibility
 custom_field: "custom_value"
 "#,
-        CURRENT_SCHEMA_VERSION,
-        CURRENT_SCHEMA_VERSION
+        CURRENT_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION
     )
 }
 
@@ -353,7 +358,6 @@ conventions:
     created_at: "2024-01-01T00:00:00Z"
     updated_at: "2024-01-01T00:00:00Z"
 "#,
-        CURRENT_SCHEMA_VERSION,
-        CURRENT_SCHEMA_VERSION
+        CURRENT_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION
     )
-} 
+}

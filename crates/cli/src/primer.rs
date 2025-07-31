@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::{Rhema, RhemaResult, RhemaScope, TroubleshootingItem, IntegrationGuide};
+use crate::{IntegrationGuide, Rhema, RhemaResult, RhemaScope, TroubleshootingItem};
 use colored::*;
 use serde::{Deserialize, Serialize};
 // use std::collections::HashMap;
@@ -35,23 +35,33 @@ pub fn run(
     } else {
         rhema.list_scopes()?
     };
-    
+
     let output_path = if let Some(dir) = output_dir {
         PathBuf::from(dir)
     } else {
         std::env::current_dir()?.join("rhema-primer")
     };
-    
+
     // Create output directory
     fs::create_dir_all(&output_path)?;
-    
+
     for scope in scopes {
-        generate_scope_primer(rhema, &scope.definition, &output_path, template_type, include_examples, validate)?;
+        generate_scope_primer(
+            rhema,
+            &scope.definition,
+            &output_path,
+            template_type,
+            include_examples,
+            validate,
+        )?;
     }
-    
+
     println!("{}", "✓ Context primers generated successfully!".green());
-    println!("  Output directory: {}", output_path.display().to_string().yellow());
-    
+    println!(
+        "  Output directory: {}",
+        output_path.display().to_string().yellow()
+    );
+
     Ok(())
 }
 
@@ -60,25 +70,25 @@ pub fn run(
 struct ContextPrimer {
     /// Primer metadata
     pub metadata: PrimerMetadata,
-    
+
     /// Scope information
     pub scope: ScopePrimer,
-    
+
     /// Protocol information
     pub protocol: Option<ProtocolPrimer>,
-    
+
     /// Quick start guide
     pub quick_start: QuickStartGuide,
-    
+
     /// Usage examples
     pub examples: Option<Vec<UsageExample>>,
-    
+
     /// Common patterns
     pub patterns: Option<Vec<CommonPattern>>,
-    
+
     /// Troubleshooting
     pub troubleshooting: Option<Vec<TroubleshootingItem>>,
-    
+
     /// Integration guides
     pub integrations: Option<Vec<IntegrationGuide>>,
 }
@@ -88,13 +98,13 @@ struct ContextPrimer {
 struct PrimerMetadata {
     /// Primer version
     pub version: String,
-    
+
     /// Generation timestamp
     pub generated_at: String,
-    
+
     /// Scope name
     pub scope_name: String,
-    
+
     /// Template type
     pub template_type: String,
 }
@@ -104,19 +114,19 @@ struct PrimerMetadata {
 struct ScopePrimer {
     /// Scope name
     pub name: String,
-    
+
     /// Scope type
     pub scope_type: String,
-    
+
     /// Description
     pub description: Option<String>,
-    
+
     /// Version
     pub version: String,
-    
+
     /// Key responsibilities
     pub responsibilities: Vec<String>,
-    
+
     /// Dependencies
     pub dependencies: Option<Vec<String>>,
 }
@@ -126,13 +136,13 @@ struct ScopePrimer {
 struct ProtocolPrimer {
     /// Protocol version
     pub version: String,
-    
+
     /// Description
     pub description: Option<String>,
-    
+
     /// Key concepts
     pub concepts: Vec<ConceptPrimer>,
-    
+
     /// CQL examples
     pub cql_examples: Vec<CqlExamplePrimer>,
 }
@@ -142,10 +152,10 @@ struct ProtocolPrimer {
 struct ConceptPrimer {
     /// Concept name
     pub name: String,
-    
+
     /// Description
     pub description: String,
-    
+
     /// Usage context
     pub usage_context: Option<String>,
 }
@@ -155,13 +165,13 @@ struct ConceptPrimer {
 struct CqlExamplePrimer {
     /// Example name
     pub name: String,
-    
+
     /// Query
     pub query: String,
-    
+
     /// Description
     pub description: String,
-    
+
     /// Expected output
     pub expected_output: Option<String>,
 }
@@ -171,10 +181,10 @@ struct CqlExamplePrimer {
 struct QuickStartGuide {
     /// Setup steps
     pub setup_steps: Vec<String>,
-    
+
     /// Basic commands
     pub basic_commands: Vec<CommandExample>,
-    
+
     /// Next steps
     pub next_steps: Vec<String>,
 }
@@ -184,10 +194,10 @@ struct QuickStartGuide {
 struct CommandExample {
     /// Command description
     pub description: String,
-    
+
     /// Command
     pub command: String,
-    
+
     /// Expected output
     pub expected_output: Option<String>,
 }
@@ -197,13 +207,13 @@ struct CommandExample {
 struct UsageExample {
     /// Example name
     pub name: String,
-    
+
     /// Description
     pub description: String,
-    
+
     /// Steps
     pub steps: Vec<String>,
-    
+
     /// Expected outcome
     pub expected_outcome: String,
 }
@@ -213,13 +223,13 @@ struct UsageExample {
 struct CommonPattern {
     /// Pattern name
     pub name: String,
-    
+
     /// Description
     pub description: String,
-    
+
     /// When to use
     pub when_to_use: String,
-    
+
     /// Implementation
     pub implementation: Vec<String>,
 }
@@ -234,24 +244,24 @@ fn generate_scope_primer(
     validate: bool,
 ) -> RhemaResult<()> {
     let template = template_type.unwrap_or("default");
-    
+
     // Create scope-specific output directory
     let scope_output = output_path.join(&scope.name);
     fs::create_dir_all(&scope_output)?;
-    
+
     // Generate primer content
     let primer = create_primer_content(rhema, scope, template, include_examples)?;
-    
+
     // Write primer files
     write_primer_files(&primer, &scope_output)?;
-    
+
     // Validate if requested
     if validate {
         validate_primer(&primer)?;
     }
-    
+
     println!("  Generated primer for scope: {}", scope.name.yellow());
-    
+
     Ok(())
 }
 
@@ -268,53 +278,66 @@ fn create_primer_content(
         scope_name: scope.name.clone(),
         template_type: template.to_string(),
     };
-    
+
     let scope_primer = ScopePrimer {
         name: scope.name.clone(),
         scope_type: scope.scope_type.clone(),
         description: scope.description.clone(),
         version: scope.version.clone(),
         responsibilities: infer_responsibilities(scope),
-        dependencies: scope.dependencies.as_ref().map(|deps| {
-            deps.iter().map(|d| d.path.clone()).collect()
-        }),
+        dependencies: scope
+            .dependencies
+            .as_ref()
+            .map(|deps| deps.iter().map(|d| d.path.clone()).collect()),
     };
-    
+
     let protocol = if let Some(ref proto) = scope.protocol_info {
         Some(ProtocolPrimer {
             version: proto.version.clone(),
             description: proto.description.clone(),
-            concepts: proto.concepts.as_ref().map(|c| {
-                c.iter().map(|concept| ConceptPrimer {
-                    name: concept.name.clone(),
-                    description: concept.description.clone(),
-                    usage_context: None,
-                }).collect()
-            }).unwrap_or_default(),
-            cql_examples: proto.cql_examples.as_ref().map(|e| {
-                e.iter().map(|ex| CqlExamplePrimer {
-                    name: ex.name.clone(),
-                    query: ex.query.clone(),
-                    description: ex.description.clone(),
-                    expected_output: ex.output_format.clone(),
-                }).collect()
-            }).unwrap_or_default(),
+            concepts: proto
+                .concepts
+                .as_ref()
+                .map(|c| {
+                    c.iter()
+                        .map(|concept| ConceptPrimer {
+                            name: concept.name.clone(),
+                            description: concept.description.clone(),
+                            usage_context: None,
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            cql_examples: proto
+                .cql_examples
+                .as_ref()
+                .map(|e| {
+                    e.iter()
+                        .map(|ex| CqlExamplePrimer {
+                            name: ex.name.clone(),
+                            query: ex.query.clone(),
+                            description: ex.description.clone(),
+                            expected_output: ex.output_format.clone(),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     } else {
         None
     };
-    
+
     let quick_start = create_quick_start_guide(scope, template);
     let examples = if include_examples {
         create_usage_examples(scope, template)
     } else {
         None
     };
-    
+
     let patterns = create_common_patterns(scope, template);
     let troubleshooting = create_troubleshooting(scope, template);
     let integrations = create_integration_guides(scope, template);
-    
+
     Ok(ContextPrimer {
         metadata,
         scope: scope_primer,
@@ -395,7 +418,7 @@ fn create_quick_start_guide(scope: &RhemaScope, template: &str) -> QuickStartGui
             "Validate setup".to_string(),
         ],
     };
-    
+
     let basic_commands = vec![
         CommandExample {
             description: "Show scope information".to_string(),
@@ -418,7 +441,7 @@ fn create_quick_start_guide(scope: &RhemaScope, template: &str) -> QuickStartGui
             expected_output: Some("Validates all Rhema files".to_string()),
         },
     ];
-    
+
     let next_steps = vec![
         "Explore available commands with `rhema --help`".to_string(),
         "Add knowledge entries with `rhema insight add`".to_string(),
@@ -426,7 +449,7 @@ fn create_quick_start_guide(scope: &RhemaScope, template: &str) -> QuickStartGui
         "Document decisions with `rhema decision add`".to_string(),
         "Define patterns with `rhema pattern add`".to_string(),
     ];
-    
+
     QuickStartGuide {
         setup_steps,
         basic_commands,
@@ -456,35 +479,32 @@ fn create_usage_examples(_scope: &RhemaScope, template: &str) -> Option<Vec<Usag
                     "Document integration patterns".to_string(),
                     "Track external service requirements".to_string(),
                 ],
-                expected_outcome: "Clear dependency mapping and integration documentation".to_string(),
+                expected_outcome: "Clear dependency mapping and integration documentation"
+                    .to_string(),
             },
         ],
-        "app" => vec![
-            UsageExample {
-                name: "UI Component Documentation".to_string(),
-                description: "Document reusable UI components and their usage".to_string(),
-                steps: vec![
-                    "Use `rhema insight add` to document components".to_string(),
-                    "Include props and usage examples".to_string(),
-                    "Add accessibility considerations".to_string(),
-                ],
-                expected_outcome: "Component library documentation".to_string(),
-            },
-        ],
-        _ => vec![
-            UsageExample {
-                name: "Project Setup".to_string(),
-                description: "Document project setup and configuration".to_string(),
-                steps: vec![
-                    "Use `rhema insight add` to document setup steps".to_string(),
-                    "Include environment requirements".to_string(),
-                    "Add troubleshooting tips".to_string(),
-                ],
-                expected_outcome: "Complete setup documentation".to_string(),
-            },
-        ],
+        "app" => vec![UsageExample {
+            name: "UI Component Documentation".to_string(),
+            description: "Document reusable UI components and their usage".to_string(),
+            steps: vec![
+                "Use `rhema insight add` to document components".to_string(),
+                "Include props and usage examples".to_string(),
+                "Add accessibility considerations".to_string(),
+            ],
+            expected_outcome: "Component library documentation".to_string(),
+        }],
+        _ => vec![UsageExample {
+            name: "Project Setup".to_string(),
+            description: "Document project setup and configuration".to_string(),
+            steps: vec![
+                "Use `rhema insight add` to document setup steps".to_string(),
+                "Include environment requirements".to_string(),
+                "Add troubleshooting tips".to_string(),
+            ],
+            expected_outcome: "Complete setup documentation".to_string(),
+        }],
     };
-    
+
     Some(examples)
 }
 
@@ -513,25 +533,26 @@ fn create_common_patterns(_scope: &RhemaScope, template: &str) -> Option<Vec<Com
                 ],
             },
         ],
-        _ => vec![
-            CommonPattern {
-                name: "Configuration Management".to_string(),
-                description: "Managing configuration across environments".to_string(),
-                when_to_use: "When deploying to different environments".to_string(),
-                implementation: vec![
-                    "Use environment-specific config files".to_string(),
-                    "Validate configuration on startup".to_string(),
-                    "Provide sensible defaults".to_string(),
-                ],
-            },
-        ],
+        _ => vec![CommonPattern {
+            name: "Configuration Management".to_string(),
+            description: "Managing configuration across environments".to_string(),
+            when_to_use: "When deploying to different environments".to_string(),
+            implementation: vec![
+                "Use environment-specific config files".to_string(),
+                "Validate configuration on startup".to_string(),
+                "Provide sensible defaults".to_string(),
+            ],
+        }],
     };
-    
+
     Some(patterns)
 }
 
 /// Create troubleshooting guide
-fn create_troubleshooting(_scope: &RhemaScope, _template: &str) -> Option<Vec<TroubleshootingItem>> {
+fn create_troubleshooting(
+    _scope: &RhemaScope,
+    _template: &str,
+) -> Option<Vec<TroubleshootingItem>> {
     let items = vec![
         TroubleshootingItem {
             issue: "Configuration validation fails".to_string(),
@@ -560,12 +581,15 @@ fn create_troubleshooting(_scope: &RhemaScope, _template: &str) -> Option<Vec<Tr
             ]),
         },
     ];
-    
+
     Some(items)
 }
 
 /// Create integration guides
-fn create_integration_guides(_scope: &RhemaScope, _template: &str) -> Option<Vec<IntegrationGuide>> {
+fn create_integration_guides(
+    _scope: &RhemaScope,
+    _template: &str,
+) -> Option<Vec<IntegrationGuide>> {
     let guides = vec![
         IntegrationGuide {
             name: "IDE Integration".to_string(),
@@ -602,7 +626,7 @@ fn create_integration_guides(_scope: &RhemaScope, _template: &str) -> Option<Vec
             ]),
         },
     ];
-    
+
     Some(guides)
 }
 
@@ -611,30 +635,36 @@ fn write_primer_files(primer: &ContextPrimer, output_path: &PathBuf) -> RhemaRes
     // Write YAML primer
     let yaml_content = serde_yaml::to_string(primer)?;
     fs::write(output_path.join("primer.yaml"), yaml_content)?;
-    
+
     // Write JSON primer
     let json_content = serde_json::to_string_pretty(primer)?;
     fs::write(output_path.join("primer.json"), json_content)?;
-    
+
     // Write markdown primer
     let md_content = format_markdown_primer(primer);
     fs::write(output_path.join("primer.md"), md_content)?;
-    
+
     // Write text primer
     let text_content = format_text_primer(primer);
     fs::write(output_path.join("primer.txt"), text_content)?;
-    
+
     Ok(())
 }
 
 /// Format markdown primer
 fn format_markdown_primer(primer: &ContextPrimer) -> String {
     let mut md = String::new();
-    
+
     md.push_str(&format!("# {} Context Primer\n\n", primer.scope.name));
-    md.push_str(&format!("**Generated:** {}\n", primer.metadata.generated_at));
-    md.push_str(&format!("**Template:** {}\n\n", primer.metadata.template_type));
-    
+    md.push_str(&format!(
+        "**Generated:** {}\n",
+        primer.metadata.generated_at
+    ));
+    md.push_str(&format!(
+        "**Template:** {}\n\n",
+        primer.metadata.template_type
+    ));
+
     // Scope information
     md.push_str("## Scope Information\n\n");
     md.push_str(&format!("**Name:** {}\n", primer.scope.name));
@@ -644,14 +674,14 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
         md.push_str(&format!("**Description:** {}\n", desc));
     }
     md.push_str("\n");
-    
+
     // Responsibilities
     md.push_str("### Key Responsibilities\n\n");
     for responsibility in &primer.scope.responsibilities {
         md.push_str(&format!("- {}\n", responsibility));
     }
     md.push_str("\n");
-    
+
     // Quick start
     md.push_str("## Quick Start Guide\n\n");
     md.push_str("### Setup Steps\n\n");
@@ -659,7 +689,7 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
         md.push_str(&format!("{}. {}\n", i + 1, step));
     }
     md.push_str("\n");
-    
+
     md.push_str("### Basic Commands\n\n");
     for cmd in &primer.quick_start.basic_commands {
         md.push_str(&format!("**{}**\n", cmd.description));
@@ -669,7 +699,7 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
         }
         md.push_str("\n");
     }
-    
+
     // Protocol information
     if let Some(ref protocol) = primer.protocol {
         md.push_str("## Protocol Information\n\n");
@@ -678,7 +708,7 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
             md.push_str(&format!("**Description:** {}\n", desc));
         }
         md.push_str("\n");
-        
+
         if !protocol.concepts.is_empty() {
             md.push_str("### Key Concepts\n\n");
             for concept in &protocol.concepts {
@@ -686,7 +716,7 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
                 md.push_str(&format!("{}\n\n", concept.description));
             }
         }
-        
+
         if !protocol.cql_examples.is_empty() {
             md.push_str("### CQL Examples\n\n");
             for example in &protocol.cql_examples {
@@ -696,7 +726,7 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
             }
         }
     }
-    
+
     // Usage examples
     if let Some(ref examples) = primer.examples {
         md.push_str("## Usage Examples\n\n");
@@ -707,10 +737,13 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
             for step in &example.steps {
                 md.push_str(&format!("- {}\n", step));
             }
-            md.push_str(&format!("**Expected Outcome:** {}\n\n", example.expected_outcome));
+            md.push_str(&format!(
+                "**Expected Outcome:** {}\n\n",
+                example.expected_outcome
+            ));
         }
     }
-    
+
     // Common patterns
     if let Some(ref patterns) = primer.patterns {
         md.push_str("## Common Patterns\n\n");
@@ -725,7 +758,7 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
             md.push_str("\n");
         }
     }
-    
+
     // Troubleshooting
     if let Some(ref troubleshooting) = primer.troubleshooting {
         md.push_str("## Troubleshooting\n\n");
@@ -745,14 +778,14 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
             md.push_str("\n");
         }
     }
-    
+
     // Integration guides
     if let Some(ref integrations) = primer.integrations {
         md.push_str("## Integration Guides\n\n");
         for integration in integrations {
             md.push_str(&format!("### {}\n", integration.name));
             md.push_str(&format!("{}\n\n", integration.description));
-            
+
             if let Some(ref setup) = integration.setup {
                 md.push_str("**Setup:**\n");
                 for step in setup {
@@ -760,7 +793,7 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
                 }
                 md.push_str("\n");
             }
-            
+
             if let Some(ref config) = integration.configuration {
                 md.push_str("**Configuration:**\n");
                 for item in config {
@@ -768,7 +801,7 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
                 }
                 md.push_str("\n");
             }
-            
+
             if let Some(ref practices) = integration.best_practices {
                 md.push_str("**Best Practices:**\n");
                 for practice in practices {
@@ -778,21 +811,24 @@ fn format_markdown_primer(primer: &ContextPrimer) -> String {
             }
         }
     }
-    
+
     md
 }
 
 /// Format text primer
 fn format_text_primer(primer: &ContextPrimer) -> String {
     let mut text = String::new();
-    
-    text.push_str(&format!("{} CONTEXT PRIMER\n", primer.scope.name.to_uppercase()));
+
+    text.push_str(&format!(
+        "{} CONTEXT PRIMER\n",
+        primer.scope.name.to_uppercase()
+    ));
     text.push_str(&"=".repeat(primer.scope.name.len() + 16));
     text.push_str("\n\n");
-    
+
     text.push_str(&format!("Generated: {}\n", primer.metadata.generated_at));
     text.push_str(&format!("Template: {}\n\n", primer.metadata.template_type));
-    
+
     text.push_str("SCOPE INFORMATION:\n");
     text.push_str("------------------\n");
     text.push_str(&format!("Name: {}\n", primer.scope.name));
@@ -802,13 +838,13 @@ fn format_text_primer(primer: &ContextPrimer) -> String {
         text.push_str(&format!("Description: {}\n", desc));
     }
     text.push_str("\n");
-    
+
     text.push_str("KEY RESPONSIBILITIES:\n");
     for responsibility in &primer.scope.responsibilities {
         text.push_str(&format!("- {}\n", responsibility));
     }
     text.push_str("\n");
-    
+
     text.push_str("QUICK START GUIDE:\n");
     text.push_str("-----------------\n");
     text.push_str("Setup Steps:\n");
@@ -816,13 +852,13 @@ fn format_text_primer(primer: &ContextPrimer) -> String {
         text.push_str(&format!("{}. {}\n", i + 1, step));
     }
     text.push_str("\n");
-    
+
     text.push_str("Basic Commands:\n");
     for cmd in &primer.quick_start.basic_commands {
         text.push_str(&format!("- {}: {}\n", cmd.description, cmd.command));
     }
     text.push_str("\n");
-    
+
     if let Some(ref protocol) = primer.protocol {
         text.push_str("PROTOCOL INFORMATION:\n");
         text.push_str("---------------------\n");
@@ -831,7 +867,7 @@ fn format_text_primer(primer: &ContextPrimer) -> String {
             text.push_str(&format!("Description: {}\n", desc));
         }
         text.push_str("\n");
-        
+
         if !protocol.concepts.is_empty() {
             text.push_str("Key Concepts:\n");
             for concept in &protocol.concepts {
@@ -840,7 +876,7 @@ fn format_text_primer(primer: &ContextPrimer) -> String {
             text.push_str("\n");
         }
     }
-    
+
     text
 }
 
@@ -849,28 +885,28 @@ fn validate_primer(primer: &ContextPrimer) -> RhemaResult<()> {
     // Basic validation
     if primer.scope.name.is_empty() {
         return Err(crate::RhemaError::ValidationError(
-            "Scope name cannot be empty".to_string()
+            "Scope name cannot be empty".to_string(),
         ));
     }
-    
+
     if primer.scope.responsibilities.is_empty() {
         return Err(crate::RhemaError::ValidationError(
-            "Scope must have at least one responsibility".to_string()
+            "Scope must have at least one responsibility".to_string(),
         ));
     }
-    
+
     if primer.quick_start.setup_steps.is_empty() {
         return Err(crate::RhemaError::ValidationError(
-            "Quick start guide must have setup steps".to_string()
+            "Quick start guide must have setup steps".to_string(),
         ));
     }
-    
+
     if primer.quick_start.basic_commands.is_empty() {
         return Err(crate::RhemaError::ValidationError(
-            "Quick start guide must have basic commands".to_string()
+            "Quick start guide must have basic commands".to_string(),
         ));
     }
-    
+
     println!("  ✓ Primer validation passed");
     Ok(())
-} 
+}

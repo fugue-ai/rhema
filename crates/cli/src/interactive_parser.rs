@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-use rhema_core::{RhemaResult, Priority, TodoStatus, DecisionStatus, PatternUsage};
-use crate::RhemaError;
 use crate::commands::*;
+use crate::RhemaError;
+use rhema_core::{DecisionStatus, PatternUsage, Priority, RhemaResult, TodoStatus};
 // These subcommands will be defined in their respective modules
 use crate::git::GitSubcommands;
 use colored::*;
@@ -135,15 +135,19 @@ impl InteractiveCommandParser {
 
     /// Parse todo subcommands
     pub fn parse_todo_subcommand(&mut self) -> RhemaResult<TodoSubcommands> {
-        let subcommand = self.next()
+        let subcommand = self
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("todo requires a subcommand".to_string()))?;
 
         match subcommand {
             "add" => {
-                let title = self.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("todo add requires a title".to_string()))?
+                let title = self
+                    .next()
+                    .ok_or_else(|| {
+                        RhemaError::InvalidCommand("todo add requires a title".to_string())
+                    })?
                     .to_string();
-                
+
                 let mut priority = Priority::Medium;
                 let mut assignee = None;
                 let mut due_date = None;
@@ -152,37 +156,62 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--priority" | "-p" => {
-                            let priority_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--priority requires a value".to_string()))?;
+                            let priority_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--priority requires a value".to_string(),
+                                )
+                            })?;
                             priority = match priority_str {
                                 "low" | "l" => Priority::Low,
                                 "medium" | "m" => Priority::Medium,
                                 "high" | "h" => Priority::High,
                                 "critical" | "c" => Priority::Critical,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid priority: {}", priority_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid priority: {}",
+                                        priority_str
+                                    )))
+                                }
                             };
                         }
                         "--assignee" | "-a" => {
-                            assignee = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--assignee requires a value".to_string()))?
-                                .to_string());
+                            assignee = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--assignee requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--due-date" | "-d" => {
-                            due_date = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--due-date requires a value".to_string()))?
-                                .to_string());
+                            due_date = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--due-date requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--description" | "-desc" => {
-                            description = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--description requires a value".to_string()))?
-                                .to_string());
+                            description = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--description requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
@@ -203,40 +232,57 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--status" | "-s" => {
-                            let status_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--status requires a value".to_string()))?;
+                            let status_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand("--status requires a value".to_string())
+                            })?;
                             status = Some(match status_str {
                                 "todo" | "t" => TodoStatus::Pending,
                                 "in_progress" | "ip" => TodoStatus::InProgress,
                                 "done" | "d" => TodoStatus::Completed,
                                 "cancelled" | "c" => TodoStatus::Cancelled,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid status: {}", status_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid status: {}",
+                                        status_str
+                                    )))
+                                }
                             });
                         }
                         "--priority" | "-p" => {
-                            let priority_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--priority requires a value".to_string()))?;
+                            let priority_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--priority requires a value".to_string(),
+                                )
+                            })?;
                             priority = Some(match priority_str {
                                 "low" | "l" => Priority::Low,
                                 "medium" | "m" => Priority::Medium,
                                 "high" | "h" => Priority::High,
                                 "critical" | "c" => Priority::Critical,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid priority: {}", priority_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid priority: {}",
+                                        priority_str
+                                    )))
+                                }
                             });
                         }
                         "--assignee" | "-a" => {
-                            assignee = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--assignee requires a value".to_string()))?
-                                .to_string());
+                            assignee = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--assignee requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
@@ -248,10 +294,13 @@ impl InteractiveCommandParser {
                 })
             }
             "update" | "edit" => {
-                let id = self.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("todo update requires an ID".to_string()))?
+                let id = self
+                    .next()
+                    .ok_or_else(|| {
+                        RhemaError::InvalidCommand("todo update requires an ID".to_string())
+                    })?
                     .to_string();
-                
+
                 let mut title = None;
                 let mut description = None;
                 let mut status = None;
@@ -262,55 +311,90 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--title" | "-t" => {
-                            title = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--title requires a value".to_string()))?
-                                .to_string());
+                            title = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--title requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--description" | "-desc" => {
-                            description = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--description requires a value".to_string()))?
-                                .to_string());
+                            description = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--description requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--status" | "-s" => {
-                            let status_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--status requires a value".to_string()))?;
+                            let status_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand("--status requires a value".to_string())
+                            })?;
                             status = Some(match status_str {
                                 "todo" | "t" => TodoStatus::Pending,
                                 "in_progress" | "ip" => TodoStatus::InProgress,
                                 "done" | "d" => TodoStatus::Completed,
                                 "cancelled" | "c" => TodoStatus::Cancelled,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid status: {}", status_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid status: {}",
+                                        status_str
+                                    )))
+                                }
                             });
                         }
                         "--priority" | "-p" => {
-                            let priority_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--priority requires a value".to_string()))?;
+                            let priority_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--priority requires a value".to_string(),
+                                )
+                            })?;
                             priority = Some(match priority_str {
                                 "low" | "l" => Priority::Low,
                                 "medium" | "m" => Priority::Medium,
                                 "high" | "h" => Priority::High,
                                 "critical" | "c" => Priority::Critical,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid priority: {}", priority_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid priority: {}",
+                                        priority_str
+                                    )))
+                                }
                             });
                         }
                         "--assignee" | "-a" => {
-                            assignee = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--assignee requires a value".to_string()))?
-                                .to_string());
+                            assignee = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--assignee requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--due-date" | "-d" => {
-                            due_date = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--due-date requires a value".to_string()))?
-                                .to_string());
+                            due_date = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--due-date requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
@@ -326,40 +410,49 @@ impl InteractiveCommandParser {
                 })
             }
             "delete" | "rm" => {
-                let id = self.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("todo delete requires an ID".to_string()))?
+                let id = self
+                    .next()
+                    .ok_or_else(|| {
+                        RhemaError::InvalidCommand("todo delete requires an ID".to_string())
+                    })?
                     .to_string();
-                
+
                 Ok(TodoSubcommands::Delete { id })
             }
             "complete" | "done" => {
-                let id = self.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("todo complete requires an ID".to_string()))?
+                let id = self
+                    .next()
+                    .ok_or_else(|| {
+                        RhemaError::InvalidCommand("todo complete requires an ID".to_string())
+                    })?
                     .to_string();
-                
+
                 let outcome = self.next().map(|s| s.to_string());
-                
+
                 Ok(TodoSubcommands::Complete { id, outcome })
             }
-            _ => {
-                Err(RhemaError::InvalidCommand(
-                    format!("Unknown todo subcommand: {}. Available: add, list, update, delete, complete", subcommand)
-                ))
-            }
+            _ => Err(RhemaError::InvalidCommand(format!(
+                "Unknown todo subcommand: {}. Available: add, list, update, delete, complete",
+                subcommand
+            ))),
         }
     }
 
     /// Parse insight subcommands
     pub fn parse_insight_subcommand(&mut self) -> RhemaResult<InsightSubcommands> {
-        let subcommand = self.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("insight requires a subcommand".to_string()))?;
+        let subcommand = self.next().ok_or_else(|| {
+            RhemaError::InvalidCommand("insight requires a subcommand".to_string())
+        })?;
 
         match subcommand {
             "record" | "add" => {
-                let title = self.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("insight record requires a title".to_string()))?
+                let title = self
+                    .next()
+                    .ok_or_else(|| {
+                        RhemaError::InvalidCommand("insight record requires a title".to_string())
+                    })?
                     .to_string();
-                
+
                 let mut content = None;
                 let mut confidence = None;
                 let mut category = None;
@@ -368,30 +461,55 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--content" | "-c" => {
-                            content = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--content requires a value".to_string()))?
-                                .to_string());
+                            content = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--content requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--confidence" | "-conf" => {
-                            let conf_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--confidence requires a value".to_string()))?;
-                            confidence = Some(conf_str.parse::<u8>()
-                                .map_err(|_| RhemaError::InvalidCommand("Confidence must be a number 1-10".to_string()))?);
+                            let conf_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--confidence requires a value".to_string(),
+                                )
+                            })?;
+                            confidence = Some(conf_str.parse::<u8>().map_err(|_| {
+                                RhemaError::InvalidCommand(
+                                    "Confidence must be a number 1-10".to_string(),
+                                )
+                            })?);
                         }
                         "--category" | "-cat" => {
-                            category = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--category requires a value".to_string()))?
-                                .to_string());
+                            category = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--category requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--tags" | "-t" => {
-                            tags = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--tags requires a value".to_string()))?
-                                .to_string());
+                            tags = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--tags requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
@@ -412,25 +530,44 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--category" | "-cat" => {
-                            category = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--category requires a value".to_string()))?
-                                .to_string());
+                            category = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--category requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--tag" | "-t" => {
-                            tag = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--tag requires a value".to_string()))?
-                                .to_string());
+                            tag = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--tag requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--min-confidence" | "-mc" => {
-                            let conf_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--min-confidence requires a value".to_string()))?;
-                            min_confidence = Some(conf_str.parse::<u8>()
-                                .map_err(|_| RhemaError::InvalidCommand("Min confidence must be a number 1-10".to_string()))?);
+                            let conf_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--min-confidence requires a value".to_string(),
+                                )
+                            })?;
+                            min_confidence = Some(conf_str.parse::<u8>().map_err(|_| {
+                                RhemaError::InvalidCommand(
+                                    "Min confidence must be a number 1-10".to_string(),
+                                )
+                            })?);
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
@@ -441,25 +578,28 @@ impl InteractiveCommandParser {
                     min_confidence,
                 })
             }
-            _ => {
-                Err(RhemaError::InvalidCommand(
-                    format!("Unknown insight subcommand: {}. Available: record, list", subcommand)
-                ))
-            }
+            _ => Err(RhemaError::InvalidCommand(format!(
+                "Unknown insight subcommand: {}. Available: record, list",
+                subcommand
+            ))),
         }
     }
 
     /// Parse pattern subcommands
     pub fn parse_pattern_subcommand(&mut self) -> RhemaResult<PatternSubcommands> {
-        let subcommand = self.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("pattern requires a subcommand".to_string()))?;
+        let subcommand = self.next().ok_or_else(|| {
+            RhemaError::InvalidCommand("pattern requires a subcommand".to_string())
+        })?;
 
         match subcommand {
             "add" => {
-                let name = self.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("pattern add requires a name".to_string()))?
+                let name = self
+                    .next()
+                    .ok_or_else(|| {
+                        RhemaError::InvalidCommand("pattern add requires a name".to_string())
+                    })?
                     .to_string();
-                
+
                 let mut description = None;
                 let mut pattern_type = None;
                 let mut usage = None;
@@ -468,37 +608,60 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--description" | "-desc" => {
-                            description = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--description requires a value".to_string()))?
-                                .to_string());
+                            description = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--description requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--type" | "-t" => {
-                            pattern_type = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--type requires a value".to_string()))?
-                                .to_string());
+                            pattern_type = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--type requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--usage" | "-u" => {
-                            let usage_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--usage requires a value".to_string()))?;
+                            let usage_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand("--usage requires a value".to_string())
+                            })?;
                             usage = Some(match usage_str {
                                 "recommended" | "rec" => PatternUsage::Recommended,
                                 "optional" | "opt" => PatternUsage::Optional,
                                 "deprecated" | "dep" => PatternUsage::Deprecated,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid usage: {}", usage_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid usage: {}",
+                                        usage_str
+                                    )))
+                                }
                             });
                         }
                         "--effectiveness" | "-e" => {
-                            let eff_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--effectiveness requires a value".to_string()))?;
-                            effectiveness = Some(eff_str.parse::<u8>()
-                                .map_err(|_| RhemaError::InvalidCommand("Effectiveness must be a number 1-10".to_string()))?);
+                            let eff_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--effectiveness requires a value".to_string(),
+                                )
+                            })?;
+                            effectiveness = Some(eff_str.parse::<u8>().map_err(|_| {
+                                RhemaError::InvalidCommand(
+                                    "Effectiveness must be a number 1-10".to_string(),
+                                )
+                            })?);
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
@@ -521,32 +684,49 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--type" | "-t" => {
-                            pattern_type = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--type requires a value".to_string()))?
-                                .to_string());
+                            pattern_type = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--type requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--usage" | "-u" => {
-                            let usage_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--usage requires a value".to_string()))?;
+                            let usage_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand("--usage requires a value".to_string())
+                            })?;
                             usage = Some(match usage_str {
                                 "recommended" | "rec" => PatternUsage::Recommended,
                                 "optional" | "opt" => PatternUsage::Optional,
                                 "deprecated" | "dep" => PatternUsage::Deprecated,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid usage: {}", usage_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid usage: {}",
+                                        usage_str
+                                    )))
+                                }
                             });
                         }
                         "--min-effectiveness" | "-me" => {
-                            let eff_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--min-effectiveness requires a value".to_string()))?;
-                            min_effectiveness = Some(eff_str.parse::<u8>()
-                                .map_err(|_| RhemaError::InvalidCommand("Min effectiveness must be a number 1-10".to_string()))?);
+                            let eff_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--min-effectiveness requires a value".to_string(),
+                                )
+                            })?;
+                            min_effectiveness = Some(eff_str.parse::<u8>().map_err(|_| {
+                                RhemaError::InvalidCommand(
+                                    "Min effectiveness must be a number 1-10".to_string(),
+                                )
+                            })?);
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
@@ -557,25 +737,28 @@ impl InteractiveCommandParser {
                     min_effectiveness,
                 })
             }
-            _ => {
-                Err(RhemaError::InvalidCommand(
-                    format!("Unknown pattern subcommand: {}. Available: add, list", subcommand)
-                ))
-            }
+            _ => Err(RhemaError::InvalidCommand(format!(
+                "Unknown pattern subcommand: {}. Available: add, list",
+                subcommand
+            ))),
         }
     }
 
     /// Parse decision subcommands
     pub fn parse_decision_subcommand(&mut self) -> RhemaResult<DecisionSubcommands> {
-        let subcommand = self.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("decision requires a subcommand".to_string()))?;
+        let subcommand = self.next().ok_or_else(|| {
+            RhemaError::InvalidCommand("decision requires a subcommand".to_string())
+        })?;
 
         match subcommand {
             "record" | "add" => {
-                let title = self.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("decision record requires a title".to_string()))?
+                let title = self
+                    .next()
+                    .ok_or_else(|| {
+                        RhemaError::InvalidCommand("decision record requires a title".to_string())
+                    })?
                     .to_string();
-                
+
                 let mut description = None;
                 let mut status = None;
                 let mut maker = None;
@@ -584,37 +767,60 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--description" | "-desc" => {
-                            description = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--description requires a value".to_string()))?
-                                .to_string());
+                            description = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--description requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--status" | "-s" => {
-                            let status_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--status requires a value".to_string()))?;
+                            let status_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand("--status requires a value".to_string())
+                            })?;
                             status = Some(match status_str {
                                 "proposed" | "prop" => DecisionStatus::Proposed,
                                 "approved" | "app" => DecisionStatus::Approved,
                                 "rejected" | "rej" => DecisionStatus::Rejected,
                                 "superseded" | "sup" => DecisionStatus::Deprecated,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid status: {}", status_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid status: {}",
+                                        status_str
+                                    )))
+                                }
                             });
                         }
                         "--maker" | "-m" => {
-                            maker = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--maker requires a value".to_string()))?
-                                .to_string());
+                            maker = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--maker requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         "--rationale" | "-r" => {
-                            rationale = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--rationale requires a value".to_string()))?
-                                .to_string());
+                            rationale = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--rationale requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
@@ -637,82 +843,95 @@ impl InteractiveCommandParser {
                 while let Some(arg) = self.next() {
                     match arg {
                         "--status" | "-s" => {
-                            let status_str = self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--status requires a value".to_string()))?;
+                            let status_str = self.next().ok_or_else(|| {
+                                RhemaError::InvalidCommand("--status requires a value".to_string())
+                            })?;
                             status = Some(match status_str {
                                 "proposed" | "prop" => DecisionStatus::Proposed,
                                 "approved" | "app" => DecisionStatus::Approved,
                                 "rejected" | "rej" => DecisionStatus::Rejected,
                                 "superseded" | "sup" => DecisionStatus::Deprecated,
-                                _ => return Err(RhemaError::InvalidCommand(
-                                    format!("Invalid status: {}", status_str)
-                                )),
+                                _ => {
+                                    return Err(RhemaError::InvalidCommand(format!(
+                                        "Invalid status: {}",
+                                        status_str
+                                    )))
+                                }
                             });
                         }
                         "--maker" | "-m" => {
-                            maker = Some(self.next()
-                                .ok_or_else(|| RhemaError::InvalidCommand("--maker requires a value".to_string()))?
-                                .to_string());
+                            maker = Some(
+                                self.next()
+                                    .ok_or_else(|| {
+                                        RhemaError::InvalidCommand(
+                                            "--maker requires a value".to_string(),
+                                        )
+                                    })?
+                                    .to_string(),
+                            );
                         }
                         _ => {
-                            return Err(RhemaError::InvalidCommand(
-                                format!("Unknown argument: {}", arg)
-                            ));
+                            return Err(RhemaError::InvalidCommand(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
                         }
                     }
                 }
 
-                Ok(DecisionSubcommands::List {
-                    status,
-                    maker,
-                })
+                Ok(DecisionSubcommands::List { status, maker })
             }
-            _ => {
-                Err(RhemaError::InvalidCommand(
-                    format!("Unknown decision subcommand: {}. Available: record, list", subcommand)
-                ))
-            }
+            _ => Err(RhemaError::InvalidCommand(format!(
+                "Unknown decision subcommand: {}. Available: record, list",
+                subcommand
+            ))),
         }
     }
 
     /// Parse git subcommands
     pub fn parse_git_subcommand(&mut self) -> RhemaResult<GitSubcommands> {
-        let subcommand = self.next()
+        let subcommand = self
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("git requires a subcommand".to_string()))?;
 
         match subcommand {
             "status" => Ok(GitSubcommands::Status),
-            _ => {
-                Err(RhemaError::InvalidCommand(
-                    format!("Unknown git subcommand: {}. Available: status", subcommand)
-                ))
-            }
+            _ => Err(RhemaError::InvalidCommand(format!(
+                "Unknown git subcommand: {}. Available: status",
+                subcommand
+            ))),
         }
     }
 
     /// Show helpful error message with suggestions
     pub fn show_error_with_suggestions(&self, error: &str) {
         println!("{}", error.red().bold());
-        
+
         if let Some(cmd) = self.command() {
             match cmd {
                 "todo" => {
                     println!("{}", "Available todo subcommands:".yellow());
                     println!("  add <title> [--priority <level>] [--assignee <name>] [--due-date <date>]");
                     println!("  list [--status <status>] [--priority <level>] [--assignee <name>]");
-                    println!("  update <id> [--title <title>] [--status <status>] [--priority <level>]");
+                    println!(
+                        "  update <id> [--title <title>] [--status <status>] [--priority <level>]"
+                    );
                     println!("  delete <id>");
                     println!("  complete <id> [--outcome <description>]");
                 }
                 "insight" => {
                     println!("{}", "Available insight subcommands:".yellow());
                     println!("  record <title> [--content <content>] [--confidence <1-10>] [--category <category>] [--tags <tags>]");
-                    println!("  list [--category <category>] [--tag <tag>] [--min-confidence <1-10>]");
+                    println!(
+                        "  list [--category <category>] [--tag <tag>] [--min-confidence <1-10>]"
+                    );
                 }
                 "pattern" => {
                     println!("{}", "Available pattern subcommands:".yellow());
                     println!("  add <name> [--description <desc>] [--type <type>] [--usage <usage>] [--effectiveness <1-10>]");
-                    println!("  list [--type <type>] [--usage <usage>] [--min-effectiveness <1-10>]");
+                    println!(
+                        "  list [--type <type>] [--usage <usage>] [--min-effectiveness <1-10>]"
+                    );
                 }
                 "decision" => {
                     println!("{}", "Available decision subcommands:".yellow());
@@ -728,7 +947,10 @@ impl InteractiveCommandParser {
                     println!("  branch <name>");
                 }
                 _ => {
-                    println!("{}", "Type 'help' for a list of all available commands".yellow());
+                    println!(
+                        "{}",
+                        "Type 'help' for a list of all available commands".yellow()
+                    );
                 }
             }
         }
@@ -741,14 +963,29 @@ mod tests {
 
     #[test]
     fn test_parse_input_basic() {
-        let parser = InteractiveCommandParser::new("todo add \"Implement user auth\" --priority high");
-        assert_eq!(parser.parts, vec!["todo", "add", "Implement user auth", "--priority", "high"]);
+        let parser =
+            InteractiveCommandParser::new("todo add \"Implement user auth\" --priority high");
+        assert_eq!(
+            parser.parts,
+            vec!["todo", "add", "Implement user auth", "--priority", "high"]
+        );
     }
 
     #[test]
     fn test_parse_input_with_quotes() {
-        let parser = InteractiveCommandParser::new("todo add \"Implement user authentication\" --description \"Add OAuth2 support\"");
-        assert_eq!(parser.parts, vec!["todo", "add", "Implement user authentication", "--description", "Add OAuth2 support"]);
+        let parser = InteractiveCommandParser::new(
+            "todo add \"Implement user authentication\" --description \"Add OAuth2 support\"",
+        );
+        assert_eq!(
+            parser.parts,
+            vec![
+                "todo",
+                "add",
+                "Implement user authentication",
+                "--description",
+                "Add OAuth2 support"
+            ]
+        );
     }
 
     #[test]
@@ -759,10 +996,17 @@ mod tests {
 
     #[test]
     fn test_todo_add_parsing() {
-        let mut parser = InteractiveCommandParser::new("add \"Test todo\" --priority high --assignee john");
+        let mut parser =
+            InteractiveCommandParser::new("add \"Test todo\" --priority high --assignee john");
         let result = parser.parse_todo_subcommand().unwrap();
-        
-        if let TodoSubcommands::Add { title, priority, assignee, .. } = result {
+
+        if let TodoSubcommands::Add {
+            title,
+            priority,
+            assignee,
+            ..
+        } = result
+        {
             assert_eq!(title, "Test todo");
             assert_eq!(priority, Priority::High);
             assert_eq!(assignee, Some("john".to_string()));
@@ -775,8 +1019,15 @@ mod tests {
     fn test_insight_record_parsing() {
         let mut parser = InteractiveCommandParser::new("record \"Database optimization\" --content \"Optimized queries for better performance\" --confidence 8 --category performance");
         let result = parser.parse_insight_subcommand().unwrap();
-        
-        if let InsightSubcommands::Record { title, content, confidence, category, .. } = result {
+
+        if let InsightSubcommands::Record {
+            title,
+            content,
+            confidence,
+            category,
+            ..
+        } = result
+        {
             assert_eq!(title, "Database optimization");
             assert_eq!(content, "Optimized queries for better performance");
             assert_eq!(confidence, Some(8));
@@ -785,4 +1036,4 @@ mod tests {
             panic!("Expected Record subcommand");
         }
     }
-} 
+}

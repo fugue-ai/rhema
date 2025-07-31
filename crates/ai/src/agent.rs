@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-pub mod state;
-pub mod locks;
 pub mod coordination;
+pub mod locks;
+pub mod state;
 
-pub use state::*;
-pub use locks::*;
 pub use coordination::*;
+pub use locks::*;
+pub use state::*;
 
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
@@ -31,19 +31,19 @@ use std::time::Duration;
 pub struct AgentCoordinationConfig {
     /// Maximum number of concurrent agents per scope
     pub max_concurrent_agents: usize,
-    
+
     /// Maximum time an agent can be blocked
     pub max_block_time: Duration,
-    
+
     /// Lock timeout duration
     pub lock_timeout: Duration,
-    
+
     /// Whether safety validation is enabled
     pub safety_validation_enabled: bool,
-    
+
     /// Whether to use strict mode for safety validation
     pub strict_mode: bool,
-    
+
     /// Whether to auto-recover from safety violations
     pub auto_recovery: bool,
 }
@@ -81,7 +81,6 @@ impl AgentCoordinationService {
             agent_manager,
             lock_manager,
             sync_coordinator,
-
         })
     }
 
@@ -144,7 +143,7 @@ impl AgentCoordinationService {
     pub async fn handle_agent_leave(&mut self, agent_id: String) -> RhemaResult<()> {
         // Release all locks held by the agent
         self.lock_manager.release_agent_locks(&agent_id).await?;
-        
+
         self.agent_manager.agent_leave(agent_id).await?;
         self.validate_safety().await?;
         Ok(())
@@ -159,21 +158,33 @@ impl AgentCoordinationService {
         content: &str,
     ) -> RhemaResult<()> {
         // Validate agent exists and can work
-        let agent_state = self.agent_manager.get_agent_state(agent_id)
-            .ok_or_else(|| rhema_core::RhemaError::AgentError(format!("Agent not found: {}", agent_id)))?;
+        let agent_state = self
+            .agent_manager
+            .get_agent_state(agent_id)
+            .ok_or_else(|| {
+                rhema_core::RhemaError::AgentError(format!("Agent not found: {}", agent_id))
+            })?;
 
         if agent_state != AgentState::Working && agent_state != AgentState::Idle {
-            return Err(rhema_core::RhemaError::AgentError(format!("Invalid agent state for {}: {:?}", agent_id, agent_state)));
+            return Err(rhema_core::RhemaError::AgentError(format!(
+                "Invalid agent state for {}: {:?}",
+                agent_id, agent_state
+            )));
         }
 
         // Try to acquire lock
         let lock_acquired = self.lock_manager.acquire_lock(scope_path, agent_id).await?;
         if !lock_acquired {
-            return Err(rhema_core::RhemaError::AgentError(format!("Agent blocked too long for scope: {}", scope_path)));
+            return Err(rhema_core::RhemaError::AgentError(format!(
+                "Agent blocked too long for scope: {}",
+                scope_path
+            )));
         }
 
         // Set agent to working state
-        self.agent_manager.set_agent_state(agent_id, AgentState::Working).await?;
+        self.agent_manager
+            .set_agent_state(agent_id, AgentState::Working)
+            .await?;
 
         // TODO: Validate content
         // For now, just skip validation since safety validator is not implemented yet
@@ -188,9 +199,15 @@ impl AgentCoordinationService {
     /// Handle sync request
     pub async fn handle_sync_request(&mut self, scope_path: &str) -> RhemaResult<()> {
         // Check if dependencies are ready
-        let deps_ready = self.sync_coordinator.check_sync_dependencies(scope_path).await?;
+        let deps_ready = self
+            .sync_coordinator
+            .check_sync_dependencies(scope_path)
+            .await?;
         if !deps_ready {
-            return Err(rhema_core::RhemaError::CoordinationError(format!("Dependencies not ready for scope: {}", scope_path)));
+            return Err(rhema_core::RhemaError::CoordinationError(format!(
+                "Dependencies not ready for scope: {}",
+                scope_path
+            )));
         }
 
         // Start sync
@@ -216,10 +233,12 @@ impl AgentCoordinationService {
     /// Release lock for a scope
     pub async fn release_lock(&mut self, scope_path: &str, agent_id: &str) -> RhemaResult<()> {
         self.lock_manager.release_lock(scope_path, agent_id).await?;
-        
+
         // Set agent back to idle if it's not working on other scopes
         if !self.lock_manager.has_agent_locks(agent_id) {
-            self.agent_manager.set_agent_state(agent_id, AgentState::Idle).await?;
+            self.agent_manager
+                .set_agent_state(agent_id, AgentState::Idle)
+                .await?;
         }
 
         self.validate_safety().await?;
@@ -242,10 +261,10 @@ impl AgentCoordinationService {
     pub async fn cleanup(&mut self) -> RhemaResult<()> {
         // Cleanup expired locks
         self.lock_manager.cleanup_expired_locks().await?;
-        
+
         // Check agent progress
         self.agent_manager.check_agent_progress().await?;
-        
+
         // Validate safety after cleanup
         self.validate_safety().await?;
         Ok(())
@@ -266,18 +285,32 @@ pub struct SystemStatus {
 /// Agent request types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AgentRequest {
-    Join { agent_id: String },
-    Leave { agent_id: String },
+    Join {
+        agent_id: String,
+    },
+    Leave {
+        agent_id: String,
+    },
     ModifyContext {
         agent_id: String,
         scope_path: String,
         file: String,
         content: String,
     },
-    Sync { scope_path: String },
-    CompleteSync { scope_path: String },
-    FailSync { scope_path: String, error: String },
-    ReleaseLock { scope_path: String, agent_id: String },
+    Sync {
+        scope_path: String,
+    },
+    CompleteSync {
+        scope_path: String,
+    },
+    FailSync {
+        scope_path: String,
+        error: String,
+    },
+    ReleaseLock {
+        scope_path: String,
+        agent_id: String,
+    },
     GetStatus,
 }
 
@@ -287,4 +320,4 @@ pub enum AgentResponse {
     Success,
     Error(String),
     Status(SystemStatus),
-} 
+}

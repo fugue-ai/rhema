@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-use crate::{RhemaError, RhemaResult, Todos, TodoEntry, Knowledge, KnowledgeEntry, Patterns, PatternEntry, Decisions, DecisionEntry, TodoStatus, Priority, DecisionStatus, PatternUsage};
+use crate::{
+    DecisionEntry, DecisionStatus, Decisions, Knowledge, KnowledgeEntry, PatternEntry,
+    PatternUsage, Patterns, Priority, RhemaError, RhemaResult, TodoEntry, TodoStatus, Todos,
+};
 use chrono::Utc;
 use serde_yaml;
 use std::collections::HashMap;
@@ -27,20 +30,19 @@ where
     T: serde::de::DeserializeOwned,
 {
     if !file_path.exists() {
-        return Err(RhemaError::FileNotFound(
-            format!("File not found: {}", file_path.display())
-        ));
+        return Err(RhemaError::FileNotFound(format!(
+            "File not found: {}",
+            file_path.display()
+        )));
     }
-    
-    let content = std::fs::read_to_string(file_path)
-        .map_err(|e| RhemaError::IoError(e))?;
-    
-    let data: T = serde_yaml::from_str(&content)
-        .map_err(|e| RhemaError::InvalidYaml {
-            file: file_path.display().to_string(),
-            message: e.to_string(),
-        })?;
-    
+
+    let content = std::fs::read_to_string(file_path).map_err(|e| RhemaError::IoError(e))?;
+
+    let data: T = serde_yaml::from_str(&content).map_err(|e| RhemaError::InvalidYaml {
+        file: file_path.display().to_string(),
+        message: e.to_string(),
+    })?;
+
     Ok(data)
 }
 
@@ -51,26 +53,23 @@ where
 {
     // Ensure the directory exists
     if let Some(parent) = file_path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| RhemaError::IoError(e))?;
+        std::fs::create_dir_all(parent).map_err(|e| RhemaError::IoError(e))?;
     }
-    
-    let content = serde_yaml::to_string(data)
-        .map_err(|e| RhemaError::InvalidYaml {
-            file: file_path.display().to_string(),
-            message: e.to_string(),
-        })?;
-    
-    std::fs::write(file_path, content)
-        .map_err(|e| RhemaError::IoError(e))?;
-    
+
+    let content = serde_yaml::to_string(data).map_err(|e| RhemaError::InvalidYaml {
+        file: file_path.display().to_string(),
+        message: e.to_string(),
+    })?;
+
+    std::fs::write(file_path, content).map_err(|e| RhemaError::IoError(e))?;
+
     Ok(())
 }
 
 /// Get or create a todos file
 pub fn get_or_create_todos_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     let todos_file = scope_path.join("todos.yaml");
-    
+
     if !todos_file.exists() {
         let empty_todos = Todos {
             todos: Vec::new(),
@@ -78,14 +77,14 @@ pub fn get_or_create_todos_file(scope_path: &Path) -> RhemaResult<PathBuf> {
         };
         write_yaml_file(&todos_file, &empty_todos)?;
     }
-    
+
     Ok(todos_file)
 }
 
 /// Get or create a knowledge file
 pub fn get_or_create_knowledge_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     let knowledge_file = scope_path.join("knowledge.yaml");
-    
+
     if !knowledge_file.exists() {
         let empty_knowledge = Knowledge {
             entries: Vec::new(),
@@ -94,14 +93,14 @@ pub fn get_or_create_knowledge_file(scope_path: &Path) -> RhemaResult<PathBuf> {
         };
         write_yaml_file(&knowledge_file, &empty_knowledge)?;
     }
-    
+
     Ok(knowledge_file)
 }
 
 /// Get or create a patterns file
 pub fn get_or_create_patterns_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     let patterns_file = scope_path.join("patterns.yaml");
-    
+
     if !patterns_file.exists() {
         let empty_patterns = Patterns {
             patterns: Vec::new(),
@@ -109,14 +108,14 @@ pub fn get_or_create_patterns_file(scope_path: &Path) -> RhemaResult<PathBuf> {
         };
         write_yaml_file(&patterns_file, &empty_patterns)?;
     }
-    
+
     Ok(patterns_file)
 }
 
 /// Get or create a decisions file
 pub fn get_or_create_decisions_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     let decisions_file = scope_path.join("decisions.yaml");
-    
+
     if !decisions_file.exists() {
         let empty_decisions = Decisions {
             decisions: Vec::new(),
@@ -124,7 +123,7 @@ pub fn get_or_create_decisions_file(scope_path: &Path) -> RhemaResult<PathBuf> {
         };
         write_yaml_file(&decisions_file, &empty_decisions)?;
     }
-    
+
     Ok(decisions_file)
 }
 
@@ -139,18 +138,25 @@ pub fn add_todo(
 ) -> RhemaResult<String> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let mut todos: Todos = read_yaml_file(&todos_file)?;
-    
+
     let id = Uuid::new_v4().to_string();
     let now = Utc::now();
-    
+
     let due_date_parsed = if let Some(date_str) = due_date {
-        Some(chrono::DateTime::parse_from_rfc3339(&date_str)
-            .map_err(|_| RhemaError::ConfigError("Invalid date format. Use ISO 8601 format (e.g., 2023-12-01T10:00:00Z)".to_string()))?
-            .with_timezone(&Utc))
+        Some(
+            chrono::DateTime::parse_from_rfc3339(&date_str)
+                .map_err(|_| {
+                    RhemaError::ConfigError(
+                        "Invalid date format. Use ISO 8601 format (e.g., 2023-12-01T10:00:00Z)"
+                            .to_string(),
+                    )
+                })?
+                .with_timezone(&Utc),
+        )
     } else {
         None
     };
-    
+
     let todo_entry = TodoEntry {
         id: id.clone(),
         title,
@@ -165,10 +171,10 @@ pub fn add_todo(
         related_knowledge: None,
         custom: HashMap::new(),
     };
-    
+
     todos.todos.push(todo_entry);
     write_yaml_file(&todos_file, &todos)?;
-    
+
     Ok(id)
 }
 
@@ -181,43 +187,39 @@ pub fn list_todos(
 ) -> RhemaResult<Vec<TodoEntry>> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let todos: Todos = read_yaml_file(&todos_file)?;
-    
+
     let mut filtered_todos = todos.todos;
-    
+
     if let Some(status) = status_filter {
         filtered_todos.retain(|todo| todo.status == status);
     }
-    
+
     if let Some(priority) = priority_filter {
         filtered_todos.retain(|todo| todo.priority == priority);
     }
-    
+
     if let Some(assignee) = assignee_filter {
-        filtered_todos.retain(|todo| {
-            todo.assigned_to.as_ref().map_or(false, |a| a == &assignee)
-        });
+        filtered_todos.retain(|todo| todo.assigned_to.as_ref().map_or(false, |a| a == &assignee));
     }
-    
+
     Ok(filtered_todos)
 }
 
 /// Complete a todo entry
-pub fn complete_todo(
-    scope_path: &Path,
-    id: &str,
-    outcome: Option<String>,
-) -> RhemaResult<()> {
+pub fn complete_todo(scope_path: &Path, id: &str, outcome: Option<String>) -> RhemaResult<()> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let mut todos: Todos = read_yaml_file(&todos_file)?;
-    
-    let todo = todos.todos.iter_mut()
+
+    let todo = todos
+        .todos
+        .iter_mut()
         .find(|t| t.id == id)
         .ok_or_else(|| RhemaError::ConfigError(format!("Todo with ID {} not found", id)))?;
-    
+
     todo.status = TodoStatus::Completed;
     todo.completed_at = Some(Utc::now());
     todo.outcome = outcome;
-    
+
     write_yaml_file(&todos_file, &todos)?;
     Ok(())
 }
@@ -235,11 +237,13 @@ pub fn update_todo(
 ) -> RhemaResult<()> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let mut todos: Todos = read_yaml_file(&todos_file)?;
-    
-    let todo = todos.todos.iter_mut()
+
+    let todo = todos
+        .todos
+        .iter_mut()
         .find(|t| t.id == id)
         .ok_or_else(|| RhemaError::ConfigError(format!("Todo with ID {} not found", id)))?;
-    
+
     if let Some(title) = title {
         todo.title = title;
     }
@@ -257,11 +261,16 @@ pub fn update_todo(
     }
     if let Some(date_str) = due_date {
         let due_date_parsed = chrono::DateTime::parse_from_rfc3339(&date_str)
-            .map_err(|_| RhemaError::ConfigError("Invalid date format. Use ISO 8601 format (e.g., 2023-12-01T10:00:00Z)".to_string()))?
+            .map_err(|_| {
+                RhemaError::ConfigError(
+                    "Invalid date format. Use ISO 8601 format (e.g., 2023-12-01T10:00:00Z)"
+                        .to_string(),
+                )
+            })?
             .with_timezone(&Utc);
         todo.due_date = Some(due_date_parsed);
     }
-    
+
     write_yaml_file(&todos_file, &todos)?;
     Ok(())
 }
@@ -270,14 +279,17 @@ pub fn update_todo(
 pub fn delete_todo(scope_path: &Path, id: &str) -> RhemaResult<()> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let mut todos: Todos = read_yaml_file(&todos_file)?;
-    
+
     let initial_len = todos.todos.len();
     todos.todos.retain(|t| t.id != id);
-    
+
     if todos.todos.len() == initial_len {
-        return Err(RhemaError::ConfigError(format!("Todo with ID {} not found", id)));
+        return Err(RhemaError::ConfigError(format!(
+            "Todo with ID {} not found",
+            id
+        )));
     }
-    
+
     write_yaml_file(&todos_file, &todos)?;
     Ok(())
 }
@@ -293,12 +305,12 @@ pub fn add_knowledge(
 ) -> RhemaResult<String> {
     let knowledge_file = get_or_create_knowledge_file(scope_path)?;
     let mut knowledge: Knowledge = read_yaml_file(&knowledge_file)?;
-    
+
     let id = Uuid::new_v4().to_string();
     let now = Utc::now();
-    
+
     let tags_vec = tags.map(|t| t.split(',').map(|s| s.trim().to_string()).collect());
-    
+
     let knowledge_entry = KnowledgeEntry {
         id: id.clone(),
         title,
@@ -311,10 +323,10 @@ pub fn add_knowledge(
         source: None,
         custom: HashMap::new(),
     };
-    
+
     knowledge.entries.push(knowledge_entry);
     write_yaml_file(&knowledge_file, &knowledge)?;
-    
+
     Ok(id)
 }
 
@@ -327,27 +339,26 @@ pub fn list_knowledge(
 ) -> RhemaResult<Vec<KnowledgeEntry>> {
     let knowledge_file = get_or_create_knowledge_file(scope_path)?;
     let knowledge: Knowledge = read_yaml_file(&knowledge_file)?;
-    
+
     let mut filtered_entries = knowledge.entries;
-    
+
     if let Some(category) = category_filter {
-        filtered_entries.retain(|entry| {
-            entry.category.as_ref().map_or(false, |c| c == &category)
-        });
+        filtered_entries.retain(|entry| entry.category.as_ref().map_or(false, |c| c == &category));
     }
-    
+
     if let Some(tag) = tag_filter {
         filtered_entries.retain(|entry| {
-            entry.tags.as_ref().map_or(false, |tags| tags.contains(&tag))
+            entry
+                .tags
+                .as_ref()
+                .map_or(false, |tags| tags.contains(&tag))
         });
     }
-    
+
     if let Some(min_conf) = min_confidence {
-        filtered_entries.retain(|entry| {
-            entry.confidence.map_or(false, |conf| conf >= min_conf)
-        });
+        filtered_entries.retain(|entry| entry.confidence.map_or(false, |conf| conf >= min_conf));
     }
-    
+
     Ok(filtered_entries)
 }
 
@@ -363,11 +374,15 @@ pub fn update_knowledge(
 ) -> RhemaResult<()> {
     let knowledge_file = get_or_create_knowledge_file(scope_path)?;
     let mut knowledge: Knowledge = read_yaml_file(&knowledge_file)?;
-    
-    let entry = knowledge.entries.iter_mut()
+
+    let entry = knowledge
+        .entries
+        .iter_mut()
         .find(|e| e.id == id)
-        .ok_or_else(|| RhemaError::ConfigError(format!("Knowledge entry with ID {} not found", id)))?;
-    
+        .ok_or_else(|| {
+            RhemaError::ConfigError(format!("Knowledge entry with ID {} not found", id))
+        })?;
+
     if let Some(title) = title {
         entry.title = title;
     }
@@ -383,9 +398,9 @@ pub fn update_knowledge(
     if let Some(tags) = tags {
         entry.tags = Some(tags.split(',').map(|s| s.trim().to_string()).collect());
     }
-    
+
     entry.updated_at = Some(Utc::now());
-    
+
     write_yaml_file(&knowledge_file, &knowledge)?;
     Ok(())
 }
@@ -394,14 +409,17 @@ pub fn update_knowledge(
 pub fn delete_knowledge(scope_path: &Path, id: &str) -> RhemaResult<()> {
     let knowledge_file = get_or_create_knowledge_file(scope_path)?;
     let mut knowledge: Knowledge = read_yaml_file(&knowledge_file)?;
-    
+
     let initial_len = knowledge.entries.len();
     knowledge.entries.retain(|e| e.id != id);
-    
+
     if knowledge.entries.len() == initial_len {
-        return Err(RhemaError::ConfigError(format!("Knowledge entry with ID {} not found", id)));
+        return Err(RhemaError::ConfigError(format!(
+            "Knowledge entry with ID {} not found",
+            id
+        )));
     }
-    
+
     write_yaml_file(&knowledge_file, &knowledge)?;
     Ok(())
 }
@@ -419,13 +437,14 @@ pub fn add_pattern(
 ) -> RhemaResult<String> {
     let patterns_file = get_or_create_patterns_file(scope_path)?;
     let mut patterns: Patterns = read_yaml_file(&patterns_file)?;
-    
+
     let id = Uuid::new_v4().to_string();
     let now = Utc::now();
-    
+
     let examples_vec = examples.map(|e| e.split(',').map(|s| s.trim().to_string()).collect());
-    let anti_patterns_vec = anti_patterns.map(|a| a.split(',').map(|s| s.trim().to_string()).collect());
-    
+    let anti_patterns_vec =
+        anti_patterns.map(|a| a.split(',').map(|s| s.trim().to_string()).collect());
+
     let pattern_entry = PatternEntry {
         id: id.clone(),
         name,
@@ -440,10 +459,10 @@ pub fn add_pattern(
         updated_at: None,
         custom: HashMap::new(),
     };
-    
+
     patterns.patterns.push(pattern_entry);
     write_yaml_file(&patterns_file, &patterns)?;
-    
+
     Ok(id)
 }
 
@@ -456,23 +475,22 @@ pub fn list_patterns(
 ) -> RhemaResult<Vec<PatternEntry>> {
     let patterns_file = get_or_create_patterns_file(scope_path)?;
     let patterns: Patterns = read_yaml_file(&patterns_file)?;
-    
+
     let mut filtered_patterns = patterns.patterns;
-    
+
     if let Some(pattern_type) = pattern_type_filter {
         filtered_patterns.retain(|pattern| pattern.pattern_type == pattern_type);
     }
-    
+
     if let Some(usage) = usage_filter {
         filtered_patterns.retain(|pattern| pattern.usage == usage);
     }
-    
+
     if let Some(min_eff) = min_effectiveness {
-        filtered_patterns.retain(|pattern| {
-            pattern.effectiveness.map_or(false, |eff| eff >= min_eff)
-        });
+        filtered_patterns
+            .retain(|pattern| pattern.effectiveness.map_or(false, |eff| eff >= min_eff));
     }
-    
+
     Ok(filtered_patterns)
 }
 
@@ -490,11 +508,13 @@ pub fn update_pattern(
 ) -> RhemaResult<()> {
     let patterns_file = get_or_create_patterns_file(scope_path)?;
     let mut patterns: Patterns = read_yaml_file(&patterns_file)?;
-    
-    let pattern = patterns.patterns.iter_mut()
+
+    let pattern = patterns
+        .patterns
+        .iter_mut()
         .find(|p| p.id == id)
         .ok_or_else(|| RhemaError::ConfigError(format!("Pattern with ID {} not found", id)))?;
-    
+
     if let Some(name) = name {
         pattern.name = name;
     }
@@ -514,11 +534,16 @@ pub fn update_pattern(
         pattern.examples = Some(examples.split(',').map(|s| s.trim().to_string()).collect());
     }
     if let Some(anti_patterns) = anti_patterns {
-        pattern.anti_patterns = Some(anti_patterns.split(',').map(|s| s.trim().to_string()).collect());
+        pattern.anti_patterns = Some(
+            anti_patterns
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect(),
+        );
     }
-    
+
     pattern.updated_at = Some(Utc::now());
-    
+
     write_yaml_file(&patterns_file, &patterns)?;
     Ok(())
 }
@@ -527,14 +552,17 @@ pub fn update_pattern(
 pub fn delete_pattern(scope_path: &Path, id: &str) -> RhemaResult<()> {
     let patterns_file = get_or_create_patterns_file(scope_path)?;
     let mut patterns: Patterns = read_yaml_file(&patterns_file)?;
-    
+
     let initial_len = patterns.patterns.len();
     patterns.patterns.retain(|p| p.id != id);
-    
+
     if patterns.patterns.len() == initial_len {
-        return Err(RhemaError::ConfigError(format!("Pattern with ID {} not found", id)));
+        return Err(RhemaError::ConfigError(format!(
+            "Pattern with ID {} not found",
+            id
+        )));
     }
-    
+
     write_yaml_file(&patterns_file, &patterns)?;
     Ok(())
 }
@@ -553,14 +581,16 @@ pub fn add_decision(
 ) -> RhemaResult<String> {
     let decisions_file = get_or_create_decisions_file(scope_path)?;
     let mut decisions: Decisions = read_yaml_file(&decisions_file)?;
-    
+
     let id = Uuid::new_v4().to_string();
     let now = Utc::now();
-    
+
     let makers_vec = makers.map(|m| m.split(',').map(|s| s.trim().to_string()).collect());
-    let alternatives_vec = alternatives.map(|a| a.split(',').map(|s| s.trim().to_string()).collect());
-    let consequences_vec = consequences.map(|c| c.split(',').map(|s| s.trim().to_string()).collect());
-    
+    let alternatives_vec =
+        alternatives.map(|a| a.split(',').map(|s| s.trim().to_string()).collect());
+    let consequences_vec =
+        consequences.map(|c| c.split(',').map(|s| s.trim().to_string()).collect());
+
     let decision_entry = DecisionEntry {
         id: id.clone(),
         title,
@@ -575,10 +605,10 @@ pub fn add_decision(
         decision_makers: makers_vec,
         custom: HashMap::new(),
     };
-    
+
     decisions.decisions.push(decision_entry);
     write_yaml_file(&decisions_file, &decisions)?;
-    
+
     Ok(id)
 }
 
@@ -590,19 +620,22 @@ pub fn list_decisions(
 ) -> RhemaResult<Vec<DecisionEntry>> {
     let decisions_file = get_or_create_decisions_file(scope_path)?;
     let decisions: Decisions = read_yaml_file(&decisions_file)?;
-    
+
     let mut filtered_decisions = decisions.decisions;
-    
+
     if let Some(status) = status_filter {
         filtered_decisions.retain(|decision| decision.status == status);
     }
-    
+
     if let Some(maker) = maker_filter {
         filtered_decisions.retain(|decision| {
-            decision.decision_makers.as_ref().map_or(false, |makers| makers.contains(&maker))
+            decision
+                .decision_makers
+                .as_ref()
+                .map_or(false, |makers| makers.contains(&maker))
         });
     }
-    
+
     Ok(filtered_decisions)
 }
 
@@ -621,11 +654,13 @@ pub fn update_decision(
 ) -> RhemaResult<()> {
     let decisions_file = get_or_create_decisions_file(scope_path)?;
     let mut decisions: Decisions = read_yaml_file(&decisions_file)?;
-    
-    let decision = decisions.decisions.iter_mut()
+
+    let decision = decisions
+        .decisions
+        .iter_mut()
         .find(|d| d.id == id)
         .ok_or_else(|| RhemaError::ConfigError(format!("Decision with ID {} not found", id)))?;
-    
+
     if let Some(title) = title {
         decision.title = title;
     }
@@ -642,15 +677,25 @@ pub fn update_decision(
         decision.decision_makers = Some(makers.split(',').map(|s| s.trim().to_string()).collect());
     }
     if let Some(alternatives) = alternatives {
-        decision.alternatives = Some(alternatives.split(',').map(|s| s.trim().to_string()).collect());
+        decision.alternatives = Some(
+            alternatives
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect(),
+        );
     }
     if let Some(rationale) = rationale {
         decision.rationale = Some(rationale);
     }
     if let Some(consequences) = consequences {
-        decision.consequences = Some(consequences.split(',').map(|s| s.trim().to_string()).collect());
+        decision.consequences = Some(
+            consequences
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect(),
+        );
     }
-    
+
     write_yaml_file(&decisions_file, &decisions)?;
     Ok(())
 }
@@ -659,14 +704,17 @@ pub fn update_decision(
 pub fn delete_decision(scope_path: &Path, id: &str) -> RhemaResult<()> {
     let decisions_file = get_or_create_decisions_file(scope_path)?;
     let mut decisions: Decisions = read_yaml_file(&decisions_file)?;
-    
+
     let initial_len = decisions.decisions.len();
     decisions.decisions.retain(|d| d.id != id);
-    
+
     if decisions.decisions.len() == initial_len {
-        return Err(RhemaError::ConfigError(format!("Decision with ID {} not found", id)));
+        return Err(RhemaError::ConfigError(format!(
+            "Decision with ID {} not found",
+            id
+        )));
     }
-    
+
     write_yaml_file(&decisions_file, &decisions)?;
     Ok(())
-} 
+}

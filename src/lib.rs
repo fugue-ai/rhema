@@ -15,7 +15,7 @@
  */
 
 // Re-export core types from the core crate
-pub use rhema_core::{RhemaResult, RhemaError, error, file_ops, schema, scope};
+pub use rhema_core::{error, file_ops, schema, scope, RhemaError, RhemaResult};
 
 // Re-export query functionality from the query crate
 pub use rhema_query::{query, repo_analysis};
@@ -36,14 +36,16 @@ pub use rhema_mcp::mcp;
 pub use rhema_config::{config, GlobalConfig, RepositoryConfig};
 
 // Re-export CLI commands from the cli crate
-pub use rhema_cli::{Rhema as CliRhema, commands, interactive, interactive_advanced, interactive_parser};
+pub use rhema_cli::{
+    commands, interactive, interactive_advanced, interactive_parser, Rhema as CliRhema,
+};
 
 // Re-export integrations from the integrations crate
 pub use rhema_integrations::{integrations, IntegrationManager};
 
 use anyhow::Result;
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Main Rhema context manager
 #[derive(Debug, Clone)]
@@ -62,9 +64,11 @@ impl Rhema {
     pub fn new_from_path(repo_root: PathBuf) -> Result<Self> {
         // Verify that the path contains a git repository
         if !repo_root.join(".git").exists() {
-            return Err(rhema_core::RhemaError::GitRepoNotFound(
-                format!("No Git repository found at {}", repo_root.display())
-            ).into());
+            return Err(rhema_core::RhemaError::GitRepoNotFound(format!(
+                "No Git repository found at {}",
+                repo_root.display()
+            ))
+            .into());
         }
         Ok(Self { repo_root })
     }
@@ -73,7 +77,7 @@ impl Rhema {
     pub fn repo_root(&self) -> &PathBuf {
         &self.repo_root
     }
-    
+
     /// Get the repository root path (alias for repo_root)
     pub fn repo_path(&self) -> &PathBuf {
         &self.repo_root
@@ -106,19 +110,32 @@ impl Rhema {
     }
 
     /// Execute a CQL query with statistics
-    pub fn query_with_stats(&self, query: &str) -> Result<(serde_yaml::Value, HashMap<String, serde_yaml::Value>)> {
+    pub fn query_with_stats(
+        &self,
+        query: &str,
+    ) -> Result<(serde_yaml::Value, HashMap<String, serde_yaml::Value>)> {
         // TODO: Implement query with stats
         let result = rhema_query::query::execute_query(&self.repo_root, query)?;
         Ok((result, HashMap::new()))
     }
 
     /// Execute a CQL query with provenance tracking
-    pub fn query_with_provenance(&self, query: &str) -> Result<(serde_yaml::Value, rhema_query::query::QueryProvenance)> {
-        Ok(rhema_query::query::execute_query_with_provenance(&self.repo_root, query)?)
+    pub fn query_with_provenance(
+        &self,
+        query: &str,
+    ) -> Result<(serde_yaml::Value, rhema_query::query::QueryProvenance)> {
+        Ok(rhema_query::query::execute_query_with_provenance(
+            &self.repo_root,
+            query,
+        )?)
     }
 
     /// Search using regex pattern
-    pub fn search_regex(&self, _pattern: &str, _file_filter: Option<&str>) -> Result<Vec<rhema_query::query::QueryResult>> {
+    pub fn search_regex(
+        &self,
+        _pattern: &str,
+        _file_filter: Option<&str>,
+    ) -> Result<Vec<rhema_query::query::QueryResult>> {
         // TODO: Implement regex search
         Ok(vec![])
     }
@@ -178,4 +195,4 @@ impl Rhema {
     pub fn list_scopes(&self) -> Result<Vec<rhema_core::Scope>> {
         Ok(rhema_core::scope::discover_scopes(&self.repo_root)?)
     }
-} 
+}

@@ -22,14 +22,14 @@ pub fn run(rhema: &Rhema, query: &str) -> RhemaResult<()> {
     println!("{}", "Executing CQL query:".bold());
     println!("  {}", query.cyan());
     println!();
-    
+
     let result = rhema.query(query)?;
-    
+
     // Pretty print the result
     let yaml_string = serde_yaml::to_string(&result)?;
     println!("{}", "Result:".bold());
     println!("{}", yaml_string);
-    
+
     Ok(())
 }
 
@@ -38,21 +38,21 @@ pub fn run_with_stats(rhema: &Rhema, query: &str) -> RhemaResult<()> {
     println!("{}", "Executing CQL query with statistics:".bold());
     println!("  {}", query.cyan());
     println!();
-    
+
     let (result, stats) = rhema.query_with_stats(query)?;
-    
+
     // Print statistics first
     println!("{}", "Statistics:".bold());
     for (key, value) in &stats {
         println!("  {}: {:?}", key.green(), value);
     }
     println!();
-    
+
     // Pretty print the result
     let yaml_string = serde_yaml::to_string(&result)?;
     println!("{}", "Result:".bold());
     println!("{}", yaml_string);
-    
+
     Ok(())
 }
 
@@ -62,9 +62,9 @@ pub fn run_formatted(rhema: &Rhema, query: &str, format: &str) -> RhemaResult<()
     println!("  {}", query.cyan());
     println!("  Format: {}", format.yellow());
     println!();
-    
+
     let result = rhema.query(query)?;
-    
+
     match format.to_lowercase().as_str() {
         "yaml" | "yml" => {
             let yaml_string = serde_yaml::to_string(&result)?;
@@ -85,12 +85,13 @@ pub fn run_formatted(rhema: &Rhema, query: &str, format: &str) -> RhemaResult<()
             }
         }
         _ => {
-            return Err(crate::RhemaError::InvalidQuery(
-                format!("Unsupported output format: {}", format)
-            ));
+            return Err(crate::RhemaError::InvalidQuery(format!(
+                "Unsupported output format: {}",
+                format
+            )));
         }
     }
-    
+
     Ok(())
 }
 
@@ -101,29 +102,31 @@ fn print_table_format(result: &serde_yaml::Value) -> RhemaResult<()> {
             // Try to extract headers from the first item
             if let Some(first_item) = seq.first() {
                 if let serde_yaml::Value::Mapping(map) = first_item {
-                    let headers: Vec<String> = map.keys()
+                    let headers: Vec<String> = map
+                        .keys()
                         .filter_map(|k| k.as_str())
                         .map(|s| s.to_string())
                         .collect();
-                    
+
                     if !headers.is_empty() {
                         // Print headers
                         for header in &headers {
                             print!("{:<20} ", header.bold());
                         }
                         println!();
-                        
+
                         // Print separator
                         for _ in &headers {
                             print!("{:<20} ", "─".repeat(20));
                         }
                         println!();
-                        
+
                         // Print data rows
                         for item in seq {
                             if let serde_yaml::Value::Mapping(map) = item {
                                 for header in &headers {
-                                    let value = map.get(&serde_yaml::Value::String(header.clone()))
+                                    let value = map
+                                        .get(&serde_yaml::Value::String(header.clone()))
                                         .unwrap_or(&serde_yaml::Value::Null);
                                     let value_str = match value {
                                         serde_yaml::Value::String(s) => s.clone(),
@@ -158,35 +161,50 @@ fn print_table_format(result: &serde_yaml::Value) -> RhemaResult<()> {
             println!("{:?}", result);
         }
     }
-    
+
     Ok(())
-} 
+}
 
 /// Execute a CQL query with provenance tracking
 pub fn run_with_provenance(rhema: &Rhema, query: &str) -> RhemaResult<()> {
     println!("{}", "Executing CQL query with provenance tracking:".bold());
     println!("  {}", query.cyan());
     println!();
-    
+
     let (result, provenance) = rhema.query_with_provenance(query)?;
-    
+
     // Print provenance information first
     println!("{}", "📊 Query Provenance:".bold());
     println!("{}", "─".repeat(80));
-    
+
     // Basic provenance info
     println!("🔍 Original Query: {}", provenance.original_query);
     println!("⏰ Executed At: {}", provenance.executed_at);
     println!("⏱️  Execution Time: {}ms", provenance.execution_time_ms);
-    println!("📁 Scopes Searched: {}", provenance.scopes_searched.join(", "));
-    println!("📄 Files Accessed: {}", provenance.files_accessed.join(", "));
-    
+    println!(
+        "📁 Scopes Searched: {}",
+        provenance.scopes_searched.join(", ")
+    );
+    println!(
+        "📄 Files Accessed: {}",
+        provenance.files_accessed.join(", ")
+    );
+
     // Performance metrics
     println!("\n📈 Performance Metrics:");
-    println!("  Total Time: {}ms", provenance.performance_metrics.total_time_ms);
-    println!("  Files Read: {}", provenance.performance_metrics.files_read);
-    println!("  YAML Documents Processed: {}", provenance.performance_metrics.yaml_documents_processed);
-    
+    println!(
+        "  Total Time: {}ms",
+        provenance.performance_metrics.total_time_ms
+    );
+    println!(
+        "  Files Read: {}",
+        provenance.performance_metrics.files_read
+    );
+    println!(
+        "  YAML Documents Processed: {}",
+        provenance.performance_metrics.yaml_documents_processed
+    );
+
     // Phase times
     if !provenance.performance_metrics.phase_times.is_empty() {
         println!("  Phase Times:");
@@ -194,7 +212,7 @@ pub fn run_with_provenance(rhema: &Rhema, query: &str) -> RhemaResult<()> {
             println!("    {}: {}ms", phase, time);
         }
     }
-    
+
     // Execution steps
     if !provenance.execution_steps.is_empty() {
         println!("\n🔧 Execution Steps:");
@@ -202,66 +220,76 @@ pub fn run_with_provenance(rhema: &Rhema, query: &str) -> RhemaResult<()> {
             println!("  • {} ({}ms)", step.name, step.duration_ms);
         }
     }
-    
+
     // Applied filters
     if !provenance.applied_filters.is_empty() {
         println!("\n🔍 Applied Filters:");
         for filter in &provenance.applied_filters {
-            println!("  • {}: {} ({} → {} items)", 
-                filter.filter_type.to_string(), 
-                filter.description, 
-                filter.items_before, 
-                filter.items_after);
+            println!(
+                "  • {}: {} ({} → {} items)",
+                filter.filter_type.to_string(),
+                filter.description,
+                filter.items_before,
+                filter.items_after
+            );
         }
     }
-    
+
     println!("\n{}", "📋 Query Result:".bold());
     println!("{}", "─".repeat(80));
-    
+
     // Pretty print the result
     let yaml_string = serde_yaml::to_string(&result)?;
     println!("{}", yaml_string);
-    
+
     Ok(())
 }
 
 /// Execute a CQL query with field-level provenance
 pub fn run_with_field_provenance(rhema: &Rhema, query: &str) -> RhemaResult<()> {
-    println!("{}", "Executing CQL query with field-level provenance:".bold());
+    println!(
+        "{}",
+        "Executing CQL query with field-level provenance:".bold()
+    );
     println!("  {}", query.cyan());
     println!();
-    
+
     let (result, provenance) = rhema.query_with_provenance(query)?;
-    
+
     // Print field-level provenance
     println!("{}", "🔍 Field-Level Provenance:".bold());
     println!("{}", "─".repeat(80));
-    
+
     // For now, we'll show the basic provenance since field-level tracking
     // requires more complex result handling
     println!("📊 Query-Level Provenance:");
     println!("  Execution Time: {}ms", provenance.execution_time_ms);
-    println!("  Scopes Searched: {}", provenance.scopes_searched.join(", "));
+    println!(
+        "  Scopes Searched: {}",
+        provenance.scopes_searched.join(", ")
+    );
     println!("  Files Accessed: {}", provenance.files_accessed.join(", "));
-    
+
     // Show applied filters
     if !provenance.applied_filters.is_empty() {
         println!("\n🔍 Applied Filters:");
         for filter in &provenance.applied_filters {
-            println!("  • {}: {} ({} → {} items)", 
-                filter.filter_type.to_string(), 
-                filter.description, 
-                filter.items_before, 
-                filter.items_after);
+            println!(
+                "  • {}: {} ({} → {} items)",
+                filter.filter_type.to_string(),
+                filter.description,
+                filter.items_before,
+                filter.items_after
+            );
         }
     }
-    
+
     println!("\n{}", "📋 Query Result:".bold());
     println!("{}", "─".repeat(80));
-    
+
     // Pretty print the result
     let yaml_string = serde_yaml::to_string(&result)?;
     println!("{}", yaml_string);
-    
+
     Ok(())
-} 
+}

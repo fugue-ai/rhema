@@ -62,62 +62,62 @@ impl TestConfig {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     /// Check if slow tests should be run
     pub fn should_run_slow_tests(&self) -> bool {
         self.run_slow_tests
     }
-    
+
     /// Check if integration tests should be run
     pub fn should_run_integration_tests(&self) -> bool {
         self.run_integration_tests
     }
-    
+
     /// Check if performance tests should be run
     pub fn should_run_performance_tests(&self) -> bool {
         self.run_performance_tests
     }
-    
+
     /// Check if security tests should be run
     pub fn should_run_security_tests(&self) -> bool {
         self.run_security_tests
     }
-    
+
     /// Check if benchmarks should be run
     pub fn should_run_benchmarks(&self) -> bool {
         self.run_benchmarks
     }
-    
+
     /// Check if property tests should be run
     pub fn should_run_property_tests(&self) -> bool {
         self.run_property_tests
     }
-    
+
     /// Check if stress tests should be run
     pub fn should_run_stress_tests(&self) -> bool {
         self.run_stress_tests
     }
-    
+
     /// Check if load tests should be run
     pub fn should_run_load_tests(&self) -> bool {
         self.run_load_tests
     }
-    
+
     /// Get test data directory
     pub fn test_data_dir(&self) -> &PathBuf {
         &self.test_data_dir
     }
-    
+
     /// Get maximum test timeout
     pub fn max_test_timeout(&self) -> u64 {
         self.max_test_timeout
     }
-    
+
     /// Get number of property test cases
     pub fn property_test_cases(&self) -> u32 {
         self.property_test_cases
     }
-    
+
     /// Check if coverage should be generated
     pub fn should_generate_coverage(&self) -> bool {
         self.generate_coverage
@@ -132,13 +132,13 @@ lazy_static::lazy_static! {
 pub fn setup_test_environment() {
     // Set up logging for tests
     let _ = env_logger::try_init();
-    
+
     // Create test data directory if it doesn't exist
     let test_data_dir = TEST_CONFIG.test_data_dir();
     if !test_data_dir.exists() {
         std::fs::create_dir_all(test_data_dir).expect("Failed to create test data directory");
     }
-    
+
     // Set up test environment variables
     env::set_var("RUST_BACKTRACE", "1");
     env::set_var("RUST_LOG", "debug");
@@ -156,23 +156,23 @@ pub fn cleanup_test_environment() {
 /// Test utilities
 pub mod utils {
     use super::*;
-    use std::time::{Duration, Instant};
     use std::panic;
-    
+    use std::time::{Duration, Instant};
+
     /// Run a test with timeout
     pub fn run_test_with_timeout<F, R>(timeout: Duration, test_fn: F) -> Result<R, String>
     where
         F: FnOnce() -> R + panic::UnwindSafe,
     {
         let start = Instant::now();
-        
+
         let result = panic::catch_unwind(test_fn);
-        
+
         let elapsed = start.elapsed();
         if elapsed > timeout {
             return Err(format!("Test timed out after {:?}", elapsed));
         }
-        
+
         match result {
             Ok(value) => Ok(value),
             Err(panic_info) => {
@@ -186,7 +186,7 @@ pub mod utils {
             }
         }
     }
-    
+
     /// Run a test with default timeout
     pub fn run_test<F, R>(test_fn: F) -> Result<R, String>
     where
@@ -195,75 +195,75 @@ pub mod utils {
         let timeout = Duration::from_secs(TEST_CONFIG.max_test_timeout());
         run_test_with_timeout(timeout, test_fn)
     }
-    
+
     /// Skip test if condition is not met
     pub fn skip_if_not(condition: bool, reason: &str) {
         if !condition {
             panic!("Test skipped: {}", reason);
         }
     }
-    
+
     /// Skip slow tests if not enabled
     pub fn skip_slow_tests() {
         skip_if_not(
             TEST_CONFIG.should_run_slow_tests(),
-            "Slow tests are disabled. Set RHEMA_RUN_SLOW_TESTS=1 to enable."
+            "Slow tests are disabled. Set RHEMA_RUN_SLOW_TESTS=1 to enable.",
         );
     }
-    
+
     /// Skip integration tests if not enabled
     pub fn skip_integration_tests() {
         skip_if_not(
             TEST_CONFIG.should_run_integration_tests(),
-            "Integration tests are disabled. Set RHEMA_RUN_INTEGRATION_TESTS=1 to enable."
+            "Integration tests are disabled. Set RHEMA_RUN_INTEGRATION_TESTS=1 to enable.",
         );
     }
-    
+
     /// Skip performance tests if not enabled
     pub fn skip_performance_tests() {
         skip_if_not(
             TEST_CONFIG.should_run_performance_tests(),
-            "Performance tests are disabled. Set RHEMA_RUN_PERFORMANCE_TESTS=1 to enable."
+            "Performance tests are disabled. Set RHEMA_RUN_PERFORMANCE_TESTS=1 to enable.",
         );
     }
-    
+
     /// Skip security tests if not enabled
     pub fn skip_security_tests() {
         skip_if_not(
             TEST_CONFIG.should_run_security_tests(),
-            "Security tests are disabled. Set RHEMA_RUN_SECURITY_TESTS=1 to enable."
+            "Security tests are disabled. Set RHEMA_RUN_SECURITY_TESTS=1 to enable.",
         );
     }
-    
+
     /// Skip benchmarks if not enabled
     pub fn skip_benchmarks() {
         skip_if_not(
             TEST_CONFIG.should_run_benchmarks(),
-            "Benchmarks are disabled. Set RHEMA_RUN_BENCHMARKS=1 to enable."
+            "Benchmarks are disabled. Set RHEMA_RUN_BENCHMARKS=1 to enable.",
         );
     }
-    
+
     /// Skip property tests if not enabled
     pub fn skip_property_tests() {
         skip_if_not(
             TEST_CONFIG.should_run_property_tests(),
-            "Property tests are disabled. Set RHEMA_RUN_PROPERTY_TESTS=1 to enable."
+            "Property tests are disabled. Set RHEMA_RUN_PROPERTY_TESTS=1 to enable.",
         );
     }
-    
+
     /// Skip stress tests if not enabled
     pub fn skip_stress_tests() {
         skip_if_not(
             TEST_CONFIG.should_run_stress_tests(),
-            "Stress tests are disabled. Set RHEMA_RUN_STRESS_TESTS=1 to enable."
+            "Stress tests are disabled. Set RHEMA_RUN_STRESS_TESTS=1 to enable.",
         );
     }
-    
+
     /// Skip load tests if not enabled
     pub fn skip_load_tests() {
         skip_if_not(
             TEST_CONFIG.should_run_load_tests(),
-            "Load tests are disabled. Set RHEMA_RUN_LOAD_TESTS=1 to enable."
+            "Load tests are disabled. Set RHEMA_RUN_LOAD_TESTS=1 to enable.",
         );
     }
 }
@@ -276,7 +276,7 @@ macro_rules! test_with_timeout {
         fn test_with_timeout() {
             use crate::tests::test_config::utils::run_test_with_timeout;
             use std::time::Duration;
-            
+
             let result = run_test_with_timeout(Duration::from_secs($timeout), $test_fn);
             assert!(result.is_ok(), "Test failed: {:?}", result.err());
         }
@@ -377,4 +377,4 @@ macro_rules! load_test {
             $test_fn
         }
     };
-} 
+}

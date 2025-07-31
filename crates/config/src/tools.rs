@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
+use super::global::GlobalConfig;
 use crate::config::{SafetyValidator, SafetyViolation};
 use crate::{Config, CURRENT_CONFIG_VERSION};
-use super::global::GlobalConfig;
+use chrono::{DateTime, Utc};
+use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use chrono::{DateTime, Utc};
 use validator::Validate;
-use rhema_core::RhemaResult;
 /// Tools manager for Rhema CLI configuration
 pub struct ToolsManager {
     config: ToolsConfig,
@@ -40,25 +40,25 @@ pub struct ToolsConfig {
     /// Configuration version
     #[validate(length(min = 1))]
     pub version: String,
-    
+
     /// Editor settings
     pub editor: EditorSettings,
-    
+
     /// Validation settings
     pub validation: ValidationSettings,
-    
+
     /// Migration settings
     pub migration: MigrationSettings,
-    
+
     /// Backup settings
     pub backup: BackupSettings,
-    
+
     /// Documentation settings
     pub documentation: DocumentationSettings,
-    
+
     /// Tool integrations
     pub integrations: ToolIntegrations,
-    
+
     /// Last updated timestamp
     pub updated_at: DateTime<Utc>,
 }
@@ -68,25 +68,25 @@ pub struct ToolsConfig {
 pub struct EditorSettings {
     /// Default editor
     pub default_editor: EditorType,
-    
+
     /// Editor configuration
     pub editor_config: HashMap<String, String>,
-    
+
     /// Auto-save enabled
     pub auto_save: bool,
-    
+
     /// Auto-save interval (seconds)
     pub auto_save_interval: u64,
-    
+
     /// Syntax highlighting
     pub syntax_highlighting: bool,
-    
+
     /// Line numbers
     pub line_numbers: bool,
-    
+
     /// Word wrap
     pub word_wrap: bool,
-    
+
     /// Tab size
     pub tab_size: u32,
 }
@@ -107,19 +107,19 @@ pub enum EditorType {
 pub struct ValidationSettings {
     /// Enable validation
     pub enabled: bool,
-    
+
     /// Validation level
     pub level: ValidationLevel,
-    
+
     /// Validation rules
     pub rules: Vec<ValidationRule>,
-    
+
     /// Auto-validation
     pub auto_validation: bool,
-    
+
     /// Validation timeout (seconds)
     pub timeout: u64,
-    
+
     /// Validation cache
     pub cache: ValidationCache,
 }
@@ -138,16 +138,16 @@ pub enum ValidationLevel {
 pub struct ValidationRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule description
     pub description: String,
-    
+
     /// Rule pattern
     pub pattern: String,
-    
+
     /// Rule severity
     pub severity: ValidationSeverity,
-    
+
     /// Rule enabled
     pub enabled: bool,
 }
@@ -166,10 +166,10 @@ pub enum ValidationSeverity {
 pub struct ValidationCache {
     /// Enable cache
     pub enabled: bool,
-    
+
     /// Cache size
     pub size: usize,
-    
+
     /// Cache timeout (minutes)
     pub timeout: u64,
 }
@@ -179,19 +179,19 @@ pub struct ValidationCache {
 pub struct MigrationSettings {
     /// Enable migration
     pub enabled: bool,
-    
+
     /// Auto-migration
     pub auto_migration: bool,
-    
+
     /// Migration strategy
     pub strategy: MigrationStrategy,
-    
+
     /// Migration backup
     pub backup: bool,
-    
+
     /// Migration rollback
     pub rollback: bool,
-    
+
     /// Migration validation
     pub validation: bool,
 }
@@ -210,22 +210,22 @@ pub enum MigrationStrategy {
 pub struct BackupSettings {
     /// Enable backup
     pub enabled: bool,
-    
+
     /// Auto-backup
     pub auto_backup: bool,
-    
+
     /// Backup location
     pub location: PathBuf,
-    
+
     /// Backup format
     pub format: BackupFormat,
-    
+
     /// Backup compression
     pub compression: bool,
-    
+
     /// Backup encryption
     pub encryption: bool,
-    
+
     /// Backup retention
     pub retention: BackupRetention,
 }
@@ -243,10 +243,10 @@ pub enum BackupFormat {
 pub struct BackupRetention {
     /// Retention period (days)
     pub period: u32,
-    
+
     /// Max backups
     pub max_backups: u32,
-    
+
     /// Retention policy
     pub policy: RetentionPolicy,
 }
@@ -265,19 +265,19 @@ pub enum RetentionPolicy {
 pub struct DocumentationSettings {
     /// Enable documentation
     pub enabled: bool,
-    
+
     /// Documentation format
     pub format: DocumentationFormat,
-    
+
     /// Documentation location
     pub location: PathBuf,
-    
+
     /// Auto-generation
     pub auto_generation: bool,
-    
+
     /// Documentation templates
     pub templates: HashMap<String, String>,
-    
+
     /// Documentation style
     pub style: DocumentationStyle,
 }
@@ -296,13 +296,13 @@ pub enum DocumentationFormat {
 pub struct DocumentationStyle {
     /// Theme
     pub theme: String,
-    
+
     /// Font size
     pub font_size: u32,
-    
+
     /// Line spacing
     pub line_spacing: f64,
-    
+
     /// Code highlighting
     pub code_highlighting: bool,
 }
@@ -312,13 +312,13 @@ pub struct DocumentationStyle {
 pub struct ToolIntegrations {
     /// Git integration
     pub git: GitIntegration,
-    
+
     /// IDE integration
     pub ide: IDEIntegration,
-    
+
     /// CI/CD integration
     pub cicd: CICDIntegration,
-    
+
     /// External tools
     pub external_tools: HashMap<String, ExternalTool>,
 }
@@ -328,13 +328,13 @@ pub struct ToolIntegrations {
 pub struct GitIntegration {
     /// Enable git integration
     pub enabled: bool,
-    
+
     /// Auto-commit
     pub auto_commit: bool,
-    
+
     /// Commit message template
     pub commit_message_template: String,
-    
+
     /// Branch protection
     pub branch_protection: bool,
 }
@@ -344,13 +344,13 @@ pub struct GitIntegration {
 pub struct IDEIntegration {
     /// Enable IDE integration
     pub enabled: bool,
-    
+
     /// Supported IDEs
     pub supported_ides: Vec<String>,
-    
+
     /// Auto-sync
     pub auto_sync: bool,
-    
+
     /// Sync interval (seconds)
     pub sync_interval: u64,
 }
@@ -360,10 +360,10 @@ pub struct IDEIntegration {
 pub struct CICDIntegration {
     /// Enable CI/CD integration
     pub enabled: bool,
-    
+
     /// CI/CD provider
     pub provider: String,
-    
+
     /// Pipeline configuration
     pub pipeline: HashMap<String, String>,
 }
@@ -373,13 +373,13 @@ pub struct CICDIntegration {
 pub struct ExternalTool {
     /// Tool name
     pub name: String,
-    
+
     /// Tool command
     pub command: String,
-    
+
     /// Tool arguments
     pub arguments: Vec<String>,
-    
+
     /// Tool enabled
     pub enabled: bool,
 }
@@ -503,13 +503,13 @@ pub struct ConfigValidator {
 pub struct ValidationResult {
     /// Is valid
     pub is_valid: bool,
-    
+
     /// Errors
     pub errors: Vec<ValidationError>,
-    
+
     /// Warnings
     pub warnings: Vec<ValidationWarning>,
-    
+
     /// Timestamp
     pub timestamp: DateTime<Utc>,
 }
@@ -519,10 +519,10 @@ pub struct ValidationResult {
 pub struct ValidationError {
     /// Error message
     pub message: String,
-    
+
     /// Error location
     pub location: Option<String>,
-    
+
     /// Error severity
     pub severity: ValidationSeverity,
 }
@@ -532,10 +532,10 @@ pub struct ValidationError {
 pub struct ValidationWarning {
     /// Warning message
     pub message: String,
-    
+
     /// Warning location
     pub location: Option<String>,
-    
+
     /// Warning severity
     pub severity: ValidationSeverity,
 }
@@ -545,13 +545,13 @@ pub struct ValidationWarning {
 pub struct ValidationReport {
     /// File path
     pub file_path: PathBuf,
-    
+
     /// Validation results
     pub results: Vec<ValidationResult>,
-    
+
     /// Overall status
     pub overall_status: ValidationStatus,
-    
+
     /// Summary
     pub summary: String,
 }
@@ -617,8 +617,7 @@ impl ValidationReport {
 
         self.summary = format!(
             "Validation completed: {} errors, {} warnings",
-            error_count,
-            warning_count
+            error_count, warning_count
         );
     }
 }
@@ -633,16 +632,16 @@ pub struct ConfigMigrator {
 pub struct MigrationReport {
     /// File path
     pub file_path: PathBuf,
-    
+
     /// Migration status
     pub status: MigrationStatus,
-    
+
     /// Migration details
     pub details: String,
-    
+
     /// Backup path
     pub backup_path: Option<PathBuf>,
-    
+
     /// Timestamp
     pub timestamp: DateTime<Utc>,
 }
@@ -688,19 +687,19 @@ pub struct ConfigBackupTool {
 pub struct BackupReport {
     /// Original path
     pub original_path: PathBuf,
-    
+
     /// Backup path
     pub backup_path: PathBuf,
-    
+
     /// Backup size
     pub size: u64,
-    
+
     /// Backup format
     pub format: String,
-    
+
     /// Backup status
     pub status: BackupStatus,
-    
+
     /// Timestamp
     pub timestamp: DateTime<Utc>,
 }
@@ -731,11 +730,10 @@ impl ConfigBackupTool {
 
         // This is a simplified implementation
         // In a real implementation, you'd want to implement proper backup
-        std::fs::copy(path, &backup_path)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
+        std::fs::copy(path, &backup_path).map_err(|e| rhema_core::RhemaError::IoError(e))?;
 
-        let metadata = std::fs::metadata(&backup_path)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
+        let metadata =
+            std::fs::metadata(&backup_path).map_err(|e| rhema_core::RhemaError::IoError(e))?;
 
         Ok(BackupReport {
             original_path: path.to_path_buf(),
@@ -758,19 +756,19 @@ pub struct ConfigDocumentationTool {
 pub struct DocumentationReport {
     /// Source path
     pub source_path: PathBuf,
-    
+
     /// Documentation path
     pub documentation_path: PathBuf,
-    
+
     /// Documentation format
     pub format: String,
-    
+
     /// Generation status
     pub status: DocumentationStatus,
-    
+
     /// Generation details
     pub details: String,
-    
+
     /// Timestamp
     pub timestamp: DateTime<Utc>,
 }
@@ -806,8 +804,7 @@ impl ConfigDocumentationTool {
             Utc::now()
         );
 
-        std::fs::write(&doc_path, content)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
+        std::fs::write(&doc_path, content).map_err(|e| rhema_core::RhemaError::IoError(e))?;
 
         Ok(DocumentationReport {
             source_path: path.to_path_buf(),
@@ -838,17 +835,18 @@ impl ToolsConfig {
     /// Load tools configuration from file
     pub fn load() -> RhemaResult<Self> {
         let config_path = Self::get_config_path()?;
-        
+
         if config_path.exists() {
             let content = std::fs::read_to_string(&config_path)
                 .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-            
-            let config: Self = serde_yaml::from_str(&content)
-                .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+
+            let config: Self = serde_yaml::from_str(&content).map_err(|e| {
+                rhema_core::RhemaError::InvalidYaml {
                     file: config_path.display().to_string(),
                     message: e.to_string(),
-                })?;
-            
+                }
+            })?;
+
             config.validate_config()?;
             Ok(config)
         } else {
@@ -862,31 +860,33 @@ impl ToolsConfig {
     /// Save tools configuration to file
     pub fn save(&self) -> RhemaResult<()> {
         let config_path = Self::get_config_path()?;
-        
+
         // Ensure directory exists
         if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| rhema_core::RhemaError::IoError(e))?;
+            std::fs::create_dir_all(parent).map_err(|e| rhema_core::RhemaError::IoError(e))?;
         }
-        
-        let content = serde_yaml::to_string(self)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+
+        let content =
+            serde_yaml::to_string(self).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: config_path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
-        std::fs::write(&config_path, content)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
+
+        std::fs::write(&config_path, content).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
         Ok(())
     }
 
     /// Get configuration file path
     fn get_config_path() -> RhemaResult<PathBuf> {
         let config_dir = dirs::config_dir()
-            .ok_or_else(|| rhema_core::RhemaError::ConfigError("Could not determine config directory".to_string()))?
+            .ok_or_else(|| {
+                rhema_core::RhemaError::ConfigError(
+                    "Could not determine config directory".to_string(),
+                )
+            })?
             .join("rhema");
-        
+
         Ok(config_dir.join("tools.yaml"))
     }
 
@@ -901,40 +901,40 @@ impl Config for ToolsConfig {
     fn version(&self) -> &str {
         &self.version
     }
-    
+
     fn validate_config(&self) -> RhemaResult<()> {
-        self.validate()
-            .map_err(|e| rhema_core::RhemaError::ConfigError(format!("Validation failed: {}", e)))?;
+        self.validate().map_err(|e| {
+            rhema_core::RhemaError::ConfigError(format!("Validation failed: {}", e))
+        })?;
         Ok(())
     }
-    
+
     fn load_from_file(path: &Path) -> RhemaResult<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
-        let config: Self = serde_yaml::from_str(&content)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+        let content =
+            std::fs::read_to_string(path).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
+        let config: Self =
+            serde_yaml::from_str(&content).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
+
         config.validate_config()?;
         Ok(config)
     }
-    
+
     fn save_to_file(&self, path: &Path) -> RhemaResult<()> {
-        let content = serde_yaml::to_string(self)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+        let content =
+            serde_yaml::to_string(self).map_err(|e| rhema_core::RhemaError::InvalidYaml {
                 file: path.display().to_string(),
                 message: e.to_string(),
             })?;
-        
-        std::fs::write(path, content)
-            .map_err(|e| rhema_core::RhemaError::IoError(e))?;
-        
+
+        std::fs::write(path, content).map_err(|e| rhema_core::RhemaError::IoError(e))?;
+
         Ok(())
     }
-    
+
     fn schema() -> serde_json::Value {
         serde_json::json!({
             "type": "object",
@@ -950,7 +950,7 @@ impl Config for ToolsConfig {
             "required": ["version", "editor", "validation", "migration", "backup", "documentation", "integrations"]
         })
     }
-    
+
     fn documentation() -> &'static str {
         "Tools configuration for Rhema CLI containing editor settings, validation rules, migration strategies, backup policies, and documentation generation."
     }
@@ -1086,7 +1086,11 @@ impl Default for IDEIntegration {
     fn default() -> Self {
         Self {
             enabled: true,
-            supported_ides: vec!["vscode".to_string(), "intellij".to_string(), "vim".to_string()],
+            supported_ides: vec![
+                "vscode".to_string(),
+                "intellij".to_string(),
+                "vim".to_string(),
+            ],
             auto_sync: true,
             sync_interval: 300,
         }
@@ -1101,4 +1105,4 @@ impl Default for CICDIntegration {
             pipeline: HashMap::new(),
         }
     }
-} 
+}

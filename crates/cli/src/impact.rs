@@ -14,54 +14,61 @@
  * limitations under the License.
  */
 
-use crate::{Rhema, RhemaResult, scope::find_nearest_scope};
+use crate::{scope::find_nearest_scope, Rhema, RhemaResult};
 use colored::*;
 
 use std::path::Path;
 
 pub fn run(rhema: &Rhema, file: &str) -> RhemaResult<()> {
     println!("{}", "📊 Analyzing impact of changes...".blue().bold());
-    
+
     // Discover all scopes
     let scopes = rhema.discover_scopes()?;
-    
+
     if scopes.is_empty() {
         println!("{}", "No scopes found in the repository.".yellow());
         return Ok(());
     }
-    
+
     // Convert file path to absolute path
     let file_path = if Path::new(file).is_absolute() {
         Path::new(file).to_path_buf()
     } else {
         rhema.repo_root().join(file)
     };
-    
+
     if !file_path.exists() {
         println!("{}", format!("File not found: {}", file).red());
         return Ok(());
     }
-    
+
     // Find the scope that contains this file
     let affected_scope = find_nearest_scope(&file_path, &scopes);
-    
+
     if let Some(scope) = affected_scope {
         let scope_path = scope.relative_path(rhema.repo_root())?;
-        println!("{}", format!("🎯 File '{}' is in scope: {}", file, scope_path).green().bold());
-        
+        println!(
+            "{}",
+            format!("🎯 File '{}' is in scope: {}", file, scope_path)
+                .green()
+                .bold()
+        );
+
         // Analyze direct impact
         analyze_direct_impact(rhema, scope, &file_path)?;
-        
+
         // Analyze indirect impact through dependencies
         analyze_indirect_impact(rhema, &scopes, scope)?;
-        
+
         // Generate impact report
         generate_impact_report(rhema, &scopes, scope, &file_path)?;
-        
     } else {
-        println!("{}", format!("⚠️  File '{}' is not within any Rhema scope", file).yellow());
+        println!(
+            "{}",
+            format!("⚠️  File '{}' is not within any Rhema scope", file).yellow()
+        );
     }
-    
+
     Ok(())
 }
 
@@ -72,10 +79,13 @@ fn analyze_direct_impact(
 ) -> RhemaResult<()> {
     println!("\n{}", "📋 Direct Impact Analysis".green().bold());
     println!("{}", "=".repeat(50));
-    
+
     let scope_path = scope.relative_path(rhema.repo_root())?;
-    let file_name = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown");
-    
+    let file_name = file_path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown");
+
     // Determine file type and potential impact
     let file_extension = file_path.extension().and_then(|s| s.to_str()).unwrap_or("");
     let impact_level = match file_extension {
@@ -84,11 +94,11 @@ fn analyze_direct_impact(
         "md" | "txt" | "rst" => "🟢 Low",
         _ => "🔵 Unknown",
     };
-    
+
     println!("  📁 File: {}", file_name);
     println!("  📂 Scope: {}", scope_path);
     println!("  🎯 Impact Level: {}", impact_level);
-    
+
     // Check if file is a context file
     if scope.has_file(file_name) {
         println!("  📝 Context File: {}", "Yes".green());
@@ -97,7 +107,7 @@ fn analyze_direct_impact(
         println!("  📝 Context File: {}", "No".yellow());
         analyze_source_file_impact(rhema, scope, file_path)?;
     }
-    
+
     Ok(())
 }
 
@@ -107,7 +117,7 @@ fn analyze_context_file_impact(
     file_name: &str,
 ) -> RhemaResult<()> {
     println!("\n  {} Context File Impact:", "📊".blue());
-    
+
     match file_name {
         "todos.yaml" => {
             println!("    • Todo items may be affected");
@@ -138,7 +148,7 @@ fn analyze_context_file_impact(
             println!("    • Custom context file - impact depends on content");
         }
     }
-    
+
     Ok(())
 }
 
@@ -148,9 +158,9 @@ fn analyze_source_file_impact(
     file_path: &Path,
 ) -> RhemaResult<()> {
     println!("\n  {} Source File Impact:", "💻".blue());
-    
+
     let file_extension = file_path.extension().and_then(|s| s.to_str()).unwrap_or("");
-    
+
     match file_extension {
         "rs" => {
             println!("    • Rust source code changes");
@@ -187,7 +197,7 @@ fn analyze_source_file_impact(
             println!("    • Impact depends on file content and usage");
         }
     }
-    
+
     Ok(())
 }
 
@@ -198,12 +208,12 @@ fn analyze_indirect_impact(
 ) -> RhemaResult<()> {
     println!("\n{}", "🔄 Indirect Impact Analysis".green().bold());
     println!("{}", "=".repeat(50));
-    
+
     let affected_scope_path = affected_scope.relative_path(rhema.repo_root())?;
-    
+
     // Find scopes that depend on the affected scope
     let mut dependent_scopes = Vec::new();
-    
+
     for scope in scopes {
         let dependencies = scope.get_dependency_paths();
         if dependencies.contains(&affected_scope_path) {
@@ -211,22 +221,28 @@ fn analyze_indirect_impact(
             dependent_scopes.push(scope_path);
         }
     }
-    
+
     if dependent_scopes.is_empty() {
         println!("  ✅ No other scopes depend on '{}'", affected_scope_path);
     } else {
-        println!("  ⚠️  The following scopes depend on '{}':", affected_scope_path);
+        println!(
+            "  ⚠️  The following scopes depend on '{}':",
+            affected_scope_path
+        );
         for dep_scope in &dependent_scopes {
             println!("    📦 {}", dep_scope);
         }
-        
+
         // Analyze potential cascading effects
         println!("\n  {} Potential Cascading Effects:", "🌊".blue());
         for dep_scope in &dependent_scopes {
-            println!("    • Changes in '{}' could affect '{}'", affected_scope_path, dep_scope);
+            println!(
+                "    • Changes in '{}' could affect '{}'",
+                affected_scope_path, dep_scope
+            );
         }
     }
-    
+
     Ok(())
 }
 
@@ -238,17 +254,25 @@ fn generate_impact_report(
 ) -> RhemaResult<()> {
     println!("\n{}", "📈 Impact Report Summary".green().bold());
     println!("{}", "=".repeat(50));
-    
+
     let scope_path = affected_scope.relative_path(rhema.repo_root())?;
-    let file_name = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown");
-    
+    let file_name = file_path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown");
+
     // Count affected context entries
     let mut affected_entries = 0;
     let mut affected_files = Vec::new();
-    
+
     // Check each context file type
-    let context_files = ["todos.yaml", "knowledge.yaml", "patterns.yaml", "decisions.yaml"];
-    
+    let context_files = [
+        "todos.yaml",
+        "knowledge.yaml",
+        "patterns.yaml",
+        "decisions.yaml",
+    ];
+
     for context_file in &context_files {
         if affected_scope.has_file(context_file) {
             affected_files.push(context_file.to_string());
@@ -256,15 +280,15 @@ fn generate_impact_report(
             affected_entries += 1;
         }
     }
-    
+
     println!("  📊 Scope: {}", scope_path);
     println!("  📁 File: {}", file_name);
     println!("  📝 Context Files: {}", affected_files.len());
     println!("  📋 Affected Entries: {}", affected_entries);
-    
+
     // Recommendations
     println!("\n  {} Recommendations:", "💡".yellow());
-    
+
     if file_path.extension().and_then(|s| s.to_str()) == Some("yaml") {
         println!("    • Review and validate YAML syntax");
         println!("    • Check for schema compliance");
@@ -274,22 +298,23 @@ fn generate_impact_report(
         println!("    • Update related context files if needed");
         println!("    • Notify team members of changes");
     }
-    
+
     // Check for dependent scopes
-    let dependent_count = scopes.iter()
+    let dependent_count = scopes
+        .iter()
         .filter(|s| s.get_dependency_paths().contains(&scope_path))
         .count();
-    
+
     if dependent_count > 0 {
         println!("    • Review {} dependent scope(s)", dependent_count);
         println!("    • Consider impact on dependent projects");
     }
-    
+
     println!("\n  {} Next Steps:", "🚀".green());
     println!("    • Commit changes with descriptive message");
     println!("    • Update related context files if necessary");
     println!("    • Run validation: rhema validate");
     println!("    • Check health: rhema health");
-    
+
     Ok(())
-} 
+}

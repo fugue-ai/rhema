@@ -1,10 +1,10 @@
+pub mod agent;
 pub mod ai_service;
 pub mod context_injection;
-pub mod agent;
 
+pub use agent::*;
 pub use ai_service::*;
 pub use context_injection::*;
-pub use agent::*;
 
 // Error type conversions
 impl From<agent::state::AgentError> for rhema_core::RhemaError {

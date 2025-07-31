@@ -17,8 +17,8 @@
 use crate::{RhemaError, RhemaResult};
 use rhema_mcp::*;
 // Use the LoggingConfig from the MCP crate
-use rhema_mcp::mcp::LoggingConfig;
 use clap::Args;
+use rhema_mcp::mcp::LoggingConfig;
 use std::path::PathBuf;
 use tokio::signal;
 use tracing::{error, info, warn};
@@ -39,105 +39,105 @@ pub enum DaemonSubcommand {
         /// Configuration file path
         #[arg(long, value_name = "CONFIG")]
         config: Option<PathBuf>,
-        
+
         /// Host address to bind to
         #[arg(long, value_name = "HOST", default_value = "127.0.0.1")]
         host: String,
-        
+
         /// Port to bind to
         #[arg(long, value_name = "PORT", default_value = "8080")]
         port: u16,
-        
+
         /// Unix socket path for local communication
         #[arg(long, value_name = "SOCKET")]
         unix_socket: Option<PathBuf>,
-        
+
         /// Enable authentication
         #[arg(long)]
         auth: bool,
-        
+
         /// API key for authentication
         #[arg(long, value_name = "KEY")]
         api_key: Option<String>,
-        
+
         /// JWT secret for token-based authentication
         #[arg(long, value_name = "SECRET")]
         jwt_secret: Option<String>,
-        
+
         /// Redis URL for distributed caching
         #[arg(long, value_name = "URL")]
         redis_url: Option<String>,
-        
+
         /// Enable file system watching
         #[arg(long)]
         watch: bool,
-        
+
         /// Watch directories (comma-separated)
         #[arg(long, value_name = "DIRS", default_value = ".rhema")]
         watch_dirs: String,
-        
+
         /// Log level
         #[arg(long, value_name = "LEVEL", default_value = "info")]
         log_level: String,
-        
+
         /// Run in foreground (don't daemonize)
         #[arg(long)]
         foreground: bool,
     },
-    
+
     /// Stop the MCP daemon
     Stop {
         /// Daemon PID file
         #[arg(long, value_name = "PID_FILE", default_value = "/tmp/rhema-mcp.pid")]
         pid_file: PathBuf,
     },
-    
+
     /// Restart the MCP daemon
     Restart {
         /// Configuration file path
         #[arg(long, value_name = "CONFIG")]
         config: Option<PathBuf>,
-        
+
         /// Daemon PID file
         #[arg(long, value_name = "PID_FILE", default_value = "/tmp/rhema-mcp.pid")]
         pid_file: PathBuf,
     },
-    
+
     /// Check daemon status
     Status {
         /// Daemon PID file
         #[arg(long, value_name = "PID_FILE", default_value = "/tmp/rhema-mcp.pid")]
         pid_file: PathBuf,
     },
-    
+
     /// Get daemon health
     Health {
         /// Daemon host
         #[arg(long, value_name = "HOST", default_value = "127.0.0.1")]
         host: String,
-        
+
         /// Daemon port
         #[arg(long, value_name = "PORT", default_value = "8080")]
         port: u16,
     },
-    
+
     /// Get daemon statistics
     Stats {
         /// Daemon host
         #[arg(long, value_name = "HOST", default_value = "127.0.0.1")]
         host: String,
-        
+
         /// Daemon port
         #[arg(long, value_name = "PORT", default_value = "8080")]
         port: u16,
     },
-    
+
     /// Generate configuration file
     Config {
         /// Output file path
         #[arg(long, value_name = "FILE", default_value = "rhema-mcp.yaml")]
         output: PathBuf,
-        
+
         /// Include comments
         #[arg(long)]
         comments: bool,
@@ -174,32 +174,21 @@ pub async fn execute_daemon(args: DaemonArgs) -> RhemaResult<()> {
                 watch_dirs,
                 log_level,
                 foreground,
-            ).await
+            )
+            .await
         }
-        
-        DaemonSubcommand::Stop { pid_file } => {
-            stop_daemon(pid_file).await
-        }
-        
-        DaemonSubcommand::Restart { config, pid_file } => {
-            restart_daemon(config, pid_file).await
-        }
-        
-        DaemonSubcommand::Status { pid_file } => {
-            status_daemon(pid_file).await
-        }
-        
-        DaemonSubcommand::Health { host, port } => {
-            health_daemon(host, port).await
-        }
-        
-        DaemonSubcommand::Stats { host, port } => {
-            stats_daemon(host, port).await
-        }
-        
-        DaemonSubcommand::Config { output, comments } => {
-            generate_config(output, comments).await
-        }
+
+        DaemonSubcommand::Stop { pid_file } => stop_daemon(pid_file).await,
+
+        DaemonSubcommand::Restart { config, pid_file } => restart_daemon(config, pid_file).await,
+
+        DaemonSubcommand::Status { pid_file } => status_daemon(pid_file).await,
+
+        DaemonSubcommand::Health { host, port } => health_daemon(host, port).await,
+
+        DaemonSubcommand::Stats { host, port } => stats_daemon(host, port).await,
+
+        DaemonSubcommand::Config { output, comments } => generate_config(output, comments).await,
     }
 }
 
@@ -250,7 +239,7 @@ async fn start_daemon(
     if foreground {
         // Run in foreground
         info!("Running daemon in foreground");
-        
+
         // Set up signal handlers
         let daemon_clone = daemon.clone();
         tokio::spawn(async move {
@@ -268,7 +257,7 @@ async fn start_daemon(
     } else {
         // Run as daemon
         info!("Running daemon in background");
-        
+
         // TODO: Implement proper daemonization
         // For now, just run in foreground
         daemon.start().await?;
@@ -286,7 +275,9 @@ async fn stop_daemon(pid_file: PathBuf) -> RhemaResult<()> {
     }
 
     let pid_content = std::fs::read_to_string(&pid_file)?;
-    let pid: u32 = pid_content.trim().parse()
+    let pid: u32 = pid_content
+        .trim()
+        .parse()
         .map_err(|_| RhemaError::InvalidInput("Invalid PID in file".to_string()))?;
 
     // Send SIGTERM to the process
@@ -294,14 +285,16 @@ async fn stop_daemon(pid_file: PathBuf) -> RhemaResult<()> {
     {
         use nix::sys::signal::{kill, Signal};
         use nix::unistd::Pid;
-        
+
         kill(Pid::from_raw(pid as i32), Signal::SIGTERM)
             .map_err(|e| RhemaError::InvalidInput(format!("Failed to send SIGTERM: {}", e)))?;
     }
 
     #[cfg(not(unix))]
     {
-        return Err(RhemaError::InvalidInput("Process termination not supported on this platform".to_string()));
+        return Err(RhemaError::InvalidInput(
+            "Process termination not supported on this platform".to_string(),
+        ));
     }
 
     // Wait for process to terminate
@@ -372,7 +365,8 @@ async fn restart_daemon(config_path: Option<PathBuf>, pid_file: PathBuf) -> Rhem
                 watch_dirs,
                 log_level,
                 foreground,
-            ).await
+            )
+            .await
         }
         _ => unreachable!(),
     }
@@ -386,14 +380,16 @@ async fn status_daemon(pid_file: PathBuf) -> RhemaResult<()> {
     }
 
     let pid_content = std::fs::read_to_string(&pid_file)?;
-    let pid: u32 = pid_content.trim().parse()
+    let pid: u32 = pid_content
+        .trim()
+        .parse()
         .map_err(|_| RhemaError::InvalidInput("Invalid PID in file".to_string()))?;
 
     #[cfg(unix)]
     {
         use nix::sys::signal::kill;
         use nix::unistd::Pid;
-        
+
         match kill(Pid::from_raw(pid as i32), None) {
             Ok(_) => println!("Daemon is running (PID: {})", pid),
             Err(_) => println!("Daemon is not running (PID: {} not found)", pid),
@@ -428,7 +424,7 @@ async fn stats_daemon(host: String, port: u16) -> RhemaResult<()> {
 /// Generate configuration file
 async fn generate_config(output: PathBuf, comments: bool) -> RhemaResult<()> {
     let config = McpConfig::default();
-    
+
     let content = if comments {
         r#"# Rhema MCP Daemon Configuration
 # This file configures the Model Context Protocol daemon
@@ -469,7 +465,8 @@ logging:
   level: "info"                     # Log level (debug, info, warn, error)
   structured: true                  # Enable structured logging
   file: null                        # Log file path (optional)
-"#.to_string()
+"#
+        .to_string()
     } else {
         serde_yaml::to_string(&config)?
     };
@@ -552,4 +549,4 @@ fn initialize_logging(config: &LoggingConfig) -> RhemaResult<()> {
     }
 
     Ok(())
-} 
+}

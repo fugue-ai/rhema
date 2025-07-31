@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use rhema_core::RhemaResult;
 use git2::Repository;
-use std::path::Path;
+use rhema_core::RhemaResult;
 use std::fs;
+use std::path::Path;
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Optimization strategies for hook performance
@@ -70,7 +70,7 @@ impl HookType {
             HookType::PostCheckout => "post-checkout",
         }
     }
-    
+
     pub fn description(&self) -> &'static str {
         match self {
             HookType::PreCommit => "Validates context and performs health checks before commit",
@@ -96,37 +96,37 @@ impl HookType {
 pub struct HookConfig {
     /// Whether the hook is enabled
     pub enabled: bool,
-    
+
     /// Hook-specific configuration
     pub config: HookSpecificConfig,
-    
+
     /// Custom commands to run before the hook
     pub pre_commands: Option<Vec<String>>,
-    
+
     /// Custom commands to run after the hook
     pub post_commands: Option<Vec<String>>,
-    
+
     /// Whether to fail on errors
     pub fail_on_error: bool,
-    
+
     /// Notification settings
     pub notifications: Option<NotificationConfig>,
-    
+
     /// Advanced validation settings
     pub advanced_validation: AdvancedValidationConfig,
-    
+
     /// Context-aware settings
     pub context_aware: ContextAwareConfig,
-    
+
     /// Integration settings
     pub integrations: IntegrationConfig,
-    
+
     /// Enhanced hook management
     pub hook_management: std::collections::HashMap<String, serde_json::Value>,
-    
+
     /// Advanced security features
     pub security_features: std::collections::HashMap<String, serde_json::Value>,
-    
+
     /// Performance optimization
     pub performance: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -136,31 +136,31 @@ pub struct HookConfig {
 pub struct HookSpecificConfig {
     /// Pre-commit specific settings
     pub pre_commit: Option<PreCommitConfig>,
-    
+
     /// Post-commit specific settings
     pub post_commit: Option<PostCommitConfig>,
-    
+
     /// Pre-push specific settings
     pub pre_push: Option<PrePushConfig>,
-    
+
     /// Post-merge specific settings
     pub post_merge: Option<PostMergeConfig>,
-    
+
     /// Pre-rebase specific settings
     pub pre_rebase: Option<PreRebaseConfig>,
-    
+
     /// Pre-receive specific settings
     pub pre_receive: Option<PreReceiveConfig>,
-    
+
     /// Post-receive specific settings
     pub post_receive: Option<PostReceiveConfig>,
-    
+
     /// Update specific settings
     pub update: Option<UpdateConfig>,
-    
+
     /// Post-checkout specific settings
     pub post_checkout: Option<PostCheckoutConfig>,
-    
+
     /// Post-rewrite specific settings
     pub post_rewrite: Option<PostRewriteConfig>,
 }
@@ -170,28 +170,28 @@ pub struct HookSpecificConfig {
 pub struct PreCommitConfig {
     /// Validate context files
     pub validate_context: bool,
-    
+
     /// Run health checks
     pub health_check: bool,
-    
+
     /// Check for circular dependencies
     pub check_dependencies: bool,
-    
+
     /// Validate schema versions
     pub validate_schemas: bool,
-    
+
     /// Check for TODO items in critical files
     pub check_todos: bool,
-    
+
     /// Maximum number of validation errors to allow
     pub max_errors: Option<usize>,
-    
+
     /// Advanced validation features
     pub advanced_validation: AdvancedPreCommitConfig,
-    
+
     /// Context-aware validation
     pub context_aware: ContextAwarePreCommitConfig,
-    
+
     /// Security validation
     pub security_validation: SecurityPreCommitConfig,
 }
@@ -201,25 +201,25 @@ pub struct PreCommitConfig {
 pub struct AdvancedPreCommitConfig {
     /// Validate context consistency
     pub validate_consistency: bool,
-    
+
     /// Check for orphaned context entries
     pub check_orphaned_entries: bool,
-    
+
     /// Validate context relationships
     pub validate_relationships: bool,
-    
+
     /// Check for duplicate context entries
     pub check_duplicates: bool,
-    
+
     /// Validate context naming conventions
     pub validate_naming: bool,
-    
+
     /// Check for context completeness
     pub check_completeness: bool,
-    
+
     /// Validate context metadata
     pub validate_metadata: bool,
-    
+
     /// Run performance analysis
     pub performance_analysis: bool,
 }
@@ -229,19 +229,19 @@ pub struct AdvancedPreCommitConfig {
 pub struct ContextAwarePreCommitConfig {
     /// Validate branch-specific context
     pub validate_branch_context: bool,
-    
+
     /// Check context isolation
     pub check_context_isolation: bool,
-    
+
     /// Validate context boundaries
     pub validate_boundaries: bool,
-    
+
     /// Check for context conflicts
     pub check_conflicts: bool,
-    
+
     /// Validate context inheritance
     pub validate_inheritance: bool,
-    
+
     /// Check context permissions
     pub check_permissions: bool,
 }
@@ -251,19 +251,19 @@ pub struct ContextAwarePreCommitConfig {
 pub struct SecurityPreCommitConfig {
     /// Check for sensitive data
     pub check_sensitive_data: bool,
-    
+
     /// Validate access controls
     pub validate_access_controls: bool,
-    
+
     /// Check for security vulnerabilities
     pub check_vulnerabilities: bool,
-    
+
     /// Validate encryption
     pub validate_encryption: bool,
-    
+
     /// Check for compliance
     pub check_compliance: bool,
-    
+
     /// Validate authentication
     pub validate_authentication: bool,
 }
@@ -273,16 +273,16 @@ pub struct SecurityPreCommitConfig {
 pub struct PostCommitConfig {
     /// Update context metadata
     pub update_context: bool,
-    
+
     /// Generate commit summary
     pub generate_summary: bool,
-    
+
     /// Send notifications
     pub send_notifications: bool,
-    
+
     /// Update related knowledge entries
     pub update_knowledge: bool,
-    
+
     /// Create context evolution entry
     pub track_evolution: bool,
 }
@@ -292,28 +292,28 @@ pub struct PostCommitConfig {
 pub struct PrePushConfig {
     /// Validate dependencies
     pub validate_dependencies: bool,
-    
+
     /// Check for conflicts
     pub check_conflicts: bool,
-    
+
     /// Validate branch protection rules
     pub check_branch_protection: bool,
-    
+
     /// Run impact analysis
     pub impact_analysis: bool,
-    
+
     /// Check for breaking changes
     pub check_breaking_changes: bool,
-    
+
     /// Advanced dependency validation
     pub advanced_dependency_validation: AdvancedDependencyValidation,
-    
+
     /// Conflict detection and resolution
     pub conflict_detection: ConflictDetectionConfig,
-    
+
     /// Branch protection validation
     pub branch_protection: BranchProtectionConfig,
-    
+
     /// Impact analysis configuration
     pub impact_analysis_config: ImpactAnalysisConfig,
 }
@@ -323,25 +323,25 @@ pub struct PrePushConfig {
 pub struct AdvancedDependencyValidation {
     /// Validate dependency graph
     pub validate_dependency_graph: bool,
-    
+
     /// Check for circular dependencies
     pub check_circular_dependencies: bool,
-    
+
     /// Validate dependency versions
     pub validate_dependency_versions: bool,
-    
+
     /// Check for dependency conflicts
     pub check_dependency_conflicts: bool,
-    
+
     /// Validate dependency security
     pub validate_dependency_security: bool,
-    
+
     /// Check for deprecated dependencies
     pub check_deprecated_dependencies: bool,
-    
+
     /// Validate dependency licenses
     pub validate_dependency_licenses: bool,
-    
+
     /// Check for dependency updates
     pub check_dependency_updates: bool,
 }
@@ -351,25 +351,25 @@ pub struct AdvancedDependencyValidation {
 pub struct ConflictDetectionConfig {
     /// Detect content conflicts
     pub detect_content_conflicts: bool,
-    
+
     /// Detect structural conflicts
     pub detect_structural_conflicts: bool,
-    
+
     /// Detect schema conflicts
     pub detect_schema_conflicts: bool,
-    
+
     /// Detect dependency conflicts
     pub detect_dependency_conflicts: bool,
-    
+
     /// Detect permission conflicts
     pub detect_permission_conflicts: bool,
-    
+
     /// Auto-resolve simple conflicts
     pub auto_resolve_simple: bool,
-    
+
     /// Conflict resolution strategy
     pub resolution_strategy: ConflictResolutionStrategy,
-    
+
     /// Conflict notification
     pub conflict_notification: bool,
 }
@@ -379,16 +379,16 @@ pub struct ConflictDetectionConfig {
 pub enum ConflictResolutionStrategy {
     /// Manual resolution
     Manual,
-    
+
     /// Auto-merge with conflict markers
     AutoMerge,
-    
+
     /// Use theirs
     UseTheirs,
-    
+
     /// Use ours
     UseOurs,
-    
+
     /// Custom strategy
     Custom(String),
 }
@@ -398,28 +398,28 @@ pub enum ConflictResolutionStrategy {
 pub struct BranchProtectionConfig {
     /// Require context validation
     pub require_context_validation: bool,
-    
+
     /// Require health checks
     pub require_health_checks: bool,
-    
+
     /// Require dependency validation
     pub require_dependency_validation: bool,
-    
+
     /// Require code review
     pub require_code_review: bool,
-    
+
     /// Require status checks
     pub require_status_checks: bool,
-    
+
     /// Restrict pushes
     pub restrict_pushes: bool,
-    
+
     /// Restrict deletions
     pub restrict_deletions: bool,
-    
+
     /// Allowed users (if restricted)
     pub allowed_users: Option<Vec<String>>,
-    
+
     /// Protection rules
     pub protection_rules: Vec<ProtectionRule>,
 }
@@ -457,25 +457,25 @@ pub enum ProtectionAction {
 pub struct ImpactAnalysisConfig {
     /// Analyze scope impact
     pub analyze_scope_impact: bool,
-    
+
     /// Analyze dependency impact
     pub analyze_dependency_impact: bool,
-    
+
     /// Analyze breaking changes
     pub analyze_breaking_changes: bool,
-    
+
     /// Analyze performance impact
     pub analyze_performance_impact: bool,
-    
+
     /// Analyze security impact
     pub analyze_security_impact: bool,
-    
+
     /// Generate impact report
     pub generate_impact_report: bool,
-    
+
     /// Impact thresholds
     pub impact_thresholds: ImpactThresholds,
-    
+
     /// Impact notification
     pub impact_notification: bool,
 }
@@ -494,13 +494,13 @@ pub struct ImpactThresholds {
 pub struct PostMergeConfig {
     /// Resolve context conflicts
     pub resolve_conflicts: bool,
-    
+
     /// Update context references
     pub update_references: bool,
-    
+
     /// Validate merged context
     pub validate_merged: bool,
-    
+
     /// Generate merge report
     pub generate_report: bool,
 }
@@ -510,10 +510,10 @@ pub struct PostMergeConfig {
 pub struct PreRebaseConfig {
     /// Backup current context
     pub backup_context: bool,
-    
+
     /// Validate rebase safety
     pub validate_safety: bool,
-    
+
     /// Check for conflicts
     pub check_conflicts: bool,
 }
@@ -523,16 +523,16 @@ pub struct PreRebaseConfig {
 pub struct PreReceiveConfig {
     /// Validate incoming changes
     pub validate_incoming: bool,
-    
+
     /// Check context integrity
     pub check_context_integrity: bool,
-    
+
     /// Validate branch protection
     pub validate_branch_protection: bool,
-    
+
     /// Check for conflicts
     pub check_conflicts: bool,
-    
+
     /// Run security checks
     pub security_checks: bool,
 }
@@ -542,16 +542,16 @@ pub struct PreReceiveConfig {
 pub struct PostReceiveConfig {
     /// Process received changes
     pub process_changes: bool,
-    
+
     /// Update context references
     pub update_context_references: bool,
-    
+
     /// Send notifications
     pub send_notifications: bool,
-    
+
     /// Update related systems
     pub update_related_systems: bool,
-    
+
     /// Generate change report
     pub generate_change_report: bool,
 }
@@ -561,13 +561,13 @@ pub struct PostReceiveConfig {
 pub struct UpdateConfig {
     /// Validate ref updates
     pub validate_ref_updates: bool,
-    
+
     /// Check context changes
     pub check_context_changes: bool,
-    
+
     /// Validate permissions
     pub validate_permissions: bool,
-    
+
     /// Run impact analysis
     pub impact_analysis: bool,
 }
@@ -577,13 +577,13 @@ pub struct UpdateConfig {
 pub struct PostCheckoutConfig {
     /// Update context for new branch
     pub update_context: bool,
-    
+
     /// Validate branch context
     pub validate_branch_context: bool,
-    
+
     /// Update environment
     pub update_environment: bool,
-    
+
     /// Send notifications
     pub send_notifications: bool,
 }
@@ -593,13 +593,13 @@ pub struct PostCheckoutConfig {
 pub struct PostRewriteConfig {
     /// Update context after rewrite
     pub update_context: bool,
-    
+
     /// Validate rewritten history
     pub validate_history: bool,
-    
+
     /// Update references
     pub update_references: bool,
-    
+
     /// Generate rewrite report
     pub generate_report: bool,
 }
@@ -609,10 +609,10 @@ pub struct PostRewriteConfig {
 pub struct NotificationConfig {
     /// Email notifications
     pub email: Option<EmailConfig>,
-    
+
     /// Slack notifications
     pub slack: Option<SlackConfig>,
-    
+
     /// Webhook notifications
     pub webhook: Option<WebhookConfig>,
 }
@@ -667,23 +667,27 @@ impl HookManager {
     pub fn new(repo: Repository, config: HookConfig) -> Self {
         Self { repo, config }
     }
-    
+
     /// Enhanced hook installation with advanced features
     pub fn install_hooks(&self) -> RhemaResult<()> {
         let hooks_dir = self.repo.path().join(".git").join("hooks");
-        
+
         if !hooks_dir.exists() {
             fs::create_dir_all(&hooks_dir)?;
         }
-        
+
         // Backup existing hooks if auto-backup is enabled
-        if self.config.hook_management.get("backup_recovery")
+        if self
+            .config
+            .hook_management
+            .get("backup_recovery")
             .and_then(|v| v.get("auto_backup"))
             .and_then(|v| v.as_bool())
-            .unwrap_or(false) {
+            .unwrap_or(false)
+        {
             self.backup_existing_hooks(&hooks_dir)?;
         }
-        
+
         // Install all supported hooks
         let hook_types = vec![
             HookType::PreCommit,
@@ -701,44 +705,52 @@ impl HookManager {
             HookType::PreRebaseInteractive,
             HookType::PostCheckout,
         ];
-        
+
         for hook_type in hook_types {
             self.install_hook(hook_type)?;
         }
-        
+
         // Verify hook integrity if enabled
-        if self.config.security_features.get("integrity_verification")
+        if self
+            .config
+            .security_features
+            .get("integrity_verification")
             .and_then(|v| v.as_bool())
-            .unwrap_or(false) {
+            .unwrap_or(false)
+        {
             self.verify_hook_integrity()?;
         }
-        
+
         // Run hook tests if enabled
-        if self.config.hook_management.get("testing")
+        if self
+            .config
+            .hook_management
+            .get("testing")
             .and_then(|v| v.get("unit_testing"))
             .and_then(|v| v.as_bool())
-            .unwrap_or(false) {
+            .unwrap_or(false)
+        {
             self.run_hook_tests()?;
         }
-        
+
         println!("Git hooks installed successfully with advanced features!");
-        
+
         Ok(())
     }
-    
+
     /// Backup existing hooks before installation
     fn backup_existing_hooks(&self, hooks_dir: &Path) -> RhemaResult<()> {
         let backup_dir = self.repo.path().join(".rhema").join("hook-backups");
         fs::create_dir_all(&backup_dir)?;
-        
+
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
         let backup_file = backup_dir.join(format!("hooks_backup_{}.tar.gz", timestamp));
-        
+
         // Create backup archive
         let tar_gz = std::fs::File::create(&backup_file)?;
         let enc = flate2::write::GzEncoder::new(tar_gz, flate2::Compression::default());
         let mut tar = tar::Builder::new(enc);
-        
+
         for entry in fs::read_dir(hooks_dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -747,29 +759,32 @@ impl HookManager {
                 tar.append_path_with_name(&path, &*name)?;
             }
         }
-        
+
         tar.finish()?;
-        
+
         println!("Existing hooks backed up to: {}", backup_file.display());
-        
+
         // Apply retention policy
         self.apply_backup_retention_policy(&backup_dir)?;
-        
+
         Ok(())
     }
-    
+
     /// Apply backup retention policy
     fn apply_backup_retention_policy(&self, backup_dir: &Path) -> RhemaResult<()> {
-        let retention_days = self.config.hook_management.get("backup_recovery")
+        let retention_days = self
+            .config
+            .hook_management
+            .get("backup_recovery")
             .and_then(|v| v.get("backup_retention"))
             .and_then(|v| v.as_u64())
             .unwrap_or(30) as u32;
         let cutoff_date = Utc::now() - chrono::Duration::days(retention_days as i64);
-        
+
         for entry in fs::read_dir(backup_dir)? {
             let entry = entry?;
             let path = entry.path();
-            
+
             if let Ok(metadata) = fs::metadata(&path) {
                 if let Ok(modified) = metadata.modified() {
                     let modified: DateTime<Utc> = modified.into();
@@ -780,19 +795,15 @@ impl HookManager {
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Verify hook integrity
     fn verify_hook_integrity(&self) -> RhemaResult<()> {
         let hooks_dir = self.repo.path().join(".git").join("hooks");
-        
-        for hook_type in &[
-            HookType::PreCommit,
-            HookType::PostCommit,
-            HookType::PrePush,
-        ] {
+
+        for hook_type in &[HookType::PreCommit, HookType::PostCommit, HookType::PrePush] {
             let hook_file = hooks_dir.join(hook_type.filename());
             if hook_file.exists() {
                 // Check file permissions
@@ -806,23 +817,26 @@ impl HookManager {
                         fs::set_permissions(&hook_file, perms)?;
                     }
                 }
-                
+
                 // Verify script content
                 let content = fs::read_to_string(&hook_file)?;
                 if !content.contains("rhema") {
-                    println!("Warning: Hook {} may not be properly configured", hook_type.filename());
+                    println!(
+                        "Warning: Hook {} may not be properly configured",
+                        hook_type.filename()
+                    );
                 }
             }
         }
-        
+
         println!("Hook integrity verification completed");
         Ok(())
     }
-    
+
     /// Run hook tests
     fn run_hook_tests(&self) -> RhemaResult<()> {
         println!("Running hook tests...");
-        
+
         // Test pre-commit hook
         if let Ok(result) = self.execute_hook(HookType::PreCommit) {
             if result.success {
@@ -831,7 +845,7 @@ impl HookManager {
                 println!("✗ Pre-commit hook test failed: {:?}", result.errors);
             }
         }
-        
+
         // Test post-commit hook
         if let Ok(result) = self.execute_hook(HookType::PostCommit) {
             if result.success {
@@ -840,18 +854,18 @@ impl HookManager {
                 println!("✗ Post-commit hook test failed: {:?}", result.errors);
             }
         }
-        
+
         println!("Hook tests completed");
         Ok(())
     }
-    
+
     /// Install a specific hook
     pub fn install_hook(&self, hook_type: HookType) -> RhemaResult<()> {
         let hook_path = self.repo.path().join("hooks").join(hook_type.filename());
         let hook_content = self.generate_hook_script(hook_type)?;
-        
+
         fs::write(&hook_path, hook_content)?;
-        
+
         // Make the hook executable
         #[cfg(unix)]
         {
@@ -860,10 +874,10 @@ impl HookManager {
             perms.set_mode(0o755);
             fs::set_permissions(&hook_path, perms)?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Generate hook script content
     fn generate_hook_script(&self, hook_type: HookType) -> RhemaResult<String> {
         let script = match hook_type {
@@ -873,12 +887,15 @@ impl HookManager {
             HookType::PostMerge => self.generate_post_merge_script(),
             HookType::PreRebase => self.generate_pre_rebase_script(),
             // TODO: Implement remaining hook script generators
-            _ => format!("#!/bin/sh\necho 'Hook {} not yet implemented'\nexit 0", hook_type.filename()),
+            _ => format!(
+                "#!/bin/sh\necho 'Hook {} not yet implemented'\nexit 0",
+                hook_type.filename()
+            ),
         };
-        
+
         Ok(script)
     }
-    
+
     /// Generate pre-commit hook script
     fn generate_pre_commit_script(&self) -> String {
         r#"#!/bin/sh
@@ -899,9 +916,10 @@ rhema health
 rhema todo list --priority critical
 
 echo "Rhema pre-commit validation completed successfully"
-"#.to_string()
+"#
+        .to_string()
     }
-    
+
     /// Generate post-commit hook script
     fn generate_post_commit_script(&self) -> String {
         r#"#!/bin/sh
@@ -917,9 +935,10 @@ rhema sync
 rhema stats
 
 echo "Rhema post-commit updates completed"
-"#.to_string()
+"#
+        .to_string()
     }
-    
+
     /// Generate pre-push hook script
     fn generate_pre_push_script(&self) -> String {
         r#"#!/bin/sh
@@ -940,9 +959,10 @@ rhema validate --recursive
 rhema impact
 
 echo "Rhema pre-push validation completed successfully"
-"#.to_string()
+"#
+        .to_string()
     }
-    
+
     /// Generate post-merge hook script
     fn generate_post_merge_script(&self) -> String {
         r#"#!/bin/sh
@@ -958,9 +978,10 @@ rhema sync
 rhema validate --recursive
 
 echo "Rhema post-merge updates completed"
-"#.to_string()
+"#
+        .to_string()
     }
-    
+
     /// Generate pre-rebase hook script
     fn generate_pre_rebase_script(&self) -> String {
         r#"#!/bin/sh
@@ -978,36 +999,58 @@ rhema backup
 rhema validate --recursive
 
 echo "Rhema pre-rebase validation completed successfully"
-"#.to_string()
+"#
+        .to_string()
     }
-    
+
     /// Execute a hook manually
     pub fn execute_hook(&self, hook_type: HookType) -> RhemaResult<HookResult> {
         let start_time = std::time::Instant::now();
         let mut messages = Vec::new();
         let mut errors = Vec::new();
         let mut warnings = Vec::new();
-        
+
         match hook_type {
-            HookType::PreCommit => self.execute_pre_commit(&mut messages, &mut errors, &mut warnings)?,
-            HookType::PostCommit => self.execute_post_commit(&mut messages, &mut errors, &mut warnings)?,
-            HookType::PrePush => self.execute_pre_push(&mut messages, &mut errors, &mut warnings)?,
-            HookType::PostMerge => self.execute_post_merge(&mut messages, &mut errors, &mut warnings)?,
-            HookType::PreRebase => self.execute_pre_rebase(&mut messages, &mut errors, &mut warnings)?,
-            HookType::PreReceive => self.execute_pre_receive(&mut messages, &mut errors, &mut warnings)?,
-            HookType::PostReceive => self.execute_post_receive(&mut messages, &mut errors, &mut warnings)?,
+            HookType::PreCommit => {
+                self.execute_pre_commit(&mut messages, &mut errors, &mut warnings)?
+            }
+            HookType::PostCommit => {
+                self.execute_post_commit(&mut messages, &mut errors, &mut warnings)?
+            }
+            HookType::PrePush => {
+                self.execute_pre_push(&mut messages, &mut errors, &mut warnings)?
+            }
+            HookType::PostMerge => {
+                self.execute_post_merge(&mut messages, &mut errors, &mut warnings)?
+            }
+            HookType::PreRebase => {
+                self.execute_pre_rebase(&mut messages, &mut errors, &mut warnings)?
+            }
+            HookType::PreReceive => {
+                self.execute_pre_receive(&mut messages, &mut errors, &mut warnings)?
+            }
+            HookType::PostReceive => {
+                self.execute_post_receive(&mut messages, &mut errors, &mut warnings)?
+            }
             HookType::Update => self.execute_update(&mut messages, &mut errors, &mut warnings)?,
-            HookType::PostCheckout => self.execute_post_checkout(&mut messages, &mut errors, &mut warnings)?,
-            HookType::PostRewrite => self.execute_post_rewrite(&mut messages, &mut errors, &mut warnings)?,
+            HookType::PostCheckout => {
+                self.execute_post_checkout(&mut messages, &mut errors, &mut warnings)?
+            }
+            HookType::PostRewrite => {
+                self.execute_post_rewrite(&mut messages, &mut errors, &mut warnings)?
+            }
             // TODO: Implement remaining hook types
-            HookType::PreAutoGc | HookType::PreApplyPatch | HookType::PostApplyPatch | HookType::PreRebaseInteractive => {
+            HookType::PreAutoGc
+            | HookType::PreApplyPatch
+            | HookType::PostApplyPatch
+            | HookType::PreRebaseInteractive => {
                 messages.push(format!("Hook type {:?} not yet implemented", hook_type));
             }
         }
-        
+
         let execution_time = start_time.elapsed();
         let success = errors.is_empty() || !self.config.fail_on_error;
-        
+
         Ok(HookResult {
             success,
             messages,
@@ -1017,228 +1060,278 @@ echo "Rhema pre-rebase validation completed successfully"
             timestamp: Utc::now(),
         })
     }
-    
+
     /// Execute pre-commit hook
-    fn execute_pre_commit(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_pre_commit(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.pre_commit {
             if config.validate_context {
                 messages.push("Validating context files...".to_string());
                 // TODO: Implement context validation
             }
-            
+
             if config.health_check {
                 messages.push("Running health checks...".to_string());
                 // TODO: Implement health checks
             }
-            
+
             if config.check_dependencies {
                 messages.push("Checking dependencies...".to_string());
                 // TODO: Implement dependency checks
-// TODO: Integrate with lock file system for deterministic dependency validation
+                // TODO: Integrate with lock file system for deterministic dependency validation
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute post-commit hook
-    fn execute_post_commit(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_post_commit(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.post_commit {
             if config.update_context {
                 messages.push("Updating context metadata...".to_string());
                 // TODO: Implement context updates
             }
-            
+
             if config.generate_summary {
                 messages.push("Generating commit summary...".to_string());
                 // TODO: Implement summary generation
             }
-            
+
             if config.send_notifications {
                 messages.push("Sending notifications...".to_string());
                 // TODO: Implement notifications
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute pre-push hook
-    fn execute_pre_push(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_pre_push(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.pre_push {
             if config.validate_dependencies {
                 messages.push("Validating dependencies...".to_string());
                 // TODO: Implement dependency validation
-// TODO: Use lock file for consistent dependency validation across environments
+                // TODO: Use lock file for consistent dependency validation across environments
             }
-            
+
             if config.check_conflicts {
                 messages.push("Checking for conflicts...".to_string());
                 // TODO: Implement conflict detection
             }
-            
+
             if config.impact_analysis {
                 messages.push("Running impact analysis...".to_string());
                 // TODO: Implement impact analysis
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute post-merge hook
-    fn execute_post_merge(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_post_merge(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.post_merge {
             if config.resolve_conflicts {
                 messages.push("Resolving context conflicts...".to_string());
                 // TODO: Implement conflict resolution
             }
-            
+
             if config.update_references {
                 messages.push("Updating context references...".to_string());
                 // TODO: Implement reference updates
             }
-            
+
             if config.validate_merged {
                 messages.push("Validating merged context...".to_string());
                 // TODO: Implement merged validation
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute pre-rebase hook
-    fn execute_pre_rebase(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_pre_rebase(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.pre_rebase {
             if config.backup_context {
                 messages.push("Backing up current context...".to_string());
                 // TODO: Implement context backup
             }
-            
+
             if config.validate_safety {
                 messages.push("Validating rebase safety...".to_string());
                 // TODO: Implement safety validation
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute pre-receive hook
-    fn execute_pre_receive(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_pre_receive(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.pre_receive {
             if config.validate_incoming {
                 messages.push("Validating incoming changes...".to_string());
                 // TODO: Implement incoming validation
             }
-            
+
             if config.check_context_integrity {
                 messages.push("Checking context integrity...".to_string());
                 // TODO: Implement integrity checks
             }
-            
+
             if config.security_checks {
                 messages.push("Running security checks...".to_string());
                 // TODO: Implement security checks
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute post-receive hook
-    fn execute_post_receive(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_post_receive(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.post_receive {
             if config.process_changes {
                 messages.push("Processing received changes...".to_string());
                 // TODO: Implement change processing
             }
-            
+
             if config.update_context_references {
                 messages.push("Updating context references...".to_string());
                 // TODO: Implement reference updates
             }
-            
+
             if config.send_notifications {
                 messages.push("Sending notifications...".to_string());
                 // TODO: Implement notifications
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute update hook
-    fn execute_update(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_update(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.update {
             if config.validate_ref_updates {
                 messages.push("Validating ref updates...".to_string());
                 // TODO: Implement ref validation
             }
-            
+
             if config.check_context_changes {
                 messages.push("Checking context changes...".to_string());
                 // TODO: Implement context change checks
             }
-            
+
             if config.impact_analysis {
                 messages.push("Running impact analysis...".to_string());
                 // TODO: Implement impact analysis
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute post-checkout hook
-    fn execute_post_checkout(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_post_checkout(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.post_checkout {
             if config.update_context {
                 messages.push("Updating context for new branch...".to_string());
                 // TODO: Implement context updates
             }
-            
+
             if config.validate_branch_context {
                 messages.push("Validating branch context...".to_string());
                 // TODO: Implement branch validation
             }
-            
+
             if config.update_environment {
                 messages.push("Updating environment...".to_string());
                 // TODO: Implement environment updates
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Execute post-rewrite hook
-    fn execute_post_rewrite(&self, messages: &mut Vec<String>, _errors: &mut Vec<String>, _warnings: &mut Vec<String>) -> RhemaResult<()> {
+    fn execute_post_rewrite(
+        &self,
+        messages: &mut Vec<String>,
+        _errors: &mut Vec<String>,
+        _warnings: &mut Vec<String>,
+    ) -> RhemaResult<()> {
         if let Some(config) = &self.config.config.post_rewrite {
             if config.update_context {
                 messages.push("Updating context after rewrite...".to_string());
                 // TODO: Implement context updates
             }
-            
+
             if config.validate_history {
                 messages.push("Validating rewritten history...".to_string());
                 // TODO: Implement history validation
             }
-            
+
             if config.generate_report {
                 messages.push("Generating rewrite report...".to_string());
                 // TODO: Implement report generation
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Remove all Rhema hooks
     pub fn remove_hooks(&self) -> RhemaResult<()> {
         let hooks_dir = self.repo.path().join("hooks");
-        
+
         for hook_type in &[
             HookType::PreCommit,
             HookType::PostCommit,
@@ -1256,14 +1349,14 @@ echo "Rhema pre-rebase validation completed successfully"
                 fs::remove_file(&hook_path)?;
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if hooks are installed
     pub fn hooks_installed(&self) -> RhemaResult<bool> {
         let hooks_dir = self.repo.path().join("hooks");
-        
+
         for hook_type in &[
             HookType::PreCommit,
             HookType::PostCommit,
@@ -1281,15 +1374,15 @@ echo "Rhema pre-rebase validation completed successfully"
                 return Ok(false);
             }
         }
-        
+
         Ok(true)
     }
-    
+
     /// Get hook status
     pub fn get_hook_status(&self) -> RhemaResult<std::collections::HashMap<HookType, bool>> {
         let hooks_dir = self.repo.path().join("hooks");
         let mut status = std::collections::HashMap::new();
-        
+
         for hook_type in &[
             HookType::PreCommit,
             HookType::PostCommit,
@@ -1305,7 +1398,7 @@ echo "Rhema pre-rebase validation completed successfully"
             let hook_path = hooks_dir.join(hook_type.filename());
             status.insert(*hook_type, hook_path.exists());
         }
-        
+
         Ok(status)
     }
 }
@@ -1315,13 +1408,13 @@ echo "Rhema pre-rebase validation completed successfully"
 pub struct IntegrationConfig {
     /// CI/CD integration
     pub ci_cd: Option<CiCdConfig>,
-    
+
     /// Issue tracker integration
     pub issue_tracker: Option<IssueTrackerConfig>,
-    
+
     /// Chat integration
     pub chat: Option<ChatConfig>,
-    
+
     /// Monitoring integration
     pub monitoring: Option<MonitoringConfig>,
 }
@@ -1380,13 +1473,13 @@ pub struct AlertRule {
 pub struct AdvancedValidationConfig {
     /// Enable advanced validation
     pub enabled: bool,
-    
+
     /// Validation rules
     pub rules: Vec<ValidationRule>,
-    
+
     /// Validation performance
     pub performance: ValidationPerformance,
-    
+
     /// Validation reporting
     pub reporting: ValidationReporting,
 }
@@ -1416,13 +1509,13 @@ pub enum ValidationSeverity {
 pub struct ValidationPerformance {
     /// Parallel validation
     pub parallel: bool,
-    
+
     /// Caching
     pub caching: bool,
-    
+
     /// Timeout (seconds)
     pub timeout: Option<u64>,
-    
+
     /// Resource limits
     pub resource_limits: ResourceLimits,
 }
@@ -1432,13 +1525,13 @@ pub struct ValidationPerformance {
 pub struct ValidationReporting {
     /// Detailed reports
     pub detailed: bool,
-    
+
     /// HTML reports
     pub html: bool,
-    
+
     /// JSON reports
     pub json: bool,
-    
+
     /// Report retention
     pub retention: u32,
 }
@@ -1448,22 +1541,22 @@ pub struct ValidationReporting {
 pub struct ContextAwareConfig {
     /// Enable context awareness
     pub enabled: bool,
-    
+
     /// Branch awareness
     pub branch_aware: bool,
-    
+
     /// Context isolation
     pub context_isolation: bool,
-    
+
     /// Context merging
     pub context_merging: bool,
-    
+
     /// Conflict detection
     pub conflict_detection: bool,
-    
+
     /// Backup before operations
     pub backup_before_operations: bool,
-    
+
     /// Restore after operations
     pub restore_after_operations: bool,
 }
@@ -1881,4 +1974,4 @@ pub fn default_hook_config() -> HookConfig {
             perf
         },
     }
-} 
+}

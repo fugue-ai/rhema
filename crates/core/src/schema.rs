@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 use validator::ValidationError;
 
 /// Schema version for compatibility tracking
@@ -28,25 +28,25 @@ pub const CURRENT_SCHEMA_VERSION: &str = "1.0.0";
 pub struct RhemaScope {
     /// Scope name and identifier
     pub name: String,
-    
+
     /// Scope type (service, app, library, etc.)
     pub scope_type: String,
-    
+
     /// Human-readable description
     pub description: Option<String>,
-    
+
     /// Version of the scope definition
     pub version: String,
-    
+
     /// Schema version for compatibility
     pub schema_version: Option<String>,
-    
+
     /// Dependencies on other scopes
     pub dependencies: Option<Vec<ScopeDependency>>,
-    
+
     /// Protocol information for AI context bootstrapping
     pub protocol_info: Option<ProtocolInfo>,
-    
+
     /// Custom fields for extensibility
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -57,10 +57,10 @@ pub struct RhemaScope {
 pub struct ScopeDependency {
     /// Path to the dependent scope
     pub path: String,
-    
+
     /// Type of dependency (required, optional, peer)
     pub dependency_type: String,
-    
+
     /// Version constraint
     pub version: Option<String>,
 }
@@ -70,25 +70,25 @@ pub struct ScopeDependency {
 pub struct ProtocolInfo {
     /// Protocol version
     pub version: String,
-    
+
     /// Protocol description and purpose
     pub description: Option<String>,
-    
+
     /// Key concepts and terminology
     pub concepts: Option<Vec<ConceptDefinition>>,
-    
+
     /// CQL examples and usage patterns
     pub cql_examples: Option<Vec<CqlExample>>,
-    
+
     /// Common patterns and conventions
     pub patterns: Option<Vec<PatternDefinition>>,
-    
+
     /// Integration guidelines
     pub integrations: Option<Vec<IntegrationGuide>>,
-    
+
     /// Troubleshooting and common issues
     pub troubleshooting: Option<Vec<TroubleshootingItem>>,
-    
+
     /// Custom protocol extensions
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -99,13 +99,13 @@ pub struct ProtocolInfo {
 pub struct ConceptDefinition {
     /// Concept name
     pub name: String,
-    
+
     /// Concept description
     pub description: String,
-    
+
     /// Related concepts
     pub related: Option<Vec<String>>,
-    
+
     /// Usage examples
     pub examples: Option<Vec<String>>,
 }
@@ -115,16 +115,16 @@ pub struct ConceptDefinition {
 pub struct CqlExample {
     /// Example name/title
     pub name: String,
-    
+
     /// CQL query
     pub query: String,
-    
+
     /// Description of what the query does
     pub description: String,
-    
+
     /// Expected output format
     pub output_format: Option<String>,
-    
+
     /// Use case context
     pub use_case: Option<String>,
 }
@@ -134,13 +134,13 @@ pub struct CqlExample {
 pub struct PatternDefinition {
     /// Pattern name
     pub name: String,
-    
+
     /// Pattern description
     pub description: String,
-    
+
     /// When to use this pattern
     pub when_to_use: Option<String>,
-    
+
     /// Implementation examples
     pub examples: Option<Vec<String>>,
 }
@@ -150,16 +150,16 @@ pub struct PatternDefinition {
 pub struct IntegrationGuide {
     /// Integration name
     pub name: String,
-    
+
     /// Integration description
     pub description: String,
-    
+
     /// Setup instructions
     pub setup: Option<Vec<String>>,
-    
+
     /// Configuration examples
     pub configuration: Option<Vec<String>>,
-    
+
     /// Best practices
     pub best_practices: Option<Vec<String>>,
 }
@@ -169,13 +169,13 @@ pub struct IntegrationGuide {
 pub struct TroubleshootingItem {
     /// Issue name
     pub issue: String,
-    
+
     /// Problem description
     pub description: String,
-    
+
     /// Solution steps
     pub solution: Vec<String>,
-    
+
     /// Prevention tips
     pub prevention: Option<Vec<String>>,
 }
@@ -185,10 +185,10 @@ pub struct TroubleshootingItem {
 pub struct Knowledge {
     /// Knowledge entries
     pub entries: Vec<KnowledgeEntry>,
-    
+
     /// Categories for organization
     pub categories: Option<HashMap<String, String>>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -199,31 +199,31 @@ pub struct Knowledge {
 pub struct KnowledgeEntry {
     /// Unique identifier
     pub id: String,
-    
+
     /// Knowledge title
     pub title: String,
-    
+
     /// Knowledge content
     pub content: String,
-    
+
     /// Category
     pub category: Option<String>,
-    
+
     /// Tags for searchability
     pub tags: Option<Vec<String>>,
-    
+
     /// Confidence level (1-10)
     pub confidence: Option<u8>,
-    
+
     /// Creation timestamp
     pub created_at: DateTime<Utc>,
-    
+
     /// Last updated timestamp
     pub updated_at: Option<DateTime<Utc>>,
-    
+
     /// Source of the knowledge
     pub source: Option<String>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -234,7 +234,7 @@ pub struct KnowledgeEntry {
 pub struct Todos {
     /// Todo entries
     pub todos: Vec<TodoEntry>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -245,37 +245,37 @@ pub struct Todos {
 pub struct TodoEntry {
     /// Unique identifier
     pub id: String,
-    
+
     /// Todo title
     pub title: String,
-    
+
     /// Detailed description
     pub description: Option<String>,
-    
+
     /// Current status
     pub status: TodoStatus,
-    
+
     /// Priority level
     pub priority: Priority,
-    
+
     /// Assigned to (optional)
     pub assigned_to: Option<String>,
-    
+
     /// Due date (optional)
     pub due_date: Option<DateTime<Utc>>,
-    
+
     /// Creation timestamp
     pub created_at: DateTime<Utc>,
-    
+
     /// Completion timestamp
     pub completed_at: Option<DateTime<Utc>>,
-    
+
     /// Completion outcome
     pub outcome: Option<String>,
-    
+
     /// Related knowledge entries
     pub related_knowledge: Option<Vec<String>>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -307,7 +307,7 @@ pub enum Priority {
 pub struct Decisions {
     /// Decision entries
     pub decisions: Vec<DecisionEntry>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -318,37 +318,37 @@ pub struct Decisions {
 pub struct DecisionEntry {
     /// Unique identifier
     pub id: String,
-    
+
     /// Decision title
     pub title: String,
-    
+
     /// Decision description
     pub description: String,
-    
+
     /// Current status
     pub status: DecisionStatus,
-    
+
     /// Decision context
     pub context: Option<String>,
-    
+
     /// Alternatives considered
     pub alternatives: Option<Vec<String>>,
-    
+
     /// Rationale for the decision
     pub rationale: Option<String>,
-    
+
     /// Consequences and implications
     pub consequences: Option<Vec<String>>,
-    
+
     /// Decision date
     pub decided_at: DateTime<Utc>,
-    
+
     /// Review date (optional)
     pub review_date: Option<DateTime<Utc>>,
-    
+
     /// Decision makers
     pub decision_makers: Option<Vec<String>>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -371,7 +371,7 @@ pub enum DecisionStatus {
 pub struct Patterns {
     /// Pattern entries
     pub patterns: Vec<PatternEntry>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -382,37 +382,37 @@ pub struct Patterns {
 pub struct PatternEntry {
     /// Unique identifier
     pub id: String,
-    
+
     /// Pattern name
     pub name: String,
-    
+
     /// Pattern description
     pub description: String,
-    
+
     /// Pattern type
     pub pattern_type: String,
-    
+
     /// Usage context
     pub usage: PatternUsage,
-    
+
     /// Effectiveness rating (1-10)
     pub effectiveness: Option<u8>,
-    
+
     /// Implementation examples
     pub examples: Option<Vec<String>>,
-    
+
     /// Anti-patterns to avoid
     pub anti_patterns: Option<Vec<String>>,
-    
+
     /// Related patterns
     pub related_patterns: Option<Vec<String>>,
-    
+
     /// Creation timestamp
     pub created_at: DateTime<Utc>,
-    
+
     /// Last updated timestamp
     pub updated_at: Option<DateTime<Utc>>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -433,7 +433,7 @@ pub enum PatternUsage {
 pub struct Conventions {
     /// Convention entries
     pub conventions: Vec<ConventionEntry>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -444,31 +444,31 @@ pub struct Conventions {
 pub struct ConventionEntry {
     /// Unique identifier
     pub id: String,
-    
+
     /// Convention name
     pub name: String,
-    
+
     /// Convention description
     pub description: String,
-    
+
     /// Convention type
     pub convention_type: String,
-    
+
     /// Enforcement level
     pub enforcement: EnforcementLevel,
-    
+
     /// Examples of the convention
     pub examples: Option<Vec<String>>,
-    
+
     /// Tools or linters that enforce this convention
     pub tools: Option<Vec<String>>,
-    
+
     /// Creation timestamp
     pub created_at: DateTime<Utc>,
-    
+
     /// Last updated timestamp
     pub updated_at: Option<DateTime<Utc>>,
-    
+
     /// Custom fields
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -503,7 +503,6 @@ pub struct PromptPattern {
     pub version: PromptVersion,
     /// Optional tags for categorization
     pub tags: Option<Vec<String>>,
-    
     // TODO: Advanced features for future versions:
     // - context_rules: Vec<ContextRule> - Conditional context injection based on task type
     // - variables: HashMap<String, String> - Template variables beyond {{CONTEXT}}
@@ -542,11 +541,18 @@ impl PromptVersion {
             updated_at: now,
         }
     }
-    
+
     /// Create a new version
-    pub fn create_version(&mut self, new_version: &str, template: &str, description: &str, changes: Vec<String>, author: Option<String>) {
+    pub fn create_version(
+        &mut self,
+        new_version: &str,
+        template: &str,
+        description: &str,
+        changes: Vec<String>,
+        author: Option<String>,
+    ) {
         let now = Utc::now();
-        
+
         // Add current version to history
         self.history.push(VersionEntry {
             version: self.current.clone(),
@@ -556,22 +562,22 @@ impl PromptVersion {
             author,
             changes,
         });
-        
+
         // Update current version
         self.current = new_version.to_string();
         self.updated_at = now;
     }
-    
+
     /// Get version history
     pub fn get_history(&self) -> &Vec<VersionEntry> {
         &self.history
     }
-    
+
     /// Get a specific version entry
     pub fn get_version(&self, version: &str) -> Option<&VersionEntry> {
         self.history.iter().find(|entry| entry.version == version)
     }
-    
+
     /// Get the latest version entry
     pub fn get_latest(&self) -> Option<&VersionEntry> {
         self.history.last()
@@ -617,7 +623,7 @@ impl UsageAnalytics {
             self.successful_uses as f64 / self.total_uses as f64
         }
     }
-    
+
     /// Record a new usage of this prompt
     pub fn record_usage(&mut self, successful: bool, feedback: Option<String>) {
         self.total_uses += 1;
@@ -625,7 +631,7 @@ impl UsageAnalytics {
             self.successful_uses += 1;
         }
         self.last_used = Some(Utc::now());
-        
+
         if let Some(feedback_text) = feedback {
             self.feedback_history.push(FeedbackEntry {
                 timestamp: Utc::now(),
@@ -634,7 +640,7 @@ impl UsageAnalytics {
             });
         }
     }
-    
+
     /// Create new usage analytics
     pub fn new() -> Self {
         Self {
@@ -757,7 +763,7 @@ impl ChainUsageStats {
             self.successful_executions as f64 / self.total_executions as f64
         }
     }
-    
+
     /// Record a new execution
     pub fn record_execution(&mut self, successful: bool, execution_time: Option<f64>) {
         self.total_executions += 1;
@@ -765,15 +771,16 @@ impl ChainUsageStats {
             self.successful_executions += 1;
         }
         self.last_executed = Some(Utc::now());
-        
+
         if let Some(time) = execution_time {
             // Update average execution time
             let current_avg = self.average_execution_time.unwrap_or(0.0);
-            let new_avg = (current_avg * (self.total_executions - 1) as f64 + time) / self.total_executions as f64;
+            let new_avg = (current_avg * (self.total_executions - 1) as f64 + time)
+                / self.total_executions as f64;
             self.average_execution_time = Some(new_avg);
         }
     }
-    
+
     /// Create new usage stats
     pub fn new() -> Self {
         Self {
@@ -901,23 +908,24 @@ impl TemplateUsageStats {
             last_used: None,
         }
     }
-    
+
     /// Record a download
     pub fn record_download(&mut self) {
         self.total_downloads += 1;
         self.last_downloaded = Some(Utc::now());
     }
-    
+
     /// Record usage
     pub fn record_usage(&mut self) {
         self.total_uses += 1;
         self.last_used = Some(Utc::now());
     }
-    
+
     /// Add a rating
     pub fn add_rating(&mut self, rating: f64) {
         let current_avg = self.average_rating.unwrap_or(0.0);
-        let new_avg = (current_avg * self.rating_count as f64 + rating) / (self.rating_count + 1) as f64;
+        let new_avg =
+            (current_avg * self.rating_count as f64 + rating) / (self.rating_count + 1) as f64;
         self.average_rating = Some(new_avg);
         self.rating_count += 1;
     }
@@ -1000,7 +1008,9 @@ fn validate_due_date(due_date: &Option<DateTime<Utc>>) -> Result<(), ValidationE
 }
 
 #[allow(dead_code)]
-fn validate_completion_timestamp(completed_at: &Option<DateTime<Utc>>) -> Result<(), ValidationError> {
+fn validate_completion_timestamp(
+    completed_at: &Option<DateTime<Utc>>,
+) -> Result<(), ValidationError> {
     if let Some(completed_at) = completed_at {
         if *completed_at < Utc::now() - chrono::Duration::days(365) {
             return Err(ValidationError::new("completion_too_old"));
@@ -1010,7 +1020,9 @@ fn validate_completion_timestamp(completed_at: &Option<DateTime<Utc>>) -> Result
 }
 
 #[allow(dead_code)]
-fn validate_related_knowledge(related_knowledge: &Option<Vec<String>>) -> Result<(), ValidationError> {
+fn validate_related_knowledge(
+    related_knowledge: &Option<Vec<String>>,
+) -> Result<(), ValidationError> {
     if let Some(related) = related_knowledge {
         for id in related {
             if !ID_REGEX.is_match(id) {
@@ -1082,7 +1094,9 @@ fn validate_anti_patterns(anti_patterns: &Option<Vec<String>>) -> Result<(), Val
 }
 
 #[allow(dead_code)]
-fn validate_related_patterns(related_patterns: &Option<Vec<String>>) -> Result<(), ValidationError> {
+fn validate_related_patterns(
+    related_patterns: &Option<Vec<String>>,
+) -> Result<(), ValidationError> {
     if let Some(related) = related_patterns {
         for id in related {
             if !ID_REGEX.is_match(id) {
@@ -1126,46 +1140,59 @@ impl Validatable for RhemaScope {
     fn validate(&self) -> crate::RhemaResult<()> {
         // Basic field validation
         if self.name.trim().is_empty() {
-            return Err(crate::RhemaError::ValidationError("Scope name cannot be empty".to_string()));
+            return Err(crate::RhemaError::ValidationError(
+                "Scope name cannot be empty".to_string(),
+            ));
         }
-        
+
         if self.scope_type.trim().is_empty() {
-            return Err(crate::RhemaError::ValidationError("Scope type cannot be empty".to_string()));
+            return Err(crate::RhemaError::ValidationError(
+                "Scope type cannot be empty".to_string(),
+            ));
         }
-        
+
         if self.version.trim().is_empty() {
-            return Err(crate::RhemaError::ValidationError("Version cannot be empty".to_string()));
+            return Err(crate::RhemaError::ValidationError(
+                "Version cannot be empty".to_string(),
+            ));
         }
-        
+
         // Validate version format (semver-like)
-        if !self.version.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '-') {
-            return Err(crate::RhemaError::ValidationError("Invalid version format".to_string()));
+        if !self
+            .version
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '.' || c == '-')
+        {
+            return Err(crate::RhemaError::ValidationError(
+                "Invalid version format".to_string(),
+            ));
         }
-        
+
         // Validate dependencies if present
         if let Some(deps) = &self.dependencies {
             for _dep in deps {
                 // TODO: Implement validation for ScopeDependency
-// TODO: Add lock file schema structures (RhemaLock, LockedScope, LockedDependency)
-// TODO: Integrate with lock file system for deterministic dependency resolution
+                // TODO: Add lock file schema structures (RhemaLock, LockedScope, LockedDependency)
+                // TODO: Integrate with lock file system for deterministic dependency resolution
                 // dep.validate()?;
             }
         }
-        
+
         // Validate protocol info if present
         if let Some(info) = &self.protocol_info {
             info.validate()?;
         }
-        
+
         Ok(())
     }
 
     fn validate_schema_version(&self) -> crate::RhemaResult<()> {
         if let Some(schema_version) = &self.schema_version {
             if schema_version != CURRENT_SCHEMA_VERSION {
-                return Err(crate::RhemaError::ValidationError(
-                    format!("Schema version mismatch. Expected {}, got {}", CURRENT_SCHEMA_VERSION, schema_version)
-                ));
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Schema version mismatch. Expected {}, got {}",
+                    CURRENT_SCHEMA_VERSION, schema_version
+                )));
             }
         }
         Ok(())
@@ -1173,13 +1200,21 @@ impl Validatable for RhemaScope {
 
     fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
         // Validate that scope type is valid
-        let valid_types = ["repository", "service", "application", "library", "component"];
+        let valid_types = [
+            "repository",
+            "service",
+            "application",
+            "library",
+            "component",
+        ];
         if !valid_types.contains(&self.scope_type.as_str()) {
-            return Err(crate::RhemaError::ValidationError(
-                format!("Invalid scope type: {}. Valid types are: {}", self.scope_type, valid_types.join(", "))
-            ));
+            return Err(crate::RhemaError::ValidationError(format!(
+                "Invalid scope type: {}. Valid types are: {}",
+                self.scope_type,
+                valid_types.join(", ")
+            )));
         }
-        
+
         Ok(())
     }
 }
@@ -1187,75 +1222,101 @@ impl Validatable for RhemaScope {
 impl Validatable for ProtocolInfo {
     fn validate(&self) -> crate::RhemaResult<()> {
         if self.version.trim().is_empty() {
-            return Err(crate::RhemaError::ValidationError("Protocol version cannot be empty".to_string()));
+            return Err(crate::RhemaError::ValidationError(
+                "Protocol version cannot be empty".to_string(),
+            ));
         }
-        
+
         // Validate concepts if present
         if let Some(concepts) = &self.concepts {
             for concept in concepts {
                 if concept.name.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Concept name cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Concept name cannot be empty".to_string(),
+                    ));
                 }
                 if concept.description.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Concept description cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Concept description cannot be empty".to_string(),
+                    ));
                 }
             }
         }
-        
+
         // Validate CQL examples if present
         if let Some(examples) = &self.cql_examples {
             for example in examples {
                 if example.name.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("CQL example name cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "CQL example name cannot be empty".to_string(),
+                    ));
                 }
                 if example.query.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("CQL query cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "CQL query cannot be empty".to_string(),
+                    ));
                 }
                 if example.description.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("CQL example description cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "CQL example description cannot be empty".to_string(),
+                    ));
                 }
             }
         }
-        
+
         // Validate patterns if present
         if let Some(patterns) = &self.patterns {
             for pattern in patterns {
                 if pattern.name.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Pattern name cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Pattern name cannot be empty".to_string(),
+                    ));
                 }
                 if pattern.description.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Pattern description cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Pattern description cannot be empty".to_string(),
+                    ));
                 }
             }
         }
-        
+
         // Validate integrations if present
         if let Some(integrations) = &self.integrations {
             for integration in integrations {
                 if integration.name.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Integration name cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Integration name cannot be empty".to_string(),
+                    ));
                 }
                 if integration.description.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Integration description cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Integration description cannot be empty".to_string(),
+                    ));
                 }
             }
         }
-        
+
         // Validate troubleshooting if present
         if let Some(troubleshooting) = &self.troubleshooting {
             for item in troubleshooting {
                 if item.issue.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Troubleshooting issue cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Troubleshooting issue cannot be empty".to_string(),
+                    ));
                 }
                 if item.description.trim().is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Troubleshooting description cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Troubleshooting description cannot be empty".to_string(),
+                    ));
                 }
                 if item.solution.is_empty() {
-                    return Err(crate::RhemaError::ValidationError("Troubleshooting solution cannot be empty".to_string()));
+                    return Err(crate::RhemaError::ValidationError(
+                        "Troubleshooting solution cannot be empty".to_string(),
+                    ));
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -1270,61 +1331,66 @@ impl Validatable for ProtocolInfo {
             let mut names = std::collections::HashSet::new();
             for concept in concepts {
                 if !names.insert(&concept.name) {
-                    return Err(crate::RhemaError::ValidationError(
-                        format!("Duplicate concept name: {}", concept.name)
-                    ));
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Duplicate concept name: {}",
+                        concept.name
+                    )));
                 }
             }
         }
-        
+
         // Validate that CQL example names are unique
         if let Some(examples) = &self.cql_examples {
             let mut names = std::collections::HashSet::new();
             for example in examples {
                 if !names.insert(&example.name) {
-                    return Err(crate::RhemaError::ValidationError(
-                        format!("Duplicate CQL example name: {}", example.name)
-                    ));
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Duplicate CQL example name: {}",
+                        example.name
+                    )));
                 }
             }
         }
-        
+
         // Validate that pattern names are unique
         if let Some(patterns) = &self.patterns {
             let mut names = std::collections::HashSet::new();
             for pattern in patterns {
                 if !names.insert(&pattern.name) {
-                    return Err(crate::RhemaError::ValidationError(
-                        format!("Duplicate pattern name: {}", pattern.name)
-                    ));
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Duplicate pattern name: {}",
+                        pattern.name
+                    )));
                 }
             }
         }
-        
+
         // Validate that integration names are unique
         if let Some(integrations) = &self.integrations {
             let mut names = std::collections::HashSet::new();
             for integration in integrations {
                 if !names.insert(&integration.name) {
-                    return Err(crate::RhemaError::ValidationError(
-                        format!("Duplicate integration name: {}", integration.name)
-                    ));
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Duplicate integration name: {}",
+                        integration.name
+                    )));
                 }
             }
         }
-        
+
         // Validate that troubleshooting issue names are unique
         if let Some(troubleshooting) = &self.troubleshooting {
             let mut names = std::collections::HashSet::new();
             for item in troubleshooting {
                 if !names.insert(&item.issue) {
-                    return Err(crate::RhemaError::ValidationError(
-                        format!("Duplicate troubleshooting issue: {}", item.issue)
-                    ));
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Duplicate troubleshooting issue: {}",
+                        item.issue
+                    )));
                 }
             }
         }
-        
+
         Ok(())
     }
 }
@@ -1333,18 +1399,24 @@ impl Validatable for Knowledge {
     fn validate(&self) -> crate::RhemaResult<()> {
         // Basic field validation
         if self.entries.is_empty() {
-            return Err(crate::RhemaError::ValidationError("Knowledge must contain at least one entry".to_string()));
+            return Err(crate::RhemaError::ValidationError(
+                "Knowledge must contain at least one entry".to_string(),
+            ));
         }
-        
+
         for entry in &self.entries {
             if entry.title.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Knowledge entry title cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Knowledge entry title cannot be empty".to_string(),
+                ));
             }
             if entry.content.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Knowledge entry content cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Knowledge entry content cannot be empty".to_string(),
+                ));
             }
         }
-        
+
         self.validate_schema_version()?;
         self.validate_cross_fields()?;
         Ok(())
@@ -1360,9 +1432,10 @@ impl Validatable for Knowledge {
         let mut ids = std::collections::HashSet::new();
         for entry in &self.entries {
             if !ids.insert(&entry.id) {
-                return Err(crate::RhemaError::ValidationError(
-                    format!("Duplicate knowledge entry ID: {}", entry.id)
-                ));
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Duplicate knowledge entry ID: {}",
+                    entry.id
+                )));
             }
         }
 
@@ -1371,9 +1444,10 @@ impl Validatable for Knowledge {
             for entry in &self.entries {
                 if let Some(category) = &entry.category {
                     if !categories.contains_key(category) {
-                        return Err(crate::RhemaError::ValidationError(
-                            format!("Knowledge entry references non-existent category: {}", category)
-                        ));
+                        return Err(crate::RhemaError::ValidationError(format!(
+                            "Knowledge entry references non-existent category: {}",
+                            category
+                        )));
                     }
                 }
             }
@@ -1387,10 +1461,12 @@ impl Validatable for Todos {
         // Basic field validation
         for todo in &self.todos {
             if todo.title.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Todo title cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Todo title cannot be empty".to_string(),
+                ));
             }
         }
-        
+
         self.validate_schema_version()?;
         self.validate_cross_fields()?;
         Ok(())
@@ -1405,9 +1481,10 @@ impl Validatable for Todos {
         let mut ids = std::collections::HashSet::new();
         for todo in &self.todos {
             if !ids.insert(&todo.id) {
-                return Err(crate::RhemaError::ValidationError(
-                    format!("Duplicate todo ID: {}", todo.id)
-                ));
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Duplicate todo ID: {}",
+                    todo.id
+                )));
             }
         }
 
@@ -1415,14 +1492,16 @@ impl Validatable for Todos {
         for todo in &self.todos {
             if todo.status == TodoStatus::Completed {
                 if todo.completed_at.is_none() {
-                    return Err(crate::RhemaError::ValidationError(
-                        format!("Completed todo {} must have completion timestamp", todo.id)
-                    ));
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Completed todo {} must have completion timestamp",
+                        todo.id
+                    )));
                 }
             } else if todo.completed_at.is_some() {
-                return Err(crate::RhemaError::ValidationError(
-                    format!("Non-completed todo {} cannot have completion timestamp", todo.id)
-                ));
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Non-completed todo {} cannot have completion timestamp",
+                    todo.id
+                )));
             }
         }
         Ok(())
@@ -1434,13 +1513,17 @@ impl Validatable for Decisions {
         // Basic field validation
         for decision in &self.decisions {
             if decision.title.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Decision title cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Decision title cannot be empty".to_string(),
+                ));
             }
             if decision.description.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Decision description cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Decision description cannot be empty".to_string(),
+                ));
             }
         }
-        
+
         self.validate_schema_version()?;
         self.validate_cross_fields()?;
         Ok(())
@@ -1455,9 +1538,10 @@ impl Validatable for Decisions {
         let mut ids = std::collections::HashSet::new();
         for decision in &self.decisions {
             if !ids.insert(&decision.id) {
-                return Err(crate::RhemaError::ValidationError(
-                    format!("Duplicate decision ID: {}", decision.id)
-                ));
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Duplicate decision ID: {}",
+                    decision.id
+                )));
             }
         }
 
@@ -1465,9 +1549,10 @@ impl Validatable for Decisions {
         for decision in &self.decisions {
             if let Some(review_date) = decision.review_date {
                 if review_date <= decision.decided_at {
-                    return Err(crate::RhemaError::ValidationError(
-                        format!("Decision {} review date must be after decision date", decision.id)
-                    ));
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Decision {} review date must be after decision date",
+                        decision.id
+                    )));
                 }
             }
         }
@@ -1480,13 +1565,17 @@ impl Validatable for Patterns {
         // Basic field validation
         for pattern in &self.patterns {
             if pattern.name.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Pattern name cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Pattern name cannot be empty".to_string(),
+                ));
             }
             if pattern.description.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Pattern description cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Pattern description cannot be empty".to_string(),
+                ));
             }
         }
-        
+
         self.validate_schema_version()?;
         self.validate_cross_fields()?;
         Ok(())
@@ -1501,9 +1590,10 @@ impl Validatable for Patterns {
         let mut ids = std::collections::HashSet::new();
         for pattern in &self.patterns {
             if !ids.insert(&pattern.id) {
-                return Err(crate::RhemaError::ValidationError(
-                    format!("Duplicate pattern ID: {}", pattern.id)
-                ));
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Duplicate pattern ID: {}",
+                    pattern.id
+                )));
             }
         }
 
@@ -1512,9 +1602,10 @@ impl Validatable for Patterns {
             if let Some(related) = &pattern.related_patterns {
                 for related_id in related {
                     if !ids.contains(related_id) {
-                        return Err(crate::RhemaError::ValidationError(
-                            format!("Pattern {} references non-existent pattern: {}", pattern.id, related_id)
-                        ));
+                        return Err(crate::RhemaError::ValidationError(format!(
+                            "Pattern {} references non-existent pattern: {}",
+                            pattern.id, related_id
+                        )));
                     }
                 }
             }
@@ -1528,13 +1619,17 @@ impl Validatable for Conventions {
         // Basic field validation
         for convention in &self.conventions {
             if convention.name.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Convention name cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Convention name cannot be empty".to_string(),
+                ));
             }
             if convention.description.is_empty() {
-                return Err(crate::RhemaError::ValidationError("Convention description cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError(
+                    "Convention description cannot be empty".to_string(),
+                ));
             }
         }
-        
+
         self.validate_schema_version()?;
         self.validate_cross_fields()?;
         Ok(())
@@ -1549,9 +1644,10 @@ impl Validatable for Conventions {
         let mut ids = std::collections::HashSet::new();
         for convention in &self.conventions {
             if !ids.insert(&convention.id) {
-                return Err(crate::RhemaError::ValidationError(
-                    format!("Duplicate convention ID: {}", convention.id)
-                ));
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Duplicate convention ID: {}",
+                    convention.id
+                )));
             }
         }
         Ok(())
@@ -1566,8 +1662,10 @@ pub trait SchemaMigratable {
 
 impl SchemaMigratable for RhemaScope {
     fn migrate_to_latest(&mut self) -> crate::RhemaResult<()> {
-        let current_version = self.get_schema_version().unwrap_or_else(|| "0.1.0".to_string());
-        
+        let current_version = self
+            .get_schema_version()
+            .unwrap_or_else(|| "0.1.0".to_string());
+
         if current_version != CURRENT_SCHEMA_VERSION {
             // Perform migrations based on version
             match current_version.as_str() {
@@ -1581,16 +1679,17 @@ impl SchemaMigratable for RhemaScope {
                     // Future migration logic
                 }
                 _ => {
-                    return Err(crate::RhemaError::ValidationError(
-                        format!("Cannot migrate from version {} to {}", current_version, CURRENT_SCHEMA_VERSION)
-                    ));
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Cannot migrate from version {} to {}",
+                        current_version, CURRENT_SCHEMA_VERSION
+                    )));
                 }
             }
-            
+
             // Update to current version
             self.schema_version = Some(CURRENT_SCHEMA_VERSION.to_string());
         }
-        
+
         Ok(())
     }
 
@@ -1654,4 +1753,4 @@ impl JsonSchema for RhemaScope {
             }
         })
     }
-} 
+}

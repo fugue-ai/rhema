@@ -1,32 +1,31 @@
-use rhema_core::RhemaResult;
+use chrono::{DateTime, Duration, Utc};
 use git2::Repository;
-use std::path::PathBuf;
-use std::collections::HashMap;
+use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc, Duration};
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tokio::time::{interval, Duration as TokioDuration};
 use std::thread;
-
+use tokio::time::{interval, Duration as TokioDuration};
 
 /// Monitoring configuration for Git integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonitoringConfig {
     /// Enable monitoring
     pub enabled: bool,
-    
+
     /// Performance monitoring settings
     pub performance: PerformanceMonitoringConfig,
-    
+
     /// Metrics collection settings
     pub metrics: MetricsConfig,
-    
+
     /// Real-time monitoring settings
     pub realtime: RealtimeMonitoringConfig,
-    
+
     /// Alerting settings
     pub alerting: MonitoringAlertingConfig,
-    
+
     /// Dashboard settings
     pub dashboard: DashboardConfig,
 }
@@ -36,19 +35,19 @@ pub struct MonitoringConfig {
 pub struct PerformanceMonitoringConfig {
     /// Enable performance monitoring
     pub enabled: bool,
-    
+
     /// Monitor Git operations
     pub monitor_git_operations: bool,
-    
+
     /// Monitor context operations
     pub monitor_context_operations: bool,
-    
+
     /// Monitor hook execution
     pub monitor_hook_execution: bool,
-    
+
     /// Performance thresholds
     pub thresholds: PerformanceThresholds,
-    
+
     /// Sampling rate (percentage)
     pub sampling_rate: f64,
 }
@@ -58,13 +57,13 @@ pub struct PerformanceMonitoringConfig {
 pub struct PerformanceThresholds {
     /// Slow operation threshold (ms)
     pub slow_operation_threshold: u64,
-    
+
     /// Very slow operation threshold (ms)
     pub very_slow_threshold: u64,
-    
+
     /// Memory usage threshold (MB)
     pub memory_threshold: u64,
-    
+
     /// CPU usage threshold (percentage)
     pub cpu_threshold: f64,
 }
@@ -74,16 +73,16 @@ pub struct PerformanceThresholds {
 pub struct MetricsConfig {
     /// Enable metrics collection
     pub enabled: bool,
-    
+
     /// Metrics storage
     pub storage: MetricsStorage,
-    
+
     /// Collection intervals
     pub intervals: MetricsIntervals,
-    
+
     /// Metrics to collect
     pub metrics: Vec<MetricType>,
-    
+
     /// Retention policy
     pub retention: MetricsRetention,
 }
@@ -102,13 +101,13 @@ pub enum MetricsStorage {
 pub struct MetricsIntervals {
     /// Git operation metrics interval (seconds)
     pub git_operations: u64,
-    
+
     /// Context metrics interval (seconds)
     pub context_metrics: u64,
-    
+
     /// Performance metrics interval (seconds)
     pub performance_metrics: u64,
-    
+
     /// System metrics interval (seconds)
     pub system_metrics: u64,
 }
@@ -128,13 +127,13 @@ pub enum MetricType {
 pub struct MetricsRetention {
     /// Keep metrics for N days
     pub retention_days: u32,
-    
+
     /// Aggregate old metrics
     pub aggregate_old_metrics: bool,
-    
+
     /// Archive old metrics
     pub archive_old_metrics: bool,
-    
+
     /// Archive directory
     pub archive_directory: Option<PathBuf>,
 }
@@ -144,16 +143,16 @@ pub struct MetricsRetention {
 pub struct RealtimeMonitoringConfig {
     /// Enable real-time monitoring
     pub enabled: bool,
-    
+
     /// WebSocket server
     pub websocket: WebSocketConfig,
-    
+
     /// Event streaming
     pub event_streaming: EventStreamingConfig,
-    
+
     /// Live dashboards
     pub live_dashboards: bool,
-    
+
     /// Real-time alerts
     pub realtime_alerts: bool,
 }
@@ -163,16 +162,16 @@ pub struct RealtimeMonitoringConfig {
 pub struct WebSocketConfig {
     /// WebSocket server port
     pub port: u16,
-    
+
     /// WebSocket server host
     pub host: String,
-    
+
     /// Enable SSL
     pub ssl_enabled: bool,
-    
+
     /// SSL certificate path
     pub ssl_cert_path: Option<PathBuf>,
-    
+
     /// SSL key path
     pub ssl_key_path: Option<PathBuf>,
 }
@@ -182,13 +181,13 @@ pub struct WebSocketConfig {
 pub struct EventStreamingConfig {
     /// Enable event streaming
     pub enabled: bool,
-    
+
     /// Stream buffer size
     pub buffer_size: usize,
-    
+
     /// Event types to stream
     pub event_types: Vec<EventType>,
-    
+
     /// Stream format
     pub format: StreamFormat,
 }
@@ -218,13 +217,13 @@ pub enum StreamFormat {
 pub struct MonitoringAlertingConfig {
     /// Enable alerting
     pub enabled: bool,
-    
+
     /// Alert channels
     pub channels: Vec<AlertChannel>,
-    
+
     /// Alert rules
     pub rules: Vec<AlertRule>,
-    
+
     /// Alert severity levels
     pub severity_levels: Vec<AlertSeverity>,
 }
@@ -278,16 +277,16 @@ pub struct CustomAlertChannel {
 pub struct AlertRule {
     /// Rule name
     pub name: String,
-    
+
     /// Rule condition
     pub condition: AlertCondition,
-    
+
     /// Alert severity
     pub severity: AlertSeverity,
-    
+
     /// Alert channels
     pub channels: Vec<String>,
-    
+
     /// Cooldown period (seconds)
     pub cooldown: u64,
 }
@@ -336,13 +335,13 @@ pub enum AlertSeverity {
 pub struct DashboardConfig {
     /// Enable dashboard
     pub enabled: bool,
-    
+
     /// Dashboard server
     pub server: DashboardServer,
-    
+
     /// Dashboard widgets
     pub widgets: Vec<DashboardWidget>,
-    
+
     /// Auto-refresh interval (seconds)
     pub auto_refresh: u64,
 }
@@ -352,13 +351,13 @@ pub struct DashboardConfig {
 pub struct DashboardServer {
     /// Server port
     pub port: u16,
-    
+
     /// Server host
     pub host: String,
-    
+
     /// Enable authentication
     pub auth_enabled: bool,
-    
+
     /// Static files directory
     pub static_dir: Option<PathBuf>,
 }
@@ -368,13 +367,13 @@ pub struct DashboardServer {
 pub struct DashboardWidget {
     /// Widget name
     pub name: String,
-    
+
     /// Widget type
     pub widget_type: WidgetType,
-    
+
     /// Widget configuration
     pub config: HashMap<String, String>,
-    
+
     /// Widget position
     pub position: WidgetPosition,
 }
@@ -477,22 +476,22 @@ impl GitMonitoringManager {
             config.metrics.storage.clone(),
             config.metrics.intervals.clone(),
         )));
-        
+
         let performance_monitor = Arc::new(Mutex::new(PerformanceMonitor::new(
             config.performance.thresholds.clone(),
             config.performance.sampling_rate,
         )));
-        
+
         let realtime_monitor = Arc::new(Mutex::new(RealtimeMonitor::new(
             config.realtime.websocket.clone(),
             config.realtime.event_streaming.clone(),
         )));
-        
+
         let alert_manager = Arc::new(Mutex::new(AlertManager::new(
             config.alerting.rules.clone(),
             config.alerting.channels.clone(),
         )));
-        
+
         Ok(Self {
             _repo: repo,
             config,
@@ -503,68 +502,68 @@ impl GitMonitoringManager {
             running: Arc::new(Mutex::new(false)),
         })
     }
-    
+
     /// Start monitoring
     pub fn start_monitoring(&self) -> RhemaResult<()> {
         if !self.config.enabled {
             return Ok(());
         }
-        
+
         let mut running = self.running.lock().unwrap();
         if *running {
             return Ok(());
         }
-        
+
         *running = true;
         drop(running);
-        
+
         // Start metrics collection
         if self.config.metrics.enabled {
             self.start_metrics_collection()?;
         }
-        
+
         // Start performance monitoring
         if self.config.performance.enabled {
             self.start_performance_monitoring()?;
         }
-        
+
         // Start real-time monitoring
         if self.config.realtime.enabled {
             self.start_realtime_monitoring()?;
         }
-        
+
         // Start alerting
         if self.config.alerting.enabled {
             self.start_alerting()?;
         }
-        
+
         println!("Git monitoring started successfully!");
-        
+
         Ok(())
     }
-    
+
     /// Stop monitoring
     pub fn stop_monitoring(&self) -> RhemaResult<()> {
         let mut running = self.running.lock().unwrap();
         *running = false;
-        
+
         println!("Git monitoring stopped successfully!");
-        
+
         Ok(())
     }
-    
+
     /// Record Git operation
     pub fn record_git_operation(&self, operation: &str, duration: Duration) -> RhemaResult<()> {
         if !self.config.enabled {
             return Ok(());
         }
-        
+
         // Record performance metrics
         if self.config.performance.enabled {
             let mut monitor = self.performance_monitor.lock().unwrap();
             monitor.record_operation(operation, duration);
         }
-        
+
         // Record metrics
         if self.config.metrics.enabled {
             let mut collector = self.metrics_collector.lock().unwrap();
@@ -574,32 +573,35 @@ impl GitMonitoringManager {
                 &[("operation", operation)],
             );
         }
-        
+
         // Send real-time event
         if self.config.realtime.enabled {
             let mut monitor = self.realtime_monitor.lock().unwrap();
             monitor.send_event(
                 EventType::GitOperation,
-                &[("operation", operation), ("duration", &duration.num_milliseconds().to_string())],
+                &[
+                    ("operation", operation),
+                    ("duration", &duration.num_milliseconds().to_string()),
+                ],
                 AlertSeverity::Info,
             );
         }
-        
+
         Ok(())
     }
-    
+
     /// Record context operation
     pub fn record_context_operation(&self, operation: &str, duration: Duration) -> RhemaResult<()> {
         if !self.config.enabled {
             return Ok(());
         }
-        
+
         // Record performance metrics
         if self.config.performance.enabled {
             let mut monitor = self.performance_monitor.lock().unwrap();
             monitor.record_operation(operation, duration);
         }
-        
+
         // Record metrics
         if self.config.metrics.enabled {
             let mut collector = self.metrics_collector.lock().unwrap();
@@ -609,27 +611,30 @@ impl GitMonitoringManager {
                 &[("operation", operation)],
             );
         }
-        
+
         // Send real-time event
         if self.config.realtime.enabled {
             let mut monitor = self.realtime_monitor.lock().unwrap();
             monitor.send_event(
                 EventType::ContextChange,
-                &[("operation", operation), ("duration", &duration.num_milliseconds().to_string())],
+                &[
+                    ("operation", operation),
+                    ("duration", &duration.num_milliseconds().to_string()),
+                ],
                 AlertSeverity::Info,
             );
         }
-        
+
         Ok(())
     }
-    
+
     /// Get monitoring status
     pub fn get_status(&self) -> RhemaResult<MonitoringStatus> {
         let running = *self.running.lock().unwrap();
         let metrics_collector = self.metrics_collector.lock().unwrap();
         let performance_monitor = self.performance_monitor.lock().unwrap();
         let realtime_monitor = self.realtime_monitor.lock().unwrap();
-        
+
         Ok(MonitoringStatus {
             is_active: running,
             running,
@@ -643,19 +648,19 @@ impl GitMonitoringManager {
             last_update: Utc::now(),
         })
     }
-    
+
     /// Get performance metrics
     pub fn get_performance_metrics(&self) -> RhemaResult<Vec<OperationMetrics>> {
         let monitor = self.performance_monitor.lock().unwrap();
         Ok(monitor.operations.values().cloned().collect())
     }
-    
+
     /// Get metrics
     pub fn get_metrics(&self, metric_name: &str) -> RhemaResult<Vec<MetricValue>> {
         let collector = self.metrics_collector.lock().unwrap();
         Ok(collector.get_metrics(metric_name))
     }
-    
+
     /// Get recent events
     pub fn get_recent_events(&self, limit: Option<usize>) -> RhemaResult<Vec<MonitoringEvent>> {
         let monitor = self.realtime_monitor.lock().unwrap();
@@ -663,20 +668,22 @@ impl GitMonitoringManager {
         let limit = limit.unwrap_or(100);
         Ok(events.into_iter().rev().take(limit).collect())
     }
-    
+
     /// Start metrics collection
     fn start_metrics_collection(&self) -> RhemaResult<()> {
         let config = self.config.clone();
         let metrics_collector = self.metrics_collector.clone();
-        
+
         thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
-                let mut interval = interval(TokioDuration::from_secs(config.metrics.intervals.git_operations));
-                
+                let mut interval = interval(TokioDuration::from_secs(
+                    config.metrics.intervals.git_operations,
+                ));
+
                 loop {
                     interval.tick().await;
-                    
+
                     // Collect Git operation metrics
                     if let Ok(mut collector) = metrics_collector.lock() {
                         collector.collect_git_metrics();
@@ -684,23 +691,25 @@ impl GitMonitoringManager {
                 }
             });
         });
-        
+
         Ok(())
     }
-    
+
     /// Start performance monitoring
     fn start_performance_monitoring(&self) -> RhemaResult<()> {
         let config = self.config.clone();
         let performance_monitor = self.performance_monitor.clone();
-        
+
         thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
-                let mut interval = interval(TokioDuration::from_secs(config.performance.thresholds.slow_operation_threshold));
-                
+                let mut interval = interval(TokioDuration::from_secs(
+                    config.performance.thresholds.slow_operation_threshold,
+                ));
+
                 loop {
                     interval.tick().await;
-                    
+
                     // Check performance thresholds
                     if let Ok(mut monitor) = performance_monitor.lock() {
                         monitor.check_thresholds();
@@ -708,15 +717,15 @@ impl GitMonitoringManager {
                 }
             });
         });
-        
+
         Ok(())
     }
-    
+
     /// Start real-time monitoring
     fn start_realtime_monitoring(&self) -> RhemaResult<()> {
         let _config = self.config.clone();
         let realtime_monitor = self.realtime_monitor.clone();
-        
+
         thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
@@ -726,23 +735,23 @@ impl GitMonitoringManager {
                 }
             });
         });
-        
+
         Ok(())
     }
-    
+
     /// Start alerting
     fn start_alerting(&self) -> RhemaResult<()> {
         let _config = self.config.clone();
         let alert_manager = self.alert_manager.clone();
-        
+
         thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let mut interval = interval(TokioDuration::from_secs(60)); // Check every minute
-                
+
                 loop {
                     interval.tick().await;
-                    
+
                     // Check alert rules
                     if let Ok(mut manager) = alert_manager.lock() {
                         manager.check_rules();
@@ -750,7 +759,7 @@ impl GitMonitoringManager {
                 }
             });
         });
-        
+
         Ok(())
     }
 }
@@ -764,21 +773,31 @@ impl MetricsCollector {
             _intervals: intervals,
         }
     }
-    
+
     /// Record a metric
     pub fn record_metric(&mut self, name: &str, value: f64, tags: &[(&str, &str)]) {
-        let key = format!("{}_{}", name, tags.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>().join("_"));
-        
+        let key = format!(
+            "{}_{}",
+            name,
+            tags.iter()
+                .map(|(k, v)| format!("{}={}", k, v))
+                .collect::<Vec<_>>()
+                .join("_")
+        );
+
         let metric = MetricValue {
             name: name.to_string(),
             value,
             timestamp: Utc::now(),
-            tags: tags.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
+            tags: tags
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
         };
-        
+
         self.metrics.insert(key, metric);
     }
-    
+
     /// Get metrics by name
     pub fn get_metrics(&self, name: &str) -> Vec<MetricValue> {
         self.metrics
@@ -787,7 +806,7 @@ impl MetricsCollector {
             .cloned()
             .collect()
     }
-    
+
     /// Collect Git metrics
     pub fn collect_git_metrics(&mut self) {
         // TODO: Implement Git metrics collection
@@ -803,41 +822,45 @@ impl PerformanceMonitor {
             _sampling_rate: sampling_rate,
         }
     }
-    
+
     /// Record an operation
     pub fn record_operation(&mut self, operation_name: &str, duration: Duration) {
-        let entry = self.operations.entry(operation_name.to_string()).or_insert_with(|| OperationMetrics {
-            operation_name: operation_name.to_string(),
-            count: 0,
-            total_duration: Duration::zero(),
-            average_duration: Duration::zero(),
-            min_duration: duration,
-            max_duration: duration,
-            slow_operations: 0,
-            very_slow_operations: 0,
-        });
-        
+        let entry = self
+            .operations
+            .entry(operation_name.to_string())
+            .or_insert_with(|| OperationMetrics {
+                operation_name: operation_name.to_string(),
+                count: 0,
+                total_duration: Duration::zero(),
+                average_duration: Duration::zero(),
+                min_duration: duration,
+                max_duration: duration,
+                slow_operations: 0,
+                very_slow_operations: 0,
+            });
+
         entry.count += 1;
         entry.total_duration = entry.total_duration + duration;
-        entry.average_duration = Duration::milliseconds(entry.total_duration.num_milliseconds() / entry.count as i64);
-        
+        entry.average_duration =
+            Duration::milliseconds(entry.total_duration.num_milliseconds() / entry.count as i64);
+
         if duration.num_milliseconds() > entry.max_duration.num_milliseconds() {
             entry.max_duration = duration;
         }
-        
+
         if duration.num_milliseconds() < entry.min_duration.num_milliseconds() {
             entry.min_duration = duration;
         }
-        
+
         if duration.num_milliseconds() > self.thresholds.slow_operation_threshold as i64 {
             entry.slow_operations += 1;
         }
-        
+
         if duration.num_milliseconds() > self.thresholds.very_slow_threshold as i64 {
             entry.very_slow_operations += 1;
         }
     }
-    
+
     /// Check performance thresholds
     pub fn check_thresholds(&mut self) {
         // TODO: Implement threshold checking
@@ -846,31 +869,42 @@ impl PerformanceMonitor {
 
 impl RealtimeMonitor {
     /// Create a new real-time monitor
-    pub fn new(websocket_config: WebSocketConfig, event_streaming_config: EventStreamingConfig) -> Self {
+    pub fn new(
+        websocket_config: WebSocketConfig,
+        event_streaming_config: EventStreamingConfig,
+    ) -> Self {
         Self {
             event_stream: Vec::new(),
             _websocket_config: websocket_config,
             _event_streaming_config: event_streaming_config,
         }
     }
-    
+
     /// Send an event
-    pub fn send_event(&mut self, event_type: EventType, data: &[(&str, &str)], severity: AlertSeverity) {
+    pub fn send_event(
+        &mut self,
+        event_type: EventType,
+        data: &[(&str, &str)],
+        severity: AlertSeverity,
+    ) {
         let event = MonitoringEvent {
             event_type,
             timestamp: Utc::now(),
-            data: data.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
+            data: data
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
             severity,
         };
-        
+
         self.event_stream.push(event);
-        
+
         // Keep only recent events
         if self.event_stream.len() > 1000 {
             self.event_stream.remove(0);
         }
     }
-    
+
     /// Start WebSocket server
     pub fn start_websocket_server(&mut self) {
         // TODO: Implement WebSocket server
@@ -886,7 +920,7 @@ impl AlertManager {
             _last_alerts: HashMap::new(),
         }
     }
-    
+
     /// Check alert rules
     pub fn check_rules(&mut self) {
         // TODO: Implement alert rule checking
@@ -972,7 +1006,11 @@ pub fn default_monitoring_config() -> MonitoringConfig {
             enabled: false,
             channels: Vec::new(),
             rules: Vec::new(),
-            severity_levels: vec![AlertSeverity::Warning, AlertSeverity::Error, AlertSeverity::Critical],
+            severity_levels: vec![
+                AlertSeverity::Warning,
+                AlertSeverity::Error,
+                AlertSeverity::Critical,
+            ],
         },
         dashboard: DashboardConfig {
             enabled: false,
@@ -986,4 +1024,4 @@ pub fn default_monitoring_config() -> MonitoringConfig {
             auto_refresh: 30,
         },
     }
-} 
+}

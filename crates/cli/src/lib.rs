@@ -1,52 +1,56 @@
 // Re-export modules
+pub mod batch;
+pub mod bootstrap_context;
 pub mod commands;
-pub mod init;
-pub mod scopes;
-pub mod show;
-pub mod query;
-pub mod search;
-pub mod validate;
-pub mod migrate;
-pub mod schema;
-pub mod health;
-pub mod stats;
-pub mod todo;
-pub mod insight;
-pub mod pattern;
+pub mod config;
+pub mod context_rules;
+pub mod daemon;
 pub mod decision;
 pub mod dependencies;
-pub mod impact;
-pub mod sync;
-pub mod git;
-pub mod integrations;
 pub mod export_context;
-pub mod primer;
 pub mod generate_readme;
-pub mod bootstrap_context;
-pub mod daemon;
+pub mod git;
+pub mod health;
+pub mod impact;
+pub mod init;
+pub mod insight;
+pub mod integrations;
 pub mod interactive;
 pub mod interactive_advanced;
-pub mod interactive_parser;
 pub mod interactive_builder;
-pub mod batch;
+pub mod interactive_parser;
+pub mod migrate;
+pub mod pattern;
 pub mod performance;
-pub mod config;
+pub mod primer;
 pub mod prompt;
-pub mod context_rules;
-pub mod workflow;
+pub mod query;
+pub mod schema;
+pub mod scopes;
+pub mod search;
+pub mod show;
+pub mod stats;
+pub mod sync;
 pub mod template;
+pub mod todo;
+pub mod validate;
+pub mod workflow;
 
 // Re-export types from other crates for convenience
-pub use rhema_core::{RhemaResult, RhemaError, scope, file_ops, schema::*, Validatable, SchemaMigratable, JsonSchema};
+pub use rhema_ai::context_injection::{ContextInjectionRule, EnhancedContextInjector, TaskType};
 pub use rhema_config::{Config, GlobalConfig, RepositoryConfig};
-pub use rhema_monitoring::{PerformanceMonitor, PerformanceConfig, UxData, UsageData, ReportPeriod, PerformanceReport};
-pub use rhema_ai::context_injection::{ContextInjectionRule, TaskType, EnhancedContextInjector};
+pub use rhema_core::{
+    file_ops, schema::*, scope, JsonSchema, RhemaError, RhemaResult, SchemaMigratable, Validatable,
+};
 pub use rhema_mcp::*;
+pub use rhema_monitoring::{
+    PerformanceConfig, PerformanceMonitor, PerformanceReport, ReportPeriod, UsageData, UxData,
+};
 pub use rhema_query::repo_analysis::RepoAnalysis;
 
 // Define Rhema struct for CLI use
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Main Rhema context manager for CLI
 #[derive(Debug, Clone)]
@@ -65,9 +69,10 @@ impl Rhema {
     pub fn new_from_path(repo_root: PathBuf) -> RhemaResult<Self> {
         // Verify that the path contains a git repository
         if !repo_root.join(".git").exists() {
-            return Err(RhemaError::GitRepoNotFound(
-                format!("No Git repository found at {}", repo_root.display())
-            ));
+            return Err(RhemaError::GitRepoNotFound(format!(
+                "No Git repository found at {}",
+                repo_root.display()
+            )));
         }
         Ok(Self { repo_root })
     }
@@ -76,7 +81,7 @@ impl Rhema {
     pub fn repo_root(&self) -> &PathBuf {
         &self.repo_root
     }
-    
+
     /// Get the repository root path (alias for repo_root)
     pub fn repo_path(&self) -> &PathBuf {
         &self.repo_root
@@ -91,7 +96,7 @@ impl Rhema {
     pub fn get_scope(&self, path: &str) -> RhemaResult<scope::Scope> {
         Ok(scope::get_scope(&self.repo_root, path)?)
     }
-    
+
     /// Get the path for a specific scope
     pub fn scope_path(&self, scope_name: &str) -> RhemaResult<PathBuf> {
         let scope = self.get_scope(scope_name)?;
@@ -116,20 +121,37 @@ impl Rhema {
     }
 
     /// Execute a CQL query with statistics
-    pub fn query_with_stats(&self, query: &str) -> RhemaResult<(serde_yaml::Value, HashMap<String, serde_yaml::Value>)> {
+    pub fn query_with_stats(
+        &self,
+        query: &str,
+    ) -> RhemaResult<(serde_yaml::Value, HashMap<String, serde_yaml::Value>)> {
         let result = rhema_query::execute_query(&self.repo_root, query)?;
         let stats = rhema_query::get_query_stats(&self.repo_root, query)?;
         Ok((result, stats))
     }
 
     /// Execute a CQL query with full provenance tracking
-    pub fn query_with_provenance(&self, query: &str) -> RhemaResult<(serde_yaml::Value, rhema_query::QueryProvenance)> {
-        Ok(rhema_query::execute_query_with_provenance(&self.repo_root, query)?)
+    pub fn query_with_provenance(
+        &self,
+        query: &str,
+    ) -> RhemaResult<(serde_yaml::Value, rhema_query::QueryProvenance)> {
+        Ok(rhema_query::execute_query_with_provenance(
+            &self.repo_root,
+            query,
+        )?)
     }
 
     /// Search context with regex support
-    pub fn search_regex(&self, pattern: &str, file_filter: Option<&str>) -> RhemaResult<Vec<rhema_query::QueryResult>> {
-        Ok(rhema_query::search_context_regex(&self.repo_root, pattern, file_filter)?)
+    pub fn search_regex(
+        &self,
+        pattern: &str,
+        file_filter: Option<&str>,
+    ) -> RhemaResult<Vec<rhema_query::QueryResult>> {
+        Ok(rhema_query::search_context_regex(
+            &self.repo_root,
+            pattern,
+            file_filter,
+        )?)
     }
 
     /// Load knowledge for a specific scope
@@ -237,7 +259,10 @@ pub fn load_prompts(_path: &std::path::Path) -> RhemaResult<rhema_core::schema::
     })
 }
 
-pub fn save_prompts(_path: &std::path::Path, _prompts: &rhema_core::schema::Prompts) -> RhemaResult<()> {
+pub fn save_prompts(
+    _path: &std::path::Path,
+    _prompts: &rhema_core::schema::Prompts,
+) -> RhemaResult<()> {
     Ok(())
 }
 
@@ -247,11 +272,16 @@ pub fn load_workflows(_path: &std::path::Path) -> RhemaResult<rhema_core::schema
     })
 }
 
-pub fn save_workflows(_path: &std::path::Path, _workflows: &rhema_core::schema::Workflows) -> RhemaResult<()> {
+pub fn save_workflows(
+    _path: &std::path::Path,
+    _workflows: &rhema_core::schema::Workflows,
+) -> RhemaResult<()> {
     Ok(())
 }
 
-pub fn load_template_library(_path: &std::path::Path) -> RhemaResult<rhema_core::schema::TemplateLibrary> {
+pub fn load_template_library(
+    _path: &std::path::Path,
+) -> RhemaResult<rhema_core::schema::TemplateLibrary> {
     Ok(rhema_core::schema::TemplateLibrary {
         name: "default".to_string(),
         description: Some("Default template library".to_string()),
@@ -270,11 +300,16 @@ pub fn load_template_library(_path: &std::path::Path) -> RhemaResult<rhema_core:
     })
 }
 
-pub fn save_template_library(_path: &std::path::Path, _library: &rhema_core::schema::TemplateLibrary) -> RhemaResult<()> {
+pub fn save_template_library(
+    _path: &std::path::Path,
+    _library: &rhema_core::schema::TemplateLibrary,
+) -> RhemaResult<()> {
     Ok(())
 }
 
-pub fn load_template_export(_path: &std::path::Path) -> RhemaResult<rhema_core::schema::TemplateExport> {
+pub fn load_template_export(
+    _path: &std::path::Path,
+) -> RhemaResult<rhema_core::schema::TemplateExport> {
     Ok(rhema_core::schema::TemplateExport {
         templates: Vec::new(),
         metadata: rhema_core::schema::ExportMetadata {
@@ -288,7 +323,10 @@ pub fn load_template_export(_path: &std::path::Path) -> RhemaResult<rhema_core::
     })
 }
 
-pub fn save_template_export(_path: &std::path::Path, _export: &rhema_core::schema::TemplateExport) -> RhemaResult<()> {
+pub fn save_template_export(
+    _path: &std::path::Path,
+    _export: &rhema_core::schema::TemplateExport,
+) -> RhemaResult<()> {
     Ok(())
 }
 
@@ -300,13 +338,13 @@ impl ConfigManager {
     pub fn new() -> RhemaResult<Self> {
         Ok(Self)
     }
-    
+
     pub fn global_config(&self) -> &GlobalConfig {
         // TODO: Implement actual global config loading
         static GLOBAL_CONFIG: std::sync::OnceLock<GlobalConfig> = std::sync::OnceLock::new();
         GLOBAL_CONFIG.get_or_init(|| GlobalConfig::new())
     }
-    
+
     pub fn global_config_mut(&mut self) -> &mut GlobalConfig {
         // TODO: Implement actual global config loading
         static mut GLOBAL_CONFIG: Option<GlobalConfig> = None;
@@ -317,15 +355,19 @@ impl ConfigManager {
             GLOBAL_CONFIG.as_mut().unwrap()
         }
     }
-    
-    pub fn load_repository_config(&mut self, _path: &std::path::Path) -> RhemaResult<RepositoryConfig> {
+
+    pub fn load_repository_config(
+        &mut self,
+        _path: &std::path::Path,
+    ) -> RhemaResult<RepositoryConfig> {
         // TODO: Implement actual repository config loading
         Ok(RepositoryConfig::new(std::path::Path::new(".")))
     }
-    
+
     pub fn validation(&self) -> &rhema_config::validation::ValidationManager {
         // TODO: Implement actual validation
-        static VALIDATOR: std::sync::OnceLock<rhema_config::validation::ValidationManager> = std::sync::OnceLock::new();
+        static VALIDATOR: std::sync::OnceLock<rhema_config::validation::ValidationManager> =
+            std::sync::OnceLock::new();
         VALIDATOR.get_or_init(|| {
             let global_config = self.global_config();
             rhema_config::validation::ValidationManager::new(global_config).unwrap_or_else(|_| {
@@ -334,10 +376,11 @@ impl ConfigManager {
             })
         })
     }
-    
+
     pub fn backup(&self) -> &rhema_config::backup::BackupManager {
         // TODO: Implement actual backup
-        static BACKUP: std::sync::OnceLock<rhema_config::backup::BackupManager> = std::sync::OnceLock::new();
+        static BACKUP: std::sync::OnceLock<rhema_config::backup::BackupManager> =
+            std::sync::OnceLock::new();
         BACKUP.get_or_init(|| {
             let global_config = self.global_config();
             rhema_config::backup::BackupManager::new(global_config).unwrap_or_else(|_| {
@@ -346,24 +389,27 @@ impl ConfigManager {
             })
         })
     }
-    
+
     pub fn backup_mut(&mut self) -> &mut rhema_config::backup::BackupManager {
         // TODO: Implement actual backup
         static mut BACKUP: Option<rhema_config::backup::BackupManager> = None;
         unsafe {
             if BACKUP.is_none() {
                 let global_config = self.global_config();
-                BACKUP = Some(rhema_config::backup::BackupManager::new(global_config).unwrap_or_else(|_| {
-                    rhema_config::backup::BackupManager::new(global_config).unwrap()
-                }));
+                BACKUP = Some(
+                    rhema_config::backup::BackupManager::new(global_config).unwrap_or_else(|_| {
+                        rhema_config::backup::BackupManager::new(global_config).unwrap()
+                    }),
+                );
             }
             BACKUP.as_mut().unwrap()
         }
     }
-    
+
     pub fn migration(&self) -> &rhema_config::migration::MigrationManager {
         // TODO: Implement actual migration
-        static MIGRATION: std::sync::OnceLock<rhema_config::migration::MigrationManager> = std::sync::OnceLock::new();
+        static MIGRATION: std::sync::OnceLock<rhema_config::migration::MigrationManager> =
+            std::sync::OnceLock::new();
         MIGRATION.get_or_init(|| {
             let global_config = self.global_config();
             rhema_config::migration::MigrationManager::new(global_config).unwrap_or_else(|_| {
@@ -372,7 +418,7 @@ impl ConfigManager {
             })
         })
     }
-    
+
     pub fn validate_all(&mut self) -> RhemaResult<rhema_config::validation::ValidationReport> {
         // TODO: Implement actual validation
         Ok(rhema_config::validation::ValidationReport {
@@ -392,7 +438,7 @@ impl ConfigManager {
             duration_ms: 0,
         })
     }
-    
+
     pub fn backup_all(&mut self) -> RhemaResult<rhema_config::backup::BackupReport> {
         // TODO: Implement actual backup
         Ok(rhema_config::backup::BackupReport {
@@ -409,7 +455,7 @@ impl ConfigManager {
             duration_ms: 0,
         })
     }
-    
+
     pub fn migrate_all(&mut self) -> RhemaResult<rhema_config::migration::MigrationReport> {
         // TODO: Implement actual migration
         Ok(rhema_config::migration::MigrationReport {

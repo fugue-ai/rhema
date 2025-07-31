@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::{RhemaError, RhemaScope, schema::Validatable};
+use crate::{schema::Validatable, RhemaError, RhemaScope};
 use serde_yaml;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -25,10 +25,10 @@ use walkdir::WalkDir;
 pub struct Scope {
     /// Path to the scope directory
     pub path: PathBuf,
-    
+
     /// Scope definition from rhema.yaml
     pub definition: RhemaScope,
-    
+
     /// Available files in this scope
     pub files: HashMap<String, PathBuf>,
 }
@@ -38,102 +38,105 @@ impl Scope {
     pub fn find_scope_file(scope_path: &Path) -> Result<PathBuf, RhemaError> {
         // Define the possible locations in order of preference
         let mut all_locations = Vec::new();
-        
+
         // First priority: files in the scope directory itself
         all_locations.push(scope_path.join("rhema.yaml"));
         all_locations.push(scope_path.join("scope.yaml"));
-        
+
         // Second priority: files in parent directory (if we're in a .rhema directory)
         if scope_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
             let parent = scope_path.parent().unwrap_or(scope_path);
             all_locations.push(parent.join("rhema.yaml"));
             all_locations.push(parent.join("scope.yaml"));
         }
-        
+
         // Find the first existing file
         for location in &all_locations {
             if location.exists() {
                 return Ok(location.clone());
             }
         }
-        
+
         // If no file found, return error with all checked locations
-        let checked_locations = all_locations.iter()
+        let checked_locations = all_locations
+            .iter()
             .map(|p| p.display().to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        
-        Err(RhemaError::FileNotFound(
-            format!("No scope file found in {} (checked: {})", scope_path.display(), checked_locations)
-        ))
+
+        Err(RhemaError::FileNotFound(format!(
+            "No scope file found in {} (checked: {})",
+            scope_path.display(),
+            checked_locations
+        )))
     }
 
     /// Create a new scope from a directory path
     pub fn new(path: PathBuf) -> Result<Self, RhemaError> {
         let rhema_file = Self::find_scope_file(&path)?;
-        
-        let content = std::fs::read_to_string(&rhema_file)
-            .map_err(|e| RhemaError::IoError(e))?;
-        
-        let definition: RhemaScope = serde_yaml::from_str(&content)
-            .map_err(|e| RhemaError::InvalidYaml {
+
+        let content = std::fs::read_to_string(&rhema_file).map_err(|e| RhemaError::IoError(e))?;
+
+        let definition: RhemaScope =
+            serde_yaml::from_str(&content).map_err(|e| RhemaError::InvalidYaml {
                 file: rhema_file.display().to_string(),
                 message: e.to_string(),
             })?;
-        
+
         // Validate the scope definition
         definition.validate()?;
-        
+
         // Discover available files
         let files = Self::discover_files(&path)?;
-        
+
         Ok(Scope {
             path,
             definition,
             files,
         })
     }
-    
+
     /// Discover all YAML files in the scope directory
     fn discover_files(scope_path: &Path) -> Result<HashMap<String, PathBuf>, RhemaError> {
         let mut files = HashMap::new();
-        
-        for entry in std::fs::read_dir(scope_path)
-            .map_err(|e| RhemaError::IoError(e))?
-        {
+
+        for entry in std::fs::read_dir(scope_path).map_err(|e| RhemaError::IoError(e))? {
             let entry = entry.map_err(|e| RhemaError::IoError(e))?;
             let path = entry.path();
-            
+
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("yaml") {
                 if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
                     files.insert(file_name.to_string(), path);
                 }
             }
         }
-        
+
         Ok(files)
     }
-    
+
     /// Get a specific file path
     pub fn get_file(&self, filename: &str) -> Option<&PathBuf> {
         self.files.get(filename)
     }
-    
+
     /// Check if a file exists in this scope
     pub fn has_file(&self, filename: &str) -> bool {
         self.files.contains_key(filename)
     }
-    
+
     /// Get the relative path from repository root
     pub fn relative_path(&self, repo_root: &Path) -> Result<String, RhemaError> {
-        let relative = self.path.strip_prefix(repo_root)
+        let relative = self
+            .path
+            .strip_prefix(repo_root)
             .map_err(|_| RhemaError::ConfigError("Scope path not in repository".to_string()))?;
         Ok(relative.to_string_lossy().to_string())
     }
-    
+
     /// Get dependencies as scope paths
     pub fn get_dependency_paths(&self) -> Vec<String> {
-        self.definition.dependencies
+        self.definition
+            .dependencies
             .as_ref()
             .map(|deps| deps.iter().map(|d| d.path.clone()).collect())
             .unwrap_or_default()
@@ -143,21 +146,21 @@ impl Scope {
 /// Discover all scopes in a repository
 pub fn discover_scopes(repo_root: &Path) -> Result<Vec<Scope>, RhemaError> {
     let mut scopes = Vec::new();
-    
+
     for entry in WalkDir::new(repo_root)
         .follow_links(true)
         .into_iter()
         .filter_map(|e| e.ok())
     {
         let path = entry.path();
-        
+
         if path.is_dir() && path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
             if let Ok(scope) = Scope::new(path.to_path_buf()) {
                 scopes.push(scope);
             }
         }
     }
-    
+
     Ok(scopes)
 }
 
@@ -168,35 +171,38 @@ pub fn get_scope(repo_root: &Path, scope_path: &str) -> Result<Scope, RhemaError
     } else {
         repo_root.join(scope_path)
     };
-    
+
     let rhema_path = if full_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
         full_path
     } else {
         full_path.join(".rhema")
     };
-    
+
     if !rhema_path.exists() {
-        return Err(RhemaError::ScopeNotFound(
-            format!("Scope not found: {}", scope_path)
-        ));
+        return Err(RhemaError::ScopeNotFound(format!(
+            "Scope not found: {}",
+            scope_path
+        )));
     }
-    
+
     Scope::new(rhema_path)
 }
 
 /// Build a dependency graph from scopes
-pub fn build_dependency_graph(scopes: &[Scope]) -> Result<HashMap<String, Vec<String>>, RhemaError> {
+pub fn build_dependency_graph(
+    scopes: &[Scope],
+) -> Result<HashMap<String, Vec<String>>, RhemaError> {
     let mut graph = HashMap::new();
-    
+
     for scope in scopes {
         let scope_path = scope.relative_path(&scope.path.parent().unwrap())?;
         let dependencies = scope.get_dependency_paths();
         graph.insert(scope_path, dependencies);
     }
-    
+
     // Validate for circular dependencies
     validate_dependency_graph(&graph)?;
-    
+
     Ok(graph)
 }
 
@@ -204,17 +210,18 @@ pub fn build_dependency_graph(scopes: &[Scope]) -> Result<HashMap<String, Vec<St
 fn validate_dependency_graph(graph: &HashMap<String, Vec<String>>) -> Result<(), RhemaError> {
     let mut visited = std::collections::HashSet::new();
     let mut rec_stack = std::collections::HashSet::new();
-    
+
     for node in graph.keys() {
         if !visited.contains(node) {
             if has_cycle(graph, node, &mut visited, &mut rec_stack) {
-                return Err(RhemaError::CircularDependency(
-                    format!("Circular dependency detected involving {}", node)
-                ));
+                return Err(RhemaError::CircularDependency(format!(
+                    "Circular dependency detected involving {}",
+                    node
+                )));
             }
         }
     }
-    
+
     Ok(())
 }
 
@@ -227,7 +234,7 @@ fn has_cycle(
 ) -> bool {
     visited.insert(node.to_string());
     rec_stack.insert(node.to_string());
-    
+
     if let Some(dependencies) = graph.get(node) {
         for dep in dependencies {
             if !visited.contains(dep) {
@@ -239,23 +246,27 @@ fn has_cycle(
             }
         }
     }
-    
+
     rec_stack.remove(node);
     false
 }
 
 /// Get scope hierarchy (parent/child relationships)
-pub fn get_scope_hierarchy(scopes: &[Scope], repo_root: &Path) -> Result<HashMap<String, Vec<String>>, RhemaError> {
+pub fn get_scope_hierarchy(
+    scopes: &[Scope],
+    repo_root: &Path,
+) -> Result<HashMap<String, Vec<String>>, RhemaError> {
     let mut hierarchy = HashMap::new();
-    
+
     for scope in scopes {
         let scope_rel_path = scope.relative_path(repo_root)?;
         let scope_dir = scope.path.parent().unwrap();
-        let _scope_dir_rel = scope_dir.strip_prefix(repo_root)
+        let _scope_dir_rel = scope_dir
+            .strip_prefix(repo_root)
             .map_err(|_| RhemaError::ConfigError("Invalid scope path".to_string()))?;
-        
+
         let mut children = Vec::new();
-        
+
         for other_scope in scopes {
             if other_scope.path != scope.path {
                 let other_dir = other_scope.path.parent().unwrap();
@@ -265,10 +276,10 @@ pub fn get_scope_hierarchy(scopes: &[Scope], repo_root: &Path) -> Result<HashMap
                 }
             }
         }
-        
+
         hierarchy.insert(scope_rel_path, children);
     }
-    
+
     Ok(hierarchy)
 }
 
@@ -276,10 +287,10 @@ pub fn get_scope_hierarchy(scopes: &[Scope], repo_root: &Path) -> Result<HashMap
 pub fn find_nearest_scope<'a>(file_path: &Path, scopes: &'a [Scope]) -> Option<&'a Scope> {
     let mut nearest_scope = None;
     let mut max_common_prefix = 0;
-    
+
     for scope in scopes {
         let scope_dir = scope.path.parent().unwrap();
-        
+
         if file_path.starts_with(scope_dir) {
             let common_components = scope_dir.components().count();
             if common_components > max_common_prefix {
@@ -288,13 +299,14 @@ pub fn find_nearest_scope<'a>(file_path: &Path, scopes: &'a [Scope]) -> Option<&
             }
         }
     }
-    
+
     nearest_scope
 }
 
 /// Get all scopes that contain a specific file type
 pub fn get_scopes_with_file<'a>(scopes: &'a [Scope], filename: &str) -> Vec<&'a Scope> {
-    scopes.iter()
+    scopes
+        .iter()
         .filter(|scope| scope.has_file(filename))
         .collect()
 }
@@ -302,7 +314,7 @@ pub fn get_scopes_with_file<'a>(scopes: &'a [Scope], filename: &str) -> Vec<&'a 
 /// Validate scope relationships
 pub fn validate_scope_relationships(scopes: &[Scope], repo_root: &Path) -> Result<(), RhemaError> {
     let graph = build_dependency_graph(scopes)?;
-    
+
     // Check that all referenced dependencies exist
     for (scope_path, dependencies) in &graph {
         for dep in dependencies {
@@ -311,20 +323,21 @@ pub fn validate_scope_relationships(scopes: &[Scope], repo_root: &Path) -> Resul
             } else {
                 repo_root.join(dep)
             };
-            
+
             let rhema_path = if dep_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
                 dep_path
             } else {
                 dep_path.join(".rhema")
             };
-            
+
             if !rhema_path.exists() {
-                return Err(RhemaError::ScopeNotFound(
-                    format!("Dependency not found: {} (referenced by {})", dep, scope_path)
-                ));
+                return Err(RhemaError::ScopeNotFound(format!(
+                    "Dependency not found: {} (referenced by {})",
+                    dep, scope_path
+                )));
             }
         }
     }
-    
+
     Ok(())
-} 
+}

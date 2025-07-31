@@ -14,30 +14,26 @@
  * limitations under the License.
  */
 
-
-
-
-
+use async_trait::async_trait;
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use async_trait::async_trait;
 
 /// Common trait for all external tool integrations
 #[async_trait]
 pub trait ExternalIntegration: Send + Sync + std::any::Any {
     /// Initialize the integration with configuration
     async fn initialize(&mut self, config: IntegrationConfig) -> RhemaResult<()>;
-    
+
     /// Test the connection to the external service
     async fn test_connection(&self) -> RhemaResult<bool>;
-    
+
     /// Get integration metadata
     fn get_metadata(&self) -> IntegrationMetadata;
-    
+
     /// Get integration status
     async fn get_status(&self) -> RhemaResult<IntegrationStatus>;
-    
+
     /// Get a reference to the Any trait for downcasting
     fn as_any(&self) -> &dyn std::any::Any;
 }
@@ -68,26 +64,26 @@ pub enum IntegrationType {
     Trello,
     GitHubIssues,
     GitLabIssues,
-    
+
     // Documentation
     Confluence,
     Notion,
     ReadTheDocs,
     Wiki,
-    
+
     // Communication
     Slack,
     Discord,
     MicrosoftTeams,
     Email,
-    
+
     // Development
     IDE,
     CodeReview,
     Testing,
     Build,
     Deployment,
-    
+
     // Analytics
     Analytics,
     Monitoring,
@@ -182,7 +178,7 @@ impl IntegrationWrapper {
             },
         }
     }
-    
+
     /// Get integration status
     pub async fn get_status(&self) -> RhemaResult<IntegrationStatus> {
         match self {
@@ -196,28 +192,43 @@ impl IntegrationWrapper {
             }),
         }
     }
-    
+
     /// Test connection
     pub async fn test_connection(&self) -> RhemaResult<bool> {
         match self {
             IntegrationWrapper::Placeholder => Ok(false),
         }
     }
-    
+
     /// Send message (for Slack integration)
-    pub async fn send_message(&self, _channel: &str, _text: &str, _attachments: Option<Vec<String>>) -> RhemaResult<String> {
+    pub async fn send_message(
+        &self,
+        _channel: &str,
+        _text: &str,
+        _attachments: Option<Vec<String>>,
+    ) -> RhemaResult<String> {
         match self {
-            IntegrationWrapper::Placeholder => Err(RhemaError::IntegrationError("Slack integration not implemented yet".to_string())),
+            IntegrationWrapper::Placeholder => Err(RhemaError::IntegrationError(
+                "Slack integration not implemented yet".to_string(),
+            )),
         }
     }
-    
+
     /// Create issue (for Jira integration)
-    pub async fn create_issue(&self, _project_key: &str, _summary: &str, _description: &str, _issue_type: &str) -> RhemaResult<String> {
+    pub async fn create_issue(
+        &self,
+        _project_key: &str,
+        _summary: &str,
+        _description: &str,
+        _issue_type: &str,
+    ) -> RhemaResult<String> {
         match self {
-            IntegrationWrapper::Placeholder => Err(RhemaError::IntegrationError("Jira integration not implemented yet".to_string())),
+            IntegrationWrapper::Placeholder => Err(RhemaError::IntegrationError(
+                "Jira integration not implemented yet".to_string(),
+            )),
         }
     }
-    
+
     /// Get a reference to the Any trait for downcasting
     pub fn as_any(&self) -> &dyn std::any::Any {
         match self {
@@ -233,7 +244,7 @@ impl IntegrationManager {
             configs: HashMap::new(),
         }
     }
-    
+
     /// Register an integration
     pub fn register_integration(
         &mut self,
@@ -245,14 +256,17 @@ impl IntegrationManager {
         self.configs.insert(name, config);
         Ok(())
     }
-    
+
     /// Get an integration by name
     pub fn get_integration(&self, name: &str) -> Option<&IntegrationWrapper> {
         self.integrations.get(name)
     }
-    
+
     /// Get all integrations of a specific type
-    pub fn get_integrations_by_type(&self, integration_type: IntegrationType) -> Vec<&IntegrationWrapper> {
+    pub fn get_integrations_by_type(
+        &self,
+        integration_type: IntegrationType,
+    ) -> Vec<&IntegrationWrapper> {
         self.integrations
             .iter()
             .filter_map(|(name, integration)| {
@@ -264,11 +278,11 @@ impl IntegrationManager {
             })
             .collect()
     }
-    
+
     /// Test all integrations
     pub async fn test_all_integrations(&self) -> HashMap<String, IntegrationStatus> {
         let mut results = HashMap::new();
-        
+
         for (name, _integration) in &self.integrations {
             // For now, return a placeholder status
             let status = IntegrationStatus {
@@ -281,25 +295,31 @@ impl IntegrationManager {
             };
             results.insert(name.clone(), status);
         }
-        
+
         results
     }
-    
+
     /// Initialize all integrations from configuration
-    pub async fn initialize_from_config(&mut self, configs: Vec<IntegrationConfig>) -> RhemaResult<()> {
+    pub async fn initialize_from_config(
+        &mut self,
+        configs: Vec<IntegrationConfig>,
+    ) -> RhemaResult<()> {
         for config in configs {
             if !config.enabled {
                 continue;
             }
-            
+
             let integration = self.create_integration(&config.integration_type)?;
             self.register_integration(config.name.clone(), integration, config)?;
         }
         Ok(())
     }
-    
+
     /// Create an integration instance based on type
-    fn create_integration(&self, _integration_type: &IntegrationType) -> RhemaResult<IntegrationWrapper> {
+    fn create_integration(
+        &self,
+        _integration_type: &IntegrationType,
+    ) -> RhemaResult<IntegrationWrapper> {
         // For now, return a placeholder
         Ok(IntegrationWrapper::Placeholder)
     }
@@ -316,77 +336,100 @@ impl IntegrationHttpClient {
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .expect("Failed to create HTTP client");
-        
+
         Self { client }
     }
-    
-    pub async fn get(&self, url: &str, headers: Option<HashMap<String, String>>) -> RhemaResult<String> {
+
+    pub async fn get(
+        &self,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
+    ) -> RhemaResult<String> {
         let mut request = self.client.get(url);
-        
+
         if let Some(headers) = headers {
             for (key, value) in headers {
                 request = request.header(key, value);
             }
         }
-        
+
         let response = request.send().await?;
         let body = response.text().await?;
         Ok(body)
     }
-    
-    pub async fn post(&self, url: &str, body: &str, headers: Option<HashMap<String, String>>) -> RhemaResult<String> {
+
+    pub async fn post(
+        &self,
+        url: &str,
+        body: &str,
+        headers: Option<HashMap<String, String>>,
+    ) -> RhemaResult<String> {
         let mut request = self.client.post(url).body(body.to_string());
-        
+
         if let Some(headers) = headers {
             for (key, value) in headers {
                 request = request.header(key, value);
             }
         }
-        
+
         let response = request.send().await?;
         let response_body = response.text().await?;
         Ok(response_body)
     }
-    
-    pub async fn put(&self, url: &str, body: &str, headers: Option<HashMap<String, String>>) -> RhemaResult<String> {
+
+    pub async fn put(
+        &self,
+        url: &str,
+        body: &str,
+        headers: Option<HashMap<String, String>>,
+    ) -> RhemaResult<String> {
         let mut request = self.client.put(url).body(body.to_string());
-        
+
         if let Some(headers) = headers {
             for (key, value) in headers {
                 request = request.header(key, value);
             }
         }
-        
+
         let response = request.send().await?;
         let response_body = response.text().await?;
         Ok(response_body)
     }
-    
-    pub async fn delete(&self, url: &str, headers: Option<HashMap<String, String>>) -> RhemaResult<String> {
+
+    pub async fn delete(
+        &self,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
+    ) -> RhemaResult<String> {
         let mut request = self.client.delete(url);
-        
+
         if let Some(headers) = headers {
             for (key, value) in headers {
                 request = request.header(key, value);
             }
         }
-        
+
         let response = request.send().await?;
         let response_body = response.text().await?;
         Ok(response_body)
     }
-    
-    pub async fn patch(&self, url: &str, body: &str, headers: Option<HashMap<String, String>>) -> RhemaResult<String> {
+
+    pub async fn patch(
+        &self,
+        url: &str,
+        body: &str,
+        headers: Option<HashMap<String, String>>,
+    ) -> RhemaResult<String> {
         let mut request = self.client.patch(url).body(body.to_string());
-        
+
         if let Some(headers) = headers {
             for (key, value) in headers {
                 request = request.header(key, value);
             }
         }
-        
+
         let response = request.send().await?;
         let response_body = response.text().await?;
         Ok(response_body)
     }
-} 
+}

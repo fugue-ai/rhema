@@ -1,7 +1,7 @@
-use rhema_core::{RhemaResult, RhemaError};
-use rhema_core::schema::{PromptPattern, PromptInjectionMethod};
+use rhema_core::schema::{PromptInjectionMethod, PromptPattern};
+use rhema_core::{RhemaError, RhemaResult};
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use serde::{Serialize, Deserialize};
 
 /// Task type for context injection
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -51,15 +51,20 @@ impl EnhancedContextInjector {
     }
 
     /// Inject context into a prompt pattern based on detected task type
-    pub fn inject_context(&self, pattern: &PromptPattern, task_type: Option<TaskType>) -> RhemaResult<String> {
-        let detected_task = task_type.unwrap_or_else(|| self.detect_task_type().unwrap_or(TaskType::CodeReview));
-        
+    pub fn inject_context(
+        &self,
+        pattern: &PromptPattern,
+        task_type: Option<TaskType>,
+    ) -> RhemaResult<String> {
+        let detected_task =
+            task_type.unwrap_or_else(|| self.detect_task_type().unwrap_or(TaskType::CodeReview));
+
         // Find the best matching injection rule
         let rule = self.find_best_rule(&detected_task)?;
-        
+
         // Load context based on the rule
         let context = self.load_context_for_task(&rule)?;
-        
+
         // Apply injection method
         let final_prompt = match &rule.injection_method {
             PromptInjectionMethod::Prepend => {
@@ -105,13 +110,22 @@ impl EnhancedContextInjector {
 
         // Check file types in current directory
         if let Ok(file_types) = self.get_file_types() {
-            if file_types.iter().any(|ft| ft.contains("test") || ft.contains("spec")) {
+            if file_types
+                .iter()
+                .any(|ft| ft.contains("test") || ft.contains("spec"))
+            {
                 return Ok(TaskType::Testing);
             }
-            if file_types.iter().any(|ft| ft.contains("md") || ft.contains("txt")) {
+            if file_types
+                .iter()
+                .any(|ft| ft.contains("md") || ft.contains("txt"))
+            {
                 return Ok(TaskType::Documentation);
             }
-            if file_types.iter().any(|ft| ft.contains("lock") || ft.contains("toml")) {
+            if file_types
+                .iter()
+                .any(|ft| ft.contains("lock") || ft.contains("toml"))
+            {
                 return Ok(TaskType::DependencyUpdate);
             }
         }
@@ -122,17 +136,21 @@ impl EnhancedContextInjector {
 
     /// Find the best matching injection rule for a task type
     fn find_best_rule(&self, task_type: &TaskType) -> RhemaResult<&ContextInjectionRule> {
-        let matching_rules: Vec<&ContextInjectionRule> = self.injection_rules
+        let matching_rules: Vec<&ContextInjectionRule> = self
+            .injection_rules
             .iter()
             .filter(|rule| &rule.task_type == task_type)
             .collect();
 
         if matching_rules.is_empty() {
             // Fall back to default rule
-            return self.injection_rules
+            return self
+                .injection_rules
                 .iter()
                 .find(|rule| rule.task_type == TaskType::CodeReview)
-                .ok_or_else(|| RhemaError::ConfigError("No default injection rule found".to_string()));
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("No default injection rule found".to_string())
+                });
         }
 
         // Return the rule with highest priority
@@ -146,7 +164,7 @@ impl EnhancedContextInjector {
     /// Load context for a specific task
     fn load_context_for_task(&self, rule: &ContextInjectionRule) -> RhemaResult<String> {
         let mut context = String::new();
-        
+
         // Load specified context files
         for file in &rule.context_files {
             let file_path = self.scope_path.join(".rhema").join(file);
@@ -169,12 +187,15 @@ impl EnhancedContextInjector {
         // Add task type information
         context.push_str(&format!("=== Task Type ===\n"));
         context.push_str(&format!("Current task: {:?}\n", rule.task_type));
-        context.push_str(&format!("Context files: {}\n", rule.context_files.join(", ")));
-        
+        context.push_str(&format!(
+            "Context files: {}\n",
+            rule.context_files.join(", ")
+        ));
+
         if context.is_empty() {
             context = "No context files found".to_string();
         }
-        
+
         Ok(context)
     }
 
@@ -193,7 +214,7 @@ impl EnhancedContextInjector {
     /// Get file types in current directory for task detection
     fn get_file_types(&self) -> RhemaResult<Vec<String>> {
         let mut file_types = Vec::new();
-        
+
         if let Ok(entries) = std::fs::read_dir(&self.scope_path) {
             for entry in entries {
                 if let Ok(entry) = entry {
@@ -203,7 +224,7 @@ impl EnhancedContextInjector {
                 }
             }
         }
-        
+
         Ok(file_types)
     }
 
@@ -215,56 +236,80 @@ impl EnhancedContextInjector {
                 context_files: vec!["patterns.yaml".to_string(), "knowledge.yaml".to_string()],
                 injection_method: PromptInjectionMethod::TemplateVariable,
                 priority: 1,
-                additional_context: Some("Focus on code quality, best practices, and potential issues.".to_string()),
+                additional_context: Some(
+                    "Focus on code quality, best practices, and potential issues.".to_string(),
+                ),
             },
             ContextInjectionRule {
                 task_type: TaskType::BugFix,
                 context_files: vec!["knowledge.yaml".to_string(), "decisions.yaml".to_string()],
                 injection_method: PromptInjectionMethod::Prepend,
                 priority: 2,
-                additional_context: Some("Consider previous bug fixes and known issues.".to_string()),
+                additional_context: Some(
+                    "Consider previous bug fixes and known issues.".to_string(),
+                ),
             },
             ContextInjectionRule {
                 task_type: TaskType::Testing,
                 context_files: vec!["patterns.yaml".to_string()],
                 injection_method: PromptInjectionMethod::Append,
                 priority: 2,
-                additional_context: Some("Focus on test coverage, edge cases, and testing best practices.".to_string()),
+                additional_context: Some(
+                    "Focus on test coverage, edge cases, and testing best practices.".to_string(),
+                ),
             },
             ContextInjectionRule {
                 task_type: TaskType::Documentation,
                 context_files: vec!["knowledge.yaml".to_string()],
                 injection_method: PromptInjectionMethod::TemplateVariable,
                 priority: 2,
-                additional_context: Some("Ensure documentation is clear, accurate, and helpful.".to_string()),
+                additional_context: Some(
+                    "Ensure documentation is clear, accurate, and helpful.".to_string(),
+                ),
             },
             ContextInjectionRule {
                 task_type: TaskType::SecurityReview,
                 context_files: vec!["patterns.yaml".to_string(), "knowledge.yaml".to_string()],
                 injection_method: PromptInjectionMethod::Prepend,
                 priority: 3,
-                additional_context: Some("Focus on security vulnerabilities, authentication, and data protection.".to_string()),
+                additional_context: Some(
+                    "Focus on security vulnerabilities, authentication, and data protection."
+                        .to_string(),
+                ),
             },
             ContextInjectionRule {
                 task_type: TaskType::PerformanceOptimization,
                 context_files: vec!["patterns.yaml".to_string()],
                 injection_method: PromptInjectionMethod::TemplateVariable,
                 priority: 2,
-                additional_context: Some("Consider performance bottlenecks, optimization techniques, and benchmarks.".to_string()),
+                additional_context: Some(
+                    "Consider performance bottlenecks, optimization techniques, and benchmarks."
+                        .to_string(),
+                ),
             },
             ContextInjectionRule {
                 task_type: TaskType::Refactoring,
                 context_files: vec!["patterns.yaml".to_string(), "decisions.yaml".to_string()],
                 injection_method: PromptInjectionMethod::Prepend,
                 priority: 2,
-                additional_context: Some("Maintain functionality while improving code structure and readability.".to_string()),
+                additional_context: Some(
+                    "Maintain functionality while improving code structure and readability."
+                        .to_string(),
+                ),
             },
             ContextInjectionRule {
                 task_type: TaskType::FeatureDevelopment,
-                context_files: vec!["patterns.yaml".to_string(), "knowledge.yaml".to_string(), "decisions.yaml".to_string()],
+                context_files: vec![
+                    "patterns.yaml".to_string(),
+                    "knowledge.yaml".to_string(),
+                    "decisions.yaml".to_string(),
+                ],
                 injection_method: PromptInjectionMethod::TemplateVariable,
                 priority: 2,
-                additional_context: Some("Consider existing patterns, user needs, and architectural decisions.".to_string()),
+                additional_context: Some(
+                    "Consider existing patterns, user needs, and architectural decisions."
+                        .to_string(),
+                ),
             },
         ]
     }
@@ -287,7 +332,7 @@ impl TaskDetector {
     /// Detect task type from commit message
     pub fn from_commit_message(message: &str) -> TaskType {
         let message_lower = message.to_lowercase();
-        
+
         if message_lower.contains("fix") || message_lower.contains("bug") {
             TaskType::BugFix
         } else if message_lower.contains("feat") || message_lower.contains("feature") {
@@ -312,7 +357,7 @@ impl TaskDetector {
     /// Detect task type from file path
     pub fn from_file_path(path: &Path) -> TaskType {
         let path_str = path.to_string_lossy().to_lowercase();
-        
+
         if path_str.contains("test") || path_str.contains("spec") {
             TaskType::Testing
         } else if path_str.contains("docs") || path_str.contains("readme") {
@@ -325,4 +370,4 @@ impl TaskDetector {
             TaskType::CodeReview
         }
     }
-} 
+}

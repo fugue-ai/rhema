@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-use rhema::{Rhema, RhemaResult, schema::{ProtocolInfo, ConceptDefinition, CqlExample, PatternDefinition, IntegrationGuide, TroubleshootingItem}};
+use rhema::{
+    schema::{
+        ConceptDefinition, CqlExample, IntegrationGuide, PatternDefinition, ProtocolInfo,
+        TroubleshootingItem,
+    },
+    Rhema, RhemaResult,
+};
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
@@ -22,11 +28,11 @@ use tempfile::TempDir;
 #[test]
 fn test_protocol_info_creation() -> RhemaResult<()> {
     let protocol_info = create_test_protocol_info();
-    
+
     // Test basic fields
     assert_eq!(protocol_info.version, "1.0.0");
     assert!(protocol_info.description.is_some());
-    
+
     // Test concepts
     assert!(protocol_info.concepts.is_some());
     let concepts = protocol_info.concepts.unwrap();
@@ -34,7 +40,7 @@ fn test_protocol_info_creation() -> RhemaResult<()> {
     assert_eq!(concepts[0].name, "Scope");
     assert_eq!(concepts[1].name, "Knowledge");
     assert_eq!(concepts[2].name, "CQL");
-    
+
     // Test CQL examples
     assert!(protocol_info.cql_examples.is_some());
     let examples = protocol_info.cql_examples.unwrap();
@@ -42,43 +48,43 @@ fn test_protocol_info_creation() -> RhemaResult<()> {
     assert_eq!(examples[0].name, "Find API Knowledge");
     assert_eq!(examples[1].name, "Find Security Patterns");
     assert_eq!(examples[2].name, "Find Approved Decisions");
-    
+
     // Test patterns
     assert!(protocol_info.patterns.is_some());
     let patterns = protocol_info.patterns.unwrap();
     assert_eq!(patterns.len(), 2);
     assert_eq!(patterns[0].name, "Error Handling");
     assert_eq!(patterns[1].name, "Configuration Management");
-    
+
     // Test integrations
     assert!(protocol_info.integrations.is_some());
     let integrations = protocol_info.integrations.unwrap();
     assert_eq!(integrations.len(), 1);
     assert_eq!(integrations[0].name, "IDE Integration");
-    
+
     // Test troubleshooting
     assert!(protocol_info.troubleshooting.is_some());
     let troubleshooting = protocol_info.troubleshooting.unwrap();
     assert_eq!(troubleshooting.len(), 1);
     assert_eq!(troubleshooting[0].issue, "Configuration validation fails");
-    
+
     Ok(())
 }
 
 #[test]
 fn test_protocol_info_validation() -> RhemaResult<()> {
     let protocol_info = create_test_protocol_info();
-    
+
     // Test validation
     protocol_info.validate()?;
-    
+
     Ok(())
 }
 
 #[test]
 fn test_protocol_info_serialization() -> RhemaResult<()> {
     let protocol_info = create_test_protocol_info();
-    
+
     // Test YAML serialization
     let yaml = serde_yaml::to_string(&protocol_info)?;
     assert!(!yaml.is_empty());
@@ -86,7 +92,7 @@ fn test_protocol_info_serialization() -> RhemaResult<()> {
     assert!(yaml.contains("Scope"));
     assert!(yaml.contains("Knowledge"));
     assert!(yaml.contains("CQL"));
-    
+
     // Test JSON serialization
     let json = serde_json::to_string(&protocol_info)?;
     assert!(!json.is_empty());
@@ -94,12 +100,12 @@ fn test_protocol_info_serialization() -> RhemaResult<()> {
     assert!(json.contains("\"Scope\""));
     assert!(json.contains("\"Knowledge\""));
     assert!(json.contains("\"CQL\""));
-    
+
     // Test deserialization
     let deserialized: ProtocolInfo = serde_yaml::from_str(&yaml)?;
     assert_eq!(deserialized.version, protocol_info.version);
     assert_eq!(deserialized.description, protocol_info.description);
-    
+
     Ok(())
 }
 
@@ -107,11 +113,11 @@ fn test_protocol_info_serialization() -> RhemaResult<()> {
 fn test_export_context_functionality() -> RhemaResult<()> {
     let temp_dir = TempDir::new()?;
     let rhema = setup_test_rhema(&temp_dir)?;
-    
+
     // Create test scope with protocol info
     let scope_name = "test-service";
     create_test_scope(&rhema, scope_name)?;
-    
+
     // Test export context
     let output_file = temp_dir.path().join("export.json");
     rhema::commands::export_context::run(
@@ -119,37 +125,37 @@ fn test_export_context_functionality() -> RhemaResult<()> {
         "json",
         Some(output_file.to_str().unwrap()),
         None,
-        true, // include_protocol
-        true, // include_knowledge
-        true, // include_todos
-        true, // include_decisions
-        true, // include_patterns
-        true, // include_conventions
+        true,  // include_protocol
+        true,  // include_knowledge
+        true,  // include_todos
+        true,  // include_decisions
+        true,  // include_patterns
+        true,  // include_conventions
         false, // summarize
         false, // ai_agent_format
     )?;
-    
+
     // Verify export file was created
     assert!(output_file.exists());
-    
+
     // Read and verify export content
     let content = fs::read_to_string(&output_file)?;
     let export_data: serde_json::Value = serde_json::from_str(&content)?;
-    
+
     // Check basic structure
     assert!(export_data.get("metadata").is_some());
     assert!(export_data.get("scopes").is_some());
     assert!(export_data.get("protocol_info").is_some());
-    
+
     // Check scopes
     let scopes = export_data.get("scopes").unwrap().as_array().unwrap();
     assert_eq!(scopes.len(), 1);
     assert_eq!(scopes[0]["name"], scope_name);
-    
+
     // Check protocol info
     let protocol_info = export_data.get("protocol_info").unwrap();
     assert_eq!(protocol_info["version"], "1.0.0");
-    
+
     Ok(())
 }
 
@@ -157,11 +163,11 @@ fn test_export_context_functionality() -> RhemaResult<()> {
 fn test_primer_generation() -> RhemaResult<()> {
     let temp_dir = TempDir::new()?;
     let rhema = setup_test_rhema(&temp_dir)?;
-    
+
     // Create test scope
     let scope_name = "test-app";
     create_test_scope(&rhema, scope_name)?;
-    
+
     // Test primer generation
     let primer_dir = temp_dir.path().join("primer");
     rhema::commands::primer::run(
@@ -172,29 +178,29 @@ fn test_primer_generation() -> RhemaResult<()> {
         true, // include_examples
         true, // validate
     )?;
-    
+
     // Verify primer files were created
     let scope_primer_dir = primer_dir.join(scope_name);
     assert!(scope_primer_dir.exists());
-    
+
     let primer_yaml = scope_primer_dir.join("primer.yaml");
     let primer_json = scope_primer_dir.join("primer.json");
     let primer_md = scope_primer_dir.join("primer.md");
     let primer_txt = scope_primer_dir.join("primer.txt");
-    
+
     assert!(primer_yaml.exists());
     assert!(primer_json.exists());
     assert!(primer_md.exists());
     assert!(primer_txt.exists());
-    
+
     // Verify primer content
     let yaml_content = fs::read_to_string(&primer_yaml)?;
     let primer_data: serde_yaml::Value = serde_yaml::from_str(&yaml_content)?;
-    
+
     assert_eq!(primer_data["metadata"]["scope_name"], scope_name);
     assert_eq!(primer_data["scope"]["name"], scope_name);
     assert_eq!(primer_data["scope"]["scope_type"], "app");
-    
+
     Ok(())
 }
 
@@ -202,11 +208,11 @@ fn test_primer_generation() -> RhemaResult<()> {
 fn test_readme_generation() -> RhemaResult<()> {
     let temp_dir = TempDir::new()?;
     let rhema = setup_test_rhema(&temp_dir)?;
-    
+
     // Create test scope
     let scope_name = "test-library";
     create_test_scope(&rhema, scope_name)?;
-    
+
     // Test README generation
     let readme_file = temp_dir.path().join("README.md");
     rhema::commands::generate_readme::run(
@@ -218,10 +224,10 @@ fn test_readme_generation() -> RhemaResult<()> {
         true, // seo_optimized
         None, // custom_sections
     )?;
-    
+
     // Verify README was created
     assert!(readme_file.exists());
-    
+
     // Verify README content
     let content = fs::read_to_string(&readme_file)?;
     assert!(content.contains("# test-library"));
@@ -229,7 +235,7 @@ fn test_readme_generation() -> RhemaResult<()> {
     assert!(content.contains("## Usage"));
     assert!(content.contains("## Features"));
     assert!(content.contains("## Context Management"));
-    
+
     Ok(())
 }
 
@@ -237,11 +243,11 @@ fn test_readme_generation() -> RhemaResult<()> {
 fn test_bootstrap_context() -> RhemaResult<()> {
     let temp_dir = TempDir::new()?;
     let rhema = setup_test_rhema(&temp_dir)?;
-    
+
     // Create test scope
     let scope_name = "test-service";
     create_test_scope(&rhema, scope_name)?;
-    
+
     // Test bootstrap context
     let bootstrap_dir = temp_dir.path().join("bootstrap");
     rhema::commands::bootstrap_context::run(
@@ -255,43 +261,43 @@ fn test_bootstrap_context() -> RhemaResult<()> {
         true, // create_primer
         true, // create_readme
     )?;
-    
+
     // Verify bootstrap files were created
     assert!(bootstrap_dir.exists());
-    
+
     let bootstrap_json = bootstrap_dir.join("bootstrap.json");
     let bootstrap_yaml = bootstrap_dir.join("bootstrap.yaml");
     let bootstrap_md = bootstrap_dir.join("bootstrap.md");
     let bootstrap_txt = bootstrap_dir.join("bootstrap.txt");
     let primer_md = bootstrap_dir.join("primer.md");
     let readme_md = bootstrap_dir.join("README.md");
-    
+
     assert!(bootstrap_json.exists());
     assert!(bootstrap_yaml.exists());
     assert!(bootstrap_md.exists());
     assert!(bootstrap_txt.exists());
     assert!(primer_md.exists());
     assert!(readme_md.exists());
-    
+
     // Verify bootstrap content
     let json_content = fs::read_to_string(&bootstrap_json)?;
     let bootstrap_data: serde_json::Value = serde_json::from_str(&json_content)?;
-    
+
     assert_eq!(bootstrap_data["metadata"]["use_case"], "code_review");
     assert_eq!(bootstrap_data["metadata"]["scope_count"], 1);
     assert_eq!(bootstrap_data["use_case"]["name"], "Code Review");
-    
+
     // Check scopes
     let scopes = bootstrap_data["scopes"].as_array().unwrap();
     assert_eq!(scopes.len(), 1);
     assert_eq!(scopes[0]["name"], scope_name);
-    
+
     // Check AI instructions
     assert!(bootstrap_data.get("ai_instructions").is_some());
     let ai_instructions = bootstrap_data.get("ai_instructions").unwrap();
     assert!(ai_instructions.get("context_understanding").is_some());
     assert!(ai_instructions.get("key_concepts").is_some());
-    
+
     Ok(())
 }
 
@@ -299,27 +305,27 @@ fn test_bootstrap_context() -> RhemaResult<()> {
 fn test_migration_with_protocol_info() -> RhemaResult<()> {
     let temp_dir = TempDir::new()?;
     let rhema = setup_test_rhema(&temp_dir)?;
-    
+
     // Create test scope without protocol info
     let scope_name = "legacy-scope";
     create_legacy_scope(&rhema, scope_name)?;
-    
+
     // Test migration
     rhema::commands::migrate::run(&rhema, false, false)?;
-    
+
     // Verify protocol info was added
     let scope_path = rhema.scope_path(scope_name)?;
     let rhema_file = scope_path.join("rhema.yaml");
-    
+
     let content = fs::read_to_string(&rhema_file)?;
     let scope: rhema::RhemaScope = serde_yaml::from_str(&content)?;
-    
+
     assert!(scope.protocol_info.is_some());
     let protocol_info = scope.protocol_info.unwrap();
     assert_eq!(protocol_info.version, "1.0.0");
     assert!(protocol_info.concepts.is_some());
     assert!(protocol_info.cql_examples.is_some());
-    
+
     Ok(())
 }
 
@@ -355,7 +361,7 @@ fn create_test_protocol_info() -> ProtocolInfo {
             ]),
         },
     ];
-    
+
     let cql_examples = vec![
         CqlExample {
             name: "Find API Knowledge".to_string(),
@@ -379,7 +385,7 @@ fn create_test_protocol_info() -> ProtocolInfo {
             use_case: Some("Architecture review".to_string()),
         },
     ];
-    
+
     let patterns = vec![
         PatternDefinition {
             name: "Error Handling".to_string(),
@@ -400,41 +406,37 @@ fn create_test_protocol_info() -> ProtocolInfo {
             ]),
         },
     ];
-    
-    let integrations = vec![
-        IntegrationGuide {
-            name: "IDE Integration".to_string(),
-            description: "Integrate Rhema with your IDE".to_string(),
-            setup: Some(vec![
-                "Install Rhema CLI".to_string(),
-                "Configure IDE extensions".to_string(),
-            ]),
-            configuration: Some(vec![
-                "Add Rhema commands to palette".to_string(),
-                "Configure file watching".to_string(),
-            ]),
-            best_practices: Some(vec![
-                "Use Rhema commands from IDE".to_string(),
-                "Enable auto-validation".to_string(),
-            ]),
-        },
-    ];
-    
-    let troubleshooting = vec![
-        TroubleshootingItem {
-            issue: "Configuration validation fails".to_string(),
-            description: "Rhema configuration has validation errors".to_string(),
-            solution: vec![
-                "Run `rhema validate`".to_string(),
-                "Check YAML syntax".to_string(),
-            ],
-            prevention: Some(vec![
-                "Use `rhema validate` before committing".to_string(),
-                "Follow schema documentation".to_string(),
-            ]),
-        },
-    ];
-    
+
+    let integrations = vec![IntegrationGuide {
+        name: "IDE Integration".to_string(),
+        description: "Integrate Rhema with your IDE".to_string(),
+        setup: Some(vec![
+            "Install Rhema CLI".to_string(),
+            "Configure IDE extensions".to_string(),
+        ]),
+        configuration: Some(vec![
+            "Add Rhema commands to palette".to_string(),
+            "Configure file watching".to_string(),
+        ]),
+        best_practices: Some(vec![
+            "Use Rhema commands from IDE".to_string(),
+            "Enable auto-validation".to_string(),
+        ]),
+    }];
+
+    let troubleshooting = vec![TroubleshootingItem {
+        issue: "Configuration validation fails".to_string(),
+        description: "Rhema configuration has validation errors".to_string(),
+        solution: vec![
+            "Run `rhema validate`".to_string(),
+            "Check YAML syntax".to_string(),
+        ],
+        prevention: Some(vec![
+            "Use `rhema validate` before committing".to_string(),
+            "Follow schema documentation".to_string(),
+        ]),
+    }];
+
     ProtocolInfo {
         version: "1.0.0".to_string(),
         description: Some("Test protocol information".to_string()),
@@ -450,11 +452,11 @@ fn create_test_protocol_info() -> ProtocolInfo {
 fn setup_test_rhema(temp_dir: &TempDir) -> RhemaResult<Rhema> {
     // Create a temporary repository structure
     let repo_root = temp_dir.path();
-    
+
     // Create .rhema directory
     let rhema_dir = repo_root.join(".rhema");
     fs::create_dir_all(&rhema_dir)?;
-    
+
     // Create a basic rhema.yaml for the repository
     let repo_rhema = r#"
 name: "test-repo"
@@ -464,17 +466,17 @@ version: "1.0.0"
 schema_version: "1.0.0"
 "#;
     fs::write(rhema_dir.join("rhema.yaml"), repo_rhema)?;
-    
+
     // Initialize Rhema
     let rhema = Rhema::new()?;
-    
+
     Ok(rhema)
 }
 
 fn create_test_scope(rhema: &Rhema, scope_name: &str) -> RhemaResult<()> {
     let scope_path = rhema.scope_path(scope_name)?;
     fs::create_dir_all(&scope_path)?;
-    
+
     // Create rhema.yaml with protocol info
     let rhema_content = format!(
         r#"
@@ -501,7 +503,7 @@ protocol_info:
         scope_name
     );
     fs::write(scope_path.join("rhema.yaml"), rhema_content)?;
-    
+
     // Create other context files
     let knowledge_content = r#"
 entries:
@@ -514,7 +516,7 @@ entries:
     created_at: "2024-01-01T00:00:00Z"
 "#;
     fs::write(scope_path.join("knowledge.yaml"), knowledge_content)?;
-    
+
     let todos_content = r#"
 todos:
   - id: "improve-docs"
@@ -525,7 +527,7 @@ todos:
     created_at: "2024-01-01T00:00:00Z"
 "#;
     fs::write(scope_path.join("todos.yaml"), todos_content)?;
-    
+
     let decisions_content = r#"
 decisions:
   - id: "use-rest"
@@ -535,7 +537,7 @@ decisions:
     decided_at: "2024-01-01T00:00:00Z"
 "#;
     fs::write(scope_path.join("decisions.yaml"), decisions_content)?;
-    
+
     let patterns_content = r#"
 patterns:
   - id: "error-handling"
@@ -546,7 +548,7 @@ patterns:
     created_at: "2024-01-01T00:00:00Z"
 "#;
     fs::write(scope_path.join("patterns.yaml"), patterns_content)?;
-    
+
     let conventions_content = r#"
 conventions:
   - id: "naming"
@@ -557,14 +559,14 @@ conventions:
     created_at: "2024-01-01T00:00:00Z"
 "#;
     fs::write(scope_path.join("conventions.yaml"), conventions_content)?;
-    
+
     Ok(())
 }
 
 fn create_legacy_scope(rhema: &Rhema, scope_name: &str) -> RhemaResult<()> {
     let scope_path = rhema.scope_path(scope_name)?;
     fs::create_dir_all(&scope_path)?;
-    
+
     // Create legacy rhema.yaml without protocol info
     let rhema_content = format!(
         r#"
@@ -576,6 +578,6 @@ version: "1.0.0"
         scope_name
     );
     fs::write(scope_path.join("rhema.yaml"), rhema_content)?;
-    
+
     Ok(())
-} 
+}

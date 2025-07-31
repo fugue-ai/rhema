@@ -26,32 +26,51 @@ use colored::*;
 
 pub fn run(rhema: &Rhema, subcommand: &TodoSubcommands) -> RhemaResult<()> {
     // Get the current working directory to find the nearest scope
-    let current_dir = std::env::current_dir()
-        .map_err(|e| crate::RhemaError::IoError(e))?;
-    
+    let current_dir = std::env::current_dir().map_err(|e| crate::RhemaError::IoError(e))?;
+
     // Discover all scopes
     let scopes = rhema.discover_scopes()?;
-    
+
     // Find the nearest scope to the current directory
-    let scope = find_nearest_scope(&current_dir, &scopes)
-        .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
-    
+    let scope = find_nearest_scope(&current_dir, &scopes).ok_or_else(|| {
+        crate::RhemaError::ConfigError(
+            "No Rhema scope found in current directory or parent directories".to_string(),
+        )
+    })?;
+
     match subcommand {
-        TodoSubcommands::Add { title, description, priority, assignee, due_date } => {
-            add_todo(scope, title, description, priority, assignee, due_date)
-        }
-        TodoSubcommands::List { status, priority, assignee } => {
-            list_todos(scope, status, priority, assignee)
-        }
-        TodoSubcommands::Complete { id, outcome } => {
-            complete_todo(scope, id, outcome)
-        }
-        TodoSubcommands::Update { id, title, description, status, priority, assignee, due_date } => {
-            update_todo(scope, id, title, description, status, priority, assignee, due_date)
-        }
-        TodoSubcommands::Delete { id } => {
-            delete_todo(scope, id)
-        }
+        TodoSubcommands::Add {
+            title,
+            description,
+            priority,
+            assignee,
+            due_date,
+        } => add_todo(scope, title, description, priority, assignee, due_date),
+        TodoSubcommands::List {
+            status,
+            priority,
+            assignee,
+        } => list_todos(scope, status, priority, assignee),
+        TodoSubcommands::Complete { id, outcome } => complete_todo(scope, id, outcome),
+        TodoSubcommands::Update {
+            id,
+            title,
+            description,
+            status,
+            priority,
+            assignee,
+            due_date,
+        } => update_todo(
+            scope,
+            id,
+            title,
+            description,
+            status,
+            priority,
+            assignee,
+            due_date,
+        ),
+        TodoSubcommands::Delete { id } => delete_todo(scope, id),
     }
 }
 
@@ -71,7 +90,7 @@ fn add_todo(
         assignee.clone(),
         due_date.clone(),
     )?;
-    
+
     println!("✅ Todo added successfully with ID: {}", id.green());
     println!("📝 Title: {}", title);
     if let Some(desc) = description {
@@ -84,7 +103,7 @@ fn add_todo(
     if let Some(date) = due_date {
         println!("📅 Due date: {}", date);
     }
-    
+
     Ok(())
 }
 
@@ -100,15 +119,15 @@ fn list_todos(
         priority.clone(),
         assignee.clone(),
     )?;
-    
+
     if todos.is_empty() {
         println!("📭 No todos found");
         return Ok(());
     }
-    
+
     println!("📋 Todos in scope: {}", scope.definition.name);
     println!("{}", "─".repeat(80));
-    
+
     for todo in todos {
         let status_color = match todo.status {
             TodoStatus::Pending => "yellow",
@@ -117,21 +136,27 @@ fn list_todos(
             TodoStatus::Completed => "green",
             TodoStatus::Cancelled => "dimmed",
         };
-        
+
         let priority_color = match todo.priority {
             Priority::Low => "green",
             Priority::Medium => "yellow",
             Priority::High => "red",
             Priority::Critical => "red",
         };
-        
+
         println!("🆔 ID: {}", todo.id);
         println!("📝 Title: {}", todo.title);
         if let Some(desc) = &todo.description {
             println!("📄 Description: {}", desc);
         }
-        println!("📊 Status: {}", format!("{:?}", todo.status).color(status_color));
-        println!("🎯 Priority: {}", format!("{:?}", todo.priority).color(priority_color));
+        println!(
+            "📊 Status: {}",
+            format!("{:?}", todo.status).color(status_color)
+        );
+        println!(
+            "🎯 Priority: {}",
+            format!("{:?}", todo.priority).color(priority_color)
+        );
         if let Some(assignee) = &todo.assigned_to {
             println!("👤 Assignee: {}", assignee);
         }
@@ -147,7 +172,7 @@ fn list_todos(
         }
         println!("{}", "─".repeat(80));
     }
-    
+
     Ok(())
 }
 
@@ -157,12 +182,12 @@ fn complete_todo(
     outcome: &Option<String>,
 ) -> RhemaResult<()> {
     file_ops::complete_todo(&scope.path, id, outcome.clone())?;
-    
+
     println!("✅ Todo {} completed successfully", id.green());
     if let Some(outcome) = outcome {
         println!("📈 Outcome: {}", outcome);
     }
-    
+
     Ok(())
 }
 
@@ -186,11 +211,16 @@ fn update_todo(
         assignee.clone(),
         due_date.clone(),
     )?;
-    
+
     println!("✅ Todo {} updated successfully", id.green());
-    
-    if title.is_some() || description.is_some() || status.is_some() || 
-       priority.is_some() || assignee.is_some() || due_date.is_some() {
+
+    if title.is_some()
+        || description.is_some()
+        || status.is_some()
+        || priority.is_some()
+        || assignee.is_some()
+        || due_date.is_some()
+    {
         println!("📝 Updated fields:");
         if title.is_some() {
             println!("  - Title: {}", title.as_ref().unwrap());
@@ -211,17 +241,14 @@ fn update_todo(
             println!("  - Due date: {}", due_date.as_ref().unwrap());
         }
     }
-    
+
     Ok(())
 }
 
-fn delete_todo(
-    scope: &rhema_core::scope::Scope,
-    id: &str,
-) -> RhemaResult<()> {
+fn delete_todo(scope: &rhema_core::scope::Scope, id: &str) -> RhemaResult<()> {
     file_ops::delete_todo(&scope.path, id)?;
-    
+
     println!("🗑️  Todo {} deleted successfully", id.green());
-    
+
     Ok(())
-} 
+}

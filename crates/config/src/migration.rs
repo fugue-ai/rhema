@@ -15,13 +15,13 @@
  */
 
 use crate::config::{SafetyValidator, SafetyViolation};
-use crate::{Config, ConfigError, ConfigChangeType, ConfigChange, CURRENT_CONFIG_VERSION};
+use crate::{Config, ConfigChange, ConfigChangeType, ConfigError, CURRENT_CONFIG_VERSION};
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use chrono::{DateTime, Utc};
-use semver::Version;
 /// Migration manager for configuration version migrations
 pub struct MigrationManager {
     migrations: Vec<Migration>,
@@ -132,9 +132,9 @@ impl MigrationManager {
             auto_migrate: true,
             backup_before_migration: true,
         };
-        
+
         manager.load_default_migrations();
-        
+
         Ok(manager)
     }
 
@@ -173,15 +173,13 @@ impl MigrationManager {
             to_version: "1.1.0".to_string(),
             name: "performance_enhancements".to_string(),
             description: "Add performance configuration section".to_string(),
-            steps: vec![
-                MigrationStep {
-                    step_type: MigrationStepType::AddSection,
-                    description: "Add performance configuration section".to_string(),
-                    parameters: HashMap::new(),
-                    condition: None,
-                    rollback: None,
-                },
-            ],
+            steps: vec![MigrationStep {
+                step_type: MigrationStepType::AddSection,
+                description: "Add performance configuration section".to_string(),
+                parameters: HashMap::new(),
+                condition: None,
+                rollback: None,
+            }],
             rollback_steps: vec![],
             required: false,
             automatic: true,
@@ -208,7 +206,8 @@ impl MigrationManager {
 
         // Migrate repository configs
         for (path, config) in repository_configs {
-            let migrations = self.migrate_config(config, &format!("repository:{}", path.display()))?;
+            let migrations =
+                self.migrate_config(config, &format!("repository:{}", path.display()))?;
             migrations_applied.extend(migrations.migrations_applied);
             migrations_skipped.extend(migrations.migrations_skipped);
             migrations_failed.extend(migrations.migrations_failed);
@@ -226,7 +225,9 @@ impl MigrationManager {
         let duration = end_time.signed_duration_since(start_time);
 
         let summary = MigrationSummary {
-            total_migrations: migrations_applied.len() + migrations_failed.len() + migrations_skipped.len(),
+            total_migrations: migrations_applied.len()
+                + migrations_failed.len()
+                + migrations_skipped.len(),
             successful_migrations: migrations_applied.len(),
             failed_migrations: migrations_failed.len(),
             skipped_migrations: migrations_skipped.len(),
@@ -244,18 +245,21 @@ impl MigrationManager {
     }
 
     /// Migrate a single configuration
-    pub fn migrate_config<T: Config>(&self, config: &T, context: &str) -> RhemaResult<MigrationReport> {
-        let current_version = Version::parse(&config.version())
-            .map_err(|e| ConfigError::VersionMismatch {
+    pub fn migrate_config<T: Config>(
+        &self,
+        config: &T,
+        context: &str,
+    ) -> RhemaResult<MigrationReport> {
+        let current_version =
+            Version::parse(&config.version()).map_err(|e| ConfigError::VersionMismatch {
                 expected: "valid semver".to_string(),
                 found: e.to_string(),
             })?;
 
-        let target_version = Version::parse("0.1.0")
-            .map_err(|e| ConfigError::VersionMismatch {
-                expected: "valid semver".to_string(),
-                found: e.to_string(),
-            })?;
+        let target_version = Version::parse("0.1.0").map_err(|e| ConfigError::VersionMismatch {
+            expected: "valid semver".to_string(),
+            found: e.to_string(),
+        })?;
 
         if current_version >= target_version {
             return Ok(MigrationReport {
@@ -274,7 +278,8 @@ impl MigrationManager {
             });
         }
 
-        let applicable_migrations = self.get_applicable_migrations(&current_version, &target_version);
+        let applicable_migrations =
+            self.get_applicable_migrations(&current_version, &target_version);
         let mut migrations_applied = Vec::new();
         let migrations_skipped = Vec::new();
         let mut migrations_failed = Vec::new();
@@ -303,7 +308,9 @@ impl MigrationManager {
         }
 
         let summary = MigrationSummary {
-            total_migrations: migrations_applied.len() + migrations_failed.len() + migrations_skipped.len(),
+            total_migrations: migrations_applied.len()
+                + migrations_failed.len()
+                + migrations_skipped.len(),
             successful_migrations: migrations_applied.len(),
             failed_migrations: migrations_failed.len(),
             skipped_migrations: migrations_skipped.len(),
@@ -321,33 +328,44 @@ impl MigrationManager {
     }
 
     /// Get applicable migrations for version range
-    fn get_applicable_migrations(&self, from_version: &Version, to_version: &Version) -> Vec<&Migration> {
+    fn get_applicable_migrations(
+        &self,
+        from_version: &Version,
+        to_version: &Version,
+    ) -> Vec<&Migration> {
         let mut applicable = Vec::new();
-        
+
         for migration in &self.migrations {
-            let migration_from = Version::parse(&migration.from_version).unwrap_or_else(|_| Version::new(0, 0, 0));
-            let migration_to = Version::parse(&migration.to_version).unwrap_or_else(|_| Version::new(0, 0, 0));
-            
+            let migration_from =
+                Version::parse(&migration.from_version).unwrap_or_else(|_| Version::new(0, 0, 0));
+            let migration_to =
+                Version::parse(&migration.to_version).unwrap_or_else(|_| Version::new(0, 0, 0));
+
             if migration_from >= *from_version && migration_to <= *to_version {
                 applicable.push(migration);
             }
         }
-        
+
         // Sort by version
         applicable.sort_by(|a, b| {
             let a_from = Version::parse(&a.from_version).unwrap_or_else(|_| Version::new(0, 0, 0));
             let b_from = Version::parse(&b.from_version).unwrap_or_else(|_| Version::new(0, 0, 0));
             a_from.cmp(&b_from)
         });
-        
+
         applicable
     }
 
     /// Apply a migration to a configuration
-    fn apply_migration<T: Config>(&self, config: &T, migration: &Migration, context: &str) -> RhemaResult<MigrationRecord> {
+    fn apply_migration<T: Config>(
+        &self,
+        config: &T,
+        migration: &Migration,
+        context: &str,
+    ) -> RhemaResult<MigrationRecord> {
         let mut changes = Vec::new();
-        let mut config_value = serde_json::to_value(config)
-            .map_err(|e| ConfigError::SerializationError(e))?;
+        let mut config_value =
+            serde_json::to_value(config).map_err(|e| ConfigError::SerializationError(e))?;
 
         for step in &migration.steps {
             if let Some(condition) = &step.condition {
@@ -379,7 +397,10 @@ impl MigrationManager {
                 timestamp: Utc::now(),
                 user: "system".to_string(),
                 change_type: ConfigChangeType::Migrated,
-                description: format!("Updated version from {} to {}", migration.from_version, migration.to_version),
+                description: format!(
+                    "Updated version from {} to {}",
+                    migration.from_version, migration.to_version
+                ),
             });
         }
 
@@ -407,9 +428,10 @@ impl MigrationManager {
             MigrationStepType::AddField => {
                 if let Some(field_path) = step.parameters.get("field_path") {
                     if let Some(value) = step.parameters.get("value") {
-                        let path_parts: Vec<&str> = field_path.as_str().unwrap().split('.').collect();
+                        let path_parts: Vec<&str> =
+                            field_path.as_str().unwrap().split('.').collect();
                         let mut current = config;
-                        
+
                         for (i, part) in path_parts.iter().enumerate() {
                             if i == path_parts.len() - 1 {
                                 current[part] = value.clone();
@@ -417,11 +439,15 @@ impl MigrationManager {
                                     timestamp: Utc::now(),
                                     user: "system".to_string(),
                                     change_type: ConfigChangeType::Migrated,
-                                    description: format!("Added field: {}", field_path.as_str().unwrap()),
+                                    description: format!(
+                                        "Added field: {}",
+                                        field_path.as_str().unwrap()
+                                    ),
                                 });
                             } else {
                                 if !current.get(part).is_some() {
-                                    current[part] = serde_json::Value::Object(serde_json::Map::new());
+                                    current[part] =
+                                        serde_json::Value::Object(serde_json::Map::new());
                                 }
                                 current = current.get_mut(part).unwrap();
                             }
@@ -433,7 +459,7 @@ impl MigrationManager {
                 if let Some(field_path) = step.parameters.get("field_path") {
                     let path_parts: Vec<&str> = field_path.as_str().unwrap().split('.').collect();
                     let mut current = config;
-                    
+
                     for (i, part) in path_parts.iter().enumerate() {
                         if i == path_parts.len() - 1 {
                             if let Some(old_value) = current.get(part) {
@@ -441,7 +467,10 @@ impl MigrationManager {
                                     timestamp: Utc::now(),
                                     user: "system".to_string(),
                                     change_type: ConfigChangeType::Migrated,
-                                    description: format!("Removed field: {}", field_path.as_str().unwrap()),
+                                    description: format!(
+                                        "Removed field: {}",
+                                        field_path.as_str().unwrap()
+                                    ),
                                 });
                                 if let Some(obj) = current.as_object_mut() {
                                     obj.remove(*part);
@@ -454,8 +483,8 @@ impl MigrationManager {
                 }
             }
             MigrationStepType::RenameField => {
-                        if let Some(_old_path) = step.parameters.get("old_path") {
-            if let Some(_new_path) = step.parameters.get("new_path") {
+                if let Some(_old_path) = step.parameters.get("old_path") {
+                    if let Some(_new_path) = step.parameters.get("new_path") {
                         // Implementation for renaming fields
                         // This would involve moving the value from old_path to new_path
                     }
@@ -469,7 +498,10 @@ impl MigrationManager {
                             timestamp: Utc::now(),
                             user: "system".to_string(),
                             change_type: ConfigChangeType::Migrated,
-                            description: format!("Added section: {}", section_name.as_str().unwrap()),
+                            description: format!(
+                                "Added section: {}",
+                                section_name.as_str().unwrap()
+                            ),
                         });
                     }
                 }
@@ -483,9 +515,13 @@ impl MigrationManager {
     }
 
     /// Evaluate migration condition
-    fn evaluate_condition(&self, condition: &MigrationCondition, config: &serde_json::Value) -> RhemaResult<bool> {
+    fn evaluate_condition(
+        &self,
+        condition: &MigrationCondition,
+        config: &serde_json::Value,
+    ) -> RhemaResult<bool> {
         let field_value = self.get_field_value(&condition.field, config)?;
-        
+
         match condition.operator {
             MigrationConditionOperator::Equals => Ok(field_value == condition.value),
             MigrationConditionOperator::NotEquals => Ok(field_value != condition.value),
@@ -523,15 +559,21 @@ impl MigrationManager {
     }
 
     /// Get field value from nested JSON
-    fn get_field_value(&self, field_path: &str, config: &serde_json::Value) -> RhemaResult<serde_json::Value> {
+    fn get_field_value(
+        &self,
+        field_path: &str,
+        config: &serde_json::Value,
+    ) -> RhemaResult<serde_json::Value> {
         let parts: Vec<&str> = field_path.split('.').collect();
         let mut current = config;
 
         for part in parts {
-            current = current.get(part)
-                .ok_or_else(|| ConfigError::MigrationFailed(
-                    format!("Field '{}' not found in configuration", field_path)
-                ))?;
+            current = current.get(part).ok_or_else(|| {
+                ConfigError::MigrationFailed(format!(
+                    "Field '{}' not found in configuration",
+                    field_path
+                ))
+            })?;
         }
 
         Ok(current.clone())
@@ -566,4 +608,4 @@ impl MigrationManager {
     pub fn get_available_migrations(&self) -> &[Migration] {
         &self.migrations
     }
-} 
+}

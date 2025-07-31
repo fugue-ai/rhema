@@ -179,8 +179,6 @@ impl From<redis::RedisError> for RhemaError {
     }
 }
 
-
-
 impl From<notify::Error> for RhemaError {
     fn from(err: notify::Error) -> Self {
         RhemaError::WatcherError(err.to_string())
@@ -213,6 +211,9 @@ impl From<prometheus::Error> for RhemaError {
 
 impl From<rustyline::error::ReadlineError> for RhemaError {
     fn from(err: rustyline::error::ReadlineError) -> Self {
-        RhemaError::IoError(std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))
+        RhemaError::IoError(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            err.to_string(),
+        ))
     }
-} 
+}

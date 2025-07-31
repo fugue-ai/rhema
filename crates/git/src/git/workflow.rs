@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use rhema_core::{RhemaError, RhemaResult};
-use git2::{Repository, BranchType};
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 use crate::git::history::ValidationSeverity;
+use chrono::{DateTime, Utc};
+use git2::{BranchType, Repository};
+use rhema_core::{RhemaError, RhemaResult};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 /// Git workflow types supported by Rhema
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -48,28 +48,28 @@ pub enum FlowBranchType {
 pub struct WorkflowConfig {
     /// Workflow type
     pub workflow_type: WorkflowType,
-    
+
     /// Branch naming conventions
     pub branch_conventions: BranchConventions,
-    
+
     /// Context management rules
     pub context_rules: ContextRules,
-    
+
     /// Release management
     pub release_management: ReleaseManagement,
-    
+
     /// Pull request settings
     pub pull_request_settings: PullRequestSettings,
-    
+
     /// Automation settings
     pub automation: AutomationSettings,
-    
+
     /// Advanced workflow features
     pub advanced_features: AdvancedWorkflowFeatures,
-    
+
     /// Context-aware workflow settings
     pub context_aware: ContextAwareWorkflowSettings,
-    
+
     /// Integration settings
     pub integrations: WorkflowIntegrationSettings,
 }
@@ -79,25 +79,25 @@ pub struct WorkflowConfig {
 pub struct AdvancedWorkflowFeatures {
     /// Enable context-aware branching
     pub context_aware_branching: bool,
-    
+
     /// Enable automated context synchronization
     pub auto_context_sync: bool,
-    
+
     /// Enable context conflict resolution
     pub context_conflict_resolution: bool,
-    
+
     /// Enable context validation workflows
     pub context_validation_workflows: bool,
-    
+
     /// Enable context evolution tracking
     pub context_evolution_tracking: bool,
-    
+
     /// Enable context analytics
     pub context_analytics: bool,
-    
+
     /// Enable context optimization
     pub context_optimization: bool,
-    
+
     /// Enable context backup workflows
     pub context_backup_workflows: bool,
 }
@@ -107,16 +107,16 @@ pub struct AdvancedWorkflowFeatures {
 pub struct ContextAwareWorkflowSettings {
     /// Context-aware feature branching
     pub context_aware_feature_branching: ContextAwareFeatureBranching,
-    
+
     /// Context-aware release management
     pub context_aware_release_management: ContextAwareReleaseManagement,
-    
+
     /// Context-aware hotfix management
     pub context_aware_hotfix_management: ContextAwareHotfixManagement,
-    
+
     /// Context-aware pull request analysis
     pub context_aware_pr_analysis: ContextAwarePrAnalysis,
-    
+
     /// Context-aware merge strategies
     pub context_aware_merge_strategies: ContextAwareMergeStrategies,
 }
@@ -126,22 +126,22 @@ pub struct ContextAwareWorkflowSettings {
 pub struct ContextAwareFeatureBranching {
     /// Auto-isolate context in feature branches
     pub auto_isolate_context: bool,
-    
+
     /// Auto-sync context with parent branch
     pub auto_sync_parent: bool,
-    
+
     /// Auto-validate context before merge
     pub auto_validate_before_merge: bool,
-    
+
     /// Auto-resolve context conflicts
     pub auto_resolve_conflicts: bool,
-    
+
     /// Context inheritance rules
     pub inheritance_rules: Vec<ContextInheritanceRule>,
-    
+
     /// Context boundary rules
     pub boundary_rules: Vec<ContextBoundaryRule>,
-    
+
     /// Context validation rules
     pub validation_rules: Vec<ContextValidationRule>,
 }
@@ -220,22 +220,22 @@ pub enum ContextValidationType {
 pub struct ContextAwareReleaseManagement {
     /// Auto-prepare context for release
     pub auto_prepare_context: bool,
-    
+
     /// Auto-validate release context
     pub auto_validate_release_context: bool,
-    
+
     /// Auto-generate release notes
     pub auto_generate_release_notes: bool,
-    
+
     /// Auto-update version information
     pub auto_update_version: bool,
-    
+
     /// Release context validation rules
     pub validation_rules: Vec<ReleaseValidationRule>,
-    
+
     /// Release context preparation steps
     pub preparation_steps: Vec<ReleasePreparationStep>,
-    
+
     /// Release context cleanup steps
     pub cleanup_steps: Vec<ReleaseCleanupStep>,
 }
@@ -310,16 +310,16 @@ pub enum ReleaseCleanupStepType {
 pub struct ContextAwareHotfixManagement {
     /// Auto-isolate hotfix context
     pub auto_isolate_context: bool,
-    
+
     /// Auto-validate hotfix context
     pub auto_validate_context: bool,
-    
+
     /// Auto-merge hotfix context
     pub auto_merge_context: bool,
-    
+
     /// Hotfix context validation rules
     pub validation_rules: Vec<HotfixValidationRule>,
-    
+
     /// Hotfix context merge strategies
     pub merge_strategies: Vec<HotfixMergeStrategy>,
 }
@@ -367,22 +367,22 @@ pub enum HotfixMergeStrategyType {
 pub struct ContextAwarePrAnalysis {
     /// Auto-analyze context changes
     pub auto_analyze_context_changes: bool,
-    
+
     /// Auto-detect context conflicts
     pub auto_detect_conflicts: bool,
-    
+
     /// Auto-generate context impact report
     pub auto_generate_impact_report: bool,
-    
+
     /// Auto-suggest context improvements
     pub auto_suggest_improvements: bool,
-    
+
     /// PR analysis rules
     pub analysis_rules: Vec<PrAnalysisRule>,
-    
+
     /// PR validation rules
     pub validation_rules: Vec<PrValidationRule>,
-    
+
     /// PR automation rules
     pub automation_rules: Vec<PrAutomationRule>,
 }
@@ -475,13 +475,13 @@ pub enum PrAutomationAction {
 pub struct ContextAwareMergeStrategies {
     /// Feature branch merge strategy
     pub feature_merge_strategy: ContextMergeStrategy,
-    
+
     /// Release branch merge strategy
     pub release_merge_strategy: ContextMergeStrategy,
-    
+
     /// Hotfix branch merge strategy
     pub hotfix_merge_strategy: ContextMergeStrategy,
-    
+
     /// Custom merge strategies
     pub custom_strategies: Vec<CustomMergeStrategy>,
 }
@@ -567,13 +567,13 @@ pub struct CustomMergeStrategy {
 pub struct WorkflowIntegrationSettings {
     /// CI/CD integration
     pub ci_cd: Option<WorkflowCiCdIntegration>,
-    
+
     /// Issue tracker integration
     pub issue_tracker: Option<WorkflowIssueTrackerIntegration>,
-    
+
     /// Chat integration
     pub chat: Option<WorkflowChatIntegration>,
-    
+
     /// Monitoring integration
     pub monitoring: Option<WorkflowMonitoringIntegration>,
 }
@@ -762,19 +762,19 @@ pub struct EscalationLevel {
 pub struct BranchConventions {
     /// Main branch name
     pub main_branch: String,
-    
+
     /// Develop branch name
     pub develop_branch: Option<String>,
-    
+
     /// Feature branch prefix
     pub feature_prefix: String,
-    
+
     /// Release branch prefix
     pub release_prefix: String,
-    
+
     /// Hotfix branch prefix
     pub hotfix_prefix: String,
-    
+
     /// Support branch prefix
     pub support_prefix: String,
 }
@@ -784,16 +784,16 @@ pub struct BranchConventions {
 pub struct ContextRules {
     /// Require context validation for feature branches
     pub require_feature_validation: bool,
-    
+
     /// Require context validation for release branches
     pub require_release_validation: bool,
-    
+
     /// Require context validation for hotfix branches
     pub require_hotfix_validation: bool,
-    
+
     /// Context merge strategy for different branch types
     pub merge_strategies: HashMap<FlowBranchType, String>,
-    
+
     /// Context isolation rules
     pub isolation_rules: IsolationRules,
 }
@@ -803,13 +803,13 @@ pub struct ContextRules {
 pub struct IsolationRules {
     /// Isolate context in feature branches
     pub isolate_feature: bool,
-    
+
     /// Isolate context in release branches
     pub isolate_release: bool,
-    
+
     /// Isolate context in hotfix branches
     pub isolate_hotfix: bool,
-    
+
     /// Shared context files
     pub shared_files: Vec<String>,
 }
@@ -819,13 +819,13 @@ pub struct IsolationRules {
 pub struct ReleaseManagement {
     /// Versioning strategy
     pub versioning: VersioningStrategy,
-    
+
     /// Release branch preparation
     pub branch_preparation: BranchPreparation,
-    
+
     /// Release validation
     pub validation: ReleaseValidation,
-    
+
     /// Release automation
     pub automation: ReleaseAutomation,
 }
@@ -843,13 +843,13 @@ pub enum VersioningStrategy {
 pub struct BranchPreparation {
     /// Prepare context for release
     pub prepare_context: bool,
-    
+
     /// Update version information
     pub update_version: bool,
-    
+
     /// Generate release notes
     pub generate_notes: bool,
-    
+
     /// Validate release readiness
     pub validate_readiness: bool,
 }
@@ -859,13 +859,13 @@ pub struct BranchPreparation {
 pub struct ReleaseValidation {
     /// Validate context integrity
     pub validate_context: bool,
-    
+
     /// Validate dependencies
     pub validate_dependencies: bool,
-    
+
     /// Validate breaking changes
     pub validate_breaking_changes: bool,
-    
+
     /// Run integration tests
     pub run_tests: bool,
 }
@@ -875,13 +875,13 @@ pub struct ReleaseValidation {
 pub struct ReleaseAutomation {
     /// Automate release branch creation
     pub auto_create_branch: bool,
-    
+
     /// Automate version bumping
     pub auto_version_bump: bool,
-    
+
     /// Automate release notes
     pub auto_release_notes: bool,
-    
+
     /// Automate deployment
     pub auto_deploy: bool,
 }
@@ -891,16 +891,16 @@ pub struct ReleaseAutomation {
 pub struct PullRequestSettings {
     /// Require context analysis
     pub require_context_analysis: bool,
-    
+
     /// Require impact analysis
     pub require_impact_analysis: bool,
-    
+
     /// Require dependency review
     pub require_dependency_review: bool,
-    
+
     /// Require health checks
     pub require_health_checks: bool,
-    
+
     /// Automated checks
     pub automated_checks: Vec<String>,
 }
@@ -910,13 +910,13 @@ pub struct PullRequestSettings {
 pub struct AutomationSettings {
     /// Enable automated context updates
     pub auto_context_updates: bool,
-    
+
     /// Enable automated synchronization
     pub auto_synchronization: bool,
-    
+
     /// Enable automated notifications
     pub auto_notifications: bool,
-    
+
     /// Enable automated backups
     pub auto_backups: bool,
 }
@@ -932,25 +932,25 @@ impl WorkflowManager {
     pub fn new(repo: Repository, config: WorkflowConfig) -> Self {
         Self { repo, config }
     }
-    
+
     /// Enhanced Git flow initialization with advanced features
     pub fn initialize_git_flow(&self) -> RhemaResult<()> {
         println!("Initializing enhanced Git flow with advanced context management...");
-        
+
         // Check if repository is empty
         if self.repo.is_empty()? {
             println!("Repository is empty, creating initial commit...");
             let initial_commit = self.create_initial_commit()?;
             println!("Initial commit created: {}", initial_commit.id());
         }
-        
+
         // Create main branch if it doesn't exist
         let main_branch = &self.config.branch_conventions.main_branch;
         if !self.branch_exists(main_branch)? {
             self.create_main_branch()?;
             println!("Main branch '{}' created", main_branch);
         }
-        
+
         // Create develop branch if specified
         if let Some(develop_branch) = &self.config.branch_conventions.develop_branch {
             if !self.branch_exists(develop_branch)? {
@@ -958,28 +958,35 @@ impl WorkflowManager {
                 println!("Develop branch '{}' created", develop_branch);
             }
         }
-        
+
         // Setup workflow configuration
         self.setup_workflow_config()?;
-        
+
         // Initialize context-aware workflow features
         self.initialize_context_aware_workflow()?;
-        
+
         // Setup advanced workflow integrations
         self.setup_workflow_integrations()?;
-        
+
         println!("Enhanced Git flow initialization completed successfully!");
-        
+
         Ok(())
     }
-    
+
     /// Create initial commit
     fn create_initial_commit(&self) -> RhemaResult<git2::Commit> {
         let signature = git2::Signature::now("Rhema Bot", "rhema@example.com")?;
         let tree_id = self.repo.index()?.write_tree()?;
         let tree = self.repo.find_tree(tree_id)?;
         let commit_id = self.repo.commit(
-            Some(&self.repo.head()?.target().unwrap_or(git2::Oid::zero()).to_string()),
+            Some(
+                &self
+                    .repo
+                    .head()?
+                    .target()
+                    .unwrap_or(git2::Oid::zero())
+                    .to_string(),
+            ),
             &signature,
             &signature,
             "Initial commit",
@@ -988,7 +995,7 @@ impl WorkflowManager {
         )?;
         Ok(self.repo.find_commit(commit_id)?)
     }
-    
+
     /// Check if branch exists
     fn branch_exists(&self, branch_name: &str) -> RhemaResult<bool> {
         match self.repo.find_branch(branch_name, git2::BranchType::Local) {
@@ -996,251 +1003,274 @@ impl WorkflowManager {
             Err(_) => Ok(false),
         }
     }
-    
+
     /// Create main branch
     fn create_main_branch(&self) -> RhemaResult<()> {
         let head = self.repo.head()?;
-        let commit = self.repo.find_commit(head.target().unwrap_or(git2::Oid::zero()))?;
-        let branch = self.repo.branch(&self.config.branch_conventions.main_branch, &commit, false)?;
+        let commit = self
+            .repo
+            .find_commit(head.target().unwrap_or(git2::Oid::zero()))?;
+        let branch =
+            self.repo
+                .branch(&self.config.branch_conventions.main_branch, &commit, false)?;
         self.repo.set_head(branch.get().name().unwrap())?;
         Ok(())
     }
-    
+
     /// Create develop branch
     fn create_develop_branch(&self, develop_branch: &str) -> RhemaResult<()> {
         let head = self.repo.head()?;
-        let commit = self.repo.find_commit(head.target().unwrap_or(git2::Oid::zero()))?;
+        let commit = self
+            .repo
+            .find_commit(head.target().unwrap_or(git2::Oid::zero()))?;
         self.repo.branch(develop_branch, &commit, false)?;
         Ok(())
     }
-    
+
     /// Setup workflow configuration
     fn setup_workflow_config(&self) -> RhemaResult<()> {
         // Implementation for setting up workflow configuration
         Ok(())
     }
-    
+
     /// Initialize context-aware workflow features
     fn initialize_context_aware_workflow(&self) -> RhemaResult<()> {
         if !self.config.advanced_features.context_aware_branching {
             return Ok(());
         }
-        
+
         println!("Initializing context-aware workflow features...");
-        
+
         // Setup context-aware feature branching
         self.setup_context_aware_feature_branching()?;
-        
+
         // Setup context-aware release management
         self.setup_context_aware_release_management()?;
-        
+
         // Setup context-aware hotfix management
         self.setup_context_aware_hotfix_management()?;
-        
+
         // Setup context-aware pull request analysis
         self.setup_context_aware_pr_analysis()?;
-        
+
         // Setup context-aware merge strategies
         self.setup_context_aware_merge_strategies()?;
-        
+
         println!("Context-aware workflow features initialized");
-        
+
         Ok(())
     }
-    
+
     /// Setup context-aware feature branching
     fn setup_context_aware_feature_branching(&self) -> RhemaResult<()> {
         let config = &self.config.context_aware.context_aware_feature_branching;
-        
+
         if config.auto_isolate_context {
             println!("Auto-context isolation enabled for feature branches");
         }
-        
+
         if config.auto_sync_parent {
             println!("Auto-sync with parent branch enabled");
         }
-        
+
         if config.auto_validate_before_merge {
             println!("Auto-validation before merge enabled");
         }
-        
+
         if config.auto_resolve_conflicts {
             println!("Auto-conflict resolution enabled");
         }
-        
+
         // Setup inheritance rules
         for rule in &config.inheritance_rules {
             println!("Context inheritance rule configured: {}", rule.name);
         }
-        
+
         // Setup boundary rules
         for rule in &config.boundary_rules {
             println!("Context boundary rule configured: {}", rule.name);
         }
-        
+
         // Setup validation rules
         for rule in &config.validation_rules {
             println!("Context validation rule configured: {}", rule.name);
         }
-        
+
         Ok(())
     }
-    
+
     /// Setup context-aware release management
     fn setup_context_aware_release_management(&self) -> RhemaResult<()> {
         let config = &self.config.context_aware.context_aware_release_management;
-        
+
         if config.auto_prepare_context {
             println!("Auto-context preparation enabled for releases");
         }
-        
+
         if config.auto_validate_release_context {
             println!("Auto-release context validation enabled");
         }
-        
+
         if config.auto_generate_release_notes {
             println!("Auto-release notes generation enabled");
         }
-        
+
         if config.auto_update_version {
             println!("Auto-version update enabled");
         }
-        
+
         // Setup validation rules
         for rule in &config.validation_rules {
             println!("Release validation rule configured: {}", rule.name);
         }
-        
+
         // Setup preparation steps
         for step in &config.preparation_steps {
             println!("Release preparation step configured: {}", step.name);
         }
-        
+
         // Setup cleanup steps
         for step in &config.cleanup_steps {
             println!("Release cleanup step configured: {}", step.name);
         }
-        
+
         Ok(())
     }
-    
+
     /// Setup context-aware hotfix management
     fn setup_context_aware_hotfix_management(&self) -> RhemaResult<()> {
         let config = &self.config.context_aware.context_aware_hotfix_management;
-        
+
         if config.auto_isolate_context {
             println!("Auto-context isolation enabled for hotfixes");
         }
-        
+
         if config.auto_validate_context {
             println!("Auto-hotfix context validation enabled");
         }
-        
+
         if config.auto_merge_context {
             println!("Auto-hotfix context merging enabled");
         }
-        
+
         // Setup validation rules
         for rule in &config.validation_rules {
             println!("Hotfix validation rule configured: {}", rule.name);
         }
-        
+
         // Setup merge strategies
         for strategy in &config.merge_strategies {
             println!("Hotfix merge strategy configured: {}", strategy.name);
         }
-        
+
         Ok(())
     }
-    
+
     /// Setup context-aware pull request analysis
     fn setup_context_aware_pr_analysis(&self) -> RhemaResult<()> {
         let config = &self.config.context_aware.context_aware_pr_analysis;
-        
+
         if config.auto_analyze_context_changes {
             println!("Auto-context change analysis enabled for PRs");
         }
-        
+
         if config.auto_detect_conflicts {
             println!("Auto-conflict detection enabled for PRs");
         }
-        
+
         if config.auto_generate_impact_report {
             println!("Auto-impact report generation enabled for PRs");
         }
-        
+
         if config.auto_suggest_improvements {
             println!("Auto-improvement suggestions enabled for PRs");
         }
-        
+
         // Setup analysis rules
         for rule in &config.analysis_rules {
             println!("PR analysis rule configured: {}", rule.name);
         }
-        
+
         // Setup validation rules
         for rule in &config.validation_rules {
             println!("PR validation rule configured: {}", rule.name);
         }
-        
+
         // Setup automation rules
         for rule in &config.automation_rules {
             println!("PR automation rule configured: {}", rule.name);
         }
-        
+
         Ok(())
     }
-    
+
     /// Setup context-aware merge strategies
     fn setup_context_aware_merge_strategies(&self) -> RhemaResult<()> {
         let config = &self.config.context_aware.context_aware_merge_strategies;
-        
-        println!("Feature merge strategy: {}", config.feature_merge_strategy.name);
-        println!("Release merge strategy: {}", config.release_merge_strategy.name);
-        println!("Hotfix merge strategy: {}", config.hotfix_merge_strategy.name);
-        
+
+        println!(
+            "Feature merge strategy: {}",
+            config.feature_merge_strategy.name
+        );
+        println!(
+            "Release merge strategy: {}",
+            config.release_merge_strategy.name
+        );
+        println!(
+            "Hotfix merge strategy: {}",
+            config.hotfix_merge_strategy.name
+        );
+
         // Setup custom strategies
         for strategy in &config.custom_strategies {
-            println!("Custom merge strategy configured: {} (pattern: {})", 
-                    strategy.name, strategy.pattern);
+            println!(
+                "Custom merge strategy configured: {} (pattern: {})",
+                strategy.name, strategy.pattern
+            );
         }
-        
+
         Ok(())
     }
-    
+
     /// Setup workflow integrations
     fn setup_workflow_integrations(&self) -> RhemaResult<()> {
         let integrations = &self.config.integrations;
-        
+
         // Setup CI/CD integration
         if let Some(ci_cd) = &integrations.ci_cd {
-            println!("CI/CD integration configured: {} ({})", 
-                    ci_cd.provider, ci_cd.pipeline_config.name);
+            println!(
+                "CI/CD integration configured: {} ({})",
+                ci_cd.provider, ci_cd.pipeline_config.name
+            );
         }
-        
+
         // Setup issue tracker integration
         if let Some(issue_tracker) = &integrations.issue_tracker {
-            println!("Issue tracker integration configured: {} (project: {})", 
-                    issue_tracker.provider, issue_tracker.project_config.name);
+            println!(
+                "Issue tracker integration configured: {} (project: {})",
+                issue_tracker.provider, issue_tracker.project_config.name
+            );
         }
-        
+
         // Setup chat integration
         if let Some(chat) = &integrations.chat {
-            println!("Chat integration configured: {} (channel: {})", 
-                    chat.provider, chat.channel_config.name);
+            println!(
+                "Chat integration configured: {} (channel: {})",
+                chat.provider, chat.channel_config.name
+            );
         }
-        
+
         // Setup monitoring integration
         if let Some(monitoring) = &integrations.monitoring {
-            println!("Monitoring integration configured: {} (dashboard: {})", 
-                    monitoring.provider, monitoring.dashboard_config.name);
+            println!(
+                "Monitoring integration configured: {} (dashboard: {})",
+                monitoring.provider, monitoring.dashboard_config.name
+            );
         }
-        
+
         Ok(())
     }
-    
 
-    
     /// Validate feature name
     #[allow(dead_code)]
     fn validate_feature_name(&self, feature_name: &str) -> RhemaResult<()> {
@@ -1250,137 +1280,174 @@ impl WorkflowManager {
                 "Feature name contains invalid characters. Use only alphanumeric, hyphens, and underscores.".to_string()
             ));
         }
-        
+
         // Check length
         if feature_name.len() < 3 || feature_name.len() > 50 {
             return Err(RhemaError::ValidationError(
-                "Feature name must be between 3 and 50 characters long.".to_string()
+                "Feature name must be between 3 and 50 characters long.".to_string(),
             ));
         }
-        
+
         // Check for reserved names
         let reserved_names = ["main", "master", "develop", "release", "hotfix", "HEAD"];
         if reserved_names.contains(&feature_name) {
-            return Err(RhemaError::ValidationError(
-                format!("'{}' is a reserved branch name", feature_name)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "'{}' is a reserved branch name",
+                feature_name
+            )));
         }
-        
+
         Ok(())
     }
-    
+
     /// Setup feature context isolation
     #[allow(dead_code)]
     fn setup_feature_context_isolation(&self, feature_branch: &str) -> RhemaResult<()> {
         let config = &self.config.context_aware.context_aware_feature_branching;
-        
+
         if !config.auto_isolate_context {
             return Ok(());
         }
-        
-        println!("Setting up context isolation for feature branch '{}'", feature_branch);
-        
+
+        println!(
+            "Setting up context isolation for feature branch '{}'",
+            feature_branch
+        );
+
         // Create isolated context directory
-        let context_dir = self.repo.path().join(".rhema").join("branches").join(feature_branch);
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("branches")
+            .join(feature_branch);
         std::fs::create_dir_all(&context_dir)?;
-        
+
         // Copy shared context files if any
         // Note: shared_files field is not available in the current struct
         // This is a placeholder for future implementation
-        
+
         // Apply inheritance rules
         for rule in &config.inheritance_rules {
             self.apply_inheritance_rule(rule, feature_branch)?;
         }
-        
+
         // Apply boundary rules
         for rule in &config.boundary_rules {
             self.apply_boundary_rule(rule, feature_branch)?;
         }
-        
-        println!("Context isolation setup completed for feature branch '{}'", feature_branch);
-        
+
+        println!(
+            "Context isolation setup completed for feature branch '{}'",
+            feature_branch
+        );
+
         Ok(())
     }
-    
+
     /// Apply inheritance rule
     #[allow(dead_code)]
-    fn apply_inheritance_rule(&self, rule: &ContextInheritanceRule, branch_name: &str) -> RhemaResult<()> {
-        println!("Applying inheritance rule '{}' to branch '{}'", rule.name, branch_name);
-        
+    fn apply_inheritance_rule(
+        &self,
+        rule: &ContextInheritanceRule,
+        branch_name: &str,
+    ) -> RhemaResult<()> {
+        println!(
+            "Applying inheritance rule '{}' to branch '{}'",
+            rule.name, branch_name
+        );
+
         // This is a simplified implementation
         // In a real implementation, you would:
         // 1. Parse the pattern to determine which files to inherit
         // 2. Copy files from parent branch based on inheritance type
         // 3. Apply any transformations based on the rule
-        
+
         Ok(())
     }
-    
+
     /// Apply boundary rule
     #[allow(dead_code)]
-    fn apply_boundary_rule(&self, rule: &ContextBoundaryRule, branch_name: &str) -> RhemaResult<()> {
-        println!("Applying boundary rule '{}' to branch '{}'", rule.name, branch_name);
-        
+    fn apply_boundary_rule(
+        &self,
+        rule: &ContextBoundaryRule,
+        branch_name: &str,
+    ) -> RhemaResult<()> {
+        println!(
+            "Applying boundary rule '{}' to branch '{}'",
+            rule.name, branch_name
+        );
+
         // This is a simplified implementation
         // In a real implementation, you would:
         // 1. Parse the pattern to determine boundary constraints
         // 2. Validate that context files respect the boundary
         // 3. Apply enforcement based on the boundary type
-        
+
         Ok(())
     }
-    
+
     /// Discover feature context files
     #[allow(dead_code)]
     fn discover_feature_context_files(&self, feature_branch: &str) -> RhemaResult<Vec<PathBuf>> {
-        let context_dir = self.repo.path().join(".rhema").join("branches").join(feature_branch);
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("branches")
+            .join(feature_branch);
         let mut context_files = Vec::new();
-        
+
         if context_dir.exists() {
             for entry in std::fs::read_dir(&context_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                
+
                 if path.is_file() && self.is_context_file(&path) {
                     context_files.push(path);
                 }
             }
         }
-        
+
         Ok(context_files)
     }
-    
+
     /// Check if file is a context file
     #[allow(dead_code)]
     fn is_context_file(&self, path: &Path) -> bool {
         if let Some(extension) = path.extension() {
-            matches!(extension.to_str(), Some("yaml") | Some("yml") | Some("json"))
+            matches!(
+                extension.to_str(),
+                Some("yaml") | Some("yml") | Some("json")
+            )
         } else {
             false
         }
     }
-    
+
     /// Enhanced pull request analysis with context awareness
     pub fn analyze_pull_request(&self, pr_number: u64) -> RhemaResult<PullRequestAnalysis> {
-        println!("Analyzing pull request #{} with context awareness...", pr_number);
-        
+        println!(
+            "Analyzing pull request #{} with context awareness...",
+            pr_number
+        );
+
         let config = &self.config.context_aware.context_aware_pr_analysis;
-        
+
         // Analyze context changes
         let context_changes = if config.auto_analyze_context_changes {
             self.analyze_context_changes(pr_number)?
         } else {
             vec![]
         };
-        
+
         // Detect conflicts
         let _conflicts = if config.auto_detect_conflicts {
             self.detect_context_conflicts(pr_number)?
         } else {
             vec![]
         };
-        
+
         // Generate impact analysis
         let impact_analysis = if config.auto_generate_impact_report {
             self.generate_impact_analysis(pr_number)?
@@ -1392,20 +1459,20 @@ impl WorkflowManager {
                 risk_level: "low".to_string(),
             }
         };
-        
+
         // Generate dependency review
         let dependency_review = self.generate_dependency_review(pr_number)?;
-        
+
         // Run health checks
         let health_checks = self.run_pr_health_checks(pr_number)?;
-        
+
         // Generate recommendations
         let recommendations = if config.auto_suggest_improvements {
             self.generate_pr_recommendations(pr_number, &context_changes, &impact_analysis)?
         } else {
             vec![]
         };
-        
+
         let analysis = PullRequestAnalysis {
             pr_number,
             context_changes,
@@ -1414,78 +1481,74 @@ impl WorkflowManager {
             health_checks,
             recommendations,
         };
-        
+
         println!("Pull request analysis completed for PR #{}", pr_number);
-        
+
         Ok(analysis)
     }
-    
+
     /// Analyze context changes in pull request
     fn analyze_context_changes(&self, pr_number: u64) -> RhemaResult<Vec<ContextChange>> {
         println!("Analyzing context changes for PR #{}", pr_number);
-        
+
         // This is a simplified implementation
         // In a real implementation, you would:
         // 1. Get the diff for the PR
         // 2. Identify context files that were changed
         // 3. Analyze the nature of changes
         // 4. Determine impact on other parts of the system
-        
-        let changes = vec![
-            ContextChange {
-                file_path: PathBuf::from("context/feature.yaml"),
-                change_type: "modified".to_string(),
-                description: "Updated feature context with new requirements".to_string(),
-                impact: "medium".to_string(),
-            }
-        ];
-        
+
+        let changes = vec![ContextChange {
+            file_path: PathBuf::from("context/feature.yaml"),
+            change_type: "modified".to_string(),
+            description: "Updated feature context with new requirements".to_string(),
+            impact: "medium".to_string(),
+        }];
+
         Ok(changes)
     }
-    
+
     /// Detect context conflicts in pull request
     fn detect_context_conflicts(&self, pr_number: u64) -> RhemaResult<Vec<String>> {
         println!("Detecting context conflicts for PR #{}", pr_number);
-        
+
         // This is a simplified implementation
         // In a real implementation, you would:
         // 1. Compare context changes with target branch
         // 2. Identify potential conflicts
         // 3. Check for structural conflicts
         // 4. Check for dependency conflicts
-        
-        let conflicts = vec![
-            "Context file 'feature.yaml' has conflicting changes".to_string(),
-        ];
-        
+
+        let conflicts = vec!["Context file 'feature.yaml' has conflicting changes".to_string()];
+
         Ok(conflicts)
     }
-    
+
     /// Generate impact analysis for pull request
     fn generate_impact_analysis(&self, pr_number: u64) -> RhemaResult<ImpactAnalysis> {
         println!("Generating impact analysis for PR #{}", pr_number);
-        
+
         // This is a simplified implementation
         // In a real implementation, you would:
         // 1. Analyze affected scopes
         // 2. Check dependency impact
         // 3. Identify breaking changes
         // 4. Assess risk level
-        
+
         let impact_analysis = ImpactAnalysis {
             affected_scopes: vec!["feature".to_string(), "ui".to_string()],
             affected_dependencies: vec!["core".to_string()],
             breaking_changes: vec![],
             risk_level: "medium".to_string(),
         };
-        
+
         Ok(impact_analysis)
     }
-    
+
     /// Generate dependency review for pull request
     fn generate_dependency_review(&self, pr_number: u64) -> RhemaResult<DependencyReview> {
         println!("Generating dependency review for PR #{}", pr_number);
-        
+
         // This is a simplified implementation
         // In a real implementation, you would:
         // 1. Analyze dependency changes
@@ -1493,28 +1556,28 @@ impl WorkflowManager {
         // 3. Check for removed dependencies
         // 4. Check for updated dependencies
         // 5. Identify conflicts
-        
+
         let dependency_review = DependencyReview {
             new_dependencies: vec!["new-lib".to_string()],
             removed_dependencies: vec![],
             updated_dependencies: vec!["core-lib".to_string()],
             conflicts: vec![],
         };
-        
+
         Ok(dependency_review)
     }
-    
+
     /// Run health checks for pull request
     fn run_pr_health_checks(&self, pr_number: u64) -> RhemaResult<Vec<HealthCheck>> {
         println!("Running health checks for PR #{}", pr_number);
-        
+
         // This is a simplified implementation
         // In a real implementation, you would:
         // 1. Run context validation
         // 2. Check for circular dependencies
         // 3. Validate schema compliance
         // 4. Check for security issues
-        
+
         let health_checks = vec![
             HealthCheck {
                 name: "Context Validation".to_string(),
@@ -1529,53 +1592,72 @@ impl WorkflowManager {
                 details: None,
             },
         ];
-        
+
         Ok(health_checks)
     }
-    
+
     /// Generate recommendations for pull request
-    fn generate_pr_recommendations(&self, pr_number: u64, context_changes: &[ContextChange], impact_analysis: &ImpactAnalysis) -> RhemaResult<Vec<String>> {
+    fn generate_pr_recommendations(
+        &self,
+        pr_number: u64,
+        context_changes: &[ContextChange],
+        impact_analysis: &ImpactAnalysis,
+    ) -> RhemaResult<Vec<String>> {
         println!("Generating recommendations for PR #{}", pr_number);
-        
+
         let mut recommendations = Vec::new();
-        
+
         // Analyze context changes and generate recommendations
         for change in context_changes {
             if change.impact == "high" {
-                recommendations.push(format!("Consider adding tests for changes in {}", change.file_path.display()));
+                recommendations.push(format!(
+                    "Consider adding tests for changes in {}",
+                    change.file_path.display()
+                ));
             }
         }
-        
+
         // Analyze impact and generate recommendations
         if impact_analysis.risk_level == "high" {
             recommendations.push("Consider breaking this PR into smaller changes".to_string());
         }
-        
+
         if !impact_analysis.breaking_changes.is_empty() {
-            recommendations.push("Breaking changes detected - ensure proper migration guide".to_string());
+            recommendations
+                .push("Breaking changes detected - ensure proper migration guide".to_string());
         }
-        
+
         Ok(recommendations)
     }
-    
+
     /// Start a feature branch
     pub fn start_feature(&self, feature_name: &str) -> RhemaResult<FeatureBranch> {
-        let base_branch = self.config.branch_conventions.develop_branch
+        let base_branch = self
+            .config
+            .branch_conventions
+            .develop_branch
             .as_ref()
             .unwrap_or(&self.config.branch_conventions.main_branch);
-        
-        let feature_branch_name = format!("{}{}", self.config.branch_conventions.feature_prefix, feature_name);
-        
+
+        let feature_branch_name = format!(
+            "{}{}",
+            self.config.branch_conventions.feature_prefix, feature_name
+        );
+
         // Create the feature branch
-        let base_commit = self.repo.find_branch(base_branch, BranchType::Local)?
+        let base_commit = self
+            .repo
+            .find_branch(base_branch, BranchType::Local)?
             .get()
             .peel_to_commit()?;
-        
-        let _feature_branch = self.repo.branch(&feature_branch_name, &base_commit, false)?;
-        
+
+        let _feature_branch = self
+            .repo
+            .branch(&feature_branch_name, &base_commit, false)?;
+
         // Set up context isolation
         self.setup_feature_context(&feature_branch_name)?;
-        
+
         Ok(FeatureBranch {
             name: feature_branch_name,
             base_branch: base_branch.clone(),
@@ -1583,34 +1665,38 @@ impl WorkflowManager {
             context_files: Vec::new(),
         })
     }
-    
+
     /// Set up feature branch context
     fn setup_feature_context(&self, _branch_name: &str) -> RhemaResult<()> {
         // TODO: Implement feature context setup
         // This would create branch-specific context files and configurations
-        
+
         Ok(())
     }
-    
 
-    
     /// Finish a feature branch
     pub fn finish_feature(&self, feature_name: &str) -> RhemaResult<FeatureResult> {
-        let feature_branch_name = format!("{}{}", self.config.branch_conventions.feature_prefix, feature_name);
-        
+        let feature_branch_name = format!(
+            "{}{}",
+            self.config.branch_conventions.feature_prefix, feature_name
+        );
+
         // Validate feature branch
         self.validate_feature_branch(&feature_branch_name)?;
-        
+
         // Merge feature branch into develop
-        let develop_branch = self.config.branch_conventions.develop_branch
+        let develop_branch = self
+            .config
+            .branch_conventions
+            .develop_branch
             .as_ref()
             .unwrap_or(&self.config.branch_conventions.main_branch);
-        
+
         let _merge_result = self.merge_feature_branch(&feature_branch_name, develop_branch)?;
-        
+
         // Clean up feature branch
         self.cleanup_feature_branch(&feature_branch_name)?;
-        
+
         Ok(FeatureResult {
             success: true,
             merged_branch: feature_branch_name,
@@ -1619,51 +1705,61 @@ impl WorkflowManager {
             messages: vec!["Feature branch finished successfully".to_string()],
         })
     }
-    
+
     /// Validate feature branch
     fn validate_feature_branch(&self, _branch_name: &str) -> RhemaResult<()> {
         if self.config.context_rules.require_feature_validation {
             // TODO: Implement feature branch validation
             // This would check context integrity, run tests, etc.
         }
-        
+
         Ok(())
     }
-    
+
     /// Merge feature branch
     fn merge_feature_branch(&self, _feature_branch: &str, _target_branch: &str) -> RhemaResult<()> {
         // TODO: Implement feature branch merging
         // This would handle the actual Git merge operation
-        
+
         Ok(())
     }
-    
+
     /// Clean up feature branch
     fn cleanup_feature_branch(&self, _branch_name: &str) -> RhemaResult<()> {
         // TODO: Implement feature branch cleanup
         // This would delete the branch and clean up any temporary files
-        
+
         Ok(())
     }
-    
+
     /// Start a release branch
     pub fn start_release(&self, version: &str) -> RhemaResult<ReleaseBranch> {
-        let release_branch_name = format!("{}{}", self.config.branch_conventions.release_prefix, version);
-        
+        let release_branch_name = format!(
+            "{}{}",
+            self.config.branch_conventions.release_prefix, version
+        );
+
         // Create release branch from develop
-        let develop_branch = self.config.branch_conventions.develop_branch
+        let develop_branch = self
+            .config
+            .branch_conventions
+            .develop_branch
             .as_ref()
             .unwrap_or(&self.config.branch_conventions.main_branch);
-        
-        let develop_commit = self.repo.find_branch(develop_branch, BranchType::Local)?
+
+        let develop_commit = self
+            .repo
+            .find_branch(develop_branch, BranchType::Local)?
             .get()
             .peel_to_commit()?;
-        
-        let _release_branch = self.repo.branch(&release_branch_name, &develop_commit, false)?;
-        
+
+        let _release_branch = self
+            .repo
+            .branch(&release_branch_name, &develop_commit, false)?;
+
         // Prepare release context
         self.prepare_release_context(&release_branch_name, version)?;
-        
+
         Ok(ReleaseBranch {
             name: release_branch_name,
             version: version.to_string(),
@@ -1671,34 +1767,42 @@ impl WorkflowManager {
             status: ReleaseStatus::InProgress,
         })
     }
-    
+
     /// Prepare release context
     fn prepare_release_context(&self, _branch_name: &str, _version: &str) -> RhemaResult<()> {
-        if self.config.release_management.branch_preparation.prepare_context {
+        if self
+            .config
+            .release_management
+            .branch_preparation
+            .prepare_context
+        {
             // TODO: Implement release context preparation
             // This would update version information, prepare release notes, etc.
         }
-        
+
         Ok(())
     }
-    
+
     /// Finish a release branch
     pub fn finish_release(&self, version: &str) -> RhemaResult<ReleaseResult> {
-        let release_branch_name = format!("{}{}", self.config.branch_conventions.release_prefix, version);
-        
+        let release_branch_name = format!(
+            "{}{}",
+            self.config.branch_conventions.release_prefix, version
+        );
+
         // Validate release
         self.validate_release(&release_branch_name)?;
-        
+
         // Merge to main and develop
         let main_result = self.merge_to_main(&release_branch_name)?;
         let develop_result = self.merge_to_develop(&release_branch_name)?;
-        
+
         // Create release tag
         self.create_release_tag(&release_branch_name, version)?;
-        
+
         // Clean up release branch
         self.cleanup_release_branch(&release_branch_name)?;
-        
+
         Ok(ReleaseResult {
             success: true,
             version: version.to_string(),
@@ -1708,63 +1812,77 @@ impl WorkflowManager {
             messages: vec!["Release finished successfully".to_string()],
         })
     }
-    
+
     /// Validate release
     fn validate_release(&self, _branch_name: &str) -> RhemaResult<()> {
         if self.config.release_management.validation.validate_context {
             // TODO: Implement release validation
             // This would validate context integrity, dependencies, etc.
         }
-        
+
         Ok(())
     }
-    
+
     /// Merge release to main
     fn merge_to_main(&self, _release_branch: &str) -> RhemaResult<bool> {
         // TODO: Implement merge to main
         Ok(true)
     }
-    
+
     /// Merge release to develop
     fn merge_to_develop(&self, _release_branch: &str) -> RhemaResult<bool> {
         // TODO: Implement merge to develop
         Ok(true)
     }
-    
+
     /// Create release tag
     fn create_release_tag(&self, branch_name: &str, version: &str) -> RhemaResult<()> {
         let branch = self.repo.find_branch(branch_name, BranchType::Local)?;
         let commit = branch.get().peel_to_commit()?;
-        
+
         let tag_name = format!("v{}", version);
         let signature = self.repo.signature()?;
-        
+
         let commit_obj = commit.as_object();
-        self.repo.tag(&tag_name, commit_obj, &signature, &format!("Release {}", version), false)?;
-        
+        self.repo.tag(
+            &tag_name,
+            commit_obj,
+            &signature,
+            &format!("Release {}", version),
+            false,
+        )?;
+
         Ok(())
     }
-    
+
     /// Clean up release branch
     fn cleanup_release_branch(&self, _branch_name: &str) -> RhemaResult<()> {
         // TODO: Implement release branch cleanup
         Ok(())
     }
-    
+
     /// Start a hotfix branch
     pub fn start_hotfix(&self, version: &str) -> RhemaResult<HotfixBranch> {
-        let hotfix_branch_name = format!("{}{}", self.config.branch_conventions.hotfix_prefix, version);
-        
+        let hotfix_branch_name = format!(
+            "{}{}",
+            self.config.branch_conventions.hotfix_prefix, version
+        );
+
         // Create hotfix branch from main
-        let main_commit = self.repo.find_branch(&self.config.branch_conventions.main_branch, BranchType::Local)?
+        let main_commit = self
+            .repo
+            .find_branch(
+                &self.config.branch_conventions.main_branch,
+                BranchType::Local,
+            )?
             .get()
             .peel_to_commit()?;
-        
+
         let _hotfix_branch = self.repo.branch(&hotfix_branch_name, &main_commit, false)?;
-        
+
         // Set up hotfix context
         self.setup_hotfix_context(&hotfix_branch_name)?;
-        
+
         Ok(HotfixBranch {
             name: hotfix_branch_name,
             version: version.to_string(),
@@ -1772,30 +1890,33 @@ impl WorkflowManager {
             status: HotfixStatus::InProgress,
         })
     }
-    
+
     /// Set up hotfix context
     fn setup_hotfix_context(&self, _branch_name: &str) -> RhemaResult<()> {
         // TODO: Implement hotfix context setup
         Ok(())
     }
-    
+
     /// Finish a hotfix branch
     pub fn finish_hotfix(&self, version: &str) -> RhemaResult<HotfixResult> {
-        let hotfix_branch_name = format!("{}{}", self.config.branch_conventions.hotfix_prefix, version);
-        
+        let hotfix_branch_name = format!(
+            "{}{}",
+            self.config.branch_conventions.hotfix_prefix, version
+        );
+
         // Validate hotfix
         self.validate_hotfix(&hotfix_branch_name)?;
-        
+
         // Merge to main and develop
         let main_result = self.merge_to_main(&hotfix_branch_name)?;
         let develop_result = self.merge_to_develop(&hotfix_branch_name)?;
-        
+
         // Create hotfix tag
         self.create_hotfix_tag(&hotfix_branch_name, version)?;
-        
+
         // Clean up hotfix branch
         self.cleanup_hotfix_branch(&hotfix_branch_name)?;
-        
+
         Ok(HotfixResult {
             success: true,
             version: version.to_string(),
@@ -1805,41 +1926,47 @@ impl WorkflowManager {
             messages: vec!["Hotfix finished successfully".to_string()],
         })
     }
-    
+
     /// Validate hotfix
     fn validate_hotfix(&self, _branch_name: &str) -> RhemaResult<()> {
         if self.config.context_rules.require_hotfix_validation {
             // TODO: Implement hotfix validation
         }
-        
+
         Ok(())
     }
-    
+
     /// Create hotfix tag
     fn create_hotfix_tag(&self, branch_name: &str, version: &str) -> RhemaResult<()> {
         let branch = self.repo.find_branch(branch_name, BranchType::Local)?;
         let commit = branch.get().peel_to_commit()?;
-        
+
         let tag_name = format!("v{}", version);
         let signature = self.repo.signature()?;
-        
+
         let commit_obj = commit.as_object();
-        self.repo.tag(&tag_name, commit_obj, &signature, &format!("Hotfix {}", version), false)?;
-        
+        self.repo.tag(
+            &tag_name,
+            commit_obj,
+            &signature,
+            &format!("Hotfix {}", version),
+            false,
+        )?;
+
         Ok(())
     }
-    
+
     /// Clean up hotfix branch
     fn cleanup_hotfix_branch(&self, _branch_name: &str) -> RhemaResult<()> {
         // TODO: Implement hotfix branch cleanup
         Ok(())
     }
-    
+
     /// Get workflow status
     pub fn get_workflow_status(&self) -> RhemaResult<WorkflowStatus> {
         let current_branch = self.get_current_branch()?;
         let branch_type = self.get_branch_type(&current_branch)?;
-        
+
         Ok(WorkflowStatus {
             current_branch,
             branch_type,
@@ -1847,21 +1974,24 @@ impl WorkflowManager {
             status: "active".to_string(),
         })
     }
-    
+
     /// Get current branch
     fn get_current_branch(&self) -> RhemaResult<String> {
         let head = self.repo.head()?;
-        
+
         if head.is_branch() {
-            let branch_name = head.name()
-                .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid branch name")))?;
-            
+            let branch_name = head.name().ok_or_else(|| {
+                RhemaError::GitError(git2::Error::from_str("Invalid branch name"))
+            })?;
+
             Ok(branch_name.replace("refs/heads/", ""))
         } else {
-            Err(RhemaError::GitError(git2::Error::from_str("Not on a branch")))
+            Err(RhemaError::GitError(git2::Error::from_str(
+                "Not on a branch",
+            )))
         }
     }
-    
+
     /// Get branch type
     fn get_branch_type(&self, branch_name: &str) -> RhemaResult<FlowBranchType> {
         if branch_name == self.config.branch_conventions.main_branch {
@@ -2434,4 +2564,4 @@ pub fn default_git_flow_config() -> WorkflowConfig {
             }),
         },
     }
-} 
+}

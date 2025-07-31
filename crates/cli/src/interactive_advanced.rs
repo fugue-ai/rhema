@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-use crate::{Rhema, RhemaResult, RhemaError};
 use crate::commands::*;
+use crate::{Rhema, RhemaError, RhemaResult};
 use colored::*;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::collections::HashMap;
 use std::io::Write;
 // use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 use crate::interactive_parser::InteractiveCommandParser;
+use serde::{Deserialize, Serialize};
 // use crate::interactive_builder::InteractiveBuilder;
 
 // Advanced interactive configuration
@@ -92,13 +92,13 @@ pub struct AdvancedInteractiveSession {
 impl AdvancedInteractiveSession {
     pub fn new(rhema: Rhema, config: AdvancedInteractiveConfig) -> RhemaResult<Self> {
         let mut editor = Editor::new()?;
-        
+
         // Load history if configured
         if let Some(history_file) = &config.history_file {
             let history_path = shellexpand::tilde(history_file).to_string();
             let _ = editor.load_history(&history_path);
         }
-        
+
         Ok(Self {
             rhema,
             config,
@@ -109,23 +109,23 @@ impl AdvancedInteractiveSession {
             editor,
         })
     }
-    
+
     pub fn start_repl(&mut self) -> RhemaResult<()> {
         self.show_welcome_message();
         self.show_help();
-        
+
         loop {
             let prompt = self.get_prompt();
             let readline = self.editor.readline(&prompt);
-            
+
             match readline {
                 Ok(line) => {
                     let _ = self.editor.add_history_entry(line.as_str());
-                    
+
                     if line.trim().is_empty() {
                         continue;
                     }
-                    
+
                     // Check for special commands
                     match line.trim() {
                         "exit" | "quit" | "q" => break,
@@ -158,7 +158,7 @@ impl AdvancedInteractiveSession {
                 }
             }
         }
-        
+
         // Save history
         if let Some(history_file) = &self.config.history_file {
             let history_path = shellexpand::tilde(history_file).to_string();
@@ -167,35 +167,38 @@ impl AdvancedInteractiveSession {
             }
             let _ = self.editor.save_history(&history_path);
         }
-        
+
         println!("{}", "Goodbye!".green());
         Ok(())
     }
-    
+
     fn get_prompt(&self) -> String {
         let mut prompt = self.config.prompt.clone();
-        
+
         if let Some(scope) = &self.current_scope {
             prompt = format!("rhema:{}> ", scope);
         }
-        
+
         match &self.config.theme {
             AdvancedTheme::Default => prompt.cyan().to_string(),
             AdvancedTheme::Dark => prompt.white().on_black().to_string(),
             AdvancedTheme::Light => prompt.black().on_white().to_string(),
-            AdvancedTheme::Custom { prompt_color: _, .. } => {
+            AdvancedTheme::Custom {
+                prompt_color: _, ..
+            } => {
                 // Apply custom color (simplified)
                 prompt.cyan().to_string()
             }
         }
     }
-    
+
     fn execute_command(&mut self, input: &str) -> RhemaResult<()> {
         let mut parser = InteractiveCommandParser::new(input);
-        
-        let command = parser.command()
+
+        let command = parser
+            .command()
             .ok_or_else(|| RhemaError::InvalidCommand("Empty command".to_string()))?;
-        
+
         match command {
             "init" => self.handle_init_enhanced(&mut parser),
             "scopes" => self.handle_scopes_enhanced(&mut parser),
@@ -241,7 +244,7 @@ impl AdvancedInteractiveSession {
             }
         }
     }
-    
+
     fn show_welcome_message(&self) {
         println!("{}", "=".repeat(60).cyan());
         println!("{}", "Rhema Advanced Interactive Mode".bold().cyan());
@@ -254,76 +257,100 @@ impl AdvancedInteractiveSession {
         println!("Use Ctrl+C to interrupt commands");
         println!();
     }
-    
+
     fn show_help(&self) {
         println!("{}", "Available Commands:".bold().green());
         println!();
-        
+
         let commands = vec![
-            ("Core Commands", vec![
-                ("init", "Initialize a new Rhema scope"),
-                ("scopes", "List all scopes in the repository"),
-                ("scope", "Show scope details"),
-                ("tree", "Show scope hierarchy tree"),
-                ("show", "Display YAML file content"),
-                ("query", "Execute a CQL query"),
-                ("search", "Search across context files"),
-            ]),
-            ("Management Commands", vec![
-                ("validate", "Validate YAML files"),
-                ("migrate", "Migrate schema files"),
-                ("schema", "Generate schema templates"),
-                ("health", "Check scope health"),
-                ("stats", "Show context statistics"),
-            ]),
-            ("Content Commands", vec![
-                ("todo", "Manage todo items"),
-                ("insight", "Manage knowledge insights"),
-                ("pattern", "Manage patterns"),
-                ("decision", "Manage decisions"),
-            ]),
-            ("Advanced Commands", vec![
-                ("dependencies", "Show scope dependencies"),
-                ("impact", "Show impact of changes"),
-                ("sync", "Sync knowledge across scopes"),
-                ("git", "Advanced Git integration"),
-            ]),
-            ("Builder Commands", vec![
-                ("builder todo", "Interactive todo builder"),
-                ("builder insight", "Interactive insight builder"),
-                ("builder pattern", "Interactive pattern builder"),
-                ("builder decision", "Interactive decision builder"),
-                ("builder query", "Interactive query builder"),
-                ("builder prompt", "Interactive prompt pattern builder"),
-            ]),
-            ("Export Commands", vec![
-                ("export", "Export context data"),
-                ("primer", "Generate context primer files"),
-                ("readme", "Generate README with context"),
-                ("bootstrap", "Bootstrap context for AI agents"),
-            ]),
-            ("Interactive Commands", vec![
-                ("set", "Set a variable"),
-                ("get", "Get a variable"),
-                ("workflow", "Manage workflows"),
-                ("plugin", "Manage plugins"),
-                ("visualize", "Interactive data visualization"),
-                ("debug", "Debug mode"),
-                ("profile", "Performance profiling"),
-                ("context", "Context management"),
-                ("navigate", "Navigate between scopes"),
-                ("cache", "Cache management"),
-                ("explore", "Interactive context exploration"),
-            ]),
-            ("System Commands", vec![
-                ("help", "Show this help"),
-                ("clear", "Clear screen"),
-                ("history", "Show command history"),
-                ("config", "Show configuration"),
-                ("exit", "Exit interactive mode"),
-            ]),
+            (
+                "Core Commands",
+                vec![
+                    ("init", "Initialize a new Rhema scope"),
+                    ("scopes", "List all scopes in the repository"),
+                    ("scope", "Show scope details"),
+                    ("tree", "Show scope hierarchy tree"),
+                    ("show", "Display YAML file content"),
+                    ("query", "Execute a CQL query"),
+                    ("search", "Search across context files"),
+                ],
+            ),
+            (
+                "Management Commands",
+                vec![
+                    ("validate", "Validate YAML files"),
+                    ("migrate", "Migrate schema files"),
+                    ("schema", "Generate schema templates"),
+                    ("health", "Check scope health"),
+                    ("stats", "Show context statistics"),
+                ],
+            ),
+            (
+                "Content Commands",
+                vec![
+                    ("todo", "Manage todo items"),
+                    ("insight", "Manage knowledge insights"),
+                    ("pattern", "Manage patterns"),
+                    ("decision", "Manage decisions"),
+                ],
+            ),
+            (
+                "Advanced Commands",
+                vec![
+                    ("dependencies", "Show scope dependencies"),
+                    ("impact", "Show impact of changes"),
+                    ("sync", "Sync knowledge across scopes"),
+                    ("git", "Advanced Git integration"),
+                ],
+            ),
+            (
+                "Builder Commands",
+                vec![
+                    ("builder todo", "Interactive todo builder"),
+                    ("builder insight", "Interactive insight builder"),
+                    ("builder pattern", "Interactive pattern builder"),
+                    ("builder decision", "Interactive decision builder"),
+                    ("builder query", "Interactive query builder"),
+                    ("builder prompt", "Interactive prompt pattern builder"),
+                ],
+            ),
+            (
+                "Export Commands",
+                vec![
+                    ("export", "Export context data"),
+                    ("primer", "Generate context primer files"),
+                    ("readme", "Generate README with context"),
+                    ("bootstrap", "Bootstrap context for AI agents"),
+                ],
+            ),
+            (
+                "Interactive Commands",
+                vec![
+                    ("set", "Set a variable"),
+                    ("get", "Get a variable"),
+                    ("workflow", "Manage workflows"),
+                    ("plugin", "Manage plugins"),
+                    ("visualize", "Interactive data visualization"),
+                    ("debug", "Debug mode"),
+                    ("profile", "Performance profiling"),
+                    ("context", "Context management"),
+                    ("navigate", "Navigate between scopes"),
+                    ("cache", "Cache management"),
+                    ("explore", "Interactive context exploration"),
+                ],
+            ),
+            (
+                "System Commands",
+                vec![
+                    ("help", "Show this help"),
+                    ("clear", "Clear screen"),
+                    ("history", "Show command history"),
+                    ("config", "Show configuration"),
+                    ("exit", "Exit interactive mode"),
+                ],
+            ),
         ];
-        
+
         for (category, cmds) in commands {
             println!("{}", category.bold().yellow());
             for (cmd, desc) in cmds {
@@ -332,18 +359,18 @@ impl AdvancedInteractiveSession {
             println!();
         }
     }
-    
+
     fn clear_screen(&self) {
         print!("\x1B[2J\x1B[1;1H");
         std::io::stdout().flush().unwrap();
     }
-    
+
     fn show_history(&self) {
         println!("{}", "Command History:".bold().green());
         // History is managed by rustyline
         println!("History is automatically saved and loaded");
     }
-    
+
     fn show_config(&self) {
         println!("{}", "Advanced Interactive Configuration:".bold().green());
         println!("Prompt: {}", self.config.prompt);
@@ -355,7 +382,7 @@ impl AdvancedInteractiveSession {
         println!("Context Aware: {}", self.config.context_aware);
         println!("Plugins: {}", self.config.plugins.join(", "));
     }
-    
+
     fn list_scopes(&self) {
         match self.rhema.discover_scopes() {
             Ok(scopes) => {
@@ -367,7 +394,7 @@ impl AdvancedInteractiveSession {
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
     }
-    
+
     fn show_context(&self) {
         println!("{}", "Current Context:".bold().green());
         if let Some(scope) = &self.current_scope {
@@ -378,72 +405,82 @@ impl AdvancedInteractiveSession {
         println!("Cached Contexts: {}", self.context_cache.len());
         println!("Variables: {}", self.variables.len());
     }
-    
+
     fn show_variables(&self) {
         println!("{}", "Variables:".bold().green());
         for (key, value) in &self.variables {
             println!("  {} = {}", key.cyan(), value);
         }
     }
-    
+
     fn list_workflows(&self) {
         println!("{}", "Workflows:".bold().green());
         for (name, steps) in &self.workflows {
             println!("  {} ({} steps)", name.cyan(), steps.len());
         }
     }
-    
+
     // Command handlers (simplified versions)
     #[allow(dead_code)]
     fn handle_init(&mut self, args: &[&str]) -> RhemaResult<()> {
         let scope_type = args.get(0).map(|s| s.to_string());
         let scope_name = args.get(1).map(|s| s.to_string());
         let auto_config = args.contains(&"--auto-config");
-        
-        crate::init::run(&self.rhema, scope_type.as_deref(), scope_name.as_deref(), auto_config)
+
+        crate::init::run(
+            &self.rhema,
+            scope_type.as_deref(),
+            scope_name.as_deref(),
+            auto_config,
+        )
     }
-    
+
     #[allow(dead_code)]
     fn handle_scopes(&mut self, _args: &[&str]) -> RhemaResult<()> {
         crate::scopes::run(&self.rhema)
     }
-    
+
     #[allow(dead_code)]
     fn handle_scope(&mut self, args: &[&str]) -> RhemaResult<()> {
         let path = args.get(0).map(|s| s.to_string());
         crate::scopes::show_scope(&self.rhema, path.as_deref())
     }
-    
+
     #[allow(dead_code)]
     fn handle_tree(&mut self) -> RhemaResult<()> {
         crate::scopes::show_tree(&self.rhema)
     }
-    
+
     #[allow(dead_code)]
     fn handle_show(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("show requires a file argument".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "show requires a file argument".to_string(),
+            ));
         }
-        
+
         let file = args[0].to_string();
         let scope = args.get(1).map(|s| s.to_string());
-        
+
         crate::show::run(&self.rhema, &file, scope.as_deref())
     }
-    
+
     #[allow(dead_code)]
     fn handle_query(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("query requires a query string".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "query requires a query string".to_string(),
+            ));
         }
-        
+
         let query = args[0].to_string();
         let stats = args.contains(&"--stats");
-        let format = args.iter()
+        let format = args
+            .iter()
             .position(|&s| s == "--format")
             .and_then(|i| args.get(i + 1))
             .unwrap_or(&"yaml");
-        
+
         if stats {
             crate::query::run_with_stats(&self.rhema, &query)
         } else if *format != "yaml" {
@@ -452,61 +489,67 @@ impl AdvancedInteractiveSession {
             crate::query::run(&self.rhema, &query)
         }
     }
-    
+
     #[allow(dead_code)]
     fn handle_search(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("search requires a search term".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "search requires a search term".to_string(),
+            ));
         }
-        
+
         let term = args[0].to_string();
-        let in_file = args.iter()
+        let in_file = args
+            .iter()
             .position(|&s| s == "--in-file")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
         let regex = args.contains(&"--regex");
-        
+
         crate::search::run(&self.rhema, &term, in_file.as_deref(), regex)
     }
-    
+
     fn handle_validate(&mut self, args: &[&str]) -> RhemaResult<()> {
         let recursive = args.contains(&"--recursive");
         let json_schema = args.contains(&"--json-schema");
         let migrate = args.contains(&"--migrate");
-        
+
         crate::validate::run(&self.rhema, recursive, json_schema, migrate)
     }
-    
+
     fn handle_migrate(&mut self, args: &[&str]) -> RhemaResult<()> {
         let recursive = args.contains(&"--recursive");
         let dry_run = args.contains(&"--dry-run");
-        
+
         crate::migrate::run(&self.rhema, recursive, dry_run)
     }
-    
+
     fn handle_schema(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("schema requires a template type".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "schema requires a template type".to_string(),
+            ));
         }
-        
+
         let template_type = args[0].to_string();
-        let output_file = args.iter()
+        let output_file = args
+            .iter()
             .position(|&s| s == "--output-file")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         crate::schema::run(&self.rhema, &template_type, output_file.as_deref())
     }
-    
+
     fn handle_health(&mut self, args: &[&str]) -> RhemaResult<()> {
         let scope = args.get(0).map(|s| s.to_string());
         crate::health::run(&self.rhema, scope.as_deref())
     }
-    
+
     fn handle_stats(&mut self) -> RhemaResult<()> {
         crate::stats::run(&self.rhema)
     }
-    
+
     fn handle_todo(&mut self, _args: &[&str]) -> RhemaResult<()> {
         // Simplified - would need proper subcommand parsing
         let subcommand = TodoSubcommands::List {
@@ -516,7 +559,7 @@ impl AdvancedInteractiveSession {
         };
         crate::todo::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_insight(&mut self, _args: &[&str]) -> RhemaResult<()> {
         let subcommand = InsightSubcommands::List {
             category: None,
@@ -525,7 +568,7 @@ impl AdvancedInteractiveSession {
         };
         crate::insight::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_pattern(&mut self, _args: &[&str]) -> RhemaResult<()> {
         let subcommand = PatternSubcommands::List {
             pattern_type: None,
@@ -534,7 +577,7 @@ impl AdvancedInteractiveSession {
         };
         crate::pattern::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_decision(&mut self, _args: &[&str]) -> RhemaResult<()> {
         let subcommand = DecisionSubcommands::List {
             status: None,
@@ -542,35 +585,38 @@ impl AdvancedInteractiveSession {
         };
         crate::decision::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_dependencies(&mut self) -> RhemaResult<()> {
         crate::dependencies::run(&self.rhema)
     }
-    
+
     fn handle_impact(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("impact requires a file argument".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "impact requires a file argument".to_string(),
+            ));
         }
-        
+
         let file = args[0].to_string();
         crate::impact::run(&self.rhema, &file)
     }
-    
+
     fn handle_sync(&mut self) -> RhemaResult<()> {
         crate::sync::run(&self.rhema)
     }
-    
+
     fn handle_git(&mut self, _args: &[&str]) -> RhemaResult<()> {
         let subcommand = crate::git::GitSubcommands::Status;
         crate::git::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_export(&mut self, args: &[&str]) -> RhemaResult<()> {
-        let format = args.iter()
+        let format = args
+            .iter()
             .position(|&s| s == "--format")
             .and_then(|i| args.get(i + 1))
             .unwrap_or(&"json");
-        
+
         let mut include_protocol = false;
         let mut include_knowledge = false;
         let mut include_todos = false;
@@ -579,7 +625,7 @@ impl AdvancedInteractiveSession {
         let mut include_conventions = false;
         let mut summarize = false;
         let mut ai_agent_format = false;
-        
+
         for arg in args {
             match *arg {
                 "--include-protocol" => include_protocol = true,
@@ -593,17 +639,19 @@ impl AdvancedInteractiveSession {
                 _ => {}
             }
         }
-        
-        let output_file = args.iter()
+
+        let output_file = args
+            .iter()
             .position(|&s| s == "--output-file")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let scope_filter = args.iter()
+
+        let scope_filter = args
+            .iter()
             .position(|&s| s == "--scope-filter")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         crate::export_context::run(
             &self.rhema,
             format,
@@ -619,26 +667,29 @@ impl AdvancedInteractiveSession {
             ai_agent_format,
         )
     }
-    
+
     fn handle_primer(&mut self, args: &[&str]) -> RhemaResult<()> {
-        let scope_name = args.iter()
+        let scope_name = args
+            .iter()
             .position(|&s| s == "--scope-name")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let output_dir = args.iter()
+
+        let output_dir = args
+            .iter()
             .position(|&s| s == "--output-dir")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let template_type = args.iter()
+
+        let template_type = args
+            .iter()
             .position(|&s| s == "--template-type")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         let include_examples = args.contains(&"--include-examples");
         let validate = args.contains(&"--validate");
-        
+
         crate::primer::run(
             &self.rhema,
             scope_name.as_deref(),
@@ -648,33 +699,39 @@ impl AdvancedInteractiveSession {
             validate,
         )
     }
-    
+
     fn handle_readme(&mut self, args: &[&str]) -> RhemaResult<()> {
-        let scope_name = args.iter()
+        let scope_name = args
+            .iter()
             .position(|&s| s == "--scope-name")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let output_file = args.iter()
+
+        let output_file = args
+            .iter()
             .position(|&s| s == "--output-file")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let template = args.iter()
+
+        let template = args
+            .iter()
             .position(|&s| s == "--template")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         let include_context = args.contains(&"--include-context");
         let seo_optimized = args.contains(&"--seo-optimized");
-        
-        let custom_sections = args.iter()
+
+        let custom_sections = args
+            .iter()
             .position(|&s| s == "--custom-sections")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let custom_sections_vec = custom_sections.as_ref().map(|s| s.split(',').map(|s| s.trim().to_string()).collect());
-        
+
+        let custom_sections_vec = custom_sections
+            .as_ref()
+            .map(|s| s.split(',').map(|s| s.trim().to_string()).collect());
+
         crate::generate_readme::run(
             &self.rhema,
             scope_name.as_deref(),
@@ -685,33 +742,37 @@ impl AdvancedInteractiveSession {
             custom_sections_vec,
         )
     }
-    
+
     fn handle_bootstrap(&mut self, args: &[&str]) -> RhemaResult<()> {
-        let use_case = args.iter()
+        let use_case = args
+            .iter()
             .position(|&s| s == "--use-case")
             .and_then(|i| args.get(i + 1))
             .unwrap_or(&"code_review");
-        
-        let output_format = args.iter()
+
+        let output_format = args
+            .iter()
             .position(|&s| s == "--output-format")
             .and_then(|i| args.get(i + 1))
             .unwrap_or(&"json");
-        
-        let output_dir = args.iter()
+
+        let output_dir = args
+            .iter()
             .position(|&s| s == "--output-dir")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let scope_filter = args.iter()
+
+        let scope_filter = args
+            .iter()
             .position(|&s| s == "--scope-filter")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         let include_all = args.contains(&"--include-all");
         let optimize_for_ai = args.contains(&"--optimize-for-ai");
         let create_primer = args.contains(&"--create-primer");
         let create_readme = args.contains(&"--create-readme");
-        
+
         crate::bootstrap_context::run(
             &self.rhema,
             use_case,
@@ -724,27 +785,29 @@ impl AdvancedInteractiveSession {
             create_readme,
         )
     }
-    
+
     // Old handle_daemon method removed - use handle_daemon_enhanced instead
-    
+
     // Interactive-specific commands
     fn handle_set(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.len() < 2 {
-            return Err(RhemaError::InvalidCommand("set requires key and value".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "set requires key and value".to_string(),
+            ));
         }
-        
+
         let key = args[0].to_string();
         let value = args[1..].join(" ");
         self.variables.insert(key.clone(), value);
         println!("{} = {}", key.cyan(), self.variables[&key]);
         Ok(())
     }
-    
+
     fn handle_get(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
             return Err(RhemaError::InvalidCommand("get requires a key".to_string()));
         }
-        
+
         let key = args[0];
         if let Some(value) = self.variables.get(key) {
             println!("{} = {}", key.cyan(), value);
@@ -753,16 +816,20 @@ impl AdvancedInteractiveSession {
         }
         Ok(())
     }
-    
+
     fn handle_workflow(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("workflow requires a subcommand".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "workflow requires a subcommand".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "create" => {
                 if args.len() < 3 {
-                    return Err(RhemaError::InvalidCommand("workflow create requires name and commands".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "workflow create requires name and commands".to_string(),
+                    ));
                 }
                 let name = args[1].to_string();
                 let commands: Vec<String> = args[2..].iter().map(|s| s.to_string()).collect();
@@ -771,7 +838,9 @@ impl AdvancedInteractiveSession {
             }
             "run" => {
                 if args.len() < 2 {
-                    return Err(RhemaError::InvalidCommand("workflow run requires a name".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "workflow run requires a name".to_string(),
+                    ));
                 }
                 let name = args[1];
                 if let Some(commands) = self.workflows.get(name) {
@@ -791,17 +860,21 @@ impl AdvancedInteractiveSession {
                 self.list_workflows();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown workflow subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown workflow subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_plugin(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("plugin requires a subcommand".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "plugin requires a subcommand".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "list" => {
                 println!("{}", "Plugins:".bold().green());
@@ -811,7 +884,9 @@ impl AdvancedInteractiveSession {
             }
             "info" => {
                 if args.len() < 2 {
-                    return Err(RhemaError::InvalidCommand("plugin info requires a name".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "plugin info requires a name".to_string(),
+                    ));
                 }
                 let name = args[1];
                 if self.config.plugins.contains(&name.to_string()) {
@@ -822,17 +897,21 @@ impl AdvancedInteractiveSession {
                 }
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown plugin subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown plugin subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_visualize(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("visualize requires a type".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "visualize requires a type".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "scopes" => {
                 self.visualize_scopes();
@@ -844,17 +923,21 @@ impl AdvancedInteractiveSession {
                 self.visualize_stats();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown visualization type".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown visualization type".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_debug(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("debug requires a subcommand".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "debug requires a subcommand".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "context" => {
                 self.debug_context();
@@ -866,34 +949,40 @@ impl AdvancedInteractiveSession {
                 self.debug_performance();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown debug subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown debug subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_profile(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("profile requires a command".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "profile requires a command".to_string(),
+            ));
         }
-        
+
         let command = args.join(" ");
         let start = std::time::Instant::now();
-        
+
         let result = self.execute_command(&command);
-        
+
         let duration = start.elapsed();
         println!("Command took: {:?}", duration);
-        
+
         result
     }
-    
+
     // Advanced interactive commands
     fn handle_context(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("context requires a subcommand".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "context requires a subcommand".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "explore" => {
                 println!("{}", "Context Explorer".bold().green());
@@ -902,7 +991,9 @@ impl AdvancedInteractiveSession {
             }
             "navigate" => {
                 if args.len() < 2 {
-                    return Err(RhemaError::InvalidCommand("context navigate requires a scope".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "context navigate requires a scope".to_string(),
+                    ));
                 }
                 self.current_scope = Some(args[1].to_string());
                 println!("Navigated to scope: {}", args[1].cyan());
@@ -912,27 +1003,31 @@ impl AdvancedInteractiveSession {
                 println!("Cache size: {}", self.context_cache.len());
                 Ok(())
             }
-            _ => Err(RhemaError::InvalidCommand("Unknown context subcommand".to_string())),
+            _ => Err(RhemaError::InvalidCommand(
+                "Unknown context subcommand".to_string(),
+            )),
         }
     }
-    
+
     fn handle_navigate(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("navigate requires a scope".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "navigate requires a scope".to_string(),
+            ));
         }
-        
+
         let scope = args[0];
         self.current_scope = Some(scope.to_string());
         println!("Navigated to scope: {}", scope.cyan());
         Ok(())
     }
-    
+
     fn handle_cache(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
             println!("Cache size: {}", self.context_cache.len());
             return Ok(());
         }
-        
+
         match args[0] {
             "clear" => {
                 self.context_cache.clear();
@@ -945,12 +1040,14 @@ impl AdvancedInteractiveSession {
                 }
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown cache subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown cache subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_explore(&mut self, _args: &[&str]) -> RhemaResult<()> {
         println!("{}", "Interactive Context Explorer".bold().green());
         println!("This feature allows you to explore context interactively");
@@ -975,21 +1072,21 @@ impl AdvancedInteractiveSession {
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
     }
-    
+
     fn visualize_dependencies(&self) {
         match crate::dependencies::run(&self.rhema) {
             Ok(_) => println!("{}", "Dependencies visualization complete".green()),
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
     }
-    
+
     fn visualize_stats(&self) {
         match crate::stats::run(&self.rhema) {
             Ok(_) => println!("{}", "Statistics visualization complete".green()),
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
     }
-    
+
     // Debug methods
     fn debug_context(&self) {
         println!("{}", "Context Debug Information:".bold().green());
@@ -998,14 +1095,14 @@ impl AdvancedInteractiveSession {
         println!("Context Cache Size: {}", self.context_cache.len());
         println!("Variables: {:?}", self.variables);
     }
-    
+
     fn debug_cache(&self) {
         println!("{}", "Cache Debug Information:".bold().green());
         for (key, value) in &self.context_cache {
             println!("  {}: {:?}", key.cyan(), value);
         }
     }
-    
+
     fn debug_performance(&self) {
         println!("{}", "Performance Debug Information:".bold().green());
         println!("Plugins Loaded: {}", self.config.plugins.len());
@@ -1023,7 +1120,10 @@ impl AdvancedInteractiveSession {
         }
     }
 
-    fn handle_insight_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_insight_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         match parser.parse_insight_subcommand() {
             Ok(subcommand) => crate::insight::run(&self.rhema, &subcommand),
             Err(e) => {
@@ -1033,7 +1133,10 @@ impl AdvancedInteractiveSession {
         }
     }
 
-    fn handle_pattern_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_pattern_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         match parser.parse_pattern_subcommand() {
             Ok(subcommand) => crate::pattern::run(&self.rhema, &subcommand),
             Err(e) => {
@@ -1043,7 +1146,10 @@ impl AdvancedInteractiveSession {
         }
     }
 
-    fn handle_decision_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_decision_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         match parser.parse_decision_subcommand() {
             Ok(subcommand) => crate::decision::run(&self.rhema, &subcommand),
             Err(e) => {
@@ -1068,11 +1174,19 @@ impl AdvancedInteractiveSession {
         let scope_type = parser.next().map(|s| s.to_string());
         let scope_name = parser.next().map(|s| s.to_string());
         let auto_config = parser.remaining().iter().any(|arg| arg == "--auto-config");
-        
-        crate::init::run(&self.rhema, scope_type.as_deref(), scope_name.as_deref(), auto_config)
+
+        crate::init::run(
+            &self.rhema,
+            scope_type.as_deref(),
+            scope_name.as_deref(),
+            auto_config,
+        )
     }
 
-    fn handle_scopes_enhanced(&mut self, _parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_scopes_enhanced(
+        &mut self,
+        _parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         crate::scopes::run(&self.rhema)
     }
 
@@ -1086,38 +1200,44 @@ impl AdvancedInteractiveSession {
     }
 
     fn handle_show_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let file = parser.next()
+        let file = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("show requires a file argument".to_string()))?
             .to_string();
         let scope = parser.next().map(|s| s.to_string());
-        
+
         crate::show::run(&self.rhema, &file, scope.as_deref())
     }
 
     fn handle_query_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let query = parser.next()
+        let query = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("query requires a query string".to_string()))?
             .to_string();
-        
+
         let mut stats = false;
         let mut format = "yaml".to_string();
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--stats" => stats = true,
                 "--format" => {
-                    format = parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--format requires a value".to_string()))?
+                    format = parser
+                        .next()
+                        .ok_or_else(|| {
+                            RhemaError::InvalidCommand("--format requires a value".to_string())
+                        })?
                         .to_string();
                 }
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
+
         if stats {
             crate::query::run_with_stats(&self.rhema, &query)
         } else if format != "yaml" {
@@ -1128,94 +1248,120 @@ impl AdvancedInteractiveSession {
     }
 
     fn handle_search_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let term = parser.next()
+        let term = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("search requires a search term".to_string()))?
             .to_string();
-        
+
         let mut in_file = None;
         let mut regex = false;
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--in-file" => {
-                    in_file = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--in-file requires a value".to_string()))?
-                        .to_string());
+                    in_file = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand("--in-file requires a value".to_string())
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--regex" => regex = true,
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
+
         crate::search::run(&self.rhema, &term, in_file.as_deref(), regex)
     }
 
-    fn handle_validate_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_validate_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         let mut recursive = false;
         let mut json_schema = false;
         let mut migrate = false;
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--recursive" => recursive = true,
                 "--json-schema" => json_schema = true,
                 "--migrate" => migrate = true,
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
+
         crate::validate::run(&self.rhema, recursive, json_schema, migrate)
     }
 
-    fn handle_migrate_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_migrate_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         let mut recursive = false;
         let mut dry_run = false;
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--recursive" => recursive = true,
                 "--dry-run" => dry_run = true,
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
+
         crate::migrate::run(&self.rhema, recursive, dry_run)
     }
 
     fn handle_schema_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let template_type = parser.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("schema requires a template type".to_string()))?
+        let template_type = parser
+            .next()
+            .ok_or_else(|| {
+                RhemaError::InvalidCommand("schema requires a template type".to_string())
+            })?
             .to_string();
-        
+
         let mut output_file = None;
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--output-file" => {
-                    output_file = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--output-file requires a value".to_string()))?
-                        .to_string());
+                    output_file = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--output-file requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
+
         crate::schema::run(&self.rhema, &template_type, output_file.as_deref())
     }
 
@@ -1228,15 +1374,21 @@ impl AdvancedInteractiveSession {
         crate::stats::run(&self.rhema)
     }
 
-    fn handle_dependencies_enhanced(&mut self, _parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_dependencies_enhanced(
+        &mut self,
+        _parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         crate::dependencies::run(&self.rhema)
     }
 
     fn handle_impact_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let file = parser.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("impact requires a file argument".to_string()))?
+        let file = parser
+            .next()
+            .ok_or_else(|| {
+                RhemaError::InvalidCommand("impact requires a file argument".to_string())
+            })?
             .to_string();
-        
+
         crate::impact::run(&self.rhema, &file)
     }
 
@@ -1256,23 +1408,40 @@ impl AdvancedInteractiveSession {
         let mut include_conventions = false;
         let mut summarize = false;
         let mut ai_agent_format = false;
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--format" => {
-                    format = parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--format requires a value".to_string()))?
+                    format = parser
+                        .next()
+                        .ok_or_else(|| {
+                            RhemaError::InvalidCommand("--format requires a value".to_string())
+                        })?
                         .to_string();
                 }
                 "--output-file" => {
-                    output_file = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--output-file requires a value".to_string()))?
-                        .to_string());
+                    output_file = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--output-file requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--scope-filter" => {
-                    scope_filter = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--scope-filter requires a value".to_string()))?
-                        .to_string());
+                    scope_filter = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--scope-filter requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--include-protocol" => include_protocol = true,
                 "--include-knowledge" => include_knowledge = true,
@@ -1283,13 +1452,14 @@ impl AdvancedInteractiveSession {
                 "--summarize" => summarize = true,
                 "--ai-agent-format" => ai_agent_format = true,
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
+
         crate::export_context::run(
             &self.rhema,
             &format,
@@ -1312,34 +1482,56 @@ impl AdvancedInteractiveSession {
         let mut template_type = None;
         let mut include_examples = false;
         let mut validate = false;
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--scope-name" => {
-                    scope_name = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--scope-name requires a value".to_string()))?
-                        .to_string());
+                    scope_name = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--scope-name requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--output-dir" => {
-                    output_dir = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--output-dir requires a value".to_string()))?
-                        .to_string());
+                    output_dir = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--output-dir requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--template-type" => {
-                    template_type = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--template-type requires a value".to_string()))?
-                        .to_string());
+                    template_type = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--template-type requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--include-examples" => include_examples = true,
                 "--validate" => validate = true,
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
+
         crate::primer::run(
             &self.rhema,
             scope_name.as_deref(),
@@ -1357,41 +1549,72 @@ impl AdvancedInteractiveSession {
         let mut include_context = false;
         let mut seo_optimized = false;
         let mut custom_sections = None;
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--scope-name" => {
-                    scope_name = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--scope-name requires a value".to_string()))?
-                        .to_string());
+                    scope_name = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--scope-name requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--output-file" => {
-                    output_file = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--output-file requires a value".to_string()))?
-                        .to_string());
+                    output_file = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--output-file requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--template" => {
-                    template = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--template requires a value".to_string()))?
-                        .to_string());
+                    template = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--template requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--include-context" => include_context = true,
                 "--seo-optimized" => seo_optimized = true,
                 "--custom-sections" => {
-                    custom_sections = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--custom-sections requires a value".to_string()))?
-                        .to_string());
+                    custom_sections = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--custom-sections requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
-        let custom_sections_vec = custom_sections.as_ref().map(|s| s.split(',').map(|s| s.trim().to_string()).collect());
-        
+
+        let custom_sections_vec = custom_sections
+            .as_ref()
+            .map(|s| s.split(',').map(|s| s.trim().to_string()).collect());
+
         crate::generate_readme::run(
             &self.rhema,
             scope_name.as_deref(),
@@ -1403,7 +1626,10 @@ impl AdvancedInteractiveSession {
         )
     }
 
-    fn handle_bootstrap_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_bootstrap_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         let mut use_case = "code_review".to_string();
         let mut output_format = "json".to_string();
         let mut output_dir = None;
@@ -1412,41 +1638,64 @@ impl AdvancedInteractiveSession {
         let mut optimize_for_ai = false;
         let mut create_primer = false;
         let mut create_readme = false;
-        
+
         while let Some(arg) = parser.next() {
             match arg {
                 "--use-case" => {
-                    use_case = parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--use-case requires a value".to_string()))?
+                    use_case = parser
+                        .next()
+                        .ok_or_else(|| {
+                            RhemaError::InvalidCommand("--use-case requires a value".to_string())
+                        })?
                         .to_string();
                 }
                 "--output-format" => {
-                    output_format = parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--output-format requires a value".to_string()))?
+                    output_format = parser
+                        .next()
+                        .ok_or_else(|| {
+                            RhemaError::InvalidCommand(
+                                "--output-format requires a value".to_string(),
+                            )
+                        })?
                         .to_string();
                 }
                 "--output-dir" => {
-                    output_dir = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--output-dir requires a value".to_string()))?
-                        .to_string());
+                    output_dir = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--output-dir requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--scope-filter" => {
-                    scope_filter = Some(parser.next()
-                        .ok_or_else(|| RhemaError::InvalidCommand("--scope-filter requires a value".to_string()))?
-                        .to_string());
+                    scope_filter = Some(
+                        parser
+                            .next()
+                            .ok_or_else(|| {
+                                RhemaError::InvalidCommand(
+                                    "--scope-filter requires a value".to_string(),
+                                )
+                            })?
+                            .to_string(),
+                    );
                 }
                 "--include-all" => include_all = true,
                 "--optimize-for-ai" => optimize_for_ai = true,
                 "--create-primer" => create_primer = true,
                 "--create-readme" => create_readme = true,
                 _ => {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Unknown argument: {}", arg)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Unknown argument: {}",
+                        arg
+                    )));
                 }
             }
         }
-        
+
         crate::bootstrap_context::run(
             &self.rhema,
             &use_case,
@@ -1461,9 +1710,10 @@ impl AdvancedInteractiveSession {
     }
 
     fn handle_daemon_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let _subcommand = parser.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("daemon requires a subcommand".to_string()))?;
-        
+        let _subcommand = parser.next().ok_or_else(|| {
+            RhemaError::InvalidCommand("daemon requires a subcommand".to_string())
+        })?;
+
         // For now, just show available subcommands
         println!("{}", "Available daemon subcommands:".yellow());
         println!("  start - Start the MCP daemon");
@@ -1475,29 +1725,33 @@ impl AdvancedInteractiveSession {
         println!("  config - Generate configuration file");
         println!();
         println!("Use 'rhema daemon <subcommand>' directly for daemon operations");
-        
+
         Ok(())
     }
 
     fn handle_set_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let key = parser.next()
+        let key = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("set requires a key".to_string()))?
             .to_string();
-        
+
         let value = parser.remaining().join(" ");
         if value.is_empty() {
-            return Err(RhemaError::InvalidCommand("set requires a value".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "set requires a value".to_string(),
+            ));
         }
-        
+
         self.variables.insert(key.clone(), value.clone());
         println!("{} = {}", key.cyan(), value);
         Ok(())
     }
 
     fn handle_get_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let key = parser.next()
+        let key = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("get requires a key".to_string()))?;
-        
+
         if let Some(value) = self.variables.get(key) {
             println!("{} = {}", key.cyan(), value);
         } else {
@@ -1506,28 +1760,39 @@ impl AdvancedInteractiveSession {
         Ok(())
     }
 
-    fn handle_workflow_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let subcommand = parser.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("workflow requires a subcommand".to_string()))?;
-        
+    fn handle_workflow_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
+        let subcommand = parser.next().ok_or_else(|| {
+            RhemaError::InvalidCommand("workflow requires a subcommand".to_string())
+        })?;
+
         match subcommand {
             "create" => {
-                let name = parser.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("workflow create requires a name".to_string()))?
+                let name = parser
+                    .next()
+                    .ok_or_else(|| {
+                        RhemaError::InvalidCommand("workflow create requires a name".to_string())
+                    })?
                     .to_string();
-                
-                let commands: Vec<String> = parser.remaining().iter().map(|s| s.to_string()).collect();
+
+                let commands: Vec<String> =
+                    parser.remaining().iter().map(|s| s.to_string()).collect();
                 if commands.is_empty() {
-                    return Err(RhemaError::InvalidCommand("workflow create requires commands".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "workflow create requires commands".to_string(),
+                    ));
                 }
-                
+
                 self.workflows.insert(name.clone(), commands);
                 println!("{}", "Workflow created".green());
             }
             "run" => {
-                let name = parser.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("workflow run requires a name".to_string()))?;
-                
+                let name = parser.next().ok_or_else(|| {
+                    RhemaError::InvalidCommand("workflow run requires a name".to_string())
+                })?;
+
                 if let Some(commands) = self.workflows.get(name) {
                     println!("Running workflow: {}", name.cyan());
                     let commands_clone = commands.clone();
@@ -1545,40 +1810,50 @@ impl AdvancedInteractiveSession {
                 self.list_workflows();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown workflow subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown workflow subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
 
     fn handle_plugin_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let subcommand = parser.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("plugin requires a subcommand".to_string()))?;
-        
+        let subcommand = parser.next().ok_or_else(|| {
+            RhemaError::InvalidCommand("plugin requires a subcommand".to_string())
+        })?;
+
         match subcommand {
             "list" => {
                 // TODO: Implement list_plugins
                 println!("{}", "Plugin listing not implemented yet".yellow());
             }
             "info" => {
-                let _name = parser.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("plugin info requires a name".to_string()))?;
-                
+                let _name = parser.next().ok_or_else(|| {
+                    RhemaError::InvalidCommand("plugin info requires a name".to_string())
+                })?;
+
                 // TODO: Implement find_plugin
                 println!("{}", "Plugin finding not implemented yet".yellow());
                 println!("{}", "Plugin not found".yellow());
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown plugin subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown plugin subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
 
-    fn handle_visualize_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let visualization_type = parser.next()
+    fn handle_visualize_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
+        let visualization_type = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("visualize requires a type".to_string()))?;
-        
+
         match visualization_type {
             "scopes" => {
                 self.visualize_scopes();
@@ -1590,16 +1865,19 @@ impl AdvancedInteractiveSession {
                 self.visualize_stats();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown visualization type".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown visualization type".to_string(),
+                ));
             }
         }
         Ok(())
     }
 
     fn handle_debug_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let subcommand = parser.next()
+        let subcommand = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("debug requires a subcommand".to_string()))?;
-        
+
         match subcommand {
             "context" => {
                 self.debug_context();
@@ -1611,30 +1889,41 @@ impl AdvancedInteractiveSession {
                 self.debug_performance();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown debug subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown debug subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
 
-    fn handle_profile_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_profile_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         let command = parser.remaining().join(" ");
         if command.is_empty() {
-            return Err(RhemaError::InvalidCommand("profile requires a command".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "profile requires a command".to_string(),
+            ));
         }
-        
+
         let start = std::time::Instant::now();
         let result = self.execute_command(&command);
         let duration = start.elapsed();
         println!("Command took: {:?}", duration);
-        
+
         result
     }
 
-    fn handle_context_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let subcommand = parser.next()
-            .ok_or_else(|| RhemaError::InvalidCommand("context requires a subcommand".to_string()))?;
-        
+    fn handle_context_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
+        let subcommand = parser.next().ok_or_else(|| {
+            RhemaError::InvalidCommand("context requires a subcommand".to_string())
+        })?;
+
         match subcommand {
             "explore" => {
                 println!("{}", "Context Explorer".bold().green());
@@ -1642,9 +1931,10 @@ impl AdvancedInteractiveSession {
                 Ok(())
             }
             "navigate" => {
-                let scope = parser.next()
-                    .ok_or_else(|| RhemaError::InvalidCommand("context navigate requires a scope".to_string()))?;
-                
+                let scope = parser.next().ok_or_else(|| {
+                    RhemaError::InvalidCommand("context navigate requires a scope".to_string())
+                })?;
+
                 self.current_scope = Some(scope.to_string());
                 println!("Navigated to scope: {}", scope.cyan());
                 Ok(())
@@ -1653,25 +1943,30 @@ impl AdvancedInteractiveSession {
                 println!("Cache size: {}", self.context_cache.len());
                 Ok(())
             }
-            _ => {
-                Err(RhemaError::InvalidCommand("Unknown context subcommand".to_string()))
-            }
+            _ => Err(RhemaError::InvalidCommand(
+                "Unknown context subcommand".to_string(),
+            )),
         }
     }
 
-    fn handle_navigate_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let scope = parser.next()
+    fn handle_navigate_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
+        let scope = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("navigate requires a scope".to_string()))?;
-        
+
         self.current_scope = Some(scope.to_string());
         println!("Navigated to scope: {}", scope.cyan());
         Ok(())
     }
 
     fn handle_cache_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
-        let subcommand = parser.next()
+        let subcommand = parser
+            .next()
             .ok_or_else(|| RhemaError::InvalidCommand("cache requires a subcommand".to_string()))?;
-        
+
         match subcommand {
             "clear" => {
                 self.context_cache.clear();
@@ -1684,57 +1979,71 @@ impl AdvancedInteractiveSession {
                 }
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown cache subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown cache subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
 
-    fn handle_explore_enhanced(&mut self, _parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_explore_enhanced(
+        &mut self,
+        _parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         println!("{}", "Context Explorer".bold().green());
         // Interactive context exploration
         Ok(())
     }
 
-    fn handle_builder_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {
+    fn handle_builder_enhanced(
+        &mut self,
+        parser: &mut InteractiveCommandParser,
+    ) -> RhemaResult<()> {
         let args = parser.args();
-        let subcommand = args
-            .get(1)
-            .ok_or_else(|| RhemaError::InvalidCommand("builder requires a subcommand".to_string()))?;
-        
+        let subcommand = args.get(1).ok_or_else(|| {
+            RhemaError::InvalidCommand("builder requires a subcommand".to_string())
+        })?;
+
         match subcommand.as_str() {
             "todo" => {
-                let builder = crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
+                let builder =
+                    crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
                 let command = builder.build_todo_add()?;
                 println!("{}", "Execute this command:".bold().green());
                 println!("{}", command);
             }
             "insight" => {
-                let builder = crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
+                let builder =
+                    crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
                 let command = builder.build_insight_record()?;
                 println!("{}", "Execute this command:".bold().green());
                 println!("{}", command);
             }
             "pattern" => {
-                let builder = crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
+                let builder =
+                    crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
                 let command = builder.build_pattern_add()?;
                 println!("{}", "Execute this command:".bold().green());
                 println!("{}", command);
             }
             "decision" => {
-                let builder = crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
+                let builder =
+                    crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
                 let command = builder.build_decision_record()?;
                 println!("{}", "Execute this command:".bold().green());
                 println!("{}", command);
             }
             "query" => {
-                let builder = crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
+                let builder =
+                    crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
                 let command = builder.build_query()?;
                 println!("{}", "Execute this command:".bold().green());
                 println!("{}", command);
             }
             "prompt" => {
-                let builder = crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
+                let builder =
+                    crate::interactive_builder::InteractiveBuilder::new(self.rhema.clone());
                 let command = builder.build_prompt_pattern()?;
                 println!("{}", "Execute this command:".bold().green());
                 println!("{}", command);
@@ -1744,20 +2053,20 @@ impl AdvancedInteractiveSession {
                 println!("Available subcommands: todo, insight, pattern, decision, query, prompt");
             }
         }
-        
+
         Ok(())
     }
 
     fn prompt_yes_no(&self) -> RhemaResult<bool> {
         use std::io::{self, Write};
-        
+
         loop {
             print!("{} (y/n): ", "Execute".cyan());
             io::stdout().flush()?;
-            
+
             let mut input = String::new();
             io::stdin().read_line(&mut input)?;
-            
+
             let input = input.trim().to_lowercase();
             match input.as_str() {
                 "y" | "yes" => return Ok(true),
@@ -1786,11 +2095,12 @@ pub fn run_advanced_interactive_with_config(
     let mut config = if let Some(config_path) = config_file {
         // Load configuration from file
         let config_content = std::fs::read_to_string(config_path)?;
-        serde_yaml::from_str(&config_content).unwrap_or_else(|_| AdvancedInteractiveConfig::default())
+        serde_yaml::from_str(&config_content)
+            .unwrap_or_else(|_| AdvancedInteractiveConfig::default())
     } else {
         AdvancedInteractiveConfig::default()
     };
-    
+
     // Override configuration based on command line arguments
     if no_auto_complete {
         config.auto_complete = false;
@@ -1801,7 +2111,7 @@ pub fn run_advanced_interactive_with_config(
     if no_context_aware {
         config.context_aware = false;
     }
-    
+
     let mut session = AdvancedInteractiveSession::new(rhema, config)?;
     session.start_repl()
-} 
+}

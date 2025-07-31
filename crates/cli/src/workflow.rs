@@ -1,12 +1,12 @@
-use crate::{Rhema, RhemaResult, RhemaError};
-use rhema_core::schema::{PromptChain, ChainStep, ChainMetadata, ChainUsageStats, Workflows};
-use crate::{load_workflows, save_workflows, load_prompts};
-use clap::Subcommand;
-use std::collections::HashMap;
-use uuid::Uuid;
+use crate::{load_prompts, load_workflows, save_workflows};
+use crate::{Rhema, RhemaError, RhemaResult};
 use chrono::Utc;
-use std::time::Instant;
+use clap::Subcommand;
 use colored::Colorize;
+use rhema_core::schema::{ChainMetadata, ChainStep, ChainUsageStats, PromptChain, Workflows};
+use std::collections::HashMap;
+use std::time::Instant;
+use uuid::Uuid;
 
 #[derive(Subcommand)]
 pub enum WorkflowSubcommands {
@@ -50,24 +50,47 @@ pub enum WorkflowSubcommands {
 
 pub fn run(rhema: &Rhema, subcommand: &WorkflowSubcommands) -> RhemaResult<()> {
     match subcommand {
-        WorkflowSubcommands::Add { name, description, tags, scope } => {
-            add_workflow(rhema, name, description, tags, scope)
-        }
-        WorkflowSubcommands::List { scope, tags } => {
-            list_workflows(rhema, scope, tags)
-        }
-        WorkflowSubcommands::AddStep { workflow, name, prompt_pattern, task_type, description, required, dependencies, variables, scope } => {
-            add_step(rhema, workflow, name, prompt_pattern, task_type, description, *required, dependencies, variables, scope)
-        }
-        WorkflowSubcommands::Execute { workflow, scope, dry_run } => {
-            execute_workflow(rhema, workflow, scope, *dry_run)
-        }
-        WorkflowSubcommands::Show { workflow, scope } => {
-            show_workflow(rhema, workflow, scope)
-        }
-        WorkflowSubcommands::RecordExecution { workflow, successful, execution_time, scope } => {
-            record_execution(rhema, workflow, *successful, *execution_time, scope)
-        }
+        WorkflowSubcommands::Add {
+            name,
+            description,
+            tags,
+            scope,
+        } => add_workflow(rhema, name, description, tags, scope),
+        WorkflowSubcommands::List { scope, tags } => list_workflows(rhema, scope, tags),
+        WorkflowSubcommands::AddStep {
+            workflow,
+            name,
+            prompt_pattern,
+            task_type,
+            description,
+            required,
+            dependencies,
+            variables,
+            scope,
+        } => add_step(
+            rhema,
+            workflow,
+            name,
+            prompt_pattern,
+            task_type,
+            description,
+            *required,
+            dependencies,
+            variables,
+            scope,
+        ),
+        WorkflowSubcommands::Execute {
+            workflow,
+            scope,
+            dry_run,
+        } => execute_workflow(rhema, workflow, scope, *dry_run),
+        WorkflowSubcommands::Show { workflow, scope } => show_workflow(rhema, workflow, scope),
+        WorkflowSubcommands::RecordExecution {
+            workflow,
+            successful,
+            execution_time,
+            scope,
+        } => record_execution(rhema, workflow, *successful, *execution_time, scope),
     }
 }
 
@@ -85,7 +108,7 @@ fn add_workflow(
     };
 
     let workflows_path = scope_path.join(".rhema").join("workflows.yaml");
-    
+
     // Parse tags
     let tags_vec = if let Some(tags_str) = tags {
         Some(tags_str.split(',').map(|s| s.trim().to_string()).collect())
@@ -114,7 +137,9 @@ fn add_workflow(
     let mut workflows = if workflows_path.exists() {
         load_workflows(&workflows_path)?
     } else {
-        Workflows { workflows: Vec::new() }
+        Workflows {
+            workflows: Vec::new(),
+        }
     };
 
     // Add new workflow
@@ -123,17 +148,17 @@ fn add_workflow(
     // Save back to file
     save_workflows(&workflows_path, &workflows)?;
 
-    println!("✅ Added workflow '{}' to {}", name, workflows_path.display());
+    println!(
+        "✅ Added workflow '{}' to {}",
+        name,
+        workflows_path.display()
+    );
     println!("   Use 'rhema workflow add-step' to add steps to this workflow");
 
     Ok(())
 }
 
-fn list_workflows(
-    rhema: &Rhema,
-    scope: &Option<String>,
-    tags: &Option<String>,
-) -> RhemaResult<()> {
+fn list_workflows(rhema: &Rhema, scope: &Option<String>, tags: &Option<String>) -> RhemaResult<()> {
     let scope_path = if let Some(scope_name) = scope {
         rhema.find_scope_path(scope_name)?
     } else {
@@ -141,18 +166,20 @@ fn list_workflows(
     };
 
     let workflows_path = scope_path.join(".rhema").join("workflows.yaml");
-    
+
     if !workflows_path.exists() {
         println!("No workflows.yaml found in {}", scope_path.display());
         return Ok(());
     }
 
     let workflows = load_workflows(&workflows_path)?;
-    
+
     // Filter by tags if specified
     let filtered_workflows = if let Some(tags_str) = tags {
         let filter_tags: Vec<String> = tags_str.split(',').map(|s| s.trim().to_string()).collect();
-        workflows.workflows.into_iter()
+        workflows
+            .workflows
+            .into_iter()
             .filter(|w| {
                 if let Some(workflow_tags) = &w.tags {
                     filter_tags.iter().any(|tag| workflow_tags.contains(tag))
@@ -172,7 +199,7 @@ fn list_workflows(
 
     println!("🔄 Workflows in {}:", scope_path.display());
     println!("{}", "=".repeat(60));
-    
+
     for workflow in filtered_workflows {
         println!("ID: {}", workflow.id);
         println!("Name: {}", workflow.name);
@@ -181,10 +208,12 @@ fn list_workflows(
         }
         println!("Version: {}", workflow.metadata.version);
         println!("Steps: {}", workflow.steps.len());
-        println!("Usage: {}/{} successful ({:.1}%)", 
+        println!(
+            "Usage: {}/{} successful ({:.1}%)",
             workflow.metadata.usage_stats.successful_executions,
             workflow.metadata.usage_stats.total_executions,
-            workflow.metadata.usage_stats.success_rate() * 100.0);
+            workflow.metadata.usage_stats.success_rate() * 100.0
+        );
         if let Some(last_executed) = workflow.metadata.usage_stats.last_executed {
             println!("Last executed: {}", last_executed.format("%Y-%m-%d %H:%M"));
         }
@@ -216,33 +245,36 @@ fn add_step(
     };
 
     let workflows_path = scope_path.join(".rhema").join("workflows.yaml");
-    
+
     if !workflows_path.exists() {
         return Err(RhemaError::InvalidCommand(
-            "No workflows.yaml found".to_string()
+            "No workflows.yaml found".to_string(),
         ));
     }
 
     let mut workflows = load_workflows(&workflows_path)?;
-    
+
     // Find workflow by ID or name
-    let workflow_index = workflows.workflows.iter()
+    let workflow_index = workflows
+        .workflows
+        .iter()
         .position(|w| w.id == workflow || w.name == workflow)
-        .ok_or_else(|| RhemaError::InvalidCommand(
-            format!("Workflow '{}' not found", workflow)
-        ))?;
+        .ok_or_else(|| RhemaError::InvalidCommand(format!("Workflow '{}' not found", workflow)))?;
 
     // Verify prompt pattern exists
     let prompts_path = scope_path.join(".rhema").join("prompts.yaml");
     if prompts_path.exists() {
         let prompts = load_prompts(&prompts_path)?;
-        let pattern_exists = prompts.prompts.iter()
+        let pattern_exists = prompts
+            .prompts
+            .iter()
             .any(|p| p.id == prompt_pattern || p.name == prompt_pattern);
-        
+
         if !pattern_exists {
-            return Err(RhemaError::InvalidCommand(
-                format!("Prompt pattern '{}' not found", prompt_pattern)
-            ));
+            return Err(RhemaError::InvalidCommand(format!(
+                "Prompt pattern '{}' not found",
+                prompt_pattern
+            )));
         }
     }
 
@@ -283,7 +315,7 @@ fn add_step(
     // Add step to workflow
     workflows.workflows[workflow_index].steps.push(new_step);
     workflows.workflows[workflow_index].metadata.updated_at = Utc::now();
-    
+
     save_workflows(&workflows_path, &workflows)?;
 
     println!("✅ Added step '{}' to workflow '{}'", name, workflow);
@@ -291,7 +323,10 @@ fn add_step(
     if let Some(task) = task_type {
         println!("   Task type: {}", task);
     }
-    println!("   Order: {}", workflows.workflows[workflow_index].steps.len());
+    println!(
+        "   Order: {}",
+        workflows.workflows[workflow_index].steps.len()
+    );
 
     Ok(())
 }
@@ -309,25 +344,25 @@ fn execute_workflow(
     };
 
     let workflows_path = scope_path.join(".rhema").join("workflows.yaml");
-    
+
     if !workflows_path.exists() {
         return Err(RhemaError::InvalidCommand(
-            "No workflows.yaml found".to_string()
+            "No workflows.yaml found".to_string(),
         ));
     }
 
     let workflows = load_workflows(&workflows_path)?;
-    
+
     // Find workflow by ID or name
-    let workflow_entry = workflows.workflows.iter()
+    let workflow_entry = workflows
+        .workflows
+        .iter()
         .find(|w| w.id == workflow || w.name == workflow)
-        .ok_or_else(|| RhemaError::InvalidCommand(
-            format!("Workflow '{}' not found", workflow)
-        ))?;
+        .ok_or_else(|| RhemaError::InvalidCommand(format!("Workflow '{}' not found", workflow)))?;
 
     if workflow_entry.steps.is_empty() {
         return Err(RhemaError::InvalidCommand(
-            "Workflow has no steps to execute".to_string()
+            "Workflow has no steps to execute".to_string(),
         ));
     }
 
@@ -350,9 +385,10 @@ fn execute_workflow(
         if let Some(deps) = &step.dependencies {
             for dep in deps {
                 if !executed_steps.contains(dep) {
-                    return Err(RhemaError::InvalidCommand(
-                        format!("Step '{}' depends on '{}' which hasn't been executed", step.name, dep)
-                    ));
+                    return Err(RhemaError::InvalidCommand(format!(
+                        "Step '{}' depends on '{}' which hasn't been executed",
+                        step.name, dep
+                    )));
                 }
             }
         }
@@ -373,7 +409,10 @@ fn execute_workflow(
             // TODO: Actually execute the prompt pattern with context injection
             step_results.insert(step.id.clone(), "Success".to_string());
         } else {
-            println!("   [DRY RUN] Would execute prompt pattern: {}", step.prompt_pattern);
+            println!(
+                "   [DRY RUN] Would execute prompt pattern: {}",
+                step.prompt_pattern
+            );
         }
 
         executed_steps.push(step.id.clone());
@@ -399,11 +438,7 @@ fn execute_workflow(
     Ok(())
 }
 
-fn show_workflow(
-    rhema: &Rhema,
-    workflow: &str,
-    scope: &Option<String>,
-) -> RhemaResult<()> {
+fn show_workflow(rhema: &Rhema, workflow: &str, scope: &Option<String>) -> RhemaResult<()> {
     let scope_path = if let Some(scope_name) = scope {
         rhema.find_scope_path(scope_name)?
     } else {
@@ -411,21 +446,21 @@ fn show_workflow(
     };
 
     let workflows_path = scope_path.join(".rhema").join("workflows.yaml");
-    
+
     if !workflows_path.exists() {
         return Err(RhemaError::InvalidCommand(
-            "No workflows.yaml found".to_string()
+            "No workflows.yaml found".to_string(),
         ));
     }
 
     let workflows = load_workflows(&workflows_path)?;
-    
+
     // Find workflow by ID or name
-    let workflow_entry = workflows.workflows.iter()
+    let workflow_entry = workflows
+        .workflows
+        .iter()
         .find(|w| w.id == workflow || w.name == workflow)
-        .ok_or_else(|| RhemaError::InvalidCommand(
-            format!("Workflow '{}' not found", workflow)
-        ))?;
+        .ok_or_else(|| RhemaError::InvalidCommand(format!("Workflow '{}' not found", workflow)))?;
 
     println!("🔄 Workflow: {}", workflow_entry.name);
     println!("{}", "=".repeat(60));
@@ -434,22 +469,40 @@ fn show_workflow(
         println!("Description: {}", desc);
     }
     println!("Version: {}", workflow_entry.metadata.version);
-    println!("Created: {}", workflow_entry.metadata.created_at.format("%Y-%m-%d %H:%M"));
-    println!("Updated: {}", workflow_entry.metadata.updated_at.format("%Y-%m-%d %H:%M"));
+    println!(
+        "Created: {}",
+        workflow_entry.metadata.created_at.format("%Y-%m-%d %H:%M")
+    );
+    println!(
+        "Updated: {}",
+        workflow_entry.metadata.updated_at.format("%Y-%m-%d %H:%M")
+    );
     if let Some(author) = &workflow_entry.metadata.author {
         println!("Author: {}", author);
     }
     println!();
 
     println!("📊 Usage Statistics:");
-    println!("   Total executions: {}", workflow_entry.metadata.usage_stats.total_executions);
-    println!("   Successful executions: {}", workflow_entry.metadata.usage_stats.successful_executions);
-    println!("   Success rate: {:.1}%", workflow_entry.metadata.usage_stats.success_rate() * 100.0);
+    println!(
+        "   Total executions: {}",
+        workflow_entry.metadata.usage_stats.total_executions
+    );
+    println!(
+        "   Successful executions: {}",
+        workflow_entry.metadata.usage_stats.successful_executions
+    );
+    println!(
+        "   Success rate: {:.1}%",
+        workflow_entry.metadata.usage_stats.success_rate() * 100.0
+    );
     if let Some(avg_time) = workflow_entry.metadata.usage_stats.average_execution_time {
         println!("   Average execution time: {:.2}s", avg_time);
     }
     if let Some(last_executed) = workflow_entry.metadata.usage_stats.last_executed {
-        println!("   Last executed: {}", last_executed.format("%Y-%m-%d %H:%M"));
+        println!(
+            "   Last executed: {}",
+            last_executed.format("%Y-%m-%d %H:%M")
+        );
     }
     println!();
 
@@ -468,7 +521,7 @@ fn show_workflow(
 
     println!("📋 Steps ({}):", workflow_entry.steps.len());
     println!("{}", "-".repeat(40));
-    
+
     // Sort steps by order
     let mut sorted_steps: Vec<_> = workflow_entry.steps.iter().collect();
     sorted_steps.sort_by_key(|s| s.order);
@@ -487,7 +540,13 @@ fn show_workflow(
             println!("   Dependencies: {}", deps.join(", "));
         }
         if let Some(vars) = &step.variables {
-            println!("   Variables: {}", vars.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>().join(", "));
+            println!(
+                "   Variables: {}",
+                vars.iter()
+                    .map(|(k, v)| format!("{}={}", k, v))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
         }
         println!();
     }
@@ -509,33 +568,55 @@ fn record_execution(
     };
 
     let workflows_path = scope_path.join(".rhema").join("workflows.yaml");
-    
+
     if !workflows_path.exists() {
         return Err(RhemaError::InvalidCommand(
-            "No workflows.yaml found".to_string()
+            "No workflows.yaml found".to_string(),
         ));
     }
 
     let mut workflows = load_workflows(&workflows_path)?;
-    
+
     // Find workflow by ID or name
-    let workflow_index = workflows.workflows.iter()
+    let workflow_index = workflows
+        .workflows
+        .iter()
         .position(|w| w.id == workflow || w.name == workflow)
-        .ok_or_else(|| RhemaError::InvalidCommand(
-            format!("Workflow '{}' not found", workflow)
-        ))?;
+        .ok_or_else(|| RhemaError::InvalidCommand(format!("Workflow '{}' not found", workflow)))?;
 
     // Record the execution
-    workflows.workflows[workflow_index].metadata.usage_stats.record_execution(successful, execution_time);
-    
+    workflows.workflows[workflow_index]
+        .metadata
+        .usage_stats
+        .record_execution(successful, execution_time);
+
     save_workflows(&workflows_path, &workflows)?;
 
-    let status = if successful { "✅ successful" } else { "❌ unsuccessful" };
-    println!("📊 Recorded {} execution for workflow '{}'", status, workflow);
-    println!("   New success rate: {:.1}% ({}/{})", 
-        workflows.workflows[workflow_index].metadata.usage_stats.success_rate() * 100.0,
-        workflows.workflows[workflow_index].metadata.usage_stats.successful_executions,
-        workflows.workflows[workflow_index].metadata.usage_stats.total_executions);
-    
+    let status = if successful {
+        "✅ successful"
+    } else {
+        "❌ unsuccessful"
+    };
+    println!(
+        "📊 Recorded {} execution for workflow '{}'",
+        status, workflow
+    );
+    println!(
+        "   New success rate: {:.1}% ({}/{})",
+        workflows.workflows[workflow_index]
+            .metadata
+            .usage_stats
+            .success_rate()
+            * 100.0,
+        workflows.workflows[workflow_index]
+            .metadata
+            .usage_stats
+            .successful_executions,
+        workflows.workflows[workflow_index]
+            .metadata
+            .usage_stats
+            .total_executions
+    );
+
     Ok(())
-} 
+}

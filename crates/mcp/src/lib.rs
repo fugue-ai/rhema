@@ -1,14 +1,14 @@
-pub mod context;
-pub mod cache;
-pub mod watcher;
 pub mod auth;
-pub mod sdk;
+pub mod cache;
+pub mod context;
 pub mod mcp;
+pub mod sdk;
+pub mod watcher;
 
 // Re-export specific types to avoid ambiguity
-pub use context::ContextProvider;
-pub use cache::{CacheManager, CacheConfig as CacheManagerConfig};
-pub use watcher::{FileWatcher, WatcherConfig as FileWatcherConfig};
 pub use auth::AuthManager;
-pub use sdk::{RhemaMcpServer, ContextProviderExt};
-pub use mcp::{McpConfig, CacheConfig, WatcherConfig, AuthConfig, McpDaemon};
+pub use cache::{CacheConfig as CacheManagerConfig, CacheManager};
+pub use context::ContextProvider;
+pub use mcp::{AuthConfig, CacheConfig, McpConfig, McpDaemon, WatcherConfig};
+pub use sdk::{ContextProviderExt, RhemaMcpServer};
+pub use watcher::{FileWatcher, WatcherConfig as FileWatcherConfig};

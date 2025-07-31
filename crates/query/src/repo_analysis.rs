@@ -93,13 +93,13 @@ impl RepoAnalysis {
 
         // Analyze file structure
         analysis.analyze_file_structure(repo_path)?;
-        
+
         // Detect technologies
         analysis.detect_technologies(repo_path)?;
-        
+
         // Determine project type
         analysis.determine_project_type(repo_path)?;
-        
+
         // Generate recommendations
         analysis.generate_recommendations(repo_path)?;
 
@@ -119,7 +119,7 @@ impl RepoAnalysis {
             .filter_map(|e| e.ok())
         {
             let path = entry.path();
-            
+
             if path.is_file() {
                 // Count file extensions
                 if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
@@ -133,19 +133,26 @@ impl RepoAnalysis {
                 }
             } else if path.is_dir() && path != repo_path {
                 let dir_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-                if !dir_name.starts_with('.') && dir_name != "node_modules" && dir_name != "target" {
+                if !dir_name.starts_with('.') && dir_name != "node_modules" && dir_name != "target"
+                {
                     directories.push(dir_name.to_string());
                 }
             }
         }
 
         // Store analysis results
-        self.custom_fields.insert("file_extensions".to_string(), 
-            serde_yaml::to_value(file_extensions)?);
-        self.custom_fields.insert("directories".to_string(), 
-            serde_yaml::to_value(directories)?);
-        self.custom_fields.insert("build_files".to_string(), 
-            serde_yaml::to_value(build_files)?);
+        self.custom_fields.insert(
+            "file_extensions".to_string(),
+            serde_yaml::to_value(file_extensions)?,
+        );
+        self.custom_fields.insert(
+            "directories".to_string(),
+            serde_yaml::to_value(directories)?,
+        );
+        self.custom_fields.insert(
+            "build_files".to_string(),
+            serde_yaml::to_value(build_files)?,
+        );
 
         Ok(())
     }
@@ -196,7 +203,7 @@ impl RepoAnalysis {
                 if !self.languages.contains(&pattern.language.to_string()) {
                     self.languages.push(pattern.language.to_string());
                 }
-                
+
                 for framework in &pattern.frameworks {
                     if !self.frameworks.contains(&framework.to_string()) {
                         self.frameworks.push(framework.to_string());
@@ -236,7 +243,10 @@ impl RepoAnalysis {
     /// Detect infrastructure tools
     fn detect_infrastructure(&mut self, repo_path: &Path) -> RhemaResult<()> {
         let infra_patterns = vec![
-            ("docker", vec!["Dockerfile", "docker-compose.yml", ".dockerignore"]),
+            (
+                "docker",
+                vec!["Dockerfile", "docker-compose.yml", ".dockerignore"],
+            ),
             ("kubernetes", vec!["k8s/", "kubernetes/", "*.yaml", "*.yml"]),
             ("terraform", vec!["*.tf", "*.tfvars", ".terraform"]),
             ("ansible", vec!["ansible.cfg", "playbook.yml", "inventory"]),
@@ -307,11 +317,11 @@ impl RepoAnalysis {
 
         // Generate description
         let mut description_parts = Vec::new();
-        
+
         if !self.languages.is_empty() {
             description_parts.push(format!("{} project", self.languages.join("/")));
         }
-        
+
         if !self.frameworks.is_empty() {
             description_parts.push(format!("using {}", self.frameworks.join(", ")));
         }
@@ -337,12 +347,30 @@ impl RepoAnalysis {
 
         // Add tech stack to custom fields
         let mut tech_stack = serde_yaml::Mapping::new();
-        tech_stack.insert(serde_yaml::Value::String("languages".to_string()), serde_yaml::to_value(&self.languages)?);
-        tech_stack.insert(serde_yaml::Value::String("frameworks".to_string()), serde_yaml::to_value(&self.frameworks)?);
-        tech_stack.insert(serde_yaml::Value::String("databases".to_string()), serde_yaml::to_value(&self.databases)?);
-        tech_stack.insert(serde_yaml::Value::String("infrastructure".to_string()), serde_yaml::to_value(&self.infrastructure)?);
-        tech_stack.insert(serde_yaml::Value::String("build_tools".to_string()), serde_yaml::to_value(&self.build_tools)?);
-        self.custom_fields.insert("tech_stack".to_string(), serde_yaml::Value::Mapping(tech_stack));
+        tech_stack.insert(
+            serde_yaml::Value::String("languages".to_string()),
+            serde_yaml::to_value(&self.languages)?,
+        );
+        tech_stack.insert(
+            serde_yaml::Value::String("frameworks".to_string()),
+            serde_yaml::to_value(&self.frameworks)?,
+        );
+        tech_stack.insert(
+            serde_yaml::Value::String("databases".to_string()),
+            serde_yaml::to_value(&self.databases)?,
+        );
+        tech_stack.insert(
+            serde_yaml::Value::String("infrastructure".to_string()),
+            serde_yaml::to_value(&self.infrastructure)?,
+        );
+        tech_stack.insert(
+            serde_yaml::Value::String("build_tools".to_string()),
+            serde_yaml::to_value(&self.build_tools)?,
+        );
+        self.custom_fields.insert(
+            "tech_stack".to_string(),
+            serde_yaml::Value::Mapping(tech_stack),
+        );
 
         Ok(())
     }
@@ -358,11 +386,16 @@ impl RepoAnalysis {
             dependencies: if self.dependencies.is_empty() {
                 None
             } else {
-                Some(self.dependencies.iter().map(|d| rhema_core::schema::ScopeDependency {
-                    path: d.path.clone(),
-                    dependency_type: d.dependency_type.clone(),
-                    version: d.version.clone(),
-                }).collect())
+                Some(
+                    self.dependencies
+                        .iter()
+                        .map(|d| rhema_core::schema::ScopeDependency {
+                            path: d.path.clone(),
+                            dependency_type: d.dependency_type.clone(),
+                            version: d.version.clone(),
+                        })
+                        .collect(),
+                )
             },
             custom: self.custom_fields.clone(),
             protocol_info: None,
@@ -372,10 +405,19 @@ impl RepoAnalysis {
     // Helper methods for technology detection
 
     fn is_build_file(file_name: &str) -> bool {
-        matches!(file_name, 
-            "Cargo.toml" | "package.json" | "pom.xml" | "build.gradle" | 
-            "requirements.txt" | "pyproject.toml" | "go.mod" | "Makefile" |
-            "CMakeLists.txt" | "build.xml" | "gradle.properties"
+        matches!(
+            file_name,
+            "Cargo.toml"
+                | "package.json"
+                | "pom.xml"
+                | "build.gradle"
+                | "requirements.txt"
+                | "pyproject.toml"
+                | "go.mod"
+                | "Makefile"
+                | "CMakeLists.txt"
+                | "build.xml"
+                | "gradle.properties"
         )
     }
 
@@ -399,7 +441,7 @@ impl RepoAnalysis {
             if path.is_file() {
                 let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
                 let path_str = path.to_string_lossy();
-                
+
                 for pattern in patterns {
                     if file_name == *pattern || path_str.contains(pattern) {
                         return true;
@@ -449,13 +491,7 @@ impl RepoAnalysis {
 
     fn is_library(repo_path: &Path) -> bool {
         // Check for library indicators
-        let library_indicators = vec![
-            "lib/",
-            "src/lib.rs",
-            "index.js",
-            "index.ts",
-            "__init__.py",
-        ];
+        let library_indicators = vec!["lib/", "src/lib.rs", "index.js", "index.ts", "__init__.py"];
 
         Self::has_pattern_in_files(repo_path, &library_indicators)
     }
@@ -474,4 +510,4 @@ impl RepoAnalysis {
 
         Self::has_pattern_in_files(repo_path, &app_indicators)
     }
-} 
+}

@@ -1,8 +1,8 @@
 //! Mock implementations for external dependencies
 
 use mockall::automock;
-use std::path::PathBuf;
 use rhema::{RhemaResult, Scope};
+use std::path::PathBuf;
 
 /// Mock trait for file system operations
 #[automock]
@@ -48,7 +48,11 @@ pub trait YamlOperations {
 #[automock]
 #[allow(dead_code)]
 pub trait QueryOperations {
-    fn execute_query(&self, query: &str, data: &serde_yaml::Value) -> RhemaResult<serde_yaml::Value>;
+    fn execute_query(
+        &self,
+        query: &str,
+        data: &serde_yaml::Value,
+    ) -> RhemaResult<serde_yaml::Value>;
     fn validate_query(&self, query: &str) -> RhemaResult<bool>;
     fn parse_query(&self, query: &str) -> RhemaResult<rhema::query::CqlQuery>;
     fn optimize_query(&self, query: &str) -> RhemaResult<String>;
@@ -69,7 +73,8 @@ pub trait ScopeOperations {
 #[allow(dead_code)]
 pub trait SchemaOperations {
     fn validate_data(&self, schema: &str, data: &serde_yaml::Value) -> RhemaResult<bool>;
-    fn get_schema_errors(&self, schema: &str, data: &serde_yaml::Value) -> RhemaResult<Vec<String>>;
+    fn get_schema_errors(&self, schema: &str, data: &serde_yaml::Value)
+        -> RhemaResult<Vec<String>>;
     fn merge_schemas(&self, schemas: &[String]) -> RhemaResult<String>;
     fn generate_schema(&self, data: &serde_yaml::Value) -> RhemaResult<String>;
 }
@@ -161,9 +166,23 @@ pub trait BackupOperations {
 #[automock]
 #[allow(dead_code)]
 pub trait MigrationOperations {
-    fn check_migration_needed(&self, current_version: &str, target_version: &str) -> RhemaResult<bool>;
-    fn execute_migration(&self, from_version: &str, to_version: &str, data: &serde_yaml::Value) -> RhemaResult<serde_yaml::Value>;
-    fn rollback_migration(&self, from_version: &str, to_version: &str, data: &serde_yaml::Value) -> RhemaResult<serde_yaml::Value>;
+    fn check_migration_needed(
+        &self,
+        current_version: &str,
+        target_version: &str,
+    ) -> RhemaResult<bool>;
+    fn execute_migration(
+        &self,
+        from_version: &str,
+        to_version: &str,
+        data: &serde_yaml::Value,
+    ) -> RhemaResult<serde_yaml::Value>;
+    fn rollback_migration(
+        &self,
+        from_version: &str,
+        to_version: &str,
+        data: &serde_yaml::Value,
+    ) -> RhemaResult<serde_yaml::Value>;
     fn validate_migration(&self, migration_data: &serde_yaml::Value) -> RhemaResult<bool>;
 }
 
@@ -173,7 +192,11 @@ pub trait MigrationOperations {
 pub trait SearchOperations {
     fn search_files(&self, pattern: &str, path: &PathBuf) -> RhemaResult<Vec<PathBuf>>;
     fn search_content(&self, pattern: &str, path: &PathBuf) -> RhemaResult<Vec<String>>;
-    fn search_regex<'a>(&self, pattern: &str, file_filter: Option<&'a str>) -> RhemaResult<Vec<String>>;
+    fn search_regex<'a>(
+        &self,
+        pattern: &str,
+        file_filter: Option<&'a str>,
+    ) -> RhemaResult<Vec<String>>;
     fn search_metadata(&self, key: &str, value: &str, path: &PathBuf) -> RhemaResult<Vec<PathBuf>>;
 }
 
@@ -213,7 +236,11 @@ pub trait ImpactAnalysisOperations {
 pub trait SyncOperations {
     fn sync_scopes(&self, source_path: &PathBuf, target_path: &PathBuf) -> RhemaResult<()>;
     fn sync_data(&self, source_scope: &Scope, target_scope: &Scope) -> RhemaResult<()>;
-    fn detect_sync_conflicts(&self, source: &serde_yaml::Value, target: &serde_yaml::Value) -> RhemaResult<Vec<String>>;
+    fn detect_sync_conflicts(
+        &self,
+        source: &serde_yaml::Value,
+        target: &serde_yaml::Value,
+    ) -> RhemaResult<Vec<String>>;
     fn resolve_sync_conflicts(&self, conflicts: &[String]) -> RhemaResult<serde_yaml::Value>;
 }
 
@@ -232,7 +259,11 @@ pub trait DependencyOperations {
 #[allow(dead_code)]
 pub trait PatternOperations {
     fn detect_patterns(&self, data: &serde_yaml::Value) -> RhemaResult<Vec<serde_yaml::Value>>;
-    fn apply_pattern(&self, pattern: &serde_yaml::Value, data: &serde_yaml::Value) -> RhemaResult<serde_yaml::Value>;
+    fn apply_pattern(
+        &self,
+        pattern: &serde_yaml::Value,
+        data: &serde_yaml::Value,
+    ) -> RhemaResult<serde_yaml::Value>;
     fn validate_pattern(&self, pattern: &serde_yaml::Value) -> RhemaResult<bool>;
     fn suggest_patterns(&self, data: &serde_yaml::Value) -> RhemaResult<Vec<serde_yaml::Value>>;
 }
@@ -242,7 +273,10 @@ pub trait PatternOperations {
 #[allow(dead_code)]
 pub trait InsightOperations {
     fn generate_insights(&self, data: &serde_yaml::Value) -> RhemaResult<Vec<serde_yaml::Value>>;
-    fn analyze_trends(&self, historical_data: &[serde_yaml::Value]) -> RhemaResult<serde_yaml::Value>;
+    fn analyze_trends(
+        &self,
+        historical_data: &[serde_yaml::Value],
+    ) -> RhemaResult<serde_yaml::Value>;
     fn predict_outcomes(&self, data: &serde_yaml::Value) -> RhemaResult<serde_yaml::Value>;
     fn validate_insight(&self, insight: &serde_yaml::Value) -> RhemaResult<bool>;
 }
@@ -252,7 +286,10 @@ pub trait InsightOperations {
 #[allow(dead_code)]
 pub trait DecisionOperations {
     fn record_decision(&self, decision: &serde_yaml::Value) -> RhemaResult<()>;
-    fn analyze_decision_impact(&self, decision: &serde_yaml::Value) -> RhemaResult<serde_yaml::Value>;
+    fn analyze_decision_impact(
+        &self,
+        decision: &serde_yaml::Value,
+    ) -> RhemaResult<serde_yaml::Value>;
     fn track_decision_outcomes(&self, decision: &serde_yaml::Value) -> RhemaResult<()>;
     fn validate_decision(&self, decision: &serde_yaml::Value) -> RhemaResult<bool>;
 }
@@ -265,4 +302,4 @@ pub trait TodoOperations {
     fn update_todo(&self, id: &str, updates: &serde_yaml::Value) -> RhemaResult<()>;
     fn complete_todo(&self, id: &str, outcome: &str) -> RhemaResult<()>;
     fn validate_todo(&self, todo: &serde_yaml::Value) -> RhemaResult<bool>;
-} 
+}

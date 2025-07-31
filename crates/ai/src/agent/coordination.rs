@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
-use chrono::{DateTime, Utc};
 use thiserror::Error;
 
 /// Sync status as defined in the TLA+ specification
@@ -74,19 +74,19 @@ pub struct SyncEvent {
 pub struct SyncCoordinator {
     /// Map of scope path to sync status
     sync_status: HashMap<String, SyncStatus>,
-    
+
     /// Map of scope path to its dependencies
     sync_dependencies: HashMap<String, Vec<String>>,
-    
+
     /// Queue of pending sync operations
     sync_queue: VecDeque<SyncOperation>,
-    
+
     /// Sync event history for auditing
     sync_history: Vec<SyncEvent>,
-    
+
     /// Maximum retry attempts for failed syncs
     max_retry_attempts: usize,
-    
+
     /// Maximum sync queue size
     max_queue_size: usize,
 }
@@ -96,22 +96,22 @@ pub struct SyncCoordinator {
 pub enum SyncError {
     #[error("Scope not found: {0}")]
     ScopeNotFound(String),
-    
+
     #[error("Invalid sync status transition: {0} -> {1:?}")]
     InvalidStatusTransition(String, SyncStatus),
-    
+
     #[error("Dependencies not ready: {0}")]
     DependenciesNotReady(String),
-    
+
     #[error("Circular dependency detected: {0}")]
     CircularDependency(String),
-    
+
     #[error("Sync queue full: {0}")]
     SyncQueueFull(usize),
-    
+
     #[error("Max retry attempts exceeded: {0}")]
     MaxRetryAttemptsExceeded(String),
-    
+
     #[error("Sync already in progress: {0}")]
     SyncAlreadyInProgress(String),
 }
@@ -188,7 +188,10 @@ impl SyncCoordinator {
 
     /// Get dependencies for a scope
     pub fn get_dependencies(&self, scope_path: &str) -> Vec<String> {
-        self.sync_dependencies.get(scope_path).cloned().unwrap_or_default()
+        self.sync_dependencies
+            .get(scope_path)
+            .cloned()
+            .unwrap_or_default()
     }
 
     /// Add a scope to the sync system
@@ -202,11 +205,15 @@ impl SyncCoordinator {
 
         // Check for circular dependencies
         if self.has_circular_dependency(&scope_path, &dependencies) {
-            return Err(rhema_core::RhemaError::CoordinationError(format!("Circular dependency: {}", scope_path)));
+            return Err(rhema_core::RhemaError::CoordinationError(format!(
+                "Circular dependency: {}",
+                scope_path
+            )));
         }
 
         // Add scope with idle status
-        self.sync_status.insert(scope_path.clone(), SyncStatus::Idle);
+        self.sync_status
+            .insert(scope_path.clone(), SyncStatus::Idle);
         self.sync_dependencies.insert(scope_path, dependencies);
 
         Ok(())
@@ -238,15 +245,18 @@ impl SyncCoordinator {
 
     /// Start sync for a scope
     pub async fn start_sync(&mut self, scope_path: &str) -> RhemaResult<()> {
-        let current_status = self.sync_status.get(scope_path)
+        let current_status = self
+            .sync_status
+            .get(scope_path)
             .ok_or_else(|| SyncError::ScopeNotFound(scope_path.to_string()))?;
 
         // Validate status transition
         if *current_status != SyncStatus::Idle {
             return Err(SyncError::InvalidStatusTransition(
                 scope_path.to_string(),
-                current_status.clone()
-            ).into());
+                current_status.clone(),
+            )
+            .into());
         }
 
         // Check dependencies
@@ -255,28 +265,45 @@ impl SyncCoordinator {
         }
 
         // Update status
-        self.record_sync_event(scope_path, Some(current_status.clone()), SyncStatus::Syncing, "Sync started".to_string(), None);
-        self.sync_status.insert(scope_path.to_string(), SyncStatus::Syncing);
+        self.record_sync_event(
+            scope_path,
+            Some(current_status.clone()),
+            SyncStatus::Syncing,
+            "Sync started".to_string(),
+            None,
+        );
+        self.sync_status
+            .insert(scope_path.to_string(), SyncStatus::Syncing);
 
         Ok(())
     }
 
     /// Complete sync for a scope
     pub async fn complete_sync(&mut self, scope_path: &str) -> RhemaResult<()> {
-        let current_status = self.sync_status.get(scope_path)
+        let current_status = self
+            .sync_status
+            .get(scope_path)
             .ok_or_else(|| SyncError::ScopeNotFound(scope_path.to_string()))?;
 
         // Validate status transition
         if *current_status != SyncStatus::Syncing {
             return Err(SyncError::InvalidStatusTransition(
                 scope_path.to_string(),
-                current_status.clone()
-            ).into());
+                current_status.clone(),
+            )
+            .into());
         }
 
         // Update status
-        self.record_sync_event(scope_path, Some(current_status.clone()), SyncStatus::Completed, "Sync completed".to_string(), None);
-        self.sync_status.insert(scope_path.to_string(), SyncStatus::Completed);
+        self.record_sync_event(
+            scope_path,
+            Some(current_status.clone()),
+            SyncStatus::Completed,
+            "Sync completed".to_string(),
+            None,
+        );
+        self.sync_status
+            .insert(scope_path.to_string(), SyncStatus::Completed);
 
         // Process queue for dependent scopes
         self.process_queue_for_dependents(scope_path).await?;
@@ -286,20 +313,30 @@ impl SyncCoordinator {
 
     /// Fail sync for a scope
     pub async fn fail_sync(&mut self, scope_path: &str, error: String) -> RhemaResult<()> {
-        let current_status = self.sync_status.get(scope_path)
+        let current_status = self
+            .sync_status
+            .get(scope_path)
             .ok_or_else(|| SyncError::ScopeNotFound(scope_path.to_string()))?;
 
         // Validate status transition
         if *current_status != SyncStatus::Syncing {
             return Err(SyncError::InvalidStatusTransition(
                 scope_path.to_string(),
-                current_status.clone()
-            ).into());
+                current_status.clone(),
+            )
+            .into());
         }
 
         // Update status
-        self.record_sync_event(scope_path, Some(current_status.clone()), SyncStatus::Failed, "Sync failed".to_string(), Some(error.clone()));
-        self.sync_status.insert(scope_path.to_string(), SyncStatus::Failed);
+        self.record_sync_event(
+            scope_path,
+            Some(current_status.clone()),
+            SyncStatus::Failed,
+            "Sync failed".to_string(),
+            Some(error.clone()),
+        );
+        self.sync_status
+            .insert(scope_path.to_string(), SyncStatus::Failed);
 
         // Check if we should retry
         if let Some(operation) = self.find_queue_operation(scope_path) {
@@ -316,20 +353,30 @@ impl SyncCoordinator {
 
     /// Reset sync status to idle (for retry)
     pub async fn reset_sync(&mut self, scope_path: &str) -> RhemaResult<()> {
-        let current_status = self.sync_status.get(scope_path)
+        let current_status = self
+            .sync_status
+            .get(scope_path)
             .ok_or_else(|| SyncError::ScopeNotFound(scope_path.to_string()))?;
 
         // Only allow reset from failed status
         if *current_status != SyncStatus::Failed {
             return Err(SyncError::InvalidStatusTransition(
                 scope_path.to_string(),
-                current_status.clone()
-            ).into());
+                current_status.clone(),
+            )
+            .into());
         }
 
         // Update status
-        self.record_sync_event(scope_path, Some(current_status.clone()), SyncStatus::Idle, "Sync reset".to_string(), None);
-        self.sync_status.insert(scope_path.to_string(), SyncStatus::Idle);
+        self.record_sync_event(
+            scope_path,
+            Some(current_status.clone()),
+            SyncStatus::Idle,
+            "Sync reset".to_string(),
+            None,
+        );
+        self.sync_status
+            .insert(scope_path.to_string(), SyncStatus::Idle);
 
         Ok(())
     }
@@ -340,9 +387,13 @@ impl SyncCoordinator {
     }
 
     /// Add sync operation to queue
-    pub async fn queue_sync(&mut self, scope_path: String, priority: SyncPriority) -> RhemaResult<()> {
+    pub async fn queue_sync(
+        &mut self,
+        scope_path: String,
+        priority: SyncPriority,
+    ) -> RhemaResult<()> {
         let dependencies = self.get_dependencies(&scope_path);
-        
+
         let operation = SyncOperation {
             scope_path: scope_path.clone(),
             priority,
@@ -384,7 +435,7 @@ impl SyncCoordinator {
     /// Get sync statistics
     pub fn get_sync_statistics(&self) -> SyncStatistics {
         let mut stats = SyncStatistics::default();
-        
+
         for status in self.sync_status.values() {
             match status {
                 SyncStatus::Idle => stats.idle_count += 1,
@@ -393,10 +444,10 @@ impl SyncCoordinator {
                 SyncStatus::Failed => stats.failed_count += 1,
             }
         }
-        
+
         stats.total_scopes = self.sync_status.len();
         stats.queue_size = self.sync_queue.len();
-        
+
         stats
     }
 
@@ -418,14 +469,15 @@ impl SyncCoordinator {
     /// Clean up old sync history
     pub fn cleanup_history(&mut self, max_history_size: usize) {
         if self.sync_history.len() > max_history_size {
-            self.sync_history.drain(0..self.sync_history.len() - max_history_size);
+            self.sync_history
+                .drain(0..self.sync_history.len() - max_history_size);
         }
     }
 
     /// Check if dependencies are ready for a scope
     fn check_dependencies_ready(&self, scope_path: &str) -> bool {
         let dependencies = self.get_dependencies(scope_path);
-        
+
         for dep in dependencies {
             if let Some(status) = self.sync_status.get(&dep) {
                 if *status != SyncStatus::Completed {
@@ -435,7 +487,7 @@ impl SyncCoordinator {
                 return false;
             }
         }
-        
+
         true
     }
 
@@ -444,59 +496,71 @@ impl SyncCoordinator {
         // Create a temporary graph with the new dependencies
         let mut temp_graph = self.sync_dependencies.clone();
         temp_graph.insert(scope_path.to_string(), dependencies.to_vec());
-        
+
         let mut visited = std::collections::HashSet::new();
         let mut rec_stack = std::collections::HashSet::new();
-        
+
         // Check if adding this scope creates a cycle
         for node in temp_graph.keys() {
             if !visited.contains(node) {
-                if self.dfs_check_cycle_with_graph(&temp_graph, node, &mut visited, &mut rec_stack) {
+                if self.dfs_check_cycle_with_graph(&temp_graph, node, &mut visited, &mut rec_stack)
+                {
                     return true;
                 }
             }
         }
-        
+
         false
     }
 
     /// DFS to check for cycles in dependency graph
-    fn dfs_check_cycle(&self, scope_path: &str, visited: &mut std::collections::HashSet<String>, rec_stack: &mut std::collections::HashSet<String>) -> bool {
+    fn dfs_check_cycle(
+        &self,
+        scope_path: &str,
+        visited: &mut std::collections::HashSet<String>,
+        rec_stack: &mut std::collections::HashSet<String>,
+    ) -> bool {
         if rec_stack.contains(scope_path) {
             return true; // Back edge found - cycle detected
         }
-        
+
         if visited.contains(scope_path) {
             return false; // Already processed
         }
-        
+
         visited.insert(scope_path.to_string());
         rec_stack.insert(scope_path.to_string());
-        
+
         let dependencies = self.get_dependencies(scope_path);
         for dep in dependencies {
             if self.dfs_check_cycle(&dep, visited, rec_stack) {
                 return true;
             }
         }
-        
+
         rec_stack.remove(scope_path);
         false
     }
 
     /// DFS to check for cycles in a given graph
-    fn dfs_check_cycle_with_graph(&self, graph: &HashMap<String, Vec<String>>, scope_path: &str, visited: &mut std::collections::HashSet<String>, rec_stack: &mut std::collections::HashSet<String>) -> bool {
+    fn dfs_check_cycle_with_graph(
+        &self,
+        graph: &HashMap<String, Vec<String>>,
+        scope_path: &str,
+        visited: &mut std::collections::HashSet<String>,
+        rec_stack: &mut std::collections::HashSet<String>,
+    ) -> bool {
         if rec_stack.contains(scope_path) {
             return true; // Back edge found - cycle detected
         }
-        
+
         if visited.contains(scope_path) {
             return false; // Already processed
         }
-        
+
         visited.insert(scope_path.to_string());
         rec_stack.insert(scope_path.to_string());
-        
+
         if let Some(dependencies) = graph.get(scope_path) {
             for dep in dependencies {
                 if self.dfs_check_cycle_with_graph(graph, dep, visited, rec_stack) {
@@ -504,7 +568,7 @@ impl SyncCoordinator {
                 }
             }
         }
-        
+
         rec_stack.remove(scope_path);
         false
     }
@@ -513,7 +577,7 @@ impl SyncCoordinator {
     async fn process_queue_for_dependents(&mut self, completed_scope: &str) -> RhemaResult<()> {
         // Find scopes that depend on the completed scope
         let mut dependent_scopes = Vec::new();
-        
+
         for (scope_path, deps) in &self.sync_dependencies {
             if deps.contains(&completed_scope.to_string()) {
                 dependent_scopes.push(scope_path.clone());
@@ -536,7 +600,9 @@ impl SyncCoordinator {
 
     /// Find operation in queue
     fn find_queue_operation(&self, scope_path: &str) -> Option<&SyncOperation> {
-        self.sync_queue.iter().find(|op| op.scope_path == scope_path)
+        self.sync_queue
+            .iter()
+            .find(|op| op.scope_path == scope_path)
     }
 
     /// Add operation to queue
@@ -550,7 +616,14 @@ impl SyncCoordinator {
     }
 
     /// Record sync event for auditing
-    fn record_sync_event(&mut self, scope_path: &str, from_status: Option<SyncStatus>, to_status: SyncStatus, reason: String, error: Option<String>) {
+    fn record_sync_event(
+        &mut self,
+        scope_path: &str,
+        from_status: Option<SyncStatus>,
+        to_status: SyncStatus,
+        reason: String,
+        error: Option<String>,
+    ) {
         let event = SyncEvent {
             timestamp: Utc::now(),
             scope_path: scope_path.to_string(),
@@ -576,8 +649,16 @@ pub struct SyncStatistics {
 
 impl std::fmt::Display for SyncStatistics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Total: {}, Idle: {}, Syncing: {}, Completed: {}, Failed: {}, Queue: {}", 
-            self.total_scopes, self.idle_count, self.syncing_count, self.completed_count, self.failed_count, self.queue_size)
+        write!(
+            f,
+            "Total: {}, Idle: {}, Syncing: {}, Completed: {}, Failed: {}, Queue: {}",
+            self.total_scopes,
+            self.idle_count,
+            self.syncing_count,
+            self.completed_count,
+            self.failed_count,
+            self.queue_size
+        )
     }
 }
 
@@ -588,85 +669,115 @@ mod tests {
     #[tokio::test]
     async fn test_add_scope() {
         let mut coordinator = SyncCoordinator::new();
-        
+
         // Test adding scope without dependencies
         assert!(coordinator.add_scope("scope1".to_string(), vec![]).is_ok());
-        assert_eq!(coordinator.get_sync_status("scope1"), Some(SyncStatus::Idle));
-        
+        assert_eq!(
+            coordinator.get_sync_status("scope1"),
+            Some(SyncStatus::Idle)
+        );
+
         // Test adding scope with dependencies
-        assert!(coordinator.add_scope("scope2".to_string(), vec!["scope1".to_string()]).is_ok());
-        
+        assert!(coordinator
+            .add_scope("scope2".to_string(), vec!["scope1".to_string()])
+            .is_ok());
+
         // Test adding scope with non-existent dependency
-        assert!(coordinator.add_scope("scope3".to_string(), vec!["nonexistent".to_string()]).is_err());
+        assert!(coordinator
+            .add_scope("scope3".to_string(), vec!["nonexistent".to_string()])
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_circular_dependency() {
         let mut coordinator = SyncCoordinator::new();
-        
+
         coordinator.add_scope("scope1".to_string(), vec![]).unwrap();
-        coordinator.add_scope("scope2".to_string(), vec!["scope1".to_string()]).unwrap();
-        
+        coordinator
+            .add_scope("scope2".to_string(), vec!["scope1".to_string()])
+            .unwrap();
+
         // Test circular dependency
-        assert!(coordinator.add_scope("scope1".to_string(), vec!["scope2".to_string()]).is_err());
+        assert!(coordinator
+            .add_scope("scope1".to_string(), vec!["scope2".to_string()])
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_sync_lifecycle() {
         let mut coordinator = SyncCoordinator::new();
-        
+
         coordinator.add_scope("scope1".to_string(), vec![]).unwrap();
-        
+
         // Test start sync
         assert!(coordinator.start_sync("scope1").await.is_ok());
-        assert_eq!(coordinator.get_sync_status("scope1"), Some(SyncStatus::Syncing));
-        
+        assert_eq!(
+            coordinator.get_sync_status("scope1"),
+            Some(SyncStatus::Syncing)
+        );
+
         // Test complete sync
         assert!(coordinator.complete_sync("scope1").await.is_ok());
-        assert_eq!(coordinator.get_sync_status("scope1"), Some(SyncStatus::Completed));
+        assert_eq!(
+            coordinator.get_sync_status("scope1"),
+            Some(SyncStatus::Completed)
+        );
     }
 
     #[tokio::test]
     async fn test_dependency_checking() {
         let mut coordinator = SyncCoordinator::new();
-        
+
         coordinator.add_scope("scope1".to_string(), vec![]).unwrap();
-        coordinator.add_scope("scope2".to_string(), vec!["scope1".to_string()]).unwrap();
-        
+        coordinator
+            .add_scope("scope2".to_string(), vec!["scope1".to_string()])
+            .unwrap();
+
         // scope2 should not be able to start sync until scope1 is completed
         assert!(coordinator.start_sync("scope2").await.is_err());
-        
+
         // Complete scope1
         coordinator.start_sync("scope1").await.unwrap();
         coordinator.complete_sync("scope1").await.unwrap();
-        
+
         // Check scope2 status - it should have been automatically started
         let scope2_status = coordinator.get_sync_status("scope2");
         println!("Scope2 status after completing scope1: {:?}", scope2_status);
-        
+
         // scope2 should have been automatically started when scope1 completed
         assert_eq!(scope2_status, Some(SyncStatus::Syncing));
-        
+
         // Try to start scope2 again - this should fail since it's already syncing
         let result = coordinator.start_sync("scope2").await;
         assert!(result.is_err());
-        
+
         // Complete scope2
         coordinator.complete_sync("scope2").await.unwrap();
-        assert_eq!(coordinator.get_sync_status("scope2"), Some(SyncStatus::Completed));
+        assert_eq!(
+            coordinator.get_sync_status("scope2"),
+            Some(SyncStatus::Completed)
+        );
     }
 
     #[tokio::test]
     async fn test_sync_queue() {
         let mut coordinator = SyncCoordinator::new();
-        
+
         coordinator.add_scope("scope1".to_string(), vec![]).unwrap();
-        coordinator.add_scope("scope2".to_string(), vec!["scope1".to_string()]).unwrap();
-        
+        coordinator
+            .add_scope("scope2".to_string(), vec!["scope1".to_string()])
+            .unwrap();
+
         // Queue sync operations
-        assert!(coordinator.queue_sync("scope1".to_string(), SyncPriority::Normal).await.is_ok());
-        assert!(coordinator.queue_sync("scope2".to_string(), SyncPriority::High).await.is_ok());
-        
+        assert!(coordinator
+            .queue_sync("scope1".to_string(), SyncPriority::Normal)
+            .await
+            .is_ok());
+        assert!(coordinator
+            .queue_sync("scope2".to_string(), SyncPriority::High)
+            .await
+            .is_ok());
+
         // Get next operation (should be scope1 since scope2 depends on it)
         let operation = coordinator.get_next_sync_operation();
         assert!(operation.is_some());
@@ -676,15 +787,18 @@ mod tests {
     #[tokio::test]
     async fn test_sync_statistics() {
         let mut coordinator = SyncCoordinator::new();
-        
+
         coordinator.add_scope("scope1".to_string(), vec![]).unwrap();
         coordinator.add_scope("scope2".to_string(), vec![]).unwrap();
-        
+
         coordinator.start_sync("scope1").await.unwrap();
         coordinator.complete_sync("scope1").await.unwrap();
         coordinator.start_sync("scope2").await.unwrap();
-        coordinator.fail_sync("scope2", "Test error".to_string()).await.unwrap();
-        
+        coordinator
+            .fail_sync("scope2", "Test error".to_string())
+            .await
+            .unwrap();
+
         let stats = coordinator.get_sync_statistics();
         assert_eq!(stats.total_scopes, 2);
         assert_eq!(stats.completed_count, 1);
@@ -692,4 +806,4 @@ mod tests {
         assert_eq!(stats.syncing_count, 0);
         assert_eq!(stats.idle_count, 0);
     }
-} 
+}

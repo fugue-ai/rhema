@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
-use chrono::{DateTime, Utc};
 use thiserror::Error;
 
 /// Agent states as defined in the TLA+ specification
@@ -46,25 +46,25 @@ impl std::fmt::Display for AgentState {
 pub struct AgentMetadata {
     /// When the agent joined the system
     pub joined_at: DateTime<Utc>,
-    
+
     /// When the agent was last active
     pub last_active: DateTime<Utc>,
-    
+
     /// Current scope the agent is working on (if any)
     pub current_scope: Option<String>,
-    
+
     /// Number of operations performed
     pub operations_count: usize,
-    
+
     /// Total time spent working
     pub total_work_time: Duration,
-    
+
     /// Time when the agent was blocked (if currently blocked)
     pub blocked_since: Option<DateTime<Utc>>,
-    
+
     /// Retry count for failed operations
     pub retry_count: usize,
-    
+
     /// Custom metadata
     pub custom_data: HashMap<String, String>,
 }
@@ -88,16 +88,16 @@ impl Default for AgentMetadata {
 pub struct AgentManager {
     /// Map of agent ID to current state
     agents: HashMap<String, AgentState>,
-    
+
     /// Map of agent ID to metadata
     agent_metadata: HashMap<String, AgentMetadata>,
-    
+
     /// Maximum number of concurrent agents allowed
     max_concurrent_agents: usize,
-    
+
     /// Maximum time an agent can be blocked
     max_block_time: Duration,
-    
+
     /// State transition history for auditing
     state_history: Vec<StateTransition>,
 }
@@ -117,22 +117,22 @@ pub struct StateTransition {
 pub enum AgentError {
     #[error("Agent not found: {0}")]
     AgentNotFound(String),
-    
+
     #[error("Agent already exists: {0}")]
     AgentAlreadyExists(String),
-    
+
     #[error("Invalid agent state: {0} -> {1:?}")]
     InvalidAgentState(String, AgentState),
-    
+
     #[error("Invalid state transition: {0} -> {1:?}")]
     InvalidStateTransition(String, AgentState),
-    
+
     #[error("Maximum concurrent agents exceeded: {0}")]
     MaxConcurrentAgentsExceeded(usize),
-    
+
     #[error("Agent blocked for too long: {0}")]
     AgentBlockedTooLong(String),
-    
+
     #[error("Agent has active locks and cannot leave: {0}")]
     AgentHasActiveLocks(String),
 }
@@ -195,7 +195,10 @@ impl AgentManager {
     /// Agent joins the system
     pub async fn agent_join(&mut self, agent_id: String) -> RhemaResult<()> {
         if self.agents.contains_key(&agent_id) {
-            return Err(rhema_core::RhemaError::AgentError(format!("Agent already exists: {}", agent_id)));
+            return Err(rhema_core::RhemaError::AgentError(format!(
+                "Agent already exists: {}",
+                agent_id
+            )));
         }
 
         if self.agents.len() >= self.max_concurrent_agents {
@@ -204,7 +207,7 @@ impl AgentManager {
 
         // Add agent with idle state
         self.agents.insert(agent_id.clone(), AgentState::Idle);
-        
+
         // Create metadata
         let metadata = AgentMetadata::default();
         self.agent_metadata.insert(agent_id.clone(), metadata);
@@ -217,16 +220,26 @@ impl AgentManager {
 
     /// Agent leaves the system
     pub async fn agent_leave(&mut self, agent_id: String) -> RhemaResult<()> {
-        let current_state = self.agents.get(&agent_id)
+        let current_state = self
+            .agents
+            .get(&agent_id)
             .ok_or_else(|| AgentError::AgentNotFound(agent_id.clone()))?;
 
         // Check if agent can leave (not working or blocked)
         if matches!(current_state, AgentState::Working | AgentState::Blocked) {
-            return Err(rhema_core::RhemaError::AgentError(format!("Agent has active locks: {}", agent_id)));
+            return Err(rhema_core::RhemaError::AgentError(format!(
+                "Agent has active locks: {}",
+                agent_id
+            )));
         }
 
         // Record state transition before removal
-        self.record_state_transition(&agent_id, Some(current_state.clone()), AgentState::Completed, "Agent left system");
+        self.record_state_transition(
+            &agent_id,
+            Some(current_state.clone()),
+            AgentState::Completed,
+            "Agent left system",
+        );
 
         // Remove agent
         self.agents.remove(&agent_id);
@@ -236,8 +249,14 @@ impl AgentManager {
     }
 
     /// Set agent state
-    pub async fn set_agent_state(&mut self, agent_id: &str, new_state: AgentState) -> RhemaResult<()> {
-        let current_state = self.agents.get(agent_id)
+    pub async fn set_agent_state(
+        &mut self,
+        agent_id: &str,
+        new_state: AgentState,
+    ) -> RhemaResult<()> {
+        let current_state = self
+            .agents
+            .get(agent_id)
             .ok_or_else(|| AgentError::AgentNotFound(agent_id.to_string()))?;
 
         // Validate state transition
@@ -246,7 +265,7 @@ impl AgentManager {
         // Update metadata
         if let Some(metadata) = self.agent_metadata.get_mut(agent_id) {
             metadata.last_active = Utc::now();
-            
+
             match new_state {
                 AgentState::Working => {
                     metadata.operations_count += 1;
@@ -263,7 +282,12 @@ impl AgentManager {
         }
 
         // Record state transition
-        self.record_state_transition(agent_id, Some(current_state.clone()), new_state.clone(), "State change");
+        self.record_state_transition(
+            agent_id,
+            Some(current_state.clone()),
+            new_state.clone(),
+            "State change",
+        );
 
         // Update state
         self.agents.insert(agent_id.to_string(), new_state);
@@ -313,7 +337,12 @@ impl AgentManager {
     }
 
     /// Validate state transition
-    fn validate_state_transition(&self, agent_id: &str, current_state: &AgentState, new_state: &AgentState) -> RhemaResult<()> {
+    fn validate_state_transition(
+        &self,
+        agent_id: &str,
+        current_state: &AgentState,
+        new_state: &AgentState,
+    ) -> RhemaResult<()> {
         match (current_state, new_state) {
             // Valid transitions
             (AgentState::Idle, AgentState::Working) => Ok(()),
@@ -324,20 +353,28 @@ impl AgentManager {
             (AgentState::Blocked, AgentState::Idle) => Ok(()),
             (AgentState::Blocked, AgentState::Working) => Ok(()),
             (AgentState::Blocked, AgentState::Completed) => Ok(()),
-            
+
             // Invalid transitions
-            (AgentState::Completed, _) => {
-                Err(AgentError::InvalidStateTransition(agent_id.to_string(), new_state.clone()).into())
-            }
-            (_, AgentState::Idle) if current_state == &AgentState::Idle => {
-                Err(AgentError::InvalidStateTransition(agent_id.to_string(), new_state.clone()).into())
-            }
+            (AgentState::Completed, _) => Err(AgentError::InvalidStateTransition(
+                agent_id.to_string(),
+                new_state.clone(),
+            )
+            .into()),
+            (_, AgentState::Idle) if current_state == &AgentState::Idle => Err(
+                AgentError::InvalidStateTransition(agent_id.to_string(), new_state.clone()).into(),
+            ),
             _ => Ok(()),
         }
     }
 
     /// Record state transition for auditing
-    fn record_state_transition(&mut self, agent_id: &str, from_state: Option<AgentState>, to_state: AgentState, reason: &str) {
+    fn record_state_transition(
+        &mut self,
+        agent_id: &str,
+        from_state: Option<AgentState>,
+        to_state: AgentState,
+        reason: &str,
+    ) {
         let transition = StateTransition {
             timestamp: Utc::now(),
             agent_id: agent_id.to_string(),
@@ -351,7 +388,7 @@ impl AgentManager {
     /// Get statistics about agent states
     pub fn get_statistics(&self) -> AgentStatistics {
         let mut stats = AgentStatistics::default();
-        
+
         for state in self.agents.values() {
             match state {
                 AgentState::Idle => stats.idle_count += 1,
@@ -360,7 +397,7 @@ impl AgentManager {
                 AgentState::Completed => stats.completed_count += 1,
             }
         }
-        
+
         stats.total_count = self.agents.len();
         stats
     }
@@ -368,7 +405,8 @@ impl AgentManager {
     /// Clean up old state history
     pub fn cleanup_history(&mut self, max_history_size: usize) {
         if self.state_history.len() > max_history_size {
-            self.state_history.drain(0..self.state_history.len() - max_history_size);
+            self.state_history
+                .drain(0..self.state_history.len() - max_history_size);
         }
     }
 }
@@ -385,8 +423,15 @@ pub struct AgentStatistics {
 
 impl std::fmt::Display for AgentStatistics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Total: {}, Idle: {}, Working: {}, Blocked: {}, Completed: {}", 
-            self.total_count, self.idle_count, self.working_count, self.blocked_count, self.completed_count)
+        write!(
+            f,
+            "Total: {}, Idle: {}, Working: {}, Blocked: {}, Completed: {}",
+            self.total_count,
+            self.idle_count,
+            self.working_count,
+            self.blocked_count,
+            self.completed_count
+        )
     }
 }
 
@@ -397,14 +442,14 @@ mod tests {
     #[tokio::test]
     async fn test_agent_join() {
         let mut manager = AgentManager::new(3, Duration::from_secs(60));
-        
+
         // Test successful join
         assert!(manager.agent_join("agent1".to_string()).await.is_ok());
         assert_eq!(manager.get_agent_state("agent1"), Some(AgentState::Idle));
-        
+
         // Test duplicate join
         assert!(manager.agent_join("agent1".to_string()).await.is_err());
-        
+
         // Test max concurrent agents
         assert!(manager.agent_join("agent2".to_string()).await.is_ok());
         assert!(manager.agent_join("agent3".to_string()).await.is_ok());
@@ -414,13 +459,13 @@ mod tests {
     #[tokio::test]
     async fn test_agent_leave() {
         let mut manager = AgentManager::new(3, Duration::from_secs(60));
-        
+
         manager.agent_join("agent1".to_string()).await.unwrap();
-        
+
         // Test successful leave
         assert!(manager.agent_leave("agent1".to_string()).await.is_ok());
         assert_eq!(manager.get_agent_state("agent1"), None);
-        
+
         // Test leave non-existent agent
         assert!(manager.agent_leave("agent2".to_string()).await.is_err());
     }
@@ -429,27 +474,48 @@ mod tests {
     async fn test_state_transitions() {
         let mut manager = AgentManager::new(3, Duration::from_secs(60));
         manager.agent_join("agent1".to_string()).await.unwrap();
-        
+
         // Test valid transitions
-        assert!(manager.set_agent_state("agent1", AgentState::Working).await.is_ok());
-        assert!(manager.set_agent_state("agent1", AgentState::Blocked).await.is_ok());
-        assert!(manager.set_agent_state("agent1", AgentState::Idle).await.is_ok());
-        assert!(manager.set_agent_state("agent1", AgentState::Completed).await.is_ok());
-        
+        assert!(manager
+            .set_agent_state("agent1", AgentState::Working)
+            .await
+            .is_ok());
+        assert!(manager
+            .set_agent_state("agent1", AgentState::Blocked)
+            .await
+            .is_ok());
+        assert!(manager
+            .set_agent_state("agent1", AgentState::Idle)
+            .await
+            .is_ok());
+        assert!(manager
+            .set_agent_state("agent1", AgentState::Completed)
+            .await
+            .is_ok());
+
         // Test invalid transition from completed
-        assert!(manager.set_agent_state("agent1", AgentState::Working).await.is_err());
+        assert!(manager
+            .set_agent_state("agent1", AgentState::Working)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_agent_statistics() {
         let mut manager = AgentManager::new(3, Duration::from_secs(60));
-        
+
         manager.agent_join("agent1".to_string()).await.unwrap();
         manager.agent_join("agent2".to_string()).await.unwrap();
-        
-        manager.set_agent_state("agent1", AgentState::Working).await.unwrap();
-        manager.set_agent_state("agent2", AgentState::Blocked).await.unwrap();
-        
+
+        manager
+            .set_agent_state("agent1", AgentState::Working)
+            .await
+            .unwrap();
+        manager
+            .set_agent_state("agent2", AgentState::Blocked)
+            .await
+            .unwrap();
+
         let stats = manager.get_statistics();
         assert_eq!(stats.total_count, 2);
         assert_eq!(stats.working_count, 1);
@@ -457,4 +523,4 @@ mod tests {
         assert_eq!(stats.idle_count, 0);
         assert_eq!(stats.completed_count, 0);
     }
-} 
+}

@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-use rhema_core::{RhemaResult, RhemaError, scope::Scope, schema::*};
+use chrono::Utc;
+use rhema_core::{schema::*, scope::Scope, RhemaError, RhemaResult};
 use rhema_query::{execute_query, QueryResult};
 use serde_json::Value;
-use std::path::PathBuf;
 use std::collections::HashMap;
-use tokio::sync::RwLock;
+use std::path::PathBuf;
 use std::sync::Arc;
-use chrono::Utc;
+use tokio::sync::RwLock;
 
 /// Context provider for Rhema data
 pub struct ContextProvider {
@@ -51,13 +51,13 @@ impl ContextProvider {
     /// Initialize the context provider by loading all data
     pub async fn initialize(&self) -> RhemaResult<()> {
         tracing::info!("Initializing context provider for {:?}", self.repo_root);
-        
+
         // Load scopes
         self.load_scopes().await?;
-        
+
         // Load all context data
         self.load_all_context().await?;
-        
+
         tracing::info!("Context provider initialized successfully");
         Ok(())
     }
@@ -77,7 +77,10 @@ impl ContextProvider {
     /// Get scope by path
     pub async fn get_scope(&self, path: &str) -> RhemaResult<Option<Scope>> {
         let scopes = self.get_scopes().await?;
-        Ok(scopes.iter().find(|s| s.path.to_string_lossy() == path).cloned())
+        Ok(scopes
+            .iter()
+            .find(|s| s.path.to_string_lossy() == path)
+            .cloned())
     }
 
     /// Get knowledge for a scope
@@ -120,7 +123,10 @@ impl ContextProvider {
     }
 
     /// Execute a CQL query with statistics
-    pub async fn execute_query_with_stats(&self, query: &str) -> RhemaResult<(Value, HashMap<String, Value>)> {
+    pub async fn execute_query_with_stats(
+        &self,
+        query: &str,
+    ) -> RhemaResult<(Value, HashMap<String, Value>)> {
         // TODO: Implement query with stats
         let result = self.execute_query(query).await?;
         let stats = HashMap::new();
@@ -128,7 +134,11 @@ impl ContextProvider {
     }
 
     /// Search context with regex
-    pub async fn search_regex(&self, pattern: &str, file_filter: Option<&str>) -> RhemaResult<Vec<QueryResult>> {
+    pub async fn search_regex(
+        &self,
+        pattern: &str,
+        file_filter: Option<&str>,
+    ) -> RhemaResult<Vec<QueryResult>> {
         rhema_query::search_context_regex(&self.repo_root, pattern, file_filter)
     }
 
@@ -159,7 +169,10 @@ impl ContextProvider {
     }
 
     /// Get context changes since a specific time
-    pub async fn get_changes_since(&self, _since: chrono::DateTime<Utc>) -> RhemaResult<Vec<ContextChange>> {
+    pub async fn get_changes_since(
+        &self,
+        _since: chrono::DateTime<Utc>,
+    ) -> RhemaResult<Vec<ContextChange>> {
         // TODO: Implement change tracking
         Ok(Vec::new())
     }
@@ -170,14 +183,16 @@ impl ContextProvider {
         // let scopes = rhema.discover_scopes()?;
         // *scopes_lock = scopes;
         // tracing::debug!("Loaded {} scopes", scopes_lock.len());
-        return Err(rhema_core::RhemaError::InvalidInput("Rhema::new_from_path not implemented yet".to_string()));
+        return Err(rhema_core::RhemaError::InvalidInput(
+            "Rhema::new_from_path not implemented yet".to_string(),
+        ));
         Ok(())
     }
 
     /// Load all context data
     async fn load_all_context(&self) -> RhemaResult<()> {
         let scopes = self.get_scopes().await?;
-        
+
         // Load knowledge
         for scope in &scopes {
             if let Ok(knowledge) = self.load_knowledge_for_scope(scope).await {
@@ -185,7 +200,7 @@ impl ContextProvider {
                 knowledge_cache.insert(scope.path.to_string_lossy().to_string(), knowledge);
             }
         }
-        
+
         // Load todos
         for scope in &scopes {
             if let Ok(todos) = self.load_todos_for_scope(scope).await {
@@ -193,7 +208,7 @@ impl ContextProvider {
                 todos_cache.insert(scope.path.to_string_lossy().to_string(), todos);
             }
         }
-        
+
         // Load decisions
         for scope in &scopes {
             if let Ok(decisions) = self.load_decisions_for_scope(scope).await {
@@ -201,7 +216,7 @@ impl ContextProvider {
                 decisions_cache.insert(scope.path.to_string_lossy().to_string(), decisions);
             }
         }
-        
+
         // Load patterns
         for scope in &scopes {
             if let Ok(patterns) = self.load_patterns_for_scope(scope).await {
@@ -209,7 +224,7 @@ impl ContextProvider {
                 patterns_cache.insert(scope.path.to_string_lossy().to_string(), patterns);
             }
         }
-        
+
         // Load conventions
         for scope in &scopes {
             if let Ok(conventions) = self.load_conventions_for_scope(scope).await {
@@ -217,7 +232,7 @@ impl ContextProvider {
                 conventions_cache.insert(scope.path.to_string_lossy().to_string(), conventions);
             }
         }
-        
+
         Ok(())
     }
 
@@ -333,4 +348,4 @@ pub enum ResourceType {
     Decision,
     Pattern,
     Convention,
-} 
+}

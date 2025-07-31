@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
+use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+use prometheus::{Counter, Gauge, Histogram, HistogramOpts, Registry};
 use rhema_core::{RhemaError, RhemaResult};
-use actix_web::{web, App, HttpServer, middleware, HttpResponse};
-use prometheus::{Registry, Counter, Histogram, Gauge, HistogramOpts};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::{info, error, instrument};
-use std::time::Duration;
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::RwLock;
+use tracing::{error, info, instrument};
 
 /// Monitoring service for Rhema
 pub struct MonitoringService {
@@ -38,29 +38,29 @@ pub struct Metrics {
     pub requests_total: Counter,
     pub requests_duration: Histogram,
     pub requests_in_flight: Gauge,
-    
+
     // AI service metrics
     pub ai_requests_total: Counter,
     pub ai_requests_duration: Histogram,
     pub ai_cache_hits: Counter,
     pub ai_cache_misses: Counter,
     pub ai_model_memory_usage: Gauge,
-    
+
     // Git operations metrics
     pub git_operations_total: Counter,
     pub git_operations_duration: Histogram,
     pub git_errors_total: Counter,
-    
+
     // File operations metrics
     pub file_operations_total: Counter,
     pub file_operations_duration: Histogram,
     pub file_errors_total: Counter,
-    
+
     // System metrics
     pub memory_usage_bytes: Gauge,
     pub cpu_usage_percent: Gauge,
     pub active_connections: Gauge,
-    
+
     // Performance monitoring metrics
     pub performance_monitoring_enabled: Gauge,
     pub performance_reports_generated: Counter,
@@ -88,125 +88,168 @@ impl MonitoringService {
     /// Create a new monitoring service
     pub fn new() -> RhemaResult<Self> {
         let registry = Registry::new();
-        
+
         let metrics = Arc::new(Metrics {
-            requests_total: Counter::new(
-                "rhema_requests_total",
-                "Total number of requests"
-            ).unwrap(),
-            requests_duration: Histogram::with_opts(
-                HistogramOpts::new(
-                    "rhema_requests_duration_seconds",
-                    "Request duration in seconds"
-                )
-            ).unwrap(),
+            requests_total: Counter::new("rhema_requests_total", "Total number of requests")
+                .unwrap(),
+            requests_duration: Histogram::with_opts(HistogramOpts::new(
+                "rhema_requests_duration_seconds",
+                "Request duration in seconds",
+            ))
+            .unwrap(),
             requests_in_flight: Gauge::new(
                 "rhema_requests_in_flight",
-                "Number of requests currently being processed"
-            ).unwrap(),
-            
+                "Number of requests currently being processed",
+            )
+            .unwrap(),
+
             ai_requests_total: Counter::new(
                 "rhema_ai_requests_total",
-                "Total number of AI service requests"
-            ).unwrap(),
-            ai_requests_duration: Histogram::with_opts(
-                HistogramOpts::new(
-                    "rhema_ai_requests_duration_seconds",
-                    "AI request duration in seconds"
-                )
-            ).unwrap(),
+                "Total number of AI service requests",
+            )
+            .unwrap(),
+            ai_requests_duration: Histogram::with_opts(HistogramOpts::new(
+                "rhema_ai_requests_duration_seconds",
+                "AI request duration in seconds",
+            ))
+            .unwrap(),
             ai_cache_hits: Counter::new(
                 "rhema_ai_cache_hits_total",
-                "Total number of AI cache hits"
-            ).unwrap(),
+                "Total number of AI cache hits",
+            )
+            .unwrap(),
             ai_cache_misses: Counter::new(
                 "rhema_ai_cache_misses_total",
-                "Total number of AI cache misses"
-            ).unwrap(),
+                "Total number of AI cache misses",
+            )
+            .unwrap(),
             ai_model_memory_usage: Gauge::new(
                 "rhema_ai_model_memory_bytes",
-                "AI model memory usage in bytes"
-            ).unwrap(),
-            
+                "AI model memory usage in bytes",
+            )
+            .unwrap(),
+
             git_operations_total: Counter::new(
                 "rhema_git_operations_total",
-                "Total number of git operations"
-            ).unwrap(),
-            git_operations_duration: Histogram::with_opts(
-                HistogramOpts::new(
-                    "rhema_git_operations_duration_seconds",
-                    "Git operation duration in seconds"
-                )
-            ).unwrap(),
+                "Total number of git operations",
+            )
+            .unwrap(),
+            git_operations_duration: Histogram::with_opts(HistogramOpts::new(
+                "rhema_git_operations_duration_seconds",
+                "Git operation duration in seconds",
+            ))
+            .unwrap(),
             git_errors_total: Counter::new(
                 "rhema_git_errors_total",
-                "Total number of git operation errors"
-            ).unwrap(),
-            
+                "Total number of git operation errors",
+            )
+            .unwrap(),
+
             file_operations_total: Counter::new(
                 "rhema_file_operations_total",
-                "Total number of file operations"
-            ).unwrap(),
-            file_operations_duration: Histogram::with_opts(
-                HistogramOpts::new(
-                    "rhema_file_operations_duration_seconds",
-                    "File operation duration in seconds"
-                )
-            ).unwrap(),
+                "Total number of file operations",
+            )
+            .unwrap(),
+            file_operations_duration: Histogram::with_opts(HistogramOpts::new(
+                "rhema_file_operations_duration_seconds",
+                "File operation duration in seconds",
+            ))
+            .unwrap(),
             file_errors_total: Counter::new(
                 "rhema_file_errors_total",
-                "Total number of file operation errors"
-            ).unwrap(),
-            
-            memory_usage_bytes: Gauge::new(
-                "rhema_memory_usage_bytes",
-                "Memory usage in bytes"
-            ).unwrap(),
-            cpu_usage_percent: Gauge::new(
-                "rhema_cpu_usage_percent",
-                "CPU usage percentage"
-            ).unwrap(),
+                "Total number of file operation errors",
+            )
+            .unwrap(),
+
+            memory_usage_bytes: Gauge::new("rhema_memory_usage_bytes", "Memory usage in bytes")
+                .unwrap(),
+            cpu_usage_percent: Gauge::new("rhema_cpu_usage_percent", "CPU usage percentage")
+                .unwrap(),
             active_connections: Gauge::new(
                 "rhema_active_connections",
-                "Number of active connections"
-            ).unwrap(),
-            
+                "Number of active connections",
+            )
+            .unwrap(),
+
             performance_monitoring_enabled: Gauge::new(
                 "rhema_performance_monitoring_enabled",
-                "Indicates if performance monitoring is enabled"
-            ).unwrap(),
+                "Indicates if performance monitoring is enabled",
+            )
+            .unwrap(),
             performance_reports_generated: Counter::new(
                 "rhema_performance_reports_generated_total",
-                "Total number of performance reports generated"
-            ).unwrap(),
+                "Total number of performance reports generated",
+            )
+            .unwrap(),
             performance_alerts_triggered: Counter::new(
                 "rhema_performance_alerts_triggered_total",
-                "Total number of performance alerts triggered"
-            ).unwrap(),
+                "Total number of performance alerts triggered",
+            )
+            .unwrap(),
         });
-        
+
         // Register metrics
-        registry.register(Box::new(metrics.requests_total.clone())).unwrap();
-        registry.register(Box::new(metrics.requests_duration.clone())).unwrap();
-        registry.register(Box::new(metrics.requests_in_flight.clone())).unwrap();
-        registry.register(Box::new(metrics.ai_requests_total.clone())).unwrap();
-        registry.register(Box::new(metrics.ai_requests_duration.clone())).unwrap();
-        registry.register(Box::new(metrics.ai_cache_hits.clone())).unwrap();
-        registry.register(Box::new(metrics.ai_cache_misses.clone())).unwrap();
-        registry.register(Box::new(metrics.ai_model_memory_usage.clone())).unwrap();
-        registry.register(Box::new(metrics.git_operations_total.clone())).unwrap();
-        registry.register(Box::new(metrics.git_operations_duration.clone())).unwrap();
-        registry.register(Box::new(metrics.git_errors_total.clone())).unwrap();
-        registry.register(Box::new(metrics.file_operations_total.clone())).unwrap();
-        registry.register(Box::new(metrics.file_operations_duration.clone())).unwrap();
-        registry.register(Box::new(metrics.file_errors_total.clone())).unwrap();
-        registry.register(Box::new(metrics.memory_usage_bytes.clone())).unwrap();
-        registry.register(Box::new(metrics.cpu_usage_percent.clone())).unwrap();
-        registry.register(Box::new(metrics.active_connections.clone())).unwrap();
-        registry.register(Box::new(metrics.performance_monitoring_enabled.clone())).unwrap();
-        registry.register(Box::new(metrics.performance_reports_generated.clone())).unwrap();
-        registry.register(Box::new(metrics.performance_alerts_triggered.clone())).unwrap();
-        
+        registry
+            .register(Box::new(metrics.requests_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.requests_duration.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.requests_in_flight.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.ai_requests_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.ai_requests_duration.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.ai_cache_hits.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.ai_cache_misses.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.ai_model_memory_usage.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.git_operations_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.git_operations_duration.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.git_errors_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.file_operations_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.file_operations_duration.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.file_errors_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.memory_usage_bytes.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.cpu_usage_percent.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.active_connections.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.performance_monitoring_enabled.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.performance_reports_generated.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(metrics.performance_alerts_triggered.clone()))
+            .unwrap();
+
         let health_status = Arc::new(RwLock::new(HealthStatus {
             status: "healthy".to_string(),
             timestamp: chrono::Utc::now(),
@@ -214,7 +257,7 @@ impl MonitoringService {
             uptime: Duration::from_secs(0),
             checks: HashMap::new(),
         }));
-        
+
         Ok(Self {
             registry,
             metrics,
@@ -222,27 +265,30 @@ impl MonitoringService {
             performance_monitor: None,
         })
     }
-    
+
     /// Set performance monitor
-    pub fn set_performance_monitor(&mut self, monitor: Arc<crate::performance::PerformanceMonitor>) {
+    pub fn set_performance_monitor(
+        &mut self,
+        monitor: Arc<crate::performance::PerformanceMonitor>,
+    ) {
         self.performance_monitor = Some(monitor.clone());
         self.metrics.performance_monitoring_enabled.set(1.0);
     }
-    
+
     /// Get performance monitor reference
     pub fn performance_monitor(&self) -> Option<Arc<crate::performance::PerformanceMonitor>> {
         self.performance_monitor.clone()
     }
-    
+
     /// Start the monitoring HTTP server
     #[instrument(skip(self))]
     pub async fn start_server(&self, addr: &str) -> RhemaResult<()> {
         let metrics = self.metrics.clone();
         let health_status = self.health_status.clone();
         let registry = self.registry.clone();
-        
+
         info!("Starting monitoring server on {}", addr);
-        
+
         HttpServer::new(move || {
             App::new()
                 .wrap(middleware::Logger::default())
@@ -257,65 +303,73 @@ impl MonitoringService {
         .bind(addr)?
         .run()
         .await?;
-        
+
         Ok(())
     }
-    
+
     /// Get metrics reference
     pub fn metrics(&self) -> Arc<Metrics> {
         self.metrics.clone()
     }
-    
+
     /// Update health status
     pub async fn update_health(&self, status: HealthStatus) {
         let mut health = self.health_status.write().await;
         *health = status;
     }
-    
+
     /// Record request metrics
     pub fn record_request(&self, duration: Duration) {
         self.metrics.requests_total.inc();
-        self.metrics.requests_duration.observe(duration.as_secs_f64());
+        self.metrics
+            .requests_duration
+            .observe(duration.as_secs_f64());
     }
-    
+
     /// Record AI request metrics
     pub fn record_ai_request(&self, duration: Duration, cache_hit: bool) {
         self.metrics.ai_requests_total.inc();
-        self.metrics.ai_requests_duration.observe(duration.as_secs_f64());
-        
+        self.metrics
+            .ai_requests_duration
+            .observe(duration.as_secs_f64());
+
         if cache_hit {
             self.metrics.ai_cache_hits.inc();
         } else {
             self.metrics.ai_cache_misses.inc();
         }
     }
-    
+
     /// Record git operation metrics
     pub fn record_git_operation(&self, duration: Duration, success: bool) {
         self.metrics.git_operations_total.inc();
-        self.metrics.git_operations_duration.observe(duration.as_secs_f64());
-        
+        self.metrics
+            .git_operations_duration
+            .observe(duration.as_secs_f64());
+
         if !success {
             self.metrics.git_errors_total.inc();
         }
     }
-    
+
     /// Record file operation metrics
     pub fn record_file_operation(&self, duration: Duration, success: bool) {
         self.metrics.file_operations_total.inc();
-        self.metrics.file_operations_duration.observe(duration.as_secs_f64());
-        
+        self.metrics
+            .file_operations_duration
+            .observe(duration.as_secs_f64());
+
         if !success {
             self.metrics.file_errors_total.inc();
         }
     }
-    
+
     /// Update system metrics
     pub fn update_system_metrics(&self, memory_bytes: u64, cpu_percent: f64, connections: u64) {
         self.metrics.memory_usage_bytes.set(memory_bytes as f64);
         self.metrics.cpu_usage_percent.set(cpu_percent);
         self.metrics.active_connections.set(connections as f64);
-        
+
         // Also record in performance monitor if available
         if let Some(monitor) = &self.performance_monitor {
             let data = crate::performance::SystemPerformanceData {
@@ -333,22 +387,31 @@ impl MonitoringService {
                 thread_count: 0,
                 open_file_descriptors: connections,
             };
-            
+
             // Spawn async task to record metrics
             let monitor_clone = monitor.clone();
             tokio::spawn(async move {
                 if let Err(e) = monitor_clone.record_system_metrics(data).await {
-                    error!("Failed to record system metrics in performance monitor: {}", e);
+                    error!(
+                        "Failed to record system metrics in performance monitor: {}",
+                        e
+                    );
                 }
             });
         }
     }
-    
+
     /// Record command execution metrics
-    pub fn record_command_execution(&self, command_name: &str, duration: Duration, success: bool, error_message: Option<&str>) {
+    pub fn record_command_execution(
+        &self,
+        command_name: &str,
+        duration: Duration,
+        success: bool,
+        error_message: Option<&str>,
+    ) {
         // Record in basic metrics
         self.record_request(duration);
-        
+
         // Record in performance monitor if available
         if let Some(monitor) = &self.performance_monitor {
             let ux_data = crate::performance::UxData {
@@ -361,7 +424,7 @@ impl MonitoringService {
                 error_message: error_message.map(|s| s.to_string()),
                 satisfaction_score: None, // Would need user input
             };
-            
+
             // Spawn async task to record metrics
             let monitor_clone = monitor.clone();
             tokio::spawn(async move {
@@ -371,11 +434,18 @@ impl MonitoringService {
             });
         }
     }
-    
+
     /// Record usage analytics
-    pub fn record_usage_analytics(&self, user_id: &str, command_name: &str, feature_name: &str, 
-                                 session_duration_seconds: u64, workflow_completed: bool,
-                                 usage_pattern: &str, user_behavior: &str) {
+    pub fn record_usage_analytics(
+        &self,
+        user_id: &str,
+        command_name: &str,
+        feature_name: &str,
+        session_duration_seconds: u64,
+        workflow_completed: bool,
+        usage_pattern: &str,
+        user_behavior: &str,
+    ) {
         // Record in performance monitor if available
         if let Some(monitor) = &self.performance_monitor {
             let usage_data = crate::performance::UsageData {
@@ -388,19 +458,25 @@ impl MonitoringService {
                 usage_pattern: usage_pattern.to_string(),
                 user_behavior: user_behavior.to_string(),
             };
-            
+
             // Spawn async task to record metrics
             let monitor_clone = monitor.clone();
             tokio::spawn(async move {
                 if let Err(e) = monitor_clone.record_usage_analytics(usage_data).await {
-                    error!("Failed to record usage analytics in performance monitor: {}", e);
+                    error!(
+                        "Failed to record usage analytics in performance monitor: {}",
+                        e
+                    );
                 }
             });
         }
     }
-    
+
     /// Generate performance report
-    pub async fn generate_performance_report(&self, hours: Option<u64>) -> RhemaResult<crate::performance::PerformanceReport> {
+    pub async fn generate_performance_report(
+        &self,
+        hours: Option<u64>,
+    ) -> RhemaResult<crate::performance::PerformanceReport> {
         if let Some(monitor) = &self.performance_monitor {
             let hours = hours.unwrap_or(24);
             let period = crate::performance::ReportPeriod {
@@ -408,13 +484,15 @@ impl MonitoringService {
                 end: chrono::Utc::now(),
                 duration_seconds: hours * 3600,
             };
-            
+
             let report = monitor.generate_performance_report(period).await?;
             self.metrics.performance_reports_generated.inc();
-            
+
             Ok(report)
         } else {
-            Err(RhemaError::ConfigError("Performance monitoring is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Performance monitoring is not enabled".to_string(),
+            ))
         }
     }
 }
@@ -425,7 +503,7 @@ async fn metrics_handler(registry: web::Data<Registry>) -> HttpResponse {
     let encoder = prometheus::TextEncoder::new();
     let mut buffer = Vec::new();
     encoder.encode(&registry.gather(), &mut buffer).unwrap();
-    
+
     HttpResponse::Ok()
         .content_type("text/plain; version=0.0.4; charset=utf-8")
         .body(buffer)
@@ -434,7 +512,7 @@ async fn metrics_handler(registry: web::Data<Registry>) -> HttpResponse {
 /// Health check handler
 async fn health_handler(health: web::Data<Arc<RwLock<HealthStatus>>>) -> HttpResponse {
     let health_status = health.read().await;
-    
+
     let response = serde_json::json!({
         "status": health_status.status,
         "timestamp": health_status.timestamp,
@@ -442,7 +520,7 @@ async fn health_handler(health: web::Data<Arc<RwLock<HealthStatus>>>) -> HttpRes
         "uptime_seconds": health_status.uptime.as_secs(),
         "checks": health_status.checks
     });
-    
+
     HttpResponse::Ok()
         .content_type("application/json")
         .json(response)
@@ -465,22 +543,22 @@ async fn live_handler() -> HttpResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_monitoring_service_creation() {
         let service = MonitoringService::new().unwrap();
         assert!(service.metrics().requests_total.get() == 0.0);
     }
-    
+
     #[tokio::test]
     async fn test_metrics_recording() {
         let service = MonitoringService::new().unwrap();
-        
+
         service.record_request(Duration::from_millis(100));
         service.record_ai_request(Duration::from_millis(50), true);
         service.record_git_operation(Duration::from_millis(200), true);
         service.record_file_operation(Duration::from_millis(75), false);
-        
+
         assert!(service.metrics().requests_total.get() == 1.0);
         assert!(service.metrics().ai_requests_total.get() == 1.0);
         assert!(service.metrics().ai_cache_hits.get() == 1.0);
@@ -488,4 +566,4 @@ mod tests {
         assert!(service.metrics().file_operations_total.get() == 1.0);
         assert!(service.metrics().file_errors_total.get() == 1.0);
     }
-} 
+}

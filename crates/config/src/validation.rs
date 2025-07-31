@@ -15,12 +15,12 @@
  */
 
 use crate::config::{SafetyValidator, SafetyViolation};
-use crate::{ConfigIssueSeverity, ConfigIssue, Config, ConfigError, CURRENT_CONFIG_VERSION};
+use crate::{Config, ConfigError, ConfigIssue, ConfigIssueSeverity, CURRENT_CONFIG_VERSION};
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use chrono::{DateTime, Utc};
 
 /// Validation manager for configuration validation
 pub struct ValidationManager {
@@ -145,10 +145,10 @@ impl ValidationManager {
             validation_cache: HashMap::new(),
             cache_ttl: 3600, // 1 hour default
         };
-        
+
         manager.load_default_rules();
         manager.load_custom_validators();
-        
+
         Ok(manager)
     }
 
@@ -161,19 +161,15 @@ impl ValidationManager {
             rule_type: ValidationRuleType::Schema,
             severity: ConfigIssueSeverity::Error,
             enabled: true,
-            conditions: vec![
-                ValidationCondition {
-                    field: "version".to_string(),
-                    operator: ValidationOperator::Exists,
-                    value: serde_json::Value::Null,
-                }
-            ],
-            actions: vec![
-                ValidationAction {
-                    action_type: ValidationActionType::Error,
-                    parameters: HashMap::new(),
-                }
-            ],
+            conditions: vec![ValidationCondition {
+                field: "version".to_string(),
+                operator: ValidationOperator::Exists,
+                value: serde_json::Value::Null,
+            }],
+            actions: vec![ValidationAction {
+                action_type: ValidationActionType::Error,
+                parameters: HashMap::new(),
+            }],
         });
 
         // Security validation rules
@@ -183,19 +179,15 @@ impl ValidationManager {
             rule_type: ValidationRuleType::Security,
             severity: ConfigIssueSeverity::Warning,
             enabled: true,
-            conditions: vec![
-                ValidationCondition {
-                    field: "security.encryption.enabled".to_string(),
-                    operator: ValidationOperator::Equals,
-                    value: serde_json::Value::Bool(false),
-                }
-            ],
-            actions: vec![
-                ValidationAction {
-                    action_type: ValidationActionType::Warn,
-                    parameters: HashMap::new(),
-                }
-            ],
+            conditions: vec![ValidationCondition {
+                field: "security.encryption.enabled".to_string(),
+                operator: ValidationOperator::Equals,
+                value: serde_json::Value::Bool(false),
+            }],
+            actions: vec![ValidationAction {
+                action_type: ValidationActionType::Warn,
+                parameters: HashMap::new(),
+            }],
         });
 
         // Performance validation rules
@@ -205,19 +197,15 @@ impl ValidationManager {
             rule_type: ValidationRuleType::Performance,
             severity: ConfigIssueSeverity::Info,
             enabled: true,
-            conditions: vec![
-                ValidationCondition {
-                    field: "performance.cache.enabled".to_string(),
-                    operator: ValidationOperator::Equals,
-                    value: serde_json::Value::Bool(false),
-                }
-            ],
-            actions: vec![
-                ValidationAction {
-                    action_type: ValidationActionType::Log,
-                    parameters: HashMap::new(),
-                }
-            ],
+            conditions: vec![ValidationCondition {
+                field: "performance.cache.enabled".to_string(),
+                operator: ValidationOperator::Equals,
+                value: serde_json::Value::Bool(false),
+            }],
+            actions: vec![ValidationAction {
+                action_type: ValidationActionType::Log,
+                parameters: HashMap::new(),
+            }],
         });
     }
 
@@ -228,11 +216,9 @@ impl ValidationManager {
             "git_integration_validator".to_string(),
             Box::new(GitIntegrationValidator),
         );
-        
-        self.custom_validators.insert(
-            "path_validator".to_string(),
-            Box::new(PathValidator),
-        );
+
+        self.custom_validators
+            .insert("path_validator".to_string(), Box::new(PathValidator));
     }
 
     /// Validate all configurations
@@ -262,14 +248,16 @@ impl ValidationManager {
 
         // Validate repository configs
         for (path, config) in repository_configs {
-            let result = self.validate_config(config.clone(), &format!("repository:{}", path.display()))?;
+            let result =
+                self.validate_config(config.clone(), &format!("repository:{}", path.display()))?;
             results.insert(path.clone(), result.clone());
             self.update_summary(&mut summary, &result);
         }
 
         // Validate scope configs
         for (path, config) in scope_configs {
-            let result = self.validate_config(config.clone(), &format!("scope:{}", path.display()))?;
+            let result =
+                self.validate_config(config.clone(), &format!("scope:{}", path.display()))?;
             results.insert(path.clone(), result.clone());
             self.update_summary(&mut summary, &result);
         }
@@ -287,7 +275,11 @@ impl ValidationManager {
     }
 
     /// Validate a single configuration
-    pub fn validate_config<T: Config>(&self, config: T, _context: &str) -> RhemaResult<ValidationResult> {
+    pub fn validate_config<T: Config>(
+        &self,
+        config: T,
+        _context: &str,
+    ) -> RhemaResult<ValidationResult> {
         let start_time = Utc::now();
         let mut issues = Vec::new();
 
@@ -317,7 +309,10 @@ impl ValidationManager {
         let duration = end_time.signed_duration_since(start_time);
 
         let valid = issues.iter().all(|issue| {
-            matches!(issue.severity, ConfigIssueSeverity::Info | ConfigIssueSeverity::Warning)
+            matches!(
+                issue.severity,
+                ConfigIssueSeverity::Info | ConfigIssueSeverity::Warning
+            )
         });
 
         Ok(ValidationResult {
@@ -339,8 +334,8 @@ impl ValidationManager {
     /// Apply validation rules
     fn apply_validation_rules<T: Config>(&self, config: &T) -> RhemaResult<Vec<ConfigIssue>> {
         let mut issues = Vec::new();
-        let config_value = serde_json::to_value(config)
-            .map_err(|e| ConfigError::SerializationError(e))?;
+        let config_value =
+            serde_json::to_value(config).map_err(|e| ConfigError::SerializationError(e))?;
 
         for rule in &self.rules {
             if !rule.enabled {
@@ -376,7 +371,11 @@ impl ValidationManager {
     }
 
     /// Evaluate a validation rule
-    fn evaluate_rule(&self, rule: &ValidationRule, config: &serde_json::Value) -> RhemaResult<bool> {
+    fn evaluate_rule(
+        &self,
+        rule: &ValidationRule,
+        config: &serde_json::Value,
+    ) -> RhemaResult<bool> {
         for condition in &rule.conditions {
             if !self.evaluate_condition(condition, config)? {
                 return Ok(false);
@@ -386,9 +385,13 @@ impl ValidationManager {
     }
 
     /// Evaluate a validation condition
-    fn evaluate_condition(&self, condition: &ValidationCondition, config: &serde_json::Value) -> RhemaResult<bool> {
+    fn evaluate_condition(
+        &self,
+        condition: &ValidationCondition,
+        config: &serde_json::Value,
+    ) -> RhemaResult<bool> {
         let field_value = self.get_field_value(&condition.field, config)?;
-        
+
         match condition.operator {
             ValidationOperator::Equals => Ok(field_value == condition.value),
             ValidationOperator::NotEquals => Ok(field_value != condition.value),
@@ -420,15 +423,21 @@ impl ValidationManager {
     }
 
     /// Get field value from nested JSON
-    fn get_field_value(&self, field_path: &str, config: &serde_json::Value) -> RhemaResult<serde_json::Value> {
+    fn get_field_value(
+        &self,
+        field_path: &str,
+        config: &serde_json::Value,
+    ) -> RhemaResult<serde_json::Value> {
         let parts: Vec<&str> = field_path.split('.').collect();
         let mut current = config;
 
         for part in parts {
-            current = current.get(part)
-                .ok_or_else(|| ConfigError::ValidationFailed(
-                    format!("Field '{}' not found in configuration", field_path)
-                ))?;
+            current = current.get(part).ok_or_else(|| {
+                ConfigError::ValidationFailed(format!(
+                    "Field '{}' not found in configuration",
+                    field_path
+                ))
+            })?;
         }
 
         Ok(current.clone())
@@ -437,8 +446,8 @@ impl ValidationManager {
     /// Apply custom validators
     fn apply_custom_validators<T: Config>(&self, config: &T) -> RhemaResult<Vec<ConfigIssue>> {
         let mut issues = Vec::new();
-        let config_value = serde_json::to_value(config)
-            .map_err(|e| ConfigError::SerializationError(e))?;
+        let config_value =
+            serde_json::to_value(config).map_err(|e| ConfigError::SerializationError(e))?;
 
         for validator in self.custom_validators.values() {
             let result = validator.validate(&config_value);
@@ -451,7 +460,7 @@ impl ValidationManager {
     /// Update validation summary
     fn update_summary(&self, summary: &mut ValidationSummary, result: &ValidationResult) {
         summary.total_configs += 1;
-        
+
         if result.valid {
             summary.valid_configs += 1;
         } else {
@@ -487,9 +496,7 @@ impl ValidationManager {
                 return Ok(());
             }
         }
-        Err(ConfigError::ValidationFailed(
-            format!("Rule '{}' not found", rule_name)
-        ).into())
+        Err(ConfigError::ValidationFailed(format!("Rule '{}' not found", rule_name)).into())
     }
 
     /// Get validation rules
@@ -565,7 +572,7 @@ impl CustomValidator for PathValidator {
         if let Some(environment) = config.get("environment") {
             if let Some(paths) = environment.get("paths") {
                 let path_fields = ["home", "config", "data", "cache", "log", "temp"];
-                
+
                 for field in &path_fields {
                     if let Some(path_value) = paths.get(field) {
                         if let Some(path_str) = path_value.as_str() {
@@ -575,7 +582,9 @@ impl CustomValidator for PathValidator {
                                     severity: ConfigIssueSeverity::Warning,
                                     message: format!("Path '{}' does not exist", path_str),
                                     location: Some(format!("environment.paths.{}", field)),
-                                    suggestion: Some("Create the directory or update the path".to_string()),
+                                    suggestion: Some(
+                                        "Create the directory or update the path".to_string(),
+                                    ),
                                 });
                             }
                         }
@@ -596,4 +605,4 @@ impl CustomValidator for PathValidator {
     fn name(&self) -> &str {
         "path_validator"
     }
-} 
+}

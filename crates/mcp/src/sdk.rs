@@ -17,13 +17,13 @@
 use rhema_core::{RhemaError, RhemaResult};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::pin::Pin;
 use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info};
+use tracing::info;
 
-use super::{ContextProvider, CacheManager, FileWatcher, AuthManager};
+use super::{AuthManager, CacheManager, ContextProvider, FileWatcher};
 use crate::mcp::McpConfig;
 
 /// Simple MCP Resource structure
@@ -223,7 +223,8 @@ impl RhemaMcpServer {
             description: "Analyze project context and provide insights".to_string(),
             segments: vec![
                 PromptSegment::Text {
-                    text: "Analyze the following project context and provide insights:\n\n".to_string(),
+                    text: "Analyze the following project context and provide insights:\n\n"
+                        .to_string(),
                 },
                 PromptSegment::Resource {
                     uri: "rhema://context/current".to_string(),
@@ -239,7 +240,8 @@ impl RhemaMcpServer {
             description: "Perform a code review using project context".to_string(),
             segments: vec![
                 PromptSegment::Text {
-                    text: "Review the following code using project context and conventions:\n\n".to_string(),
+                    text: "Review the following code using project context and conventions:\n\n"
+                        .to_string(),
                 },
                 PromptSegment::Resource {
                     uri: "rhema://conventions/coding".to_string(),
@@ -278,36 +280,48 @@ impl RhemaMcpServer {
     pub async fn execute_tool(&self, tool_name: &str, arguments: Value) -> RhemaResult<ToolResult> {
         match tool_name {
             "rhema_query" => {
-                let query = arguments.get("query")
+                let query = arguments
+                    .get("query")
                     .and_then(|v| v.as_str())
-                    .ok_or_else(|| RhemaError::InvalidInput("Missing query parameter".to_string()))?;
-                
+                    .ok_or_else(|| {
+                        RhemaError::InvalidInput("Missing query parameter".to_string())
+                    })?;
+
                 // For now, return a placeholder result
                 Ok(ToolResult::Text {
                     text: format!("Query executed: {}", query),
                 })
             }
             "rhema_search" => {
-                let pattern = arguments.get("pattern")
+                let pattern = arguments
+                    .get("pattern")
                     .and_then(|v| v.as_str())
-                    .ok_or_else(|| RhemaError::InvalidInput("Missing pattern parameter".to_string()))?;
-                
+                    .ok_or_else(|| {
+                        RhemaError::InvalidInput("Missing pattern parameter".to_string())
+                    })?;
+
                 // For now, return a placeholder result
                 Ok(ToolResult::Text {
                     text: format!("Search executed with pattern: {}", pattern),
                 })
             }
             "rhema_scope" => {
-                let scope_name = arguments.get("scope_name")
+                let scope_name = arguments
+                    .get("scope_name")
                     .and_then(|v| v.as_str())
-                    .ok_or_else(|| RhemaError::InvalidInput("Missing scope_name parameter".to_string()))?;
-                
+                    .ok_or_else(|| {
+                        RhemaError::InvalidInput("Missing scope_name parameter".to_string())
+                    })?;
+
                 // For now, return a placeholder result
                 Ok(ToolResult::Text {
                     text: format!("Scope information for: {}", scope_name),
                 })
             }
-            _ => Err(RhemaError::InvalidInput(format!("Unknown tool: {}", tool_name))),
+            _ => Err(RhemaError::InvalidInput(format!(
+                "Unknown tool: {}",
+                tool_name
+            ))),
         }
     }
 }
@@ -315,41 +329,97 @@ impl RhemaMcpServer {
 // Extension traits for backward compatibility
 pub trait ContextProviderExt {
     fn query(&self, query: &str) -> Pin<Box<dyn Future<Output = RhemaResult<Value>> + Send>>;
-    fn query_in_scope(&self, query: &str, scope: &str) -> Pin<Box<dyn Future<Output = RhemaResult<Value>> + Send>>;
-    fn search_regex(&self, pattern: &str, file_filter: Option<&str>) -> Pin<Box<dyn Future<Output = RhemaResult<Vec<rhema_query::QueryResult>>> + Send>>;
-    fn get_scope(&self, name: &str) -> Pin<Box<dyn Future<Output = RhemaResult<rhema_core::scope::Scope>> + Send>>;
-    fn list_scopes(&self) -> Pin<Box<dyn Future<Output = RhemaResult<Vec<rhema_core::scope::Scope>>> + Send>>;
-    fn load_knowledge(&self, scope_name: &str) -> Pin<Box<dyn Future<Output = RhemaResult<rhema_core::schema::Knowledge>> + Send>>;
+    fn query_in_scope(
+        &self,
+        query: &str,
+        scope: &str,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<Value>> + Send>>;
+    fn search_regex(
+        &self,
+        pattern: &str,
+        file_filter: Option<&str>,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<Vec<rhema_query::QueryResult>>> + Send>>;
+    fn get_scope(
+        &self,
+        name: &str,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<rhema_core::scope::Scope>> + Send>>;
+    fn list_scopes(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<Vec<rhema_core::scope::Scope>>> + Send>>;
+    fn load_knowledge(
+        &self,
+        scope_name: &str,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<rhema_core::schema::Knowledge>> + Send>>;
 }
 
 impl ContextProviderExt for ContextProvider {
     fn query(&self, _query: &str) -> Pin<Box<dyn Future<Output = RhemaResult<Value>> + Send>> {
         // Implementation will be added
-        Box::pin(async { Err(RhemaError::InvalidInput("Query not yet implemented".to_string())) })
+        Box::pin(async {
+            Err(RhemaError::InvalidInput(
+                "Query not yet implemented".to_string(),
+            ))
+        })
     }
 
-    fn query_in_scope(&self, _query: &str, _scope: &str) -> Pin<Box<dyn Future<Output = RhemaResult<Value>> + Send>> {
+    fn query_in_scope(
+        &self,
+        _query: &str,
+        _scope: &str,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<Value>> + Send>> {
         // Implementation will be added
-        Box::pin(async { Err(RhemaError::InvalidInput("Query in scope not yet implemented".to_string())) })
+        Box::pin(async {
+            Err(RhemaError::InvalidInput(
+                "Query in scope not yet implemented".to_string(),
+            ))
+        })
     }
 
-    fn search_regex(&self, _pattern: &str, _file_filter: Option<&str>) -> Pin<Box<dyn Future<Output = RhemaResult<Vec<rhema_query::QueryResult>>> + Send>> {
+    fn search_regex(
+        &self,
+        _pattern: &str,
+        _file_filter: Option<&str>,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<Vec<rhema_query::QueryResult>>> + Send>> {
         // Implementation will be added
-        Box::pin(async { Err(RhemaError::InvalidInput("Search regex not yet implemented".to_string())) })
+        Box::pin(async {
+            Err(RhemaError::InvalidInput(
+                "Search regex not yet implemented".to_string(),
+            ))
+        })
     }
 
-    fn get_scope(&self, _name: &str) -> Pin<Box<dyn Future<Output = RhemaResult<rhema_core::scope::Scope>> + Send>> {
+    fn get_scope(
+        &self,
+        _name: &str,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<rhema_core::scope::Scope>> + Send>> {
         // Implementation will be added
-        Box::pin(async { Err(RhemaError::InvalidInput("Get scope not yet implemented".to_string())) })
+        Box::pin(async {
+            Err(RhemaError::InvalidInput(
+                "Get scope not yet implemented".to_string(),
+            ))
+        })
     }
 
-    fn list_scopes(&self) -> Pin<Box<dyn Future<Output = RhemaResult<Vec<rhema_core::scope::Scope>>> + Send>> {
+    fn list_scopes(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<Vec<rhema_core::scope::Scope>>> + Send>> {
         // Implementation will be added
-        Box::pin(async { Err(RhemaError::InvalidInput("List scopes not yet implemented".to_string())) })
+        Box::pin(async {
+            Err(RhemaError::InvalidInput(
+                "List scopes not yet implemented".to_string(),
+            ))
+        })
     }
 
-    fn load_knowledge(&self, _scope_name: &str) -> Pin<Box<dyn Future<Output = RhemaResult<rhema_core::schema::Knowledge>> + Send>> {
+    fn load_knowledge(
+        &self,
+        _scope_name: &str,
+    ) -> Pin<Box<dyn Future<Output = RhemaResult<rhema_core::schema::Knowledge>> + Send>> {
         // Implementation will be added
-        Box::pin(async { Err(RhemaError::InvalidInput("Load knowledge not yet implemented".to_string())) })
+        Box::pin(async {
+            Err(RhemaError::InvalidInput(
+                "Load knowledge not yet implemented".to_string(),
+            ))
+        })
     }
-} 
+}

@@ -1,8 +1,8 @@
-use crate::{Rhema, RhemaResult, RhemaError};
-use rhema_ai::context_injection::{ContextInjectionRule, TaskType, EnhancedContextInjector};
-use rhema_core::Priority;
-use rhema_core::schema::{PromptPattern, PromptInjectionMethod, UsageAnalytics, PromptVersion};
+use crate::{Rhema, RhemaError, RhemaResult};
 use clap::Subcommand;
+use rhema_ai::context_injection::{ContextInjectionRule, EnhancedContextInjector, TaskType};
+use rhema_core::schema::{PromptInjectionMethod, PromptPattern, PromptVersion, UsageAnalytics};
+use rhema_core::Priority;
 
 // ContextRulesSubcommands will be defined in this module
 
@@ -14,57 +14,57 @@ pub enum ContextRulesSubcommands {
         #[arg(long, value_name = "PATTERN")]
         pattern: Option<String>,
     },
-    
+
     /// Add a new context injection rule
     Add {
         /// Rule name
         #[arg(value_name = "NAME")]
         name: String,
-        
+
         /// Rule description
         #[arg(long, value_name = "DESCRIPTION")]
         description: String,
-        
+
         /// Pattern to match
         #[arg(long, value_name = "PATTERN")]
         pattern: String,
-        
+
         /// Context to inject
         #[arg(long, value_name = "CONTEXT")]
         context: String,
-        
+
         /// Priority
         #[arg(long, value_enum, default_value = "medium")]
         priority: Priority,
     },
-    
+
     /// Update a context injection rule
     Update {
         /// Rule ID
         #[arg(value_name = "ID")]
         id: String,
-        
+
         /// New name
         #[arg(long, value_name = "NAME")]
         name: Option<String>,
-        
+
         /// New description
         #[arg(long, value_name = "DESCRIPTION")]
         description: Option<String>,
-        
+
         /// New pattern
         #[arg(long, value_name = "PATTERN")]
         pattern: Option<String>,
-        
+
         /// New context
         #[arg(long, value_name = "CONTEXT")]
         context: Option<String>,
-        
+
         /// New priority
         #[arg(long, value_enum)]
         priority: Option<Priority>,
     },
-    
+
     /// Delete a context injection rule
     Delete {
         /// Rule ID
@@ -75,25 +75,27 @@ pub enum ContextRulesSubcommands {
 
 pub fn run(rhema: &Rhema, subcommand: &ContextRulesSubcommands) -> RhemaResult<()> {
     match subcommand {
-        ContextRulesSubcommands::List { pattern } => {
-            list_context_rules(rhema, pattern)
-        }
-        ContextRulesSubcommands::Add { name, description, pattern, context, priority } => {
-            add_context_rule(rhema, name, description, pattern, context, priority)
-        }
-        ContextRulesSubcommands::Update { id, name, description, pattern, context, priority } => {
-            update_context_rule(rhema, id, name, description, pattern, context, priority)
-        }
-        ContextRulesSubcommands::Delete { id } => {
-            delete_context_rule(rhema, id)
-        }
+        ContextRulesSubcommands::List { pattern } => list_context_rules(rhema, pattern),
+        ContextRulesSubcommands::Add {
+            name,
+            description,
+            pattern,
+            context,
+            priority,
+        } => add_context_rule(rhema, name, description, pattern, context, priority),
+        ContextRulesSubcommands::Update {
+            id,
+            name,
+            description,
+            pattern,
+            context,
+            priority,
+        } => update_context_rule(rhema, id, name, description, pattern, context, priority),
+        ContextRulesSubcommands::Delete { id } => delete_context_rule(rhema, id),
     }
 }
 
-fn list_context_rules(
-    rhema: &Rhema,
-    pattern: &Option<String>,
-) -> RhemaResult<()> {
+fn list_context_rules(rhema: &Rhema, pattern: &Option<String>) -> RhemaResult<()> {
     let scope_path = rhema.get_current_scope_path()?;
 
     let injector = EnhancedContextInjector::new(scope_path);
@@ -101,7 +103,7 @@ fn list_context_rules(
 
     println!("📋 Context Injection Rules:");
     println!("{}", "=".repeat(60));
-    
+
     for rule in rules {
         println!("Task Type: {:?}", rule.task_type);
         println!("Context Files: {}", rule.context_files.join(", "));
@@ -148,7 +150,7 @@ fn test_context_injection(
 
     let parsed_task_type = parse_task_type(task_type)?;
     let injector = EnhancedContextInjector::new(scope_path);
-    
+
     // Create a dummy prompt pattern for testing
     let test_pattern = rhema_core::schema::PromptPattern {
         id: "test-pattern".to_string(),
@@ -163,7 +165,10 @@ fn test_context_injection(
 
     let final_prompt = injector.inject_context(&test_pattern, Some(parsed_task_type.clone()))?;
 
-    println!("🧪 Testing context injection for task type: {:?}", parsed_task_type);
+    println!(
+        "🧪 Testing context injection for task type: {:?}",
+        parsed_task_type
+    );
     println!("{}", "=".repeat(60));
     println!("{}", final_prompt);
     println!("{}", "=".repeat(60));
@@ -201,11 +206,8 @@ fn update_context_rule(
     Ok(())
 }
 
-fn delete_context_rule(
-    rhema: &Rhema,
-    id: &str,
-) -> RhemaResult<()> {
+fn delete_context_rule(rhema: &Rhema, id: &str) -> RhemaResult<()> {
     // TODO: Implement delete context rule
     println!("Deleting context rule: {}", id);
     Ok(())
-} 
+}

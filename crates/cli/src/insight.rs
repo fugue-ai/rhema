@@ -25,29 +25,40 @@ use colored::*;
 
 pub fn run(rhema: &Rhema, subcommand: &InsightSubcommands) -> RhemaResult<()> {
     // Get the current working directory to find the nearest scope
-    let current_dir = std::env::current_dir()
-        .map_err(|e| crate::RhemaError::IoError(e))?;
-    
+    let current_dir = std::env::current_dir().map_err(|e| crate::RhemaError::IoError(e))?;
+
     // Discover all scopes
     let scopes = rhema.discover_scopes()?;
-    
+
     // Find the nearest scope to the current directory
-    let scope = find_nearest_scope(&current_dir, &scopes)
-        .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
-    
+    let scope = find_nearest_scope(&current_dir, &scopes).ok_or_else(|| {
+        crate::RhemaError::ConfigError(
+            "No Rhema scope found in current directory or parent directories".to_string(),
+        )
+    })?;
+
     match subcommand {
-        InsightSubcommands::Record { title, content, confidence, category, tags } => {
-            record_insight(scope, title, content, confidence, category, tags)
-        }
-        InsightSubcommands::List { category, tag, min_confidence } => {
-            list_insights(scope, category, tag, min_confidence)
-        }
-        InsightSubcommands::Update { id, title, content, confidence, category, tags } => {
-            update_insight(scope, id, title, content, confidence, category, tags)
-        }
-        InsightSubcommands::Delete { id } => {
-            delete_insight(scope, id)
-        }
+        InsightSubcommands::Record {
+            title,
+            content,
+            confidence,
+            category,
+            tags,
+        } => record_insight(scope, title, content, confidence, category, tags),
+        InsightSubcommands::List {
+            category,
+            tag,
+            min_confidence,
+        } => list_insights(scope, category, tag, min_confidence),
+        InsightSubcommands::Update {
+            id,
+            title,
+            content,
+            confidence,
+            category,
+            tags,
+        } => update_insight(scope, id, title, content, confidence, category, tags),
+        InsightSubcommands::Delete { id } => delete_insight(scope, id),
     }
 }
 
@@ -67,7 +78,7 @@ fn record_insight(
         category.clone(),
         tags.clone(),
     )?;
-    
+
     println!("💡 Insight recorded successfully with ID: {}", id.green());
     println!("📝 Title: {}", title);
     println!("📄 Content: {}", content);
@@ -80,7 +91,7 @@ fn record_insight(
     if let Some(tags) = tags {
         println!("🏷️  Tags: {}", tags);
     }
-    
+
     Ok(())
 }
 
@@ -96,15 +107,15 @@ fn list_insights(
         tag.clone(),
         min_confidence.clone(),
     )?;
-    
+
     if insights.is_empty() {
         println!("📭 No insights found");
         return Ok(());
     }
-    
+
     println!("💡 Insights in scope: {}", scope.definition.name);
     println!("{}", "─".repeat(80));
-    
+
     for insight in insights {
         println!("🆔 ID: {}", insight.id);
         println!("📝 Title: {}", insight.title);
@@ -116,10 +127,22 @@ fn list_insights(
             println!("🏷️  Tags: {}", tags.join(", "));
         }
         if let Some(conf) = &insight.confidence {
-            let confidence_color = if *conf >= 8 { "green" } else if *conf >= 5 { "yellow" } else { "red" };
-            println!("🎯 Confidence: {}", format!("{}/10", conf).color(confidence_color));
+            let confidence_color = if *conf >= 8 {
+                "green"
+            } else if *conf >= 5 {
+                "yellow"
+            } else {
+                "red"
+            };
+            println!(
+                "🎯 Confidence: {}",
+                format!("{}/10", conf).color(confidence_color)
+            );
         }
-        println!("📅 Created: {}", insight.created_at.format("%Y-%m-%d %H:%M"));
+        println!(
+            "📅 Created: {}",
+            insight.created_at.format("%Y-%m-%d %H:%M")
+        );
         if let Some(updated_at) = &insight.updated_at {
             println!("📝 Updated: {}", updated_at.format("%Y-%m-%d %H:%M"));
         }
@@ -128,7 +151,7 @@ fn list_insights(
         }
         println!("{}", "─".repeat(80));
     }
-    
+
     Ok(())
 }
 
@@ -150,11 +173,15 @@ fn update_insight(
         category.clone(),
         tags.clone(),
     )?;
-    
+
     println!("✅ Insight {} updated successfully", id.green());
-    
-    if title.is_some() || content.is_some() || confidence.is_some() || 
-       category.is_some() || tags.is_some() {
+
+    if title.is_some()
+        || content.is_some()
+        || confidence.is_some()
+        || category.is_some()
+        || tags.is_some()
+    {
         println!("📝 Updated fields:");
         if title.is_some() {
             println!("  - Title: {}", title.as_ref().unwrap());
@@ -172,17 +199,14 @@ fn update_insight(
             println!("  - Tags: {}", tags.as_ref().unwrap());
         }
     }
-    
+
     Ok(())
 }
 
-fn delete_insight(
-    scope: &rhema_core::scope::Scope,
-    id: &str,
-) -> RhemaResult<()> {
+fn delete_insight(scope: &rhema_core::scope::Scope, id: &str) -> RhemaResult<()> {
     file_ops::delete_knowledge(&scope.path, id)?;
-    
+
     println!("🗑️  Insight {} deleted successfully", id.green());
-    
+
     Ok(())
-} 
+}

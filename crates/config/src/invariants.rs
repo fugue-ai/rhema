@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use crate::RhemaResult;
 use crate::config::SafetyViolation;
+use crate::RhemaResult;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -43,7 +43,11 @@ impl ContextValidator {
     }
 
     /// Validate scope references
-    pub fn validate_scope_references(&mut self, _scope: &str, _all_scopes: &[String]) -> RhemaResult<()> {
+    pub fn validate_scope_references(
+        &mut self,
+        _scope: &str,
+        _all_scopes: &[String],
+    ) -> RhemaResult<()> {
         // TODO: Implement scope reference validation
         self.validation_count += 1;
         Ok(())
@@ -67,28 +71,42 @@ impl DependencyValidator {
     }
 
     /// Validate no circular dependencies
-    pub fn validate_no_circular_dependencies(&mut self, _dependencies: &HashMap<String, Vec<String>>) -> RhemaResult<()> {
+    pub fn validate_no_circular_dependencies(
+        &mut self,
+        _dependencies: &HashMap<String, Vec<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement circular dependency validation
         self.validation_count += 1;
         Ok(())
     }
 
     /// Validate dependency graph
-    pub fn validate_dependency_graph(&mut self, _graph: &HashMap<String, Vec<String>>) -> RhemaResult<()> {
+    pub fn validate_dependency_graph(
+        &mut self,
+        _graph: &HashMap<String, Vec<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement dependency graph validation
         self.validation_count += 1;
         Ok(())
     }
 
     /// Validate dependency bounds
-    pub fn validate_dependency_bounds(&mut self, _deps: &[String], _max_deps: usize) -> RhemaResult<()> {
+    pub fn validate_dependency_bounds(
+        &mut self,
+        _deps: &[String],
+        _max_deps: usize,
+    ) -> RhemaResult<()> {
         // TODO: Implement dependency bounds validation
         self.validation_count += 1;
         Ok(())
     }
 
     /// Validate no self dependencies
-    pub fn validate_no_self_dependencies(&mut self, _scope: &str, _deps: &[String]) -> RhemaResult<()> {
+    pub fn validate_no_self_dependencies(
+        &mut self,
+        _scope: &str,
+        _deps: &[String],
+    ) -> RhemaResult<()> {
         // TODO: Implement self dependency validation
         self.validation_count += 1;
         Ok(())
@@ -119,14 +137,23 @@ impl AgentValidator {
     }
 
     /// Validate concurrent agents
-    pub fn validate_concurrent_agents(&mut self, _locks: &HashMap<String, Option<String>>, _max_concurrent: usize) -> RhemaResult<()> {
+    pub fn validate_concurrent_agents(
+        &mut self,
+        _locks: &HashMap<String, Option<String>>,
+        _max_concurrent: usize,
+    ) -> RhemaResult<()> {
         // TODO: Implement concurrent agent validation
         self.validation_count += 1;
         Ok(())
     }
 
     /// Validate agent progress
-    pub fn validate_agent_progress(&mut self, _agent_id: &str, _state: &str, _max_block_time: Duration) -> RhemaResult<()> {
+    pub fn validate_agent_progress(
+        &mut self,
+        _agent_id: &str,
+        _state: &str,
+        _max_block_time: Duration,
+    ) -> RhemaResult<()> {
         // TODO: Implement when agent types are available
         self.validation_count += 1;
         Ok(())
@@ -150,21 +177,32 @@ impl LockValidator {
     }
 
     /// Validate lock ownership
-    pub fn validate_lock_ownership(&mut self, _locks: &HashMap<String, Option<String>>, _agents: &[String]) -> RhemaResult<()> {
+    pub fn validate_lock_ownership(
+        &mut self,
+        _locks: &HashMap<String, Option<String>>,
+        _agents: &[String],
+    ) -> RhemaResult<()> {
         // TODO: Implement lock ownership validation
         self.validation_count += 1;
         Ok(())
     }
 
     /// Validate one lock per agent
-    pub fn validate_one_lock_per_agent(&mut self, _locks: &HashMap<String, Option<String>>) -> RhemaResult<()> {
+    pub fn validate_one_lock_per_agent(
+        &mut self,
+        _locks: &HashMap<String, Option<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement one lock per agent validation
         self.validation_count += 1;
         Ok(())
     }
 
     /// Validate lock timeouts
-    pub fn validate_lock_timeouts(&mut self, _locks: &HashMap<String, Option<String>>, _timeouts: &HashMap<String, std::time::Instant>) -> RhemaResult<()> {
+    pub fn validate_lock_timeouts(
+        &mut self,
+        _locks: &HashMap<String, Option<String>>,
+        _timeouts: &HashMap<String, std::time::Instant>,
+    ) -> RhemaResult<()> {
         // TODO: Implement lock timeout validation
         self.validation_count += 1;
         Ok(())
@@ -188,7 +226,11 @@ impl SyncValidator {
     }
 
     /// Validate sync status consistency
-    pub fn validate_sync_status_consistency(&mut self, _sync_status: &HashMap<String, String>, _sync_dependencies: &HashMap<String, Vec<String>>) -> RhemaResult<()> {
+    pub fn validate_sync_status_consistency(
+        &mut self,
+        _sync_status: &HashMap<String, String>,
+        _sync_dependencies: &HashMap<String, Vec<String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement when sync types are available
         self.validation_count += 1;
         Ok(())
@@ -241,7 +283,9 @@ mod tests {
         assert_eq!(validator.validation_count(), 0);
         let sync_status = HashMap::new();
         let sync_dependencies = HashMap::new();
-        assert!(validator.validate_sync_status_consistency(&sync_status, &sync_dependencies).is_ok());
+        assert!(validator
+            .validate_sync_status_consistency(&sync_status, &sync_dependencies)
+            .is_ok());
         assert_eq!(validator.validation_count(), 1);
     }
-} 
+}

@@ -14,44 +14,44 @@
  * limitations under the License.
  */
 
-use rhema_core::{RhemaError, scope::Scope};
+use chrono::{DateTime, NaiveDateTime, Utc};
+use regex::Regex;
+use rhema_core::{scope::Scope, RhemaError};
+use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use regex::Regex;
-use chrono::{DateTime, Utc, NaiveDateTime};
-use serde::{Serialize, Deserialize};
 
 /// Provenance information for query execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryProvenance {
     /// Original query string
     pub original_query: String,
-    
+
     /// Parsed query structure
     pub parsed_query: CqlQuery,
-    
+
     /// Execution timestamp
     pub executed_at: DateTime<Utc>,
-    
+
     /// Execution duration in milliseconds
     pub execution_time_ms: u64,
-    
+
     /// Scopes that were searched
     pub scopes_searched: Vec<String>,
-    
+
     /// Files that were accessed
     pub files_accessed: Vec<String>,
-    
+
     /// Query execution steps
     pub execution_steps: Vec<ExecutionStep>,
-    
+
     /// Applied filters and conditions
     pub applied_filters: Vec<AppliedFilter>,
-    
+
     /// Performance metrics
     pub performance_metrics: PerformanceMetrics,
-    
+
     /// Error information if any
     pub errors: Option<Vec<String>>,
 }
@@ -61,19 +61,19 @@ pub struct QueryProvenance {
 pub struct ExecutionStep {
     /// Step name/description
     pub name: String,
-    
+
     /// Step type
     pub step_type: ExecutionStepType,
-    
+
     /// Duration in milliseconds
     pub duration_ms: u64,
-    
+
     /// Input data size (bytes)
     pub input_size: Option<usize>,
-    
+
     /// Output data size (bytes)
     pub output_size: Option<usize>,
-    
+
     /// Step-specific metadata
     pub metadata: HashMap<String, Value>,
 }
@@ -97,16 +97,16 @@ pub enum ExecutionStepType {
 pub struct AppliedFilter {
     /// Filter type
     pub filter_type: FilterType,
-    
+
     /// Filter description
     pub description: String,
-    
+
     /// Number of items before filter
     pub items_before: usize,
-    
+
     /// Number of items after filter
     pub items_after: usize,
-    
+
     /// Filter parameters
     pub parameters: HashMap<String, Value>,
 }
@@ -140,19 +140,19 @@ impl std::fmt::Display for FilterType {
 pub struct PerformanceMetrics {
     /// Total execution time in milliseconds
     pub total_time_ms: u64,
-    
+
     /// Time spent in each phase
     pub phase_times: HashMap<String, u64>,
-    
+
     /// Memory usage in bytes
     pub memory_usage_bytes: Option<usize>,
-    
+
     /// Number of files read
     pub files_read: usize,
-    
+
     /// Number of YAML documents processed
     pub yaml_documents_processed: usize,
-    
+
     /// Cache hit/miss statistics
     pub cache_stats: Option<CacheStats>,
 }
@@ -170,31 +170,31 @@ pub struct CacheStats {
 pub struct FieldProvenance {
     /// Field name/path
     pub field_path: String,
-    
+
     /// Source scope
     pub source_scope: String,
-    
+
     /// Source file
     pub source_file: String,
-    
+
     /// Original YAML path in source file
     pub source_yaml_path: Option<String>,
-    
+
     /// Data type of the field
     pub data_type: String,
-    
+
     /// Whether the field was transformed
     pub was_transformed: bool,
-    
+
     /// Transformation history
     pub transformations: Vec<Transformation>,
-    
+
     /// Confidence level (0.0 to 1.0)
     pub confidence: f64,
-    
+
     /// Last modified timestamp
     pub last_modified: Option<DateTime<Utc>>,
-    
+
     /// Field metadata
     pub metadata: HashMap<String, Value>,
 }
@@ -204,19 +204,19 @@ pub struct FieldProvenance {
 pub struct Transformation {
     /// Transformation type
     pub transformation_type: TransformationType,
-    
+
     /// Transformation description
     pub description: String,
-    
+
     /// Applied at timestamp
     pub applied_at: DateTime<Utc>,
-    
+
     /// Transformation parameters
     pub parameters: HashMap<String, Value>,
-    
+
     /// Input value (if available)
     pub input_value: Option<Value>,
-    
+
     /// Output value (if available)
     pub output_value: Option<Value>,
 }
@@ -239,22 +239,22 @@ pub enum TransformationType {
 pub struct CqlQuery {
     /// Target file or path
     pub target: String,
-    
+
     /// YAML path within the file
     pub yaml_path: Option<String>,
-    
+
     /// WHERE clause conditions
     pub conditions: Vec<Condition>,
-    
+
     /// Scope context for relative paths
     pub scope_context: Option<String>,
-    
+
     /// ORDER BY clause
     pub order_by: Option<Vec<OrderBy>>,
-    
+
     /// LIMIT clause
     pub limit: Option<usize>,
-    
+
     /// OFFSET clause
     pub offset: Option<usize>,
 }
@@ -327,13 +327,13 @@ pub struct QueryResult {
     pub file: String,
     pub data: Value,
     pub path: String,
-    
+
     /// Field-level provenance information
     pub field_provenance: HashMap<String, FieldProvenance>,
-    
+
     /// Query-level provenance information
     pub query_provenance: Option<QueryProvenance>,
-    
+
     /// Result metadata
     pub metadata: HashMap<String, Value>,
 }
@@ -342,9 +342,9 @@ pub struct QueryResult {
 pub fn execute_query(repo_root: &Path, query: &str) -> Result<Value, RhemaError> {
     let parsed_query = parse_cql_query(query)?;
     let scopes = rhema_core::scope::discover_scopes(repo_root)?;
-    
+
     let results = execute_parsed_query(&parsed_query, &scopes, repo_root)?;
-    
+
     // Convert results to a single Value
     if results.len() == 1 {
         Ok(results[0].data.clone())
@@ -357,7 +357,7 @@ pub fn execute_query(repo_root: &Path, query: &str) -> Result<Value, RhemaError>
             result_obj.insert("path".to_string(), Value::String(result.path));
             result_obj.insert("data".to_string(), result.data);
             result_array.push(Value::Mapping(serde_yaml::Mapping::from_iter(
-                result_obj.into_iter().map(|(k, v)| (Value::String(k), v))
+                result_obj.into_iter().map(|(k, v)| (Value::String(k), v)),
             )));
         }
         Ok(Value::Sequence(result_array))
@@ -365,26 +365,30 @@ pub fn execute_query(repo_root: &Path, query: &str) -> Result<Value, RhemaError>
 }
 
 /// Execute a CQL query with full provenance tracking
-pub fn execute_query_with_provenance(repo_root: &Path, query: &str) -> Result<(Value, QueryProvenance), RhemaError> {
+pub fn execute_query_with_provenance(
+    repo_root: &Path,
+    query: &str,
+) -> Result<(Value, QueryProvenance), RhemaError> {
     let start_time = std::time::Instant::now();
     let executed_at = Utc::now();
-    
+
     // Parse query with timing
     let parse_start = std::time::Instant::now();
     let parsed_query = parse_cql_query(query)?;
     let parse_duration = parse_start.elapsed().as_millis() as u64;
-    
+
     // Discover scopes with timing
     let scope_start = std::time::Instant::now();
     let scopes = rhema_core::scope::discover_scopes(repo_root)?;
     let scope_duration = scope_start.elapsed().as_millis() as u64;
-    
+
     // Execute query with provenance tracking
-    let results = execute_parsed_query_with_provenance(&parsed_query, &scopes, repo_root, &executed_at)?;
-    
+    let results =
+        execute_parsed_query_with_provenance(&parsed_query, &scopes, repo_root, &executed_at)?;
+
     // Calculate total execution time
     let total_duration = start_time.elapsed().as_millis() as u64;
-    
+
     // Build provenance information
     let provenance = build_query_provenance(
         query,
@@ -396,7 +400,7 @@ pub fn execute_query_with_provenance(repo_root: &Path, query: &str) -> Result<(V
         parse_duration,
         scope_duration,
     )?;
-    
+
     // Convert results to a single Value (same as original)
     let result_value = if results.len() == 1 {
         results[0].data.clone()
@@ -409,51 +413,55 @@ pub fn execute_query_with_provenance(repo_root: &Path, query: &str) -> Result<(V
             result_obj.insert("path".to_string(), Value::String(result.path));
             result_obj.insert("data".to_string(), result.data);
             result_array.push(Value::Mapping(serde_yaml::Mapping::from_iter(
-                result_obj.into_iter().map(|(k, v)| (Value::String(k), v))
+                result_obj.into_iter().map(|(k, v)| (Value::String(k), v)),
             )));
         }
         Value::Sequence(result_array)
     };
-    
+
     Ok((result_value, provenance))
 }
 
 /// Parse a CQL query string with enhanced syntax
 pub fn parse_cql_query(query: &str) -> Result<CqlQuery, RhemaError> {
     let query = query.trim();
-    
+
     // Enhanced regex-based parser for CQL syntax
     let re = Regex::new(r"^([^\s]+)(?:\s+WHERE\s+(.+?))?(?:\s+ORDER\s+BY\s+(.+?))?(?:\s+LIMIT\s+(\d+))?(?:\s+OFFSET\s+(\d+))?$").map_err(|_| {
         RhemaError::InvalidQuery("Invalid regex pattern".to_string())
     })?;
-    
-    let captures = re.captures(query).ok_or_else(|| {
-        RhemaError::InvalidQuery(format!("Invalid query syntax: {}", query))
-    })?;
-    
+
+    let captures = re
+        .captures(query)
+        .ok_or_else(|| RhemaError::InvalidQuery(format!("Invalid query syntax: {}", query)))?;
+
     let target = captures[1].to_string();
     let where_clause = captures.get(2).map(|m| m.as_str().to_string());
     let order_by_clause = captures.get(3).map(|m| m.as_str().to_string());
-    let limit = captures.get(4).and_then(|m| m.as_str().parse::<usize>().ok());
-    let offset = captures.get(5).and_then(|m| m.as_str().parse::<usize>().ok());
-    
+    let limit = captures
+        .get(4)
+        .and_then(|m| m.as_str().parse::<usize>().ok());
+    let offset = captures
+        .get(5)
+        .and_then(|m| m.as_str().parse::<usize>().ok());
+
     // Parse target into file and yaml_path
     let (file, yaml_path) = parse_target(&target)?;
-    
+
     // Parse WHERE conditions
     let conditions = if let Some(ref where_clause) = where_clause {
         parse_enhanced_conditions(where_clause)?
     } else {
         Vec::new()
     };
-    
+
     // Parse ORDER BY clause
     let order_by = if let Some(ref order_by_clause) = order_by_clause {
         parse_order_by(order_by_clause)?
     } else {
         None
     };
-    
+
     Ok(CqlQuery {
         target: file,
         yaml_path,
@@ -483,14 +491,14 @@ fn parse_target(target: &str) -> Result<(String, Option<String>), RhemaError> {
 fn parse_enhanced_conditions(where_clause: &str) -> Result<Vec<Condition>, RhemaError> {
     let mut conditions = Vec::new();
     let mut current_conditions = Vec::new();
-    
+
     // Split by logical operators while preserving them
     let parts: Vec<&str> = where_clause.split_whitespace().collect();
     let mut i = 0;
-    
+
     while i < parts.len() {
         let part = parts[i];
-        
+
         match part.to_uppercase().as_str() {
             "AND" | "OR" => {
                 // Process accumulated conditions
@@ -499,19 +507,21 @@ fn parse_enhanced_conditions(where_clause: &str) -> Result<Vec<Condition>, Rhema
                     conditions.push(condition);
                     current_conditions.clear();
                 }
-                
+
                 // Set logical operator for next condition
                 let logical_op = if part.to_uppercase() == "AND" {
                     LogicalOperator::And
                 } else {
                     LogicalOperator::Or
                 };
-                
+
                 // Get next condition
                 i += 1;
                 if i < parts.len() {
                     let mut next_condition = Vec::new();
-                    while i < parts.len() && !["AND", "OR"].contains(&parts[i].to_uppercase().as_str()) {
+                    while i < parts.len()
+                        && !["AND", "OR"].contains(&parts[i].to_uppercase().as_str())
+                    {
                         next_condition.push(parts[i]);
                         i += 1;
                     }
@@ -528,13 +538,13 @@ fn parse_enhanced_conditions(where_clause: &str) -> Result<Vec<Condition>, Rhema
             }
         }
     }
-    
+
     // Process remaining conditions
     if !current_conditions.is_empty() {
         let condition = parse_condition_group(&current_conditions.join(" "))?;
         conditions.push(condition);
     }
-    
+
     Ok(conditions)
 }
 
@@ -550,7 +560,7 @@ fn parse_condition_group(condition: &str) -> Result<Condition, RhemaError> {
             logical_op: LogicalOperator::And,
         });
     }
-    
+
     if condition.to_uppercase().ends_with(" IS NOT NULL") {
         let field = condition[..condition.len() - 12].trim();
         return Ok(Condition {
@@ -560,7 +570,7 @@ fn parse_condition_group(condition: &str) -> Result<Condition, RhemaError> {
             logical_op: LogicalOperator::And,
         });
     }
-    
+
     // Enhanced regex for various operators
     let operator_patterns = [
         (r"^(.+?)\s*!=\s*(.+)$", Operator::NotEquals),
@@ -576,15 +586,15 @@ fn parse_condition_group(condition: &str) -> Result<Condition, RhemaError> {
         (r"^(.+?)\s+CONTAINS\s+(.+)$", Operator::Contains),
         (r"^(.+?)\s*=\s*(.+)$", Operator::Equals),
     ];
-    
+
     for (pattern, operator) in operator_patterns {
         if let Ok(re) = Regex::new(pattern) {
             if let Some(captures) = re.captures(condition) {
                 let field = captures[1].trim();
                 let value_str = captures[2].trim();
-                
+
                 let value = parse_condition_value(value_str, &operator)?;
-                
+
                 return Ok(Condition {
                     field: field.to_string(),
                     operator,
@@ -594,22 +604,29 @@ fn parse_condition_group(condition: &str) -> Result<Condition, RhemaError> {
             }
         }
     }
-    
-    Err(RhemaError::InvalidQuery(format!("Invalid condition syntax: {}", condition)))
+
+    Err(RhemaError::InvalidQuery(format!(
+        "Invalid condition syntax: {}",
+        condition
+    )))
 }
 
 /// Parse condition value with type detection
-fn parse_condition_value(value_str: &str, operator: &Operator) -> Result<ConditionValue, RhemaError> {
+fn parse_condition_value(
+    value_str: &str,
+    operator: &Operator,
+) -> Result<ConditionValue, RhemaError> {
     let value_str = value_str.trim();
-    
+
     // Remove quotes if present
-    let clean_value = if (value_str.starts_with("'") && value_str.ends_with("'")) ||
-                         (value_str.starts_with("\"") && value_str.ends_with("\"")) {
-        &value_str[1..value_str.len()-1]
+    let clean_value = if (value_str.starts_with("'") && value_str.ends_with("'"))
+        || (value_str.starts_with("\"") && value_str.ends_with("\""))
+    {
+        &value_str[1..value_str.len() - 1]
     } else {
         value_str
     };
-    
+
     match operator {
         Operator::Like | Operator::NotLike => {
             // Convert LIKE pattern to regex
@@ -620,22 +637,21 @@ fn parse_condition_value(value_str: &str, operator: &Operator) -> Result<Conditi
             // Parse array values
             let values: Vec<&str> = clean_value.split(',').map(|s| s.trim()).collect();
             let mut parsed_values = Vec::new();
-            
+
             for val in values {
-                let clean_val = if (val.starts_with("'") && val.ends_with("'")) ||
-                                   (val.starts_with("\"") && val.ends_with("\"")) {
-                    &val[1..val.len()-1]
+                let clean_val = if (val.starts_with("'") && val.ends_with("'"))
+                    || (val.starts_with("\"") && val.ends_with("\""))
+                {
+                    &val[1..val.len() - 1]
                 } else {
                     val
                 };
                 parsed_values.push(parse_single_value(clean_val)?);
             }
-            
+
             Ok(ConditionValue::Array(parsed_values))
         }
-        _ => {
-            parse_single_value(clean_value)
-        }
+        _ => parse_single_value(clean_value),
     }
 }
 
@@ -654,7 +670,9 @@ fn parse_single_value(value: &str) -> Result<ConditionValue, RhemaError> {
                 if let Ok(dt) = DateTime::parse_from_rfc3339(value) {
                     Ok(ConditionValue::DateTime(dt.with_timezone(&Utc)))
                 } else if let Ok(ndt) = NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S") {
-                    Ok(ConditionValue::DateTime(DateTime::from_naive_utc_and_offset(ndt, Utc)))
+                    Ok(ConditionValue::DateTime(
+                        DateTime::from_naive_utc_and_offset(ndt, Utc),
+                    ))
                 } else {
                     // Default to string
                     Ok(ConditionValue::String(value.to_string()))
@@ -668,7 +686,7 @@ fn parse_single_value(value: &str) -> Result<ConditionValue, RhemaError> {
 fn parse_order_by(order_by_clause: &str) -> Result<Option<Vec<OrderBy>>, RhemaError> {
     let parts: Vec<&str> = order_by_clause.split(',').collect();
     let mut order_by = Vec::new();
-    
+
     for part in parts {
         let part = part.trim();
         let direction = if part.to_uppercase().ends_with(" DESC") {
@@ -678,7 +696,7 @@ fn parse_order_by(order_by_clause: &str) -> Result<Option<Vec<OrderBy>>, RhemaEr
         } else {
             OrderDirection::Asc // Default
         };
-        
+
         let field = if part.to_uppercase().ends_with(" DESC") {
             part[..part.len() - 5].trim()
         } else if part.to_uppercase().ends_with(" ASC") {
@@ -686,13 +704,13 @@ fn parse_order_by(order_by_clause: &str) -> Result<Option<Vec<OrderBy>>, RhemaEr
         } else {
             part
         };
-        
+
         order_by.push(OrderBy {
             field: field.to_string(),
             direction,
         });
     }
-    
+
     Ok(Some(order_by))
 }
 
@@ -701,13 +719,13 @@ fn matches_conditions(value: &Value, conditions: &[Condition]) -> Result<bool, R
     if conditions.is_empty() {
         return Ok(true);
     }
-    
+
     let mut result = matches_condition(value, &conditions[0])?;
-    
+
     for i in 1..conditions.len() {
         let condition = &conditions[i];
         let condition_result = matches_condition(value, condition)?;
-        
+
         match condition.logical_op {
             LogicalOperator::And => {
                 result = result && condition_result;
@@ -720,7 +738,7 @@ fn matches_conditions(value: &Value, conditions: &[Condition]) -> Result<bool, R
             }
         }
     }
-    
+
     Ok(result)
 }
 
@@ -729,11 +747,14 @@ fn extract_field_value(value: &Value, field: &str) -> Result<Value, RhemaError> 
     match value {
         Value::Mapping(map) => {
             let key = Value::String(field.to_string());
-            map.get(&key).cloned().ok_or_else(|| {
-                RhemaError::InvalidQuery(format!("Field not found: {}", field))
-            })
+            map.get(&key)
+                .cloned()
+                .ok_or_else(|| RhemaError::InvalidQuery(format!("Field not found: {}", field)))
         }
-        _ => Err(RhemaError::InvalidQuery(format!("Cannot extract field from non-object: {}", field)))
+        _ => Err(RhemaError::InvalidQuery(format!(
+            "Cannot extract field from non-object: {}",
+            field
+        ))),
     }
 }
 
@@ -742,17 +763,17 @@ fn apply_conditions(data: &Value, conditions: &[Condition]) -> Result<Value, Rhe
     if conditions.is_empty() {
         return Ok(data.clone());
     }
-    
+
     match data {
         Value::Sequence(seq) => {
             let mut filtered = Vec::new();
-            
+
             for item in seq {
                 if matches_conditions(item, conditions)? {
                     filtered.push(item.clone());
                 }
             }
-            
+
             Ok(Value::Sequence(filtered))
         }
         Value::Mapping(_map) => {
@@ -777,17 +798,19 @@ fn apply_order_by(data: &Value, order_by: &[OrderBy]) -> Result<Value, RhemaErro
     match data {
         Value::Sequence(seq) => {
             let mut sorted = seq.clone();
-            
+
             for order_clause in order_by.iter().rev() {
                 sorted.sort_by(|a, b| {
                     let a_val = extract_field_value(a, &order_clause.field).unwrap_or(Value::Null);
                     let b_val = extract_field_value(b, &order_clause.field).unwrap_or(Value::Null);
-                    
+
                     let comparison = match (&a_val, &b_val) {
                         (Value::String(a_str), Value::String(b_str)) => a_str.cmp(&b_str),
                         (Value::Number(a_num), Value::Number(b_num)) => {
                             if let (Some(a_f64), Some(b_f64)) = (a_num.as_f64(), b_num.as_f64()) {
-                                a_f64.partial_cmp(&b_f64).unwrap_or(std::cmp::Ordering::Equal)
+                                a_f64
+                                    .partial_cmp(&b_f64)
+                                    .unwrap_or(std::cmp::Ordering::Equal)
                             } else {
                                 std::cmp::Ordering::Equal
                             }
@@ -795,14 +818,14 @@ fn apply_order_by(data: &Value, order_by: &[OrderBy]) -> Result<Value, RhemaErro
                         (Value::Bool(a_bool), Value::Bool(b_bool)) => a_bool.cmp(&b_bool),
                         _ => std::cmp::Ordering::Equal,
                     };
-                    
+
                     match order_clause.direction {
                         OrderDirection::Asc => comparison,
                         OrderDirection::Desc => comparison.reverse(),
                     }
                 });
             }
-            
+
             Ok(Value::Sequence(sorted))
         }
         _ => Ok(data.clone()),
@@ -810,11 +833,15 @@ fn apply_order_by(data: &Value, order_by: &[OrderBy]) -> Result<Value, RhemaErro
 }
 
 /// Apply LIMIT and OFFSET to results
-fn apply_limit_offset(data: &Value, limit: Option<usize>, offset: Option<usize>) -> Result<Value, RhemaError> {
+fn apply_limit_offset(
+    data: &Value,
+    limit: Option<usize>,
+    offset: Option<usize>,
+) -> Result<Value, RhemaError> {
     match data {
         Value::Sequence(seq) => {
             let mut result = seq.clone();
-            
+
             // Apply offset
             if let Some(offset_val) = offset {
                 if offset_val < result.len() {
@@ -823,14 +850,14 @@ fn apply_limit_offset(data: &Value, limit: Option<usize>, offset: Option<usize>)
                     result.clear();
                 }
             }
-            
+
             // Apply limit
             if let Some(limit_val) = limit {
                 if limit_val < result.len() {
                     result = result[..limit_val].to_vec();
                 }
             }
-            
+
             Ok(Value::Sequence(result))
         }
         _ => Ok(data.clone()),
@@ -844,39 +871,38 @@ fn execute_parsed_query(
     repo_root: &Path,
 ) -> Result<Vec<QueryResult>, RhemaError> {
     let mut results = Vec::new();
-    
+
     // Determine which scopes to query
     let target_scopes = resolve_target_scopes(&query.target, scopes, repo_root)?;
-    
+
     for scope in target_scopes {
         if let Some(file_path) = scope.get_file(&format!("{}.yaml", query.target)) {
-            let content = std::fs::read_to_string(file_path)
-                .map_err(|e| RhemaError::IoError(e))?;
-            
-            let yaml_data: Value = serde_yaml::from_str(&content)
-                .map_err(|e| RhemaError::InvalidYaml {
+            let content = std::fs::read_to_string(file_path).map_err(|e| RhemaError::IoError(e))?;
+
+            let yaml_data: Value =
+                serde_yaml::from_str(&content).map_err(|e| RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
-            
+
             // Apply YAML path if specified
             let mut filtered_data = if let Some(ref yaml_path) = query.yaml_path {
                 extract_yaml_path(&yaml_data, yaml_path)?
             } else {
                 yaml_data
             };
-            
+
             // Apply WHERE conditions
             filtered_data = apply_conditions(&filtered_data, &query.conditions)?;
-            
+
             // Apply ORDER BY if specified
             if let Some(ref order_by) = query.order_by {
                 filtered_data = apply_order_by(&filtered_data, order_by)?;
             }
-            
+
             // Apply LIMIT and OFFSET
             filtered_data = apply_limit_offset(&filtered_data, query.limit, query.offset)?;
-            
+
             if !filtered_data.is_null() {
                 let scope_rel_path = scope.relative_path(repo_root)?;
                 results.push(QueryResult {
@@ -891,7 +917,7 @@ fn execute_parsed_query(
             }
         }
     }
-    
+
     Ok(results)
 }
 
@@ -903,53 +929,87 @@ fn execute_parsed_query_with_provenance(
     executed_at: &DateTime<Utc>,
 ) -> Result<Vec<QueryResult>, RhemaError> {
     let mut results = Vec::new();
-    
+
     // Determine which scopes to query
     let target_scopes = resolve_target_scopes(&query.target, scopes, repo_root)?;
-    
+
     for scope in target_scopes {
         if let Some(file_path) = scope.get_file(&format!("{}.yaml", query.target)) {
-            let content = std::fs::read_to_string(file_path)
-                .map_err(|e| RhemaError::IoError(e))?;
-            
-            let yaml_data: Value = serde_yaml::from_str(&content)
-                .map_err(|e| RhemaError::InvalidYaml {
+            let content = std::fs::read_to_string(file_path).map_err(|e| RhemaError::IoError(e))?;
+
+            let yaml_data: Value =
+                serde_yaml::from_str(&content).map_err(|e| RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
-            
+
             // Track field-level provenance
             let mut field_provenance = HashMap::new();
-            
+
             // Apply YAML path if specified
             let mut filtered_data = if let Some(ref yaml_path) = query.yaml_path {
                 let path_data = extract_yaml_path(&yaml_data, yaml_path)?;
                 // Track field provenance for YAML path extraction
-                track_field_provenance(&mut field_provenance, &yaml_data, &path_data, Some(yaml_path), scope, &query.target, executed_at)?;
+                track_field_provenance(
+                    &mut field_provenance,
+                    &yaml_data,
+                    &path_data,
+                    Some(yaml_path),
+                    scope,
+                    &query.target,
+                    executed_at,
+                )?;
                 path_data
             } else {
                 // Track field provenance for all fields
-                track_field_provenance(&mut field_provenance, &yaml_data, &yaml_data, None, scope, &query.target, executed_at)?;
+                track_field_provenance(
+                    &mut field_provenance,
+                    &yaml_data,
+                    &yaml_data,
+                    None,
+                    scope,
+                    &query.target,
+                    executed_at,
+                )?;
                 yaml_data
             };
-            
+
             // Apply WHERE conditions with provenance tracking
             let before_conditions = filtered_data.clone();
             filtered_data = apply_conditions(&filtered_data, &query.conditions)?;
-            track_condition_provenance(&mut field_provenance, &before_conditions, &filtered_data, &query.conditions, executed_at)?;
-            
+            track_condition_provenance(
+                &mut field_provenance,
+                &before_conditions,
+                &filtered_data,
+                &query.conditions,
+                executed_at,
+            )?;
+
             // Apply ORDER BY if specified
             if let Some(ref order_by) = query.order_by {
                 let before_ordering = filtered_data.clone();
                 filtered_data = apply_order_by(&filtered_data, order_by)?;
-                track_ordering_provenance(&mut field_provenance, &before_ordering, &filtered_data, order_by, executed_at)?;
+                track_ordering_provenance(
+                    &mut field_provenance,
+                    &before_ordering,
+                    &filtered_data,
+                    order_by,
+                    executed_at,
+                )?;
             }
-            
+
             // Apply LIMIT and OFFSET
             let before_limit = filtered_data.clone();
             filtered_data = apply_limit_offset(&filtered_data, query.limit, query.offset)?;
-            track_limit_provenance(&mut field_provenance, &before_limit, &filtered_data, query.limit, query.offset, executed_at)?;
-            
+            track_limit_provenance(
+                &mut field_provenance,
+                &before_limit,
+                &filtered_data,
+                query.limit,
+                query.offset,
+                executed_at,
+            )?;
+
             if !filtered_data.is_null() {
                 let scope_rel_path = scope.relative_path(repo_root)?;
                 results.push(QueryResult {
@@ -964,7 +1024,7 @@ fn execute_parsed_query_with_provenance(
             }
         }
     }
-    
+
     Ok(results)
 }
 
@@ -978,14 +1038,14 @@ fn resolve_target_scopes<'a>(
     if target.contains('*') {
         return Ok(scopes.iter().collect());
     }
-    
+
     // Handle relative paths
     if target.starts_with("../") || target.starts_with("./") {
         // For now, return all scopes - in a full implementation,
         // this would resolve relative paths based on current scope
         return Ok(scopes.iter().collect());
     }
-    
+
     // Handle absolute paths
     if target.starts_with('/') {
         let target_path = PathBuf::from(target);
@@ -994,34 +1054,38 @@ fn resolve_target_scopes<'a>(
         } else {
             target_path.join(".rhema")
         };
-        
+
         for scope in scopes {
             if scope.path == rhema_path {
                 return Ok(vec![scope]);
             }
         }
-        
-        return Err(RhemaError::ScopeNotFound(format!("Scope not found: {}", target)));
+
+        return Err(RhemaError::ScopeNotFound(format!(
+            "Scope not found: {}",
+            target
+        )));
     }
-    
+
     // Default: return all scopes that have the target file
-    Ok(scopes.iter().filter(|scope| {
-        scope.has_file(&format!("{}.yaml", target))
-    }).collect())
+    Ok(scopes
+        .iter()
+        .filter(|scope| scope.has_file(&format!("{}.yaml", target)))
+        .collect())
 }
 
 /// Extract data from YAML using a path
 pub fn extract_yaml_path(data: &Value, path: &str) -> Result<Value, RhemaError> {
     let parts: Vec<&str> = path.split('.').collect();
     let mut current = data;
-    
+
     for part in parts {
         match current {
             Value::Mapping(map) => {
                 let key = Value::String(part.to_string());
-                current = map.get(&key).ok_or_else(|| {
-                    RhemaError::InvalidQuery(format!("Path not found: {}", path))
-                })?;
+                current = map
+                    .get(&key)
+                    .ok_or_else(|| RhemaError::InvalidQuery(format!("Path not found: {}", path)))?;
             }
             Value::Sequence(seq) => {
                 let index: usize = part.parse().map_err(|_| {
@@ -1032,11 +1096,14 @@ pub fn extract_yaml_path(data: &Value, path: &str) -> Result<Value, RhemaError> 
                 })?;
             }
             _ => {
-                return Err(RhemaError::InvalidQuery(format!("Cannot traverse path: {}", path)));
+                return Err(RhemaError::InvalidQuery(format!(
+                    "Cannot traverse path: {}",
+                    path
+                )));
             }
         }
     }
-    
+
     Ok(current.clone())
 }
 
@@ -1048,7 +1115,7 @@ fn matches_condition(value: &Value, condition: &Condition) -> Result<bool, Rhema
     } else {
         value.clone()
     };
-    
+
     match condition.operator {
         Operator::Equals => {
             let condition_value = convert_condition_value_to_yaml(&condition.value)?;
@@ -1074,96 +1141,92 @@ fn matches_condition(value: &Value, condition: &Condition) -> Result<bool, Rhema
             let condition_value = convert_condition_value_to_yaml(&condition.value)?;
             Ok(&field_value <= &condition_value)
         }
-        Operator::Like => {
-            match &condition.value {
-                ConditionValue::String(pattern) => {
-                    let regex_pattern = pattern.replace("%", ".*").replace("_", ".");
-                    let regex = Regex::new(&format!("^{}$", regex_pattern))
-                        .map_err(|_| RhemaError::InvalidQuery("Invalid LIKE pattern".to_string()))?;
-                    let value_str = field_value.as_str().unwrap_or_default();
-                    Ok(regex.is_match(value_str))
-                }
-                _ => Err(RhemaError::InvalidQuery("LIKE operator requires string value".to_string())),
+        Operator::Like => match &condition.value {
+            ConditionValue::String(pattern) => {
+                let regex_pattern = pattern.replace("%", ".*").replace("_", ".");
+                let regex = Regex::new(&format!("^{}$", regex_pattern))
+                    .map_err(|_| RhemaError::InvalidQuery("Invalid LIKE pattern".to_string()))?;
+                let value_str = field_value.as_str().unwrap_or_default();
+                Ok(regex.is_match(value_str))
             }
-        }
-        Operator::NotLike => {
-            match &condition.value {
-                ConditionValue::String(pattern) => {
-                    let regex_pattern = pattern.replace("%", ".*").replace("_", ".");
-                    let regex = Regex::new(&format!("^{}$", regex_pattern))
-                        .map_err(|_| RhemaError::InvalidQuery("Invalid LIKE pattern".to_string()))?;
-                    let value_str = field_value.as_str().unwrap_or_default();
-                    Ok(!regex.is_match(value_str))
-                }
-                _ => Err(RhemaError::InvalidQuery("NOT LIKE operator requires string value".to_string())),
+            _ => Err(RhemaError::InvalidQuery(
+                "LIKE operator requires string value".to_string(),
+            )),
+        },
+        Operator::NotLike => match &condition.value {
+            ConditionValue::String(pattern) => {
+                let regex_pattern = pattern.replace("%", ".*").replace("_", ".");
+                let regex = Regex::new(&format!("^{}$", regex_pattern))
+                    .map_err(|_| RhemaError::InvalidQuery("Invalid LIKE pattern".to_string()))?;
+                let value_str = field_value.as_str().unwrap_or_default();
+                Ok(!regex.is_match(value_str))
             }
-        }
-        Operator::In => {
-            match &condition.value {
-                ConditionValue::Array(arr) => {
+            _ => Err(RhemaError::InvalidQuery(
+                "NOT LIKE operator requires string value".to_string(),
+            )),
+        },
+        Operator::In => match &condition.value {
+            ConditionValue::Array(arr) => {
+                for item in arr {
+                    let item_value = convert_condition_value_to_yaml(item)?;
+                    if &field_value == &item_value {
+                        return Ok(true);
+                    }
+                }
+                Ok(false)
+            }
+            _ => Err(RhemaError::InvalidQuery(
+                "IN operator requires array value".to_string(),
+            )),
+        },
+        Operator::NotIn => match &condition.value {
+            ConditionValue::Array(arr) => {
+                for item in arr {
+                    let item_value = convert_condition_value_to_yaml(item)?;
+                    if &field_value == &item_value {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            }
+            _ => Err(RhemaError::InvalidQuery(
+                "NOT IN operator requires array value".to_string(),
+            )),
+        },
+        Operator::Contains => match &condition.value {
+            ConditionValue::Array(arr) => {
+                if let Value::Sequence(seq) = &field_value {
                     for item in arr {
                         let item_value = convert_condition_value_to_yaml(item)?;
-                        if &field_value == &item_value {
+                        if seq.contains(&item_value) {
                             return Ok(true);
                         }
                     }
-                    Ok(false)
                 }
-                _ => Err(RhemaError::InvalidQuery("IN operator requires array value".to_string())),
+                Ok(false)
             }
-        }
-        Operator::NotIn => {
-            match &condition.value {
-                ConditionValue::Array(arr) => {
+            _ => Err(RhemaError::InvalidQuery(
+                "CONTAINS operator requires array value".to_string(),
+            )),
+        },
+        Operator::NotContains => match &condition.value {
+            ConditionValue::Array(arr) => {
+                if let Value::Sequence(seq) = &field_value {
                     for item in arr {
                         let item_value = convert_condition_value_to_yaml(item)?;
-                        if &field_value == &item_value {
+                        if seq.contains(&item_value) {
                             return Ok(false);
                         }
                     }
-                    Ok(true)
                 }
-                _ => Err(RhemaError::InvalidQuery("NOT IN operator requires array value".to_string())),
+                Ok(true)
             }
-        }
-        Operator::Contains => {
-            match &condition.value {
-                ConditionValue::Array(arr) => {
-                    if let Value::Sequence(seq) = &field_value {
-                        for item in arr {
-                            let item_value = convert_condition_value_to_yaml(item)?;
-                            if seq.contains(&item_value) {
-                                return Ok(true);
-                            }
-                        }
-                    }
-                    Ok(false)
-                }
-                _ => Err(RhemaError::InvalidQuery("CONTAINS operator requires array value".to_string())),
-            }
-        }
-        Operator::NotContains => {
-            match &condition.value {
-                ConditionValue::Array(arr) => {
-                    if let Value::Sequence(seq) = &field_value {
-                        for item in arr {
-                            let item_value = convert_condition_value_to_yaml(item)?;
-                            if seq.contains(&item_value) {
-                                return Ok(false);
-                            }
-                        }
-                    }
-                    Ok(true)
-                }
-                _ => Err(RhemaError::InvalidQuery("NOT CONTAINS operator requires array value".to_string())),
-            }
-        }
-        Operator::IsNull => {
-            Ok(field_value.is_null())
-        }
-        Operator::IsNotNull => {
-            Ok(!field_value.is_null())
-        }
+            _ => Err(RhemaError::InvalidQuery(
+                "NOT CONTAINS operator requires array value".to_string(),
+            )),
+        },
+        Operator::IsNull => Ok(field_value.is_null()),
+        Operator::IsNotNull => Ok(!field_value.is_null()),
     }
 }
 
@@ -1187,10 +1250,14 @@ fn convert_condition_value_to_yaml(condition_value: &ConditionValue) -> Result<V
 }
 
 /// Search across all context files
-pub fn search_context(repo_root: &Path, term: &str, file_filter: Option<&str>) -> Result<Vec<QueryResult>, RhemaError> {
+pub fn search_context(
+    repo_root: &Path,
+    term: &str,
+    file_filter: Option<&str>,
+) -> Result<Vec<QueryResult>, RhemaError> {
     let scopes = rhema_core::scope::discover_scopes(repo_root)?;
     let mut results = Vec::new();
-    
+
     for scope in &scopes {
         for (filename, file_path) in &scope.files {
             // Apply file filter if specified
@@ -1199,18 +1266,17 @@ pub fn search_context(repo_root: &Path, term: &str, file_filter: Option<&str>) -
                     continue;
                 }
             }
-            
-            let content = std::fs::read_to_string(file_path)
-                .map_err(|e| RhemaError::IoError(e))?;
-            
+
+            let content = std::fs::read_to_string(file_path).map_err(|e| RhemaError::IoError(e))?;
+
             // Simple text search
             if content.to_lowercase().contains(&term.to_lowercase()) {
-                let yaml_data: Value = serde_yaml::from_str(&content)
-                    .map_err(|e| RhemaError::InvalidYaml {
+                let yaml_data: Value =
+                    serde_yaml::from_str(&content).map_err(|e| RhemaError::InvalidYaml {
                         file: file_path.display().to_string(),
                         message: e.to_string(),
                     })?;
-                
+
                 let scope_rel_path = scope.relative_path(repo_root)?;
                 results.push(QueryResult {
                     scope: scope_rel_path,
@@ -1224,18 +1290,22 @@ pub fn search_context(repo_root: &Path, term: &str, file_filter: Option<&str>) -
             }
         }
     }
-    
+
     Ok(results)
 }
 
 /// Enhanced search with regex support
-pub fn search_context_regex(repo_root: &Path, pattern: &str, file_filter: Option<&str>) -> Result<Vec<QueryResult>, RhemaError> {
+pub fn search_context_regex(
+    repo_root: &Path,
+    pattern: &str,
+    file_filter: Option<&str>,
+) -> Result<Vec<QueryResult>, RhemaError> {
     let regex = Regex::new(pattern)
         .map_err(|_| RhemaError::InvalidQuery(format!("Invalid regex pattern: {}", pattern)))?;
-    
+
     let scopes = rhema_core::scope::discover_scopes(repo_root)?;
     let mut results = Vec::new();
-    
+
     for scope in &scopes {
         for (filename, file_path) in &scope.files {
             // Apply file filter if specified
@@ -1244,18 +1314,17 @@ pub fn search_context_regex(repo_root: &Path, pattern: &str, file_filter: Option
                     continue;
                 }
             }
-            
-            let content = std::fs::read_to_string(file_path)
-                .map_err(|e| RhemaError::IoError(e))?;
-            
+
+            let content = std::fs::read_to_string(file_path).map_err(|e| RhemaError::IoError(e))?;
+
             // Regex search
             if regex.is_match(&content) {
-                let yaml_data: Value = serde_yaml::from_str(&content)
-                    .map_err(|e| RhemaError::InvalidYaml {
+                let yaml_data: Value =
+                    serde_yaml::from_str(&content).map_err(|e| RhemaError::InvalidYaml {
                         file: file_path.display().to_string(),
                         message: e.to_string(),
                     })?;
-                
+
                 let scope_rel_path = scope.relative_path(repo_root)?;
                 results.push(QueryResult {
                     scope: scope_rel_path,
@@ -1269,19 +1338,25 @@ pub fn search_context_regex(repo_root: &Path, pattern: &str, file_filter: Option
             }
         }
     }
-    
+
     Ok(results)
 }
 
 /// Get query statistics (count, min, max, etc.)
-pub fn get_query_stats(repo_root: &Path, query: &str) -> Result<HashMap<String, Value>, RhemaError> {
+pub fn get_query_stats(
+    repo_root: &Path,
+    query: &str,
+) -> Result<HashMap<String, Value>, RhemaError> {
     let result = execute_query(repo_root, query)?;
     let mut stats = HashMap::new();
-    
+
     match result {
         Value::Sequence(seq) => {
-            stats.insert("count".to_string(), Value::Number(serde_yaml::Number::from(seq.len())));
-            
+            stats.insert(
+                "count".to_string(),
+                Value::Number(serde_yaml::Number::from(seq.len())),
+            );
+
             if !seq.is_empty() {
                 // Calculate numeric stats if applicable
                 let mut numeric_values = Vec::new();
@@ -1290,26 +1365,44 @@ pub fn get_query_stats(repo_root: &Path, query: &str) -> Result<HashMap<String, 
                         numeric_values.push(num);
                     }
                 }
-                
+
                 if !numeric_values.is_empty() {
-                    numeric_values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-                    stats.insert("min".to_string(), Value::Number(serde_yaml::Number::from(numeric_values[0])));
-                    stats.insert("max".to_string(), Value::Number(serde_yaml::Number::from(numeric_values[numeric_values.len() - 1])));
-                    
+                    numeric_values
+                        .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                    stats.insert(
+                        "min".to_string(),
+                        Value::Number(serde_yaml::Number::from(numeric_values[0])),
+                    );
+                    stats.insert(
+                        "max".to_string(),
+                        Value::Number(serde_yaml::Number::from(
+                            numeric_values[numeric_values.len() - 1],
+                        )),
+                    );
+
                     let sum: f64 = numeric_values.iter().sum();
                     let avg = sum / numeric_values.len() as f64;
-                    stats.insert("sum".to_string(), Value::Number(serde_yaml::Number::from(sum)));
-                    stats.insert("avg".to_string(), Value::Number(serde_yaml::Number::from(avg)));
+                    stats.insert(
+                        "sum".to_string(),
+                        Value::Number(serde_yaml::Number::from(sum)),
+                    );
+                    stats.insert(
+                        "avg".to_string(),
+                        Value::Number(serde_yaml::Number::from(avg)),
+                    );
                 }
             }
         }
         _ => {
-            stats.insert("count".to_string(), Value::Number(serde_yaml::Number::from(1)));
+            stats.insert(
+                "count".to_string(),
+                Value::Number(serde_yaml::Number::from(1)),
+            );
         }
     }
-    
+
     Ok(stats)
-} 
+}
 
 /// Track field-level provenance for YAML path extraction
 fn track_field_provenance(
@@ -1322,10 +1415,18 @@ fn track_field_provenance(
     executed_at: &DateTime<Utc>,
 ) -> Result<(), RhemaError> {
     let scope_rel_path = scope.relative_path(&scope.path.parent().unwrap_or(&scope.path))?;
-    
+
     // Extract all fields from the data
-    extract_fields_recursive(extracted_data, "", field_provenance, &scope_rel_path, target_file, yaml_path, executed_at)?;
-    
+    extract_fields_recursive(
+        extracted_data,
+        "",
+        field_provenance,
+        &scope_rel_path,
+        target_file,
+        yaml_path,
+        executed_at,
+    )?;
+
     Ok(())
 }
 
@@ -1348,7 +1449,7 @@ fn extract_fields_recursive(
                 } else {
                     format!("{}.{}", current_path, key_str)
                 };
-                
+
                 // Create field provenance
                 let field_prov = FieldProvenance {
                     field_path: field_path.clone(),
@@ -1362,11 +1463,19 @@ fn extract_fields_recursive(
                     last_modified: None,
                     metadata: HashMap::new(),
                 };
-                
+
                 field_provenance.insert(field_path.clone(), field_prov);
-                
+
                 // Recursively process nested fields
-                extract_fields_recursive(value, &field_path, field_provenance, scope_path, source_file, yaml_path, executed_at)?;
+                extract_fields_recursive(
+                    value,
+                    &field_path,
+                    field_provenance,
+                    scope_path,
+                    source_file,
+                    yaml_path,
+                    executed_at,
+                )?;
             }
         }
         Value::Sequence(seq) => {
@@ -1376,7 +1485,7 @@ fn extract_fields_recursive(
                 } else {
                     format!("{}[{}]", current_path, i)
                 };
-                
+
                 // Create field provenance for array elements
                 let field_prov = FieldProvenance {
                     field_path: field_path.clone(),
@@ -1390,11 +1499,19 @@ fn extract_fields_recursive(
                     last_modified: None,
                     metadata: HashMap::new(),
                 };
-                
+
                 field_provenance.insert(field_path.clone(), field_prov);
-                
+
                 // Recursively process nested fields
-                extract_fields_recursive(value, &field_path, field_provenance, scope_path, source_file, yaml_path, executed_at)?;
+                extract_fields_recursive(
+                    value,
+                    &field_path,
+                    field_provenance,
+                    scope_path,
+                    source_file,
+                    yaml_path,
+                    executed_at,
+                )?;
             }
         }
         _ => {
@@ -1412,12 +1529,12 @@ fn extract_fields_recursive(
                     last_modified: None,
                     metadata: HashMap::new(),
                 };
-                
+
                 field_provenance.insert(current_path.to_string(), field_prov);
             }
         }
     }
-    
+
     Ok(())
 }
 
@@ -1445,34 +1562,45 @@ fn track_condition_provenance(
     // Count items before and after filtering
     let items_before = count_items(before_data);
     let items_after = count_items(after_data);
-    
+
     // Add transformation to relevant fields
     for condition in conditions {
         if let Some(field_prov) = field_provenance.get_mut(&condition.field) {
             let transformation = Transformation {
                 transformation_type: TransformationType::ValueFiltering,
-                description: format!("Filtered by condition: {} {} {:?}", 
-                    condition.field, 
-                    operator_to_string(&condition.operator), 
-                    condition.value),
+                description: format!(
+                    "Filtered by condition: {} {} {:?}",
+                    condition.field,
+                    operator_to_string(&condition.operator),
+                    condition.value
+                ),
                 applied_at: *executed_at,
                 parameters: {
                     let mut params = HashMap::new();
-                    params.insert("operator".to_string(), Value::String(operator_to_string(&condition.operator)));
-                    params.insert("value".to_string(), convert_condition_value_to_yaml(&condition.value)?);
-                    params.insert("items_before".to_string(), Value::Number(items_before.into()));
+                    params.insert(
+                        "operator".to_string(),
+                        Value::String(operator_to_string(&condition.operator)),
+                    );
+                    params.insert(
+                        "value".to_string(),
+                        convert_condition_value_to_yaml(&condition.value)?,
+                    );
+                    params.insert(
+                        "items_before".to_string(),
+                        Value::Number(items_before.into()),
+                    );
                     params.insert("items_after".to_string(), Value::Number(items_after.into()));
                     params
                 },
                 input_value: Some(before_data.clone()),
                 output_value: Some(after_data.clone()),
             };
-            
+
             field_prov.transformations.push(transformation);
             field_prov.was_transformed = true;
         }
     }
-    
+
     Ok(())
 }
 
@@ -1488,30 +1616,35 @@ fn track_ordering_provenance(
         if let Some(field_prov) = field_provenance.get_mut(&order.field) {
             let transformation = Transformation {
                 transformation_type: TransformationType::Sorting,
-                description: format!("Sorted by {} in {} order", 
-                    order.field, 
+                description: format!(
+                    "Sorted by {} in {} order",
+                    order.field,
                     match order.direction {
                         OrderDirection::Asc => "ascending",
                         OrderDirection::Desc => "descending",
-                    }),
+                    }
+                ),
                 applied_at: *executed_at,
                 parameters: {
                     let mut params = HashMap::new();
-                    params.insert("direction".to_string(), Value::String(match order.direction {
-                        OrderDirection::Asc => "asc".to_string(),
-                        OrderDirection::Desc => "desc".to_string(),
-                    }));
+                    params.insert(
+                        "direction".to_string(),
+                        Value::String(match order.direction {
+                            OrderDirection::Asc => "asc".to_string(),
+                            OrderDirection::Desc => "desc".to_string(),
+                        }),
+                    );
                     params
                 },
                 input_value: Some(before_data.clone()),
                 output_value: Some(after_data.clone()),
             };
-            
+
             field_prov.transformations.push(transformation);
             field_prov.was_transformed = true;
         }
     }
-    
+
     Ok(())
 }
 
@@ -1526,12 +1659,15 @@ fn track_limit_provenance(
 ) -> Result<(), RhemaError> {
     let items_before = count_items(before_data);
     let items_after = count_items(after_data);
-    
+
     // Add transformation to all fields since this affects the entire result set
     for field_prov in field_provenance.values_mut() {
         let transformation = Transformation {
             transformation_type: TransformationType::ValueFiltering,
-            description: format!("Applied limit/offset: limit={:?}, offset={:?}", limit, offset),
+            description: format!(
+                "Applied limit/offset: limit={:?}, offset={:?}",
+                limit, offset
+            ),
             applied_at: *executed_at,
             parameters: {
                 let mut params = HashMap::new();
@@ -1541,18 +1677,21 @@ fn track_limit_provenance(
                 if let Some(o) = offset {
                     params.insert("offset".to_string(), Value::Number(o.into()));
                 }
-                params.insert("items_before".to_string(), Value::Number(items_before.into()));
+                params.insert(
+                    "items_before".to_string(),
+                    Value::Number(items_before.into()),
+                );
                 params.insert("items_after".to_string(), Value::Number(items_after.into()));
                 params
             },
             input_value: Some(before_data.clone()),
             output_value: Some(after_data.clone()),
         };
-        
+
         field_prov.transformations.push(transformation);
         field_prov.was_transformed = true;
     }
-    
+
     Ok(())
 }
 
@@ -1599,7 +1738,7 @@ fn build_query_provenance(
     let mut execution_steps = Vec::new();
     let mut applied_filters = Vec::new();
     let mut phase_times = HashMap::new();
-    
+
     // Add execution steps
     execution_steps.push(ExecutionStep {
         name: "Query Parsing".to_string(),
@@ -1609,7 +1748,7 @@ fn build_query_provenance(
         output_size: None,
         metadata: HashMap::new(),
     });
-    
+
     execution_steps.push(ExecutionStep {
         name: "Scope Discovery".to_string(),
         step_type: ExecutionStepType::ScopeResolution,
@@ -1618,16 +1757,22 @@ fn build_query_provenance(
         output_size: Some(scopes.len()),
         metadata: {
             let mut meta = HashMap::new();
-            meta.insert("scopes_found".to_string(), Value::Number(scopes.len().into()));
+            meta.insert(
+                "scopes_found".to_string(),
+                Value::Number(scopes.len().into()),
+            );
             meta
         },
     });
-    
+
     // Add phase times
     phase_times.insert("parsing".to_string(), parse_duration);
     phase_times.insert("scope_discovery".to_string(), scope_duration);
-    phase_times.insert("execution".to_string(), total_duration - parse_duration - scope_duration);
-    
+    phase_times.insert(
+        "execution".to_string(),
+        total_duration - parse_duration - scope_duration,
+    );
+
     // Build applied filters
     if !parsed_query.conditions.is_empty() {
         applied_filters.push(AppliedFilter {
@@ -1637,26 +1782,35 @@ fn build_query_provenance(
             items_after: results.len(),
             parameters: {
                 let mut params = HashMap::new();
-                params.insert("condition_count".to_string(), Value::Number(parsed_query.conditions.len().into()));
+                params.insert(
+                    "condition_count".to_string(),
+                    Value::Number(parsed_query.conditions.len().into()),
+                );
                 params
             },
         });
     }
-    
+
     if parsed_query.yaml_path.is_some() {
         applied_filters.push(AppliedFilter {
             filter_type: FilterType::YamlPath,
-            description: format!("Applied YAML path: {}", parsed_query.yaml_path.as_ref().unwrap()),
+            description: format!(
+                "Applied YAML path: {}",
+                parsed_query.yaml_path.as_ref().unwrap()
+            ),
             items_before: 0,
             items_after: results.len(),
             parameters: {
                 let mut params = HashMap::new();
-                params.insert("yaml_path".to_string(), Value::String(parsed_query.yaml_path.as_ref().unwrap().clone()));
+                params.insert(
+                    "yaml_path".to_string(),
+                    Value::String(parsed_query.yaml_path.as_ref().unwrap().clone()),
+                );
                 params
             },
         });
     }
-    
+
     if let Some(ref order_by) = parsed_query.order_by {
         applied_filters.push(AppliedFilter {
             filter_type: FilterType::OrderBy,
@@ -1665,16 +1819,22 @@ fn build_query_provenance(
             items_after: results.len(),
             parameters: {
                 let mut params = HashMap::new();
-                params.insert("order_fields".to_string(), Value::Number(order_by.len().into()));
+                params.insert(
+                    "order_fields".to_string(),
+                    Value::Number(order_by.len().into()),
+                );
                 params
             },
         });
     }
-    
+
     if parsed_query.limit.is_some() || parsed_query.offset.is_some() {
         applied_filters.push(AppliedFilter {
             filter_type: FilterType::Limit,
-            description: format!("Applied LIMIT={:?} OFFSET={:?}", parsed_query.limit, parsed_query.offset),
+            description: format!(
+                "Applied LIMIT={:?} OFFSET={:?}",
+                parsed_query.limit, parsed_query.offset
+            ),
             items_before: 0,
             items_after: results.len(),
             parameters: {
@@ -1689,7 +1849,7 @@ fn build_query_provenance(
             },
         });
     }
-    
+
     // Build performance metrics
     let performance_metrics = PerformanceMetrics {
         total_time_ms: total_duration,
@@ -1699,7 +1859,7 @@ fn build_query_provenance(
         yaml_documents_processed: results.len(),
         cache_stats: None, // Would need to implement caching
     };
-    
+
     Ok(QueryProvenance {
         original_query: original_query.to_string(),
         parsed_query: parsed_query.clone(),
@@ -1712,4 +1872,4 @@ fn build_query_provenance(
         performance_metrics,
         errors: None,
     })
-} 
+}

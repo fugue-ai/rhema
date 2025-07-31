@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::{Rhema, RhemaResult, DecisionStatus};
+use crate::{DecisionStatus, Rhema, RhemaResult};
 // DecisionSubcommands will be defined in this module
 use crate::file_ops;
 use crate::scope::find_nearest_scope;
@@ -25,29 +25,63 @@ use colored::*;
 
 pub fn run(rhema: &Rhema, subcommand: &DecisionSubcommands) -> RhemaResult<()> {
     // Get the current working directory to find the nearest scope
-    let current_dir = std::env::current_dir()
-        .map_err(|e| crate::RhemaError::IoError(e))?;
-    
+    let current_dir = std::env::current_dir().map_err(|e| crate::RhemaError::IoError(e))?;
+
     // Discover all scopes
     let scopes = rhema.discover_scopes()?;
-    
+
     // Find the nearest scope to the current directory
-    let scope = find_nearest_scope(&current_dir, &scopes)
-        .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
-    
+    let scope = find_nearest_scope(&current_dir, &scopes).ok_or_else(|| {
+        crate::RhemaError::ConfigError(
+            "No Rhema scope found in current directory or parent directories".to_string(),
+        )
+    })?;
+
     match subcommand {
-        DecisionSubcommands::Record { title, description, status, context, makers, alternatives, rationale, consequences } => {
-            record_decision(scope, title, description, status, context, makers, alternatives, rationale, consequences)
-        }
-        DecisionSubcommands::List { status, maker } => {
-            list_decisions(scope, status, maker)
-        }
-        DecisionSubcommands::Update { id, title, description, status, context, makers, alternatives, rationale, consequences } => {
-            update_decision(scope, id, title, description, status, context, makers, alternatives, rationale, consequences)
-        }
-        DecisionSubcommands::Delete { id } => {
-            delete_decision(scope, id)
-        }
+        DecisionSubcommands::Record {
+            title,
+            description,
+            status,
+            context,
+            makers,
+            alternatives,
+            rationale,
+            consequences,
+        } => record_decision(
+            scope,
+            title,
+            description,
+            status,
+            context,
+            makers,
+            alternatives,
+            rationale,
+            consequences,
+        ),
+        DecisionSubcommands::List { status, maker } => list_decisions(scope, status, maker),
+        DecisionSubcommands::Update {
+            id,
+            title,
+            description,
+            status,
+            context,
+            makers,
+            alternatives,
+            rationale,
+            consequences,
+        } => update_decision(
+            scope,
+            id,
+            title,
+            description,
+            status,
+            context,
+            makers,
+            alternatives,
+            rationale,
+            consequences,
+        ),
+        DecisionSubcommands::Delete { id } => delete_decision(scope, id),
     }
 }
 
@@ -73,7 +107,7 @@ fn record_decision(
         rationale.clone(),
         consequences.clone(),
     )?;
-    
+
     println!("🎯 Decision recorded successfully with ID: {}", id.green());
     println!("📝 Title: {}", title);
     println!("📄 Description: {}", description);
@@ -93,7 +127,7 @@ fn record_decision(
     if let Some(consequences) = consequences {
         println!("📈 Consequences: {}", consequences);
     }
-    
+
     Ok(())
 }
 
@@ -102,20 +136,16 @@ fn list_decisions(
     status: &Option<DecisionStatus>,
     maker: &Option<String>,
 ) -> RhemaResult<()> {
-    let decisions = file_ops::list_decisions(
-        &scope.path,
-        status.clone(),
-        maker.clone(),
-    )?;
-    
+    let decisions = file_ops::list_decisions(&scope.path, status.clone(), maker.clone())?;
+
     if decisions.is_empty() {
         println!("📭 No decisions found");
         return Ok(());
     }
-    
+
     println!("🎯 Decisions in scope: {}", scope.definition.name);
     println!("{}", "─".repeat(80));
-    
+
     for decision in decisions {
         let status_color = match decision.status {
             DecisionStatus::Proposed => "yellow",
@@ -125,11 +155,14 @@ fn list_decisions(
             DecisionStatus::Implemented => "green",
             DecisionStatus::Deprecated => "dimmed",
         };
-        
+
         println!("🆔 ID: {}", decision.id);
         println!("📝 Title: {}", decision.title);
         println!("📄 Description: {}", decision.description);
-        println!("📊 Status: {}", format!("{:?}", decision.status).color(status_color));
+        println!(
+            "📊 Status: {}",
+            format!("{:?}", decision.status).color(status_color)
+        );
         if let Some(ctx) = &decision.context {
             println!("🔍 Context: {}", ctx);
         }
@@ -145,13 +178,16 @@ fn list_decisions(
         if let Some(makers) = &decision.decision_makers {
             println!("👥 Decision makers: {}", makers.join(", "));
         }
-        println!("📅 Decided: {}", decision.decided_at.format("%Y-%m-%d %H:%M"));
+        println!(
+            "📅 Decided: {}",
+            decision.decided_at.format("%Y-%m-%d %H:%M")
+        );
         if let Some(review_date) = &decision.review_date {
             println!("📋 Review date: {}", review_date.format("%Y-%m-%d %H:%M"));
         }
         println!("{}", "─".repeat(80));
     }
-    
+
     Ok(())
 }
 
@@ -179,12 +215,18 @@ fn update_decision(
         rationale.clone(),
         consequences.clone(),
     )?;
-    
+
     println!("✅ Decision {} updated successfully", id.green());
-    
-    if title.is_some() || description.is_some() || status.is_some() || 
-       context.is_some() || makers.is_some() || alternatives.is_some() || 
-       rationale.is_some() || consequences.is_some() {
+
+    if title.is_some()
+        || description.is_some()
+        || status.is_some()
+        || context.is_some()
+        || makers.is_some()
+        || alternatives.is_some()
+        || rationale.is_some()
+        || consequences.is_some()
+    {
         println!("📝 Updated fields:");
         if title.is_some() {
             println!("  - Title: {}", title.as_ref().unwrap());
@@ -211,17 +253,14 @@ fn update_decision(
             println!("  - Consequences: {}", consequences.as_ref().unwrap());
         }
     }
-    
+
     Ok(())
 }
 
-fn delete_decision(
-    scope: &rhema_core::scope::Scope,
-    id: &str,
-) -> RhemaResult<()> {
+fn delete_decision(scope: &rhema_core::scope::Scope, id: &str) -> RhemaResult<()> {
     file_ops::delete_decision(&scope.path, id)?;
-    
+
     println!("🗑️  Decision {} deleted successfully", id.green());
-    
+
     Ok(())
-} 
+}

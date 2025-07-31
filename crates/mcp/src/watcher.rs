@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
+use notify::{Event, EventKind, RecursiveMode, Watcher};
 use rhema_core::{RhemaError, RhemaResult};
-use notify::{Watcher, RecursiveMode, Event, EventKind};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
-use std::collections::HashMap;
 use std::time::{Duration, Instant, SystemTime};
-use serde::{Deserialize, Serialize};
+use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 
 /// File system event types
@@ -82,7 +82,7 @@ impl FileWatcher {
     /// Create a new file watcher
     pub async fn new(config: &super::FileWatcherConfig, repo_root: PathBuf) -> RhemaResult<Self> {
         let (event_sender, event_receiver) = mpsc::channel(1000);
-        
+
         let watcher_config = WatcherConfig {
             enabled: config.enabled,
             watch_dirs: config.watch_dirs.clone(),
@@ -127,16 +127,23 @@ impl FileWatcher {
 
         // Create the watcher
         let (tx, rx) = std::sync::mpsc::channel();
-        let mut watcher = notify::recommended_watcher(tx)
-            .map_err(|e| RhemaError::InvalidInput(format!("Failed to create file watcher: {}", e)))?;
+        let mut watcher = notify::recommended_watcher(tx).map_err(|e| {
+            RhemaError::InvalidInput(format!("Failed to create file watcher: {}", e))
+        })?;
 
         // Add watch directories
         for watch_dir in &self.config.watch_dirs {
             let full_path = self.repo_root.join(watch_dir);
             if full_path.exists() {
-                watcher.watch(&full_path, RecursiveMode::Recursive)
-                    .map_err(|e| RhemaError::InvalidInput(format!("Failed to watch directory {:?}: {}", full_path, e)))?;
-                
+                watcher
+                    .watch(&full_path, RecursiveMode::Recursive)
+                    .map_err(|e| {
+                        RhemaError::InvalidInput(format!(
+                            "Failed to watch directory {:?}: {}",
+                            full_path, e
+                        ))
+                    })?;
+
                 tracing::debug!("Watching directory: {:?}", full_path);
             } else {
                 tracing::warn!("Watch directory does not exist: {:?}", full_path);
@@ -170,13 +177,15 @@ impl FileWatcher {
         // Close all subscribers
         let mut subscribers = self.subscribers.write().await;
         for (_, sender) in subscribers.drain() {
-            let _ = sender.send(FileEvent {
-                id: Uuid::new_v4().to_string(),
-                event_type: FileEventType::Deleted,
-                path: PathBuf::new(),
-                timestamp: chrono::Utc::now(),
-                metadata: HashMap::new(),
-            }).await;
+            let _ = sender
+                .send(FileEvent {
+                    id: Uuid::new_v4().to_string(),
+                    event_type: FileEventType::Deleted,
+                    path: PathBuf::new(),
+                    timestamp: chrono::Utc::now(),
+                    metadata: HashMap::new(),
+                })
+                .await;
         }
 
         tracing::info!("File watcher stopped");
@@ -187,10 +196,10 @@ impl FileWatcher {
     pub async fn subscribe(&self) -> mpsc::Receiver<FileEvent> {
         let (tx, rx) = mpsc::channel(100);
         let subscriber_id = Uuid::new_v4().to_string();
-        
+
         let mut subscribers = self.subscribers.write().await;
         subscribers.insert(subscriber_id.clone(), tx);
-        
+
         tracing::debug!("New file event subscriber: {}", subscriber_id);
         rx
     }
@@ -251,9 +260,9 @@ impl FileWatcher {
                 EventKind::Create(_) => FileEventType::Created,
                 EventKind::Modify(_) => FileEventType::Modified,
                 EventKind::Remove(_) => FileEventType::Deleted, // Remove covers both deletion and renames/moves
-                EventKind::Access(_) => continue, // Skip access events
-                EventKind::Any => continue, // Skip generic events
-                EventKind::Other => continue, // Skip other events
+                EventKind::Access(_) => continue,               // Skip access events
+                EventKind::Any => continue,                     // Skip generic events
+                EventKind::Other => continue,                   // Skip other events
             };
 
             let file_event = FileEvent {
@@ -286,10 +295,10 @@ impl FileWatcher {
         // Create new timer
         let event_sender = self.event_sender.clone();
         let path_clone = path.clone();
-        
+
         let handle = tokio::spawn(async move {
             tokio::time::sleep(debounce_duration).await;
-            
+
             // Send the event
             if let Err(e) = event_sender.send(event).await {
                 tracing::error!("Failed to send debounced event: {}", e);
@@ -306,22 +315,30 @@ impl FileWatcher {
         let mut metadata = HashMap::new();
 
         if let Ok(metadata_fs) = std::fs::metadata(path) {
-            metadata.insert("size".to_string(), serde_json::Value::Number(metadata_fs.len().into()));
-            metadata.insert("modified".to_string(), serde_json::Value::String(
-                metadata_fs.modified()
-                    .unwrap_or_else(|_| SystemTime::now())
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs()
-                    .to_string()
-            ));
+            metadata.insert(
+                "size".to_string(),
+                serde_json::Value::Number(metadata_fs.len().into()),
+            );
+            metadata.insert(
+                "modified".to_string(),
+                serde_json::Value::String(
+                    metadata_fs
+                        .modified()
+                        .unwrap_or_else(|_| SystemTime::now())
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs()
+                        .to_string(),
+                ),
+            );
         }
 
         // Add file extension
         if let Some(extension) = path.extension() {
-            metadata.insert("extension".to_string(), serde_json::Value::String(
-                extension.to_string_lossy().to_string()
-            ));
+            metadata.insert(
+                "extension".to_string(),
+                serde_json::Value::String(extension.to_string_lossy().to_string()),
+            );
         }
 
         metadata
@@ -329,7 +346,10 @@ impl FileWatcher {
 
     /// Start the event processor
     #[allow(dead_code)]
-    async fn start_event_processor(&self, rx: std::sync::mpsc::Receiver<notify::Event>) -> RhemaResult<()> {
+    async fn start_event_processor(
+        &self,
+        rx: std::sync::mpsc::Receiver<notify::Event>,
+    ) -> RhemaResult<()> {
         let _event_sender = self.event_sender.clone();
         let stats = self.stats.clone();
 
@@ -340,7 +360,7 @@ impl FileWatcher {
                     let mut stats_guard = stats.write().await;
                     stats_guard.total_events += 1;
                     stats_guard.last_event_time = Some(chrono::Utc::now());
-                    
+
                     let event_type = match event.kind {
                         EventKind::Create(_) => "created",
                         EventKind::Modify(_) => "modified",
@@ -349,8 +369,11 @@ impl FileWatcher {
                         EventKind::Any => "any",
                         EventKind::Other => "other",
                     };
-                    
-                    *stats_guard.events_by_type.entry(event_type.to_string()).or_insert(0) += 1;
+
+                    *stats_guard
+                        .events_by_type
+                        .entry(event_type.to_string())
+                        .or_insert(0) += 1;
                 }
 
                 // Process the event
@@ -371,7 +394,10 @@ impl FileWatcher {
     }
 
     /// Start the event processor with Result handling
-    async fn start_event_processor_with_results(&self, rx: std::sync::mpsc::Receiver<Result<notify::Event, notify::Error>>) -> RhemaResult<()> {
+    async fn start_event_processor_with_results(
+        &self,
+        rx: std::sync::mpsc::Receiver<Result<notify::Event, notify::Error>>,
+    ) -> RhemaResult<()> {
         let _event_sender = self.event_sender.clone();
         let stats = self.stats.clone();
 
@@ -384,7 +410,7 @@ impl FileWatcher {
                             let mut stats_guard = stats.write().await;
                             stats_guard.total_events += 1;
                             stats_guard.last_event_time = Some(chrono::Utc::now());
-                            
+
                             let event_type = match event.kind {
                                 EventKind::Create(_) => "created",
                                 EventKind::Modify(_) => "modified",
@@ -393,8 +419,11 @@ impl FileWatcher {
                                 EventKind::Any => "any",
                                 EventKind::Other => "other",
                             };
-                            
-                            *stats_guard.events_by_type.entry(event_type.to_string()).or_insert(0) += 1;
+
+                            *stats_guard
+                                .events_by_type
+                                .entry(event_type.to_string())
+                                .or_insert(0) += 1;
                         }
 
                         // Process the event
@@ -421,7 +450,7 @@ impl FileWatcher {
             let mut interval = tokio::time::interval(Duration::from_secs(60));
             loop {
                 interval.tick().await;
-                
+
                 let mut stats_guard = stats.write().await;
                 stats_guard.uptime_seconds = _start_time.elapsed().as_secs();
             }
@@ -437,7 +466,7 @@ impl FileWatcher {
 
         tokio::spawn(async move {
             let mut receiver = event_receiver.write().await;
-            
+
             while let Some(event) = receiver.recv().await {
                 // Send to all subscribers
                 let mut subscribers_guard = subscribers.write().await;
@@ -511,14 +540,18 @@ impl FileWatcherBuilder {
 
     /// Build the file watcher
     pub async fn build(self, repo_root: PathBuf) -> RhemaResult<FileWatcher> {
-        FileWatcher::new(&super::FileWatcherConfig {
-            enabled: self.config.enabled,
-            watch_dirs: self.config.watch_dirs,
-            file_patterns: self.config.file_patterns,
-            debounce_ms: self.config.debounce_ms,
-            recursive: self.config.recursive,
-            ignore_hidden: self.config.ignore_hidden,
-        }, repo_root).await
+        FileWatcher::new(
+            &super::FileWatcherConfig {
+                enabled: self.config.enabled,
+                watch_dirs: self.config.watch_dirs,
+                file_patterns: self.config.file_patterns,
+                debounce_ms: self.config.debounce_ms,
+                recursive: self.config.recursive,
+                ignore_hidden: self.config.ignore_hidden,
+            },
+            repo_root,
+        )
+        .await
     }
 }
 
@@ -576,10 +609,12 @@ mod tests {
             ignore_hidden: true,
         };
 
-        let watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf()).await.unwrap();
+        let watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf())
+            .await
+            .unwrap();
         let stats = watcher.stats().await;
-        
+
         assert_eq!(stats.total_events, 0);
         assert!(stats.uptime_seconds >= 0);
     }
-} 
+}

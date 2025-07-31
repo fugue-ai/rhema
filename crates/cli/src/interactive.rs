@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-use crate::{Rhema, RhemaResult, RhemaError};
 use crate::commands::*;
+use crate::{Rhema, RhemaError, RhemaResult};
 // use clap::{Parser, Subcommand};
 use colored::*;
 // use indicatif::{ProgressBar, ProgressStyle};
 use std::collections::HashMap;
 use std::io::{self, Write};
 // use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
-use serde::{Deserialize, Serialize};
 
 // Interactive mode configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -119,9 +119,9 @@ impl InteractiveExecutor {
         let config = InteractiveConfig::default();
         let session = InteractiveSession::new(rhema, config);
         let session = Arc::new(Mutex::new(session));
-        
+
         let (command_sender, mut command_receiver) = mpsc::unbounded_channel();
-        
+
         let session_clone = session.clone();
         tokio::spawn(async move {
             while let Some(command) = command_receiver.recv().await {
@@ -155,13 +155,13 @@ impl InteractiveExecutor {
                 }
             }
         });
-        
+
         Self {
             session,
             _command_sender: command_sender,
         }
     }
-    
+
     pub fn run(&self) -> RhemaResult<()> {
         let mut session = self.session.lock().unwrap();
         session.start_repl()
@@ -182,21 +182,21 @@ impl InteractiveSession {
             plugins: Vec::new(),
         }
     }
-    
+
     pub fn start_repl(&mut self) -> RhemaResult<()> {
         self.show_welcome_message();
         self.show_help();
-        
+
         loop {
             let input = self.read_input()?;
-            
+
             if input.trim().is_empty() {
                 continue;
             }
-            
+
             // Add to history
             self.add_to_history(input.clone());
-            
+
             // Check for special commands
             match input.trim() {
                 "exit" | "quit" | "q" => break,
@@ -216,39 +216,41 @@ impl InteractiveSession {
                 }
             }
         }
-        
+
         println!("{}", "Goodbye!".green());
         Ok(())
     }
-    
+
     fn read_input(&self) -> RhemaResult<String> {
         print!("{}", self.get_prompt());
         io::stdout().flush()?;
-        
+
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
-        
+
         Ok(input.trim().to_string())
     }
-    
+
     fn get_prompt(&self) -> String {
         let mut prompt = self.config.prompt.clone();
-        
+
         if let Some(scope) = &self.current_scope {
             prompt = format!("rhema:{}> ", scope);
         }
-        
+
         match &self.config.theme {
             Theme::Default => prompt.cyan().to_string(),
             Theme::Dark => prompt.white().on_black().to_string(),
             Theme::Light => prompt.black().on_white().to_string(),
-            Theme::Custom { prompt_color: _, .. } => {
+            Theme::Custom {
+                prompt_color: _, ..
+            } => {
                 // Apply custom color (simplified)
                 prompt.cyan().to_string()
             }
         }
     }
-    
+
     fn add_to_history(&mut self, input: String) {
         if !self.history.contains(&input) {
             self.history.push(input);
@@ -258,7 +260,7 @@ impl InteractiveSession {
         }
         self.history_index = self.history.len();
     }
-    
+
     fn navigate_history(&mut self, direction: HistoryDirection) {
         match direction {
             HistoryDirection::Up => {
@@ -273,16 +275,16 @@ impl InteractiveSession {
             }
         }
     }
-    
+
     fn execute_command(&mut self, input: &str) -> RhemaResult<()> {
         let parts: Vec<&str> = input.split_whitespace().collect();
         if parts.is_empty() {
             return Ok(());
         }
-        
+
         let command = parts[0];
         let args = &parts[1..];
-        
+
         match command {
             "init" => self.handle_init(args),
             "scopes" => self.handle_scopes(args),
@@ -330,26 +332,56 @@ impl InteractiveSession {
             }
         }
     }
-    
+
     fn get_completions(&self, input: &str) -> Vec<String> {
         let mut completions = Vec::new();
-        
+
         // Basic command completions
         let commands = vec![
-            "init", "scopes", "scope", "tree", "show", "query", "search",
-            "validate", "migrate", "schema", "health", "stats", "todo",
-            "insight", "pattern", "decision", "dependencies", "impact",
-            "sync", "git", "export", "primer", "readme", "bootstrap",
-            "daemon", "set", "get", "workflow", "plugin", "visualize",
-            "debug", "profile", "help", "exit", "clear", "history"
+            "init",
+            "scopes",
+            "scope",
+            "tree",
+            "show",
+            "query",
+            "search",
+            "validate",
+            "migrate",
+            "schema",
+            "health",
+            "stats",
+            "todo",
+            "insight",
+            "pattern",
+            "decision",
+            "dependencies",
+            "impact",
+            "sync",
+            "git",
+            "export",
+            "primer",
+            "readme",
+            "bootstrap",
+            "daemon",
+            "set",
+            "get",
+            "workflow",
+            "plugin",
+            "visualize",
+            "debug",
+            "profile",
+            "help",
+            "exit",
+            "clear",
+            "history",
         ];
-        
+
         for cmd in commands {
             if cmd.starts_with(input) {
                 completions.push(cmd.to_string());
             }
         }
-        
+
         // Context-aware completions
         if self.config.context_aware {
             if let Ok(scopes) = self.rhema.discover_scopes() {
@@ -360,15 +392,15 @@ impl InteractiveSession {
                 }
             }
         }
-        
+
         // Plugin completions
         for plugin in &self.plugins {
             completions.extend(plugin.suggestions(self, input));
         }
-        
+
         completions
     }
-    
+
     fn show_welcome_message(&self) {
         println!("{}", "=".repeat(60).cyan());
         println!("{}", "Rhema Interactive Mode".bold().cyan());
@@ -379,64 +411,85 @@ impl InteractiveSession {
         println!("Type 'exit' to quit");
         println!();
     }
-    
+
     fn show_help(&self) {
         println!("{}", "Available Commands:".bold().green());
         println!();
-        
+
         let commands = vec![
-            ("Core Commands", vec![
-                ("init", "Initialize a new Rhema scope"),
-                ("scopes", "List all scopes in the repository"),
-                ("scope", "Show scope details"),
-                ("tree", "Show scope hierarchy tree"),
-                ("show", "Display YAML file content"),
-                ("query", "Execute a CQL query"),
-                ("search", "Search across context files"),
-            ]),
-            ("Management Commands", vec![
-                ("validate", "Validate YAML files"),
-                ("migrate", "Migrate schema files"),
-                ("schema", "Generate schema templates"),
-                ("health", "Check scope health"),
-                ("stats", "Show context statistics"),
-            ]),
-            ("Content Commands", vec![
-                ("todo", "Manage todo items"),
-                ("insight", "Manage knowledge insights"),
-                ("pattern", "Manage patterns"),
-                ("decision", "Manage decisions"),
-            ]),
-            ("Advanced Commands", vec![
-                ("dependencies", "Show scope dependencies"),
-                ("impact", "Show impact of changes"),
-                ("sync", "Sync knowledge across scopes"),
-                ("git", "Advanced Git integration"),
-            ]),
-            ("Export Commands", vec![
-                ("export", "Export context data"),
-                ("primer", "Generate context primer files"),
-                ("readme", "Generate README with context"),
-                ("bootstrap", "Bootstrap context for AI agents"),
-            ]),
-            ("Interactive Commands", vec![
-                ("set", "Set a variable"),
-                ("get", "Get a variable"),
-                ("workflow", "Manage workflows"),
-                ("plugin", "Manage plugins"),
-                ("visualize", "Interactive data visualization"),
-                ("debug", "Debug mode"),
-                ("profile", "Performance profiling"),
-            ]),
-            ("System Commands", vec![
-                ("help", "Show this help"),
-                ("clear", "Clear screen"),
-                ("history", "Show command history"),
-                ("config", "Show configuration"),
-                ("exit", "Exit interactive mode"),
-            ]),
+            (
+                "Core Commands",
+                vec![
+                    ("init", "Initialize a new Rhema scope"),
+                    ("scopes", "List all scopes in the repository"),
+                    ("scope", "Show scope details"),
+                    ("tree", "Show scope hierarchy tree"),
+                    ("show", "Display YAML file content"),
+                    ("query", "Execute a CQL query"),
+                    ("search", "Search across context files"),
+                ],
+            ),
+            (
+                "Management Commands",
+                vec![
+                    ("validate", "Validate YAML files"),
+                    ("migrate", "Migrate schema files"),
+                    ("schema", "Generate schema templates"),
+                    ("health", "Check scope health"),
+                    ("stats", "Show context statistics"),
+                ],
+            ),
+            (
+                "Content Commands",
+                vec![
+                    ("todo", "Manage todo items"),
+                    ("insight", "Manage knowledge insights"),
+                    ("pattern", "Manage patterns"),
+                    ("decision", "Manage decisions"),
+                ],
+            ),
+            (
+                "Advanced Commands",
+                vec![
+                    ("dependencies", "Show scope dependencies"),
+                    ("impact", "Show impact of changes"),
+                    ("sync", "Sync knowledge across scopes"),
+                    ("git", "Advanced Git integration"),
+                ],
+            ),
+            (
+                "Export Commands",
+                vec![
+                    ("export", "Export context data"),
+                    ("primer", "Generate context primer files"),
+                    ("readme", "Generate README with context"),
+                    ("bootstrap", "Bootstrap context for AI agents"),
+                ],
+            ),
+            (
+                "Interactive Commands",
+                vec![
+                    ("set", "Set a variable"),
+                    ("get", "Get a variable"),
+                    ("workflow", "Manage workflows"),
+                    ("plugin", "Manage plugins"),
+                    ("visualize", "Interactive data visualization"),
+                    ("debug", "Debug mode"),
+                    ("profile", "Performance profiling"),
+                ],
+            ),
+            (
+                "System Commands",
+                vec![
+                    ("help", "Show this help"),
+                    ("clear", "Clear screen"),
+                    ("history", "Show command history"),
+                    ("config", "Show configuration"),
+                    ("exit", "Exit interactive mode"),
+                ],
+            ),
         ];
-        
+
         for (category, cmds) in commands {
             println!("{}", category.bold().yellow());
             for (cmd, desc) in cmds {
@@ -445,19 +498,19 @@ impl InteractiveSession {
             println!();
         }
     }
-    
+
     fn clear_screen(&self) {
         print!("\x1B[2J\x1B[1;1H");
         io::stdout().flush().unwrap();
     }
-    
+
     fn show_history(&self) {
         println!("{}", "Command History:".bold().green());
         for (i, cmd) in self.history.iter().enumerate() {
             println!("{:3}: {}", i + 1, cmd);
         }
     }
-    
+
     fn show_config(&self) {
         println!("{}", "Interactive Configuration:".bold().green());
         println!("Prompt: {}", self.config.prompt);
@@ -467,7 +520,7 @@ impl InteractiveSession {
         println!("Show Suggestions: {}", self.config.show_suggestions);
         println!("Context Aware: {}", self.config.context_aware);
     }
-    
+
     fn list_scopes(&self) {
         match self.rhema.discover_scopes() {
             Ok(scopes) => {
@@ -479,7 +532,7 @@ impl InteractiveSession {
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
     }
-    
+
     fn show_context(&self) {
         println!("{}", "Current Context:".bold().green());
         if let Some(scope) = &self.current_scope {
@@ -490,82 +543,92 @@ impl InteractiveSession {
         println!("Cached Contexts: {}", self.context_cache.len());
         println!("Variables: {}", self.variables.len());
     }
-    
+
     fn show_variables(&self) {
         println!("{}", "Variables:".bold().green());
         for (key, value) in &self.variables {
             println!("  {} = {}", key.cyan(), value);
         }
     }
-    
+
     fn list_workflows(&self) {
         println!("{}", "Workflows:".bold().green());
         for (name, steps) in &self.workflows {
             println!("  {} ({} steps)", name.cyan(), steps.len());
         }
     }
-    
+
     fn list_plugins(&self) {
         println!("{}", "Plugins:".bold().green());
         for plugin in &self.plugins {
             println!("  {} - {}", plugin.name().cyan(), plugin.description());
         }
     }
-    
+
     fn find_plugin(&self, name: &str) -> Option<&Box<dyn InteractivePlugin>> {
         self.plugins.iter().find(|p| p.name() == name)
     }
-    
+
     fn update_config(&mut self, config: InteractiveConfig) {
         self.config = config;
         println!("{}", "Configuration updated".green());
     }
-    
+
     // Command handlers
     fn handle_init(&mut self, args: &[&str]) -> RhemaResult<()> {
         let scope_type = args.get(0).map(|s| s.to_string());
         let scope_name = args.get(1).map(|s| s.to_string());
         let auto_config = args.contains(&"--auto-config");
-        
-        crate::init::run(&self.rhema, scope_type.as_deref(), scope_name.as_deref(), auto_config)
+
+        crate::init::run(
+            &self.rhema,
+            scope_type.as_deref(),
+            scope_name.as_deref(),
+            auto_config,
+        )
     }
-    
+
     fn handle_scopes(&mut self, _args: &[&str]) -> RhemaResult<()> {
         crate::scopes::run(&self.rhema)
     }
-    
+
     fn handle_scope(&mut self, args: &[&str]) -> RhemaResult<()> {
         let path = args.get(0).map(|s| s.to_string());
         crate::scopes::show_scope(&self.rhema, path.as_deref())
     }
-    
+
     fn handle_tree(&mut self) -> RhemaResult<()> {
         crate::scopes::show_tree(&self.rhema)
     }
-    
+
     fn handle_show(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("show requires a file argument".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "show requires a file argument".to_string(),
+            ));
         }
-        
+
         let file = args[0].to_string();
         let scope = args.get(1).map(|s| s.to_string());
-        
+
         crate::show::run(&self.rhema, &file, scope.as_deref())
     }
-    
+
     fn handle_query(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("query requires a query string".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "query requires a query string".to_string(),
+            ));
         }
-        
+
         let query = args[0].to_string();
         let stats = args.contains(&"--stats");
-        let format = args.iter()
+        let format = args
+            .iter()
             .position(|&s| s == "--format")
             .and_then(|i| args.get(i + 1))
             .unwrap_or(&"yaml");
-        
+
         if stats {
             crate::query::run_with_stats(&self.rhema, &query)
         } else if *format != "yaml" {
@@ -574,60 +637,66 @@ impl InteractiveSession {
             crate::query::run(&self.rhema, &query)
         }
     }
-    
+
     fn handle_search(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("search requires a search term".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "search requires a search term".to_string(),
+            ));
         }
-        
+
         let term = args[0].to_string();
-        let in_file = args.iter()
+        let in_file = args
+            .iter()
             .position(|&s| s == "--in-file")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
         let regex = args.contains(&"--regex");
-        
+
         crate::search::run(&self.rhema, &term, in_file.as_deref(), regex)
     }
-    
+
     fn handle_validate(&mut self, args: &[&str]) -> RhemaResult<()> {
         let recursive = args.contains(&"--recursive");
         let json_schema = args.contains(&"--json-schema");
         let migrate = args.contains(&"--migrate");
-        
+
         crate::validate::run(&self.rhema, recursive, json_schema, migrate)
     }
-    
+
     fn handle_migrate(&mut self, args: &[&str]) -> RhemaResult<()> {
         let recursive = args.contains(&"--recursive");
         let dry_run = args.contains(&"--dry-run");
-        
+
         crate::migrate::run(&self.rhema, recursive, dry_run)
     }
-    
+
     fn handle_schema(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("schema requires a template type".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "schema requires a template type".to_string(),
+            ));
         }
-        
+
         let template_type = args[0].to_string();
-        let output_file = args.iter()
+        let output_file = args
+            .iter()
             .position(|&s| s == "--output-file")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         crate::schema::run(&self.rhema, &template_type, output_file.as_deref())
     }
-    
+
     fn handle_health(&mut self, args: &[&str]) -> RhemaResult<()> {
         let scope = args.get(0).map(|s| s.to_string());
         crate::health::run(&self.rhema, scope.as_deref())
     }
-    
+
     fn handle_stats(&mut self) -> RhemaResult<()> {
         crate::stats::run(&self.rhema)
     }
-    
+
     fn handle_todo(&mut self, _args: &[&str]) -> RhemaResult<()> {
         // Convert args to TodoSubcommands
         // This is a simplified version - in practice, you'd need to parse the args properly
@@ -638,7 +707,7 @@ impl InteractiveSession {
         };
         crate::todo::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_insight(&mut self, _args: &[&str]) -> RhemaResult<()> {
         // Similar to todo - simplified
         let subcommand = InsightSubcommands::List {
@@ -648,7 +717,7 @@ impl InteractiveSession {
         };
         crate::insight::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_pattern(&mut self, _args: &[&str]) -> RhemaResult<()> {
         // Similar to todo - simplified
         let subcommand = PatternSubcommands::List {
@@ -658,7 +727,7 @@ impl InteractiveSession {
         };
         crate::pattern::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_decision(&mut self, _args: &[&str]) -> RhemaResult<()> {
         // Similar to todo - simplified
         let subcommand = DecisionSubcommands::List {
@@ -667,36 +736,39 @@ impl InteractiveSession {
         };
         crate::decision::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_dependencies(&mut self) -> RhemaResult<()> {
         crate::dependencies::run(&self.rhema)
     }
-    
+
     fn handle_impact(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("impact requires a file argument".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "impact requires a file argument".to_string(),
+            ));
         }
-        
+
         let file = args[0].to_string();
         crate::impact::run(&self.rhema, &file)
     }
-    
+
     fn handle_sync(&mut self) -> RhemaResult<()> {
         crate::sync::run(&self.rhema)
     }
-    
+
     fn handle_git(&mut self, _args: &[&str]) -> RhemaResult<()> {
         // Simplified - would need proper subcommand parsing
         let subcommand = crate::git::GitSubcommands::Status;
         crate::git::run(&self.rhema, &subcommand)
     }
-    
+
     fn handle_export(&mut self, args: &[&str]) -> RhemaResult<()> {
-        let format = args.iter()
+        let format = args
+            .iter()
             .position(|&s| s == "--format")
             .and_then(|i| args.get(i + 1))
             .unwrap_or(&"json");
-        
+
         let mut include_protocol = false;
         let mut include_knowledge = false;
         let mut include_todos = false;
@@ -705,7 +777,7 @@ impl InteractiveSession {
         let mut include_conventions = false;
         let mut summarize = false;
         let mut ai_agent_format = false;
-        
+
         for arg in args {
             match *arg {
                 "--include-protocol" => include_protocol = true,
@@ -719,17 +791,19 @@ impl InteractiveSession {
                 _ => {}
             }
         }
-        
-        let output_file = args.iter()
+
+        let output_file = args
+            .iter()
             .position(|&s| s == "--output-file")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let scope_filter = args.iter()
+
+        let scope_filter = args
+            .iter()
             .position(|&s| s == "--scope-filter")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         crate::export_context::run(
             &self.rhema,
             format,
@@ -745,26 +819,29 @@ impl InteractiveSession {
             ai_agent_format,
         )
     }
-    
+
     fn handle_primer(&mut self, args: &[&str]) -> RhemaResult<()> {
-        let scope_name = args.iter()
+        let scope_name = args
+            .iter()
             .position(|&s| s == "--scope-name")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let output_dir = args.iter()
+
+        let output_dir = args
+            .iter()
             .position(|&s| s == "--output-dir")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let template_type = args.iter()
+
+        let template_type = args
+            .iter()
             .position(|&s| s == "--template-type")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         let include_examples = args.contains(&"--include-examples");
         let validate = args.contains(&"--validate");
-        
+
         crate::primer::run(
             &self.rhema,
             scope_name.as_deref(),
@@ -774,33 +851,39 @@ impl InteractiveSession {
             validate,
         )
     }
-    
+
     fn handle_readme(&mut self, args: &[&str]) -> RhemaResult<()> {
-        let scope_name = args.iter()
+        let scope_name = args
+            .iter()
             .position(|&s| s == "--scope-name")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let output_file = args.iter()
+
+        let output_file = args
+            .iter()
             .position(|&s| s == "--output-file")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let template = args.iter()
+
+        let template = args
+            .iter()
             .position(|&s| s == "--template")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         let include_context = args.contains(&"--include-context");
         let seo_optimized = args.contains(&"--seo-optimized");
-        
-        let custom_sections = args.iter()
+
+        let custom_sections = args
+            .iter()
             .position(|&s| s == "--custom-sections")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let custom_sections_vec = custom_sections.as_ref().map(|s| s.split(',').map(|s| s.trim().to_string()).collect());
-        
+
+        let custom_sections_vec = custom_sections
+            .as_ref()
+            .map(|s| s.split(',').map(|s| s.trim().to_string()).collect());
+
         crate::generate_readme::run(
             &self.rhema,
             scope_name.as_deref(),
@@ -811,33 +894,37 @@ impl InteractiveSession {
             custom_sections_vec,
         )
     }
-    
+
     fn handle_bootstrap(&mut self, args: &[&str]) -> RhemaResult<()> {
-        let use_case = args.iter()
+        let use_case = args
+            .iter()
             .position(|&s| s == "--use-case")
             .and_then(|i| args.get(i + 1))
             .unwrap_or(&"code_review");
-        
-        let output_format = args.iter()
+
+        let output_format = args
+            .iter()
             .position(|&s| s == "--output-format")
             .and_then(|i| args.get(i + 1))
             .unwrap_or(&"json");
-        
-        let output_dir = args.iter()
+
+        let output_dir = args
+            .iter()
             .position(|&s| s == "--output-dir")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
-        let scope_filter = args.iter()
+
+        let scope_filter = args
+            .iter()
             .position(|&s| s == "--scope-filter")
             .and_then(|i| args.get(i + 1))
             .map(|s| s.to_string());
-        
+
         let include_all = args.contains(&"--include-all");
         let optimize_for_ai = args.contains(&"--optimize-for-ai");
         let create_primer = args.contains(&"--create-primer");
         let create_readme = args.contains(&"--create-readme");
-        
+
         crate::bootstrap_context::run(
             &self.rhema,
             use_case,
@@ -850,13 +937,14 @@ impl InteractiveSession {
             create_readme,
         )
     }
-    
+
     fn handle_daemon(&mut self, args: &[&str]) -> RhemaResult<()> {
         // Simplified - would need proper args parsing
         // Parse daemon command based on args
         let command = if args.contains(&"start") {
             crate::daemon::DaemonSubcommand::Start {
-                config: args.iter()
+                config: args
+                    .iter()
                     .position(|&s| s == "--config")
                     .and_then(|i| args.get(i + 1))
                     .map(|s| std::path::PathBuf::from(s)),
@@ -878,7 +966,8 @@ impl InteractiveSession {
             }
         } else if args.contains(&"restart") {
             crate::daemon::DaemonSubcommand::Restart {
-                config: args.iter()
+                config: args
+                    .iter()
                     .position(|&s| s == "--config")
                     .and_then(|i| args.get(i + 1))
                     .map(|s| std::path::PathBuf::from(s)),
@@ -889,32 +978,36 @@ impl InteractiveSession {
                 pid_file: std::path::PathBuf::from("/tmp/rhema-mcp.pid"),
             }
         } else {
-            return Err(RhemaError::InvalidCommand("daemon requires a subcommand: start, stop, restart, status".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "daemon requires a subcommand: start, stop, restart, status".to_string(),
+            ));
         };
-        
+
         let args = crate::daemon::DaemonArgs { command };
-        
+
         tokio::runtime::Runtime::new()?.block_on(crate::daemon::execute_daemon(args))
     }
-    
+
     // Interactive-specific commands
     fn handle_set(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.len() < 2 {
-            return Err(RhemaError::InvalidCommand("set requires key and value".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "set requires key and value".to_string(),
+            ));
         }
-        
+
         let key = args[0].to_string();
         let value = args[1..].join(" ");
         self.variables.insert(key.clone(), value);
         println!("{} = {}", key.cyan(), self.variables[&key]);
         Ok(())
     }
-    
+
     fn handle_get(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
             return Err(RhemaError::InvalidCommand("get requires a key".to_string()));
         }
-        
+
         let key = args[0];
         if let Some(value) = self.variables.get(key) {
             println!("{} = {}", key.cyan(), value);
@@ -923,16 +1016,20 @@ impl InteractiveSession {
         }
         Ok(())
     }
-    
+
     fn handle_workflow(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("workflow requires a subcommand".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "workflow requires a subcommand".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "create" => {
                 if args.len() < 3 {
-                    return Err(RhemaError::InvalidCommand("workflow create requires name and commands".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "workflow create requires name and commands".to_string(),
+                    ));
                 }
                 let name = args[1].to_string();
                 let commands: Vec<String> = args[2..].iter().map(|s| s.to_string()).collect();
@@ -941,7 +1038,9 @@ impl InteractiveSession {
             }
             "run" => {
                 if args.len() < 2 {
-                    return Err(RhemaError::InvalidCommand("workflow run requires a name".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "workflow run requires a name".to_string(),
+                    ));
                 }
                 let name = args[1];
                 if let Some(commands) = self.workflows.get(name) {
@@ -961,24 +1060,30 @@ impl InteractiveSession {
                 self.list_workflows();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown workflow subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown workflow subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_plugin(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("plugin requires a subcommand".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "plugin requires a subcommand".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "list" => {
                 self.list_plugins();
             }
             "info" => {
                 if args.len() < 2 {
-                    return Err(RhemaError::InvalidCommand("plugin info requires a name".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "plugin info requires a name".to_string(),
+                    ));
                 }
                 let name = args[1];
                 if let Some(plugin) = self.find_plugin(name) {
@@ -990,17 +1095,21 @@ impl InteractiveSession {
                 }
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown plugin subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown plugin subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_visualize(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("visualize requires a type".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "visualize requires a type".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "scopes" => {
                 self.visualize_scopes();
@@ -1012,17 +1121,21 @@ impl InteractiveSession {
                 self.visualize_stats();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown visualization type".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown visualization type".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_debug(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("debug requires a subcommand".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "debug requires a subcommand".to_string(),
+            ));
         }
-        
+
         match args[0] {
             "context" => {
                 self.debug_context();
@@ -1034,28 +1147,32 @@ impl InteractiveSession {
                 self.debug_performance();
             }
             _ => {
-                return Err(RhemaError::InvalidCommand("Unknown debug subcommand".to_string()));
+                return Err(RhemaError::InvalidCommand(
+                    "Unknown debug subcommand".to_string(),
+                ));
             }
         }
         Ok(())
     }
-    
+
     fn handle_profile(&mut self, args: &[&str]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("profile requires a command".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "profile requires a command".to_string(),
+            ));
         }
-        
+
         let command = args.join(" ");
         let start = std::time::Instant::now();
-        
+
         let result = self.execute_command(&command);
-        
+
         let duration = start.elapsed();
         println!("Command took: {:?}", duration);
-        
+
         result
     }
-    
+
     // Visualization methods
     fn visualize_scopes(&self) {
         match self.rhema.discover_scopes() {
@@ -1073,21 +1190,21 @@ impl InteractiveSession {
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
     }
-    
+
     fn visualize_dependencies(&self) {
         match crate::dependencies::run(&self.rhema) {
             Ok(_) => println!("{}", "Dependencies visualization complete".green()),
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
     }
-    
+
     fn visualize_stats(&self) {
         match crate::stats::run(&self.rhema) {
             Ok(_) => println!("{}", "Statistics visualization complete".green()),
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
     }
-    
+
     // Debug methods
     fn debug_context(&self) {
         println!("{}", "Context Debug Information:".bold().green());
@@ -1096,14 +1213,14 @@ impl InteractiveSession {
         println!("Context Cache Size: {}", self.context_cache.len());
         println!("Variables: {:?}", self.variables);
     }
-    
+
     fn debug_cache(&self) {
         println!("{}", "Cache Debug Information:".bold().green());
         for (key, value) in &self.context_cache {
             println!("  {}: {:?}", key.cyan(), value);
         }
     }
-    
+
     fn debug_performance(&self) {
         println!("{}", "Performance Debug Information:".bold().green());
         println!("History Size: {}", self.history.len());
@@ -1120,20 +1237,26 @@ impl InteractivePlugin for ContextPlugin {
     fn name(&self) -> &str {
         "context"
     }
-    
+
     fn description(&self) -> &str {
         "Context management and exploration"
     }
-    
+
     fn commands(&self) -> Vec<String> {
-        vec!["explore".to_string(), "navigate".to_string(), "cache".to_string()]
+        vec![
+            "explore".to_string(),
+            "navigate".to_string(),
+            "cache".to_string(),
+        ]
     }
-    
+
     fn execute(&self, session: &mut InteractiveSession, args: &[String]) -> RhemaResult<()> {
         if args.is_empty() {
-            return Err(RhemaError::InvalidCommand("context requires a subcommand".to_string()));
+            return Err(RhemaError::InvalidCommand(
+                "context requires a subcommand".to_string(),
+            ));
         }
-        
+
         match args[0].as_str() {
             "explore" => {
                 println!("{}", "Context Explorer".bold().green());
@@ -1142,7 +1265,9 @@ impl InteractivePlugin for ContextPlugin {
             }
             "navigate" => {
                 if args.len() < 2 {
-                    return Err(RhemaError::InvalidCommand("context navigate requires a scope".to_string()));
+                    return Err(RhemaError::InvalidCommand(
+                        "context navigate requires a scope".to_string(),
+                    ));
                 }
                 session.current_scope = Some(args[1].clone());
                 println!("Navigated to scope: {}", args[1].cyan());
@@ -1152,13 +1277,19 @@ impl InteractivePlugin for ContextPlugin {
                 println!("Cache size: {}", session.context_cache.len());
                 Ok(())
             }
-            _ => Err(RhemaError::InvalidCommand("Unknown context subcommand".to_string())),
+            _ => Err(RhemaError::InvalidCommand(
+                "Unknown context subcommand".to_string(),
+            )),
         }
     }
-    
+
     fn suggestions(&self, _session: &InteractiveSession, input: &str) -> Vec<String> {
         if input.starts_with("context") {
-            vec!["explore".to_string(), "navigate".to_string(), "cache".to_string()]
+            vec![
+                "explore".to_string(),
+                "navigate".to_string(),
+                "cache".to_string(),
+            ]
         } else {
             vec![]
         }
@@ -1187,4 +1318,4 @@ pub fn run_interactive_with_config(
         no_syntax_highlighting,
         no_context_aware,
     )
-} 
+}

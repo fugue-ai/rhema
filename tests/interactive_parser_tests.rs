@@ -19,13 +19,27 @@ use rhema::commands::interactive_parser::InteractiveCommandParser;
 #[test]
 fn test_parse_input_basic() {
     let parser = InteractiveCommandParser::new("todo add \"Implement user auth\" --priority high");
-    assert_eq!(parser.parts, vec!["todo", "add", "Implement user auth", "--priority", "high"]);
+    assert_eq!(
+        parser.parts,
+        vec!["todo", "add", "Implement user auth", "--priority", "high"]
+    );
 }
 
 #[test]
 fn test_parse_input_with_quotes() {
-    let parser = InteractiveCommandParser::new("todo add \"Implement user authentication\" --description \"Add OAuth2 support\"");
-    assert_eq!(parser.parts, vec!["todo", "add", "Implement user authentication", "--description", "Add OAuth2 support"]);
+    let parser = InteractiveCommandParser::new(
+        "todo add \"Implement user authentication\" --description \"Add OAuth2 support\"",
+    );
+    assert_eq!(
+        parser.parts,
+        vec![
+            "todo",
+            "add",
+            "Implement user authentication",
+            "--description",
+            "Add OAuth2 support"
+        ]
+    );
 }
 
 #[test]
@@ -43,16 +57,19 @@ fn test_command_extraction() {
 #[test]
 fn test_args_extraction() {
     let parser = InteractiveCommandParser::new("todo add \"Test todo\" --priority high");
-    assert_eq!(parser.args(), vec!["add", "Test todo", "--priority", "high"]);
+    assert_eq!(
+        parser.args(),
+        vec!["add", "Test todo", "--priority", "high"]
+    );
 }
 
 #[test]
 fn test_next_and_peek() {
     let mut parser = InteractiveCommandParser::new("todo add \"Test todo\" --priority high");
-    
+
     // Skip the command
     parser.next();
-    
+
     assert_eq!(parser.peek(), Some("add"));
     assert_eq!(parser.next(), Some("add"));
     assert_eq!(parser.next(), Some("Test todo"));
@@ -64,10 +81,10 @@ fn test_next_and_peek() {
 #[test]
 fn test_remaining() {
     let mut parser = InteractiveCommandParser::new("todo add \"Test todo\" --priority high");
-    
+
     // Skip the command
     parser.next();
-    
+
     let remaining: Vec<String> = parser.remaining().iter().map(|s| s.to_string()).collect();
     assert_eq!(remaining, vec!["add", "Test todo", "--priority", "high"]);
 }
@@ -75,7 +92,7 @@ fn test_remaining() {
 #[test]
 fn test_has_more() {
     let mut parser = InteractiveCommandParser::new("todo add \"Test todo\"");
-    
+
     assert!(parser.has_more());
     parser.next(); // Skip command
     assert!(parser.has_more());
@@ -88,12 +105,12 @@ fn test_has_more() {
 #[test]
 fn test_reset() {
     let mut parser = InteractiveCommandParser::new("todo add \"Test todo\" --priority high");
-    
+
     parser.next(); // Skip command
     parser.next(); // Skip subcommand
     assert_eq!(parser.next(), Some("Test todo"));
-    
+
     parser.reset();
     assert_eq!(parser.command(), Some("todo"));
     assert_eq!(parser.next(), Some("todo"));
-} 
+}

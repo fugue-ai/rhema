@@ -36,7 +36,9 @@ pub struct ConfigAuditLog {
 
 impl ConfigAuditLog {
     pub fn new() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+        }
     }
 }
 
@@ -56,8 +58,6 @@ pub struct ConfigHealth {
     pub last_check: chrono::DateTime<chrono::Utc>,
     pub issues: Vec<String>,
 }
-
-
 
 /// Configuration health status
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,28 +93,28 @@ impl ConfigStats {
 pub enum ConfigError {
     #[error("IO error: {0}")]
     IoError(std::io::Error),
-    
+
     #[error("Serialization error: {0}")]
     SerializationError(serde_json::Error),
-    
+
     #[error("YAML error: {0}")]
     YamlError(serde_yaml::Error),
-    
+
     #[error("TOML error: {0}")]
     TomlError(toml::de::Error),
-    
+
     #[error("Bincode error: {0}")]
     BincodeError(bincode::Error),
-    
+
     #[error("Version mismatch: expected {expected}, found {found}")]
     VersionMismatch { expected: String, found: String },
-    
+
     #[error("Migration failed: {0}")]
     MigrationFailed(String),
-    
+
     #[error("Validation failed: {0}")]
     ValidationFailed(String),
-    
+
     #[error("Backup failed: {0}")]
     BackupFailed(String),
 }
@@ -159,11 +159,13 @@ pub struct ConfigIssue {
 pub trait Config: serde::Serialize + for<'de> serde::Deserialize<'de> {
     fn version(&self) -> &str;
     fn validate_config(&self) -> rhema_core::RhemaResult<()>;
-    fn load_from_file(path: &std::path::Path) -> rhema_core::RhemaResult<Self> where Self: Sized;
+    fn load_from_file(path: &std::path::Path) -> rhema_core::RhemaResult<Self>
+    where
+        Self: Sized;
     fn save_to_file(&self, path: &std::path::Path) -> rhema_core::RhemaResult<()>;
     fn schema() -> serde_json::Value;
     fn documentation() -> &'static str;
 }
 
 /// Current configuration version
-pub const CURRENT_CONFIG_VERSION: &str = "0.1.0"; 
+pub const CURRENT_CONFIG_VERSION: &str = "0.1.0";

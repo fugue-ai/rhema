@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use crate::{Rhema, RhemaResult};
 use crate::scope::{find_nearest_scope, get_scope};
+use crate::{Rhema, RhemaResult};
 use colored::*;
 use serde_yaml;
 use std::path::Path;
@@ -27,42 +27,44 @@ pub fn run(rhema: &Rhema, file: &str, scope: Option<&str>) -> RhemaResult<()> {
         scope_obj.path
     } else {
         // Find the nearest scope to the current directory
-        let current_dir = std::env::current_dir()
-            .map_err(|e| crate::RhemaError::IoError(e))?;
-        
+        let current_dir = std::env::current_dir().map_err(|e| crate::RhemaError::IoError(e))?;
+
         let scopes = rhema.discover_scopes()?;
-        let scope_obj = find_nearest_scope(&current_dir, &scopes)
-            .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
+        let scope_obj = find_nearest_scope(&current_dir, &scopes).ok_or_else(|| {
+            crate::RhemaError::ConfigError(
+                "No Rhema scope found in current directory or parent directories".to_string(),
+            )
+        })?;
         scope_obj.path.clone()
     };
-    
+
     // Construct the file path
     let file_path = if file.ends_with(".yaml") {
         scope_path.join(file)
     } else {
         scope_path.join(format!("{}.yaml", file))
     };
-    
+
     if !file_path.exists() {
-        return Err(crate::RhemaError::FileNotFound(
-            format!("File not found: {}", file_path.display())
-        ));
+        return Err(crate::RhemaError::FileNotFound(format!(
+            "File not found: {}",
+            file_path.display()
+        )));
     }
-    
+
     // Read and display the file content
-    let content = std::fs::read_to_string(&file_path)
-        .map_err(|e| crate::RhemaError::IoError(e))?;
-    
+    let content = std::fs::read_to_string(&file_path).map_err(|e| crate::RhemaError::IoError(e))?;
+
     // Try to parse as YAML for pretty formatting
     match serde_yaml::from_str::<serde_yaml::Value>(&content) {
         Ok(yaml_value) => {
             // Pretty print the YAML
-            let pretty_content = serde_yaml::to_string(&yaml_value)
-                .map_err(|e| crate::RhemaError::InvalidYaml {
+            let pretty_content =
+                serde_yaml::to_string(&yaml_value).map_err(|e| crate::RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
-            
+
             display_file_content(&file_path, &pretty_content, true);
         }
         Err(_) => {
@@ -70,15 +72,16 @@ pub fn run(rhema: &Rhema, file: &str, scope: Option<&str>) -> RhemaResult<()> {
             display_file_content(&file_path, &content, false);
         }
     }
-    
+
     Ok(())
 }
 
 fn display_file_content(file_path: &Path, content: &str, is_yaml: bool) {
-    let file_name = file_path.file_name()
+    let file_name = file_path
+        .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("unknown");
-    
+
     println!("📄 File: {}", file_name.bright_blue());
     println!("📍 Path: {}", file_path.display().to_string().dimmed());
     if is_yaml {
@@ -87,7 +90,7 @@ fn display_file_content(file_path: &Path, content: &str, is_yaml: bool) {
         println!("📋 Type: {}", "Text".yellow());
     }
     println!("{}", "─".repeat(80));
-    
+
     // Simple syntax highlighting for YAML
     if is_yaml {
         for line in content.lines() {
@@ -97,7 +100,7 @@ fn display_file_content(file_path: &Path, content: &str, is_yaml: bool) {
     } else {
         println!("{}", content);
     }
-    
+
     println!("{}", "─".repeat(80));
 }
 
@@ -106,7 +109,7 @@ fn highlight_yaml_line(line: &str) -> String {
     let mut in_quotes = false;
     let mut in_key = true;
     let mut current_word = String::new();
-    
+
     for (i, ch) in line.chars().enumerate() {
         match ch {
             '"' | '\'' => {
@@ -127,7 +130,7 @@ fn highlight_yaml_line(line: &str) -> String {
             '#' if !in_quotes => {
                 highlighted.push_str(&current_word);
                 highlighted.push_str(&format!("{}", ch.to_string().bright_black()));
-                highlighted.push_str(&line[i+1..].bright_black());
+                highlighted.push_str(&line[i + 1..].bright_black());
                 break;
             }
             ' ' | '\t' => {
@@ -160,7 +163,7 @@ fn highlight_yaml_line(line: &str) -> String {
             }
         }
     }
-    
+
     // Handle any remaining word
     if !current_word.is_empty() {
         if in_key {
@@ -178,6 +181,6 @@ fn highlight_yaml_line(line: &str) -> String {
             highlighted.push_str(&colored_word);
         }
     }
-    
+
     highlighted
-} 
+}
