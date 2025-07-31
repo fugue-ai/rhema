@@ -1,17 +1,24 @@
-# GitHub Actions Setup for GACP
+# GitHub Actions Setup for Rhema
 
-This guide will help you set up comprehensive CI/CD workflows using GitHub Actions for GACP development. These workflows ensure code quality, security, and reliable deployments.
+
+This guide will help you set up comprehensive CI/CD workflows using GitHub Actions for Rhema development. These workflows ensure code quality, security, and reliable deployments.
 
 ## Prerequisites
 
-- GitHub repository with GACP project
+
+- GitHub repository with Rhema project
+
 - GitHub Actions enabled
-- [GACP CLI](../README.md#installation) for local testing
+
+- [Rhema CLI](../README.md#installation) for local testing
+
 - [Rust toolchain](rust-setup.md) for development
 
 ## Basic CI Workflow
 
+
 ### 1. Main CI Pipeline
+
 
 Create `.github/workflows/ci.yml`:
 
@@ -37,14 +44,18 @@ jobs:
       matrix:
         rust: [stable, beta, nightly]
         include:
+
           - rust: stable
             cache-key: stable
+
           - rust: beta
             cache-key: beta
+
           - rust: nightly
             cache-key: nightly
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -89,11 +100,12 @@ jobs:
         retention-days: 7
 
   rhema-validation:
-    name: GACP Validation
+    name: Rhema Validation
     runs-on: ubuntu-latest
     needs: test
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -102,19 +114,19 @@ jobs:
       with:
         toolchain: stable
         
-    - name: Build GACP CLI
+    - name: Build Rhema CLI
       run: cargo build --release
       
-    - name: Install GACP CLI
+    - name: Install Rhema CLI
       run: cargo install --path .
       
-    - name: Validate GACP files
+    - name: Validate Rhema files
       run: rhema validate --recursive
       
-    - name: Check GACP health
+    - name: Check Rhema health
       run: rhema health
       
-    - name: List GACP scopes
+    - name: List Rhema scopes
       run: rhema scopes
 
   security:
@@ -122,6 +134,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -143,6 +156,7 @@ jobs:
 
 ### 2. Code Quality Workflow
 
+
 Create `.github/workflows/code-quality.yml`:
 
 ```yaml
@@ -160,6 +174,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -194,6 +209,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -216,6 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -240,7 +257,9 @@ jobs:
 
 ## Advanced CI Workflows
 
+
 ### 1. Performance Testing
+
 
 Create `.github/workflows/performance.yml`:
 
@@ -253,6 +272,7 @@ on:
   pull_request:
     branches: [ main, develop ]
   schedule:
+
     - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM
 
 jobs:
@@ -261,6 +281,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -289,6 +310,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -303,6 +325,8 @@ jobs:
     - name: Run load tests
       run: |
         # Create test data
+
+
         mkdir -p test-data
         for i in {1..100}; do
           echo "Creating test scope $i"
@@ -311,10 +335,13 @@ jobs:
         done
         
         # Run performance test
+
+
         time target/release/rhema query "*/todos WHERE status='active'"
 ```
 
 ### 2. Cross-Platform Testing
+
 
 Create `.github/workflows/cross-platform.yml`:
 
@@ -333,6 +360,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -349,6 +377,7 @@ jobs:
     runs-on: macos-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -365,6 +394,7 @@ jobs:
     runs-on: windows-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -379,7 +409,9 @@ jobs:
 
 ## Release Workflows
 
+
 ### 1. Release Pipeline
+
 
 Create `.github/workflows/release.yml`:
 
@@ -389,6 +421,7 @@ name: Release
 on:
   push:
     tags:
+
       - 'v*'
 
 env:
@@ -402,17 +435,21 @@ jobs:
     strategy:
       matrix:
         include:
+
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             asset_name: rhema-linux-x86_64
+
           - target: x86_64-apple-darwin
             os: macos-latest
             asset_name: rhema-macos-x86_64
+
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             asset_name: rhema-windows-x86_64.exe
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -438,6 +475,7 @@ jobs:
     needs: build
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -460,6 +498,7 @@ jobs:
 
 ### 2. Crate Publishing
 
+
 Create `.github/workflows/publish.yml`:
 
 ```yaml
@@ -468,6 +507,7 @@ name: Publish to Crates.io
 on:
   push:
     tags:
+
       - 'v*'
 
 jobs:
@@ -476,6 +516,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -492,7 +533,9 @@ jobs:
 
 ## Deployment Workflows
 
+
 ### 1. Documentation Deployment
+
 
 Create `.github/workflows/deploy-docs.yml`:
 
@@ -511,6 +554,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -532,6 +576,7 @@ jobs:
 
 ### 2. Docker Image Building
 
+
 Create `.github/workflows/docker.yml`:
 
 ```yaml
@@ -541,6 +586,7 @@ on:
   push:
     branches: [ main ]
     tags:
+
       - 'v*'
 
 jobs:
@@ -549,6 +595,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -576,7 +623,9 @@ jobs:
 
 ## Security Workflows
 
+
 ### 1. Security Scanning
+
 
 Create `.github/workflows/security.yml`:
 
@@ -589,6 +638,7 @@ on:
   pull_request:
     branches: [ main, develop ]
   schedule:
+
     - cron: '0 0 * * 0'  # Weekly
 
 jobs:
@@ -597,6 +647,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -628,7 +679,9 @@ jobs:
 
 ## Monitoring and Notifications
 
+
 ### 1. Status Notifications
+
 
 Create `.github/workflows/notifications.yml`:
 
@@ -639,6 +692,7 @@ on:
   workflow_run:
     workflows: ["CI", "Release"]
     types:
+
       - completed
 
 jobs:
@@ -648,6 +702,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion != 'skipped' }}
     
     steps:
+
     - name: Notify Slack
       uses: 8398a7/action-slack@v3
       with:
@@ -660,12 +715,14 @@ jobs:
       with:
         webhook: ${{ secrets.DISCORD_WEBHOOK }}
         status: ${{ github.event.workflow_run.conclusion }}
-        title: GACP CI/CD Pipeline
+        title: Rhema CI/CD Pipeline
 ```
 
 ## Configuration Files
 
+
 ### 1. Dependabot Configuration
+
 
 Create `.github/dependabot.yml`:
 
@@ -673,6 +730,8 @@ Create `.github/dependabot.yml`:
 version: 2
 updates:
   # Enable version updates for Rust
+
+
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
@@ -681,14 +740,18 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 10
     reviewers:
+
       - "fugue-ai/rhema-maintainers"
     assignees:
+
       - "fugue-ai/rhema-maintainers"
     commit-message:
       prefix: "chore"
       include: "scope"
       
   # Enable version updates for GitHub Actions
+
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -697,10 +760,12 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 5
     reviewers:
+
       - "fugue-ai/rhema-maintainers"
 ```
 
 ### 2. Issue Templates
+
 
 Create `.github/ISSUE_TEMPLATE/bug_report.md`:
 
@@ -719,16 +784,21 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
+
 1. Run command '...'
+
 2. See error
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
 
 **Environment:**
+
  - OS: [e.g. Ubuntu 20.04]
+
  - Rust version: [e.g. 1.70.0]
- - GACP version: [e.g. 1.2.0]
+
+ - Rhema version: [e.g. 1.2.0]
 
 **Additional context**
 Add any other context about the problem here.
@@ -736,28 +806,44 @@ Add any other context about the problem here.
 
 ## Troubleshooting
 
+
 ### Common Issues
 
+
 1. **Cache misses**: Check cache key configuration
+
 2. **Timeout issues**: Increase job timeout limits
+
 3. **Permission errors**: Check repository secrets and permissions
+
 4. **Cross-platform issues**: Test on multiple platforms
+
 5. **Dependency conflicts**: Use `cargo update` and check `Cargo.lock`
 
 ### Best Practices
 
+
 1. **Use caching**: Cache dependencies and build artifacts
+
 2. **Parallel jobs**: Run independent jobs in parallel
+
 3. **Fail fast**: Stop on first failure to save resources
+
 4. **Security**: Use secrets for sensitive data
+
 5. **Monitoring**: Set up notifications for failures
 
 ## Next Steps
 
+
 1. **Set up secrets**: Configure required secrets in repository settings
+
 2. **Test workflows**: Push changes to trigger workflow testing
+
 3. **Monitor performance**: Track workflow execution times
+
 4. **Optimize**: Refine workflows based on usage patterns
+
 5. **Document**: Keep workflow documentation updated
 
 For more information, see the [Git Workflow Setup](git-setup.md) and [Rust Development Setup](rust-setup.md) guides. 

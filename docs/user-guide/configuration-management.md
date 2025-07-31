@@ -1,12 +1,16 @@
-# GACP Configuration Management System
+# Rhema Configuration Management System
+
 
 ## Overview
 
-The GACP Configuration Management System provides comprehensive configuration management capabilities for the GACP CLI, including global settings, repository-specific configurations, security features, and advanced management tools.
+
+The Rhema Configuration Management System provides comprehensive configuration management capabilities for the Rhema CLI, including global settings, repository-specific configurations, security features, and advanced management tools.
 
 ## Architecture
 
+
 ### Configuration Hierarchy
+
 
 ```
 Global Configuration (User-wide settings)
@@ -28,226 +32,386 @@ Repository Configuration (Per-repository settings)
 
 ### Configuration Types
 
-1. **Global Configuration**: User-wide settings stored in `~/.gacp/config.yaml`
-2. **Repository Configuration**: Per-repository settings stored in `.gacp/config.yaml`
+
+1. **Global Configuration**: User-wide settings stored in `~/.rhema/config.yaml`
+
+2. **Repository Configuration**: Per-repository settings stored in `.rhema/config.yaml`
+
 3. **Scope Configuration**: Per-scope settings within repositories
 
 ## Features
 
+
 ### 1. Global Configuration Management
 
+
 #### User Settings
+
+
 - Personal preferences and customization
+
 - Default editor and output format
+
 - Color scheme and UI preferences
+
 - Notification settings
 
 #### Application Settings
+
+
 - Debug mode and logging configuration
+
 - Telemetry and auto-update settings
+
 - Feature flags and experimental features
+
 - Plugin management
 
 #### Environment Configuration
+
+
 - Environment-specific settings (development, testing, staging, production)
+
 - Path configurations
+
 - Environment variables management
 
 #### Security Settings
+
+
 - Encryption configuration
+
 - Authentication and authorization
+
 - Audit logging
+
 - Compliance frameworks
 
 #### Performance Settings
+
+
 - Cache configuration
+
 - Threading and memory settings
+
 - Network configuration
+
 - Proxy settings
 
 #### Integration Settings
+
+
 - Git integration
+
 - IDE integration
+
 - CI/CD integration
+
 - Cloud integration
+
 - External services
 
 ### 2. Repository Configuration Management
 
+
 #### Repository Information
+
+
 - Repository metadata
+
 - Owner and visibility settings
+
 - Tags and descriptions
 
 #### Repository Settings
+
+
 - Default branch configuration
+
 - Branch protection rules
+
 - Commit message conventions
+
 - Code review settings
+
 - Testing configuration
+
 - Documentation settings
+
 - Deployment configuration
 
 #### Scope Configuration
+
+
 - Scope naming conventions
+
 - Scope templates
+
 - Inheritance rules
+
 - Validation rules
 
 #### Workflow Configuration
+
+
 - Workflow types and steps
+
 - Triggers and conditions
+
 - Pipeline configuration
 
 #### Security Configuration
+
+
 - Security scanning
+
 - Access control
+
 - Secrets management
+
 - Compliance rules
 
 #### Integration Configuration
+
+
 - CI/CD integration
+
 - Issue tracking
+
 - Communication channels
+
 - Monitoring integration
 
 ### 3. Configuration Security
 
+
 #### Encryption
+
+
 - Configuration file encryption
+
 - Key management
+
 - Secure storage
 
 #### Access Control
+
+
 - Role-based access control
+
 - Permission management
+
 - User authentication
 
 #### Audit Logging
+
+
 - Configuration change tracking
+
 - User activity logging
+
 - Compliance reporting
 
 #### Compliance
+
+
 - Framework compliance
+
 - Policy enforcement
+
 - Reporting and monitoring
 
 ### 4. Configuration Tools
 
+
 #### Management Commands
-- `gacp config show` - Display configuration
-- `gacp config edit` - Edit configuration
-- `gacp config validate` - Validate configuration
-- `gacp config backup` - Backup configuration
-- `gacp config restore` - Restore configuration
-- `gacp config migrate` - Migrate configuration
-- `gacp config export` - Export configuration
-- `gacp config import` - Import configuration
-- `gacp config set` - Set configuration value
-- `gacp config get` - Get configuration value
-- `gacp config reset` - Reset to defaults
-- `gacp config health` - Check configuration health
-- `gacp config audit` - Audit configuration changes
-- `gacp config stats` - Show configuration statistics
-- `gacp config schema` - Show configuration schema
-- `gacp config documentation` - Show configuration documentation
+
+
+- `rhema config show` - Display configuration
+
+- `rhema config edit` - Edit configuration
+
+- `rhema config validate` - Validate configuration
+
+- `rhema config backup` - Backup configuration
+
+- `rhema config restore` - Restore configuration
+
+- `rhema config migrate` - Migrate configuration
+
+- `rhema config export` - Export configuration
+
+- `rhema config import` - Import configuration
+
+- `rhema config set` - Set configuration value
+
+- `rhema config get` - Get configuration value
+
+- `rhema config reset` - Reset to defaults
+
+- `rhema config health` - Check configuration health
+
+- `rhema config audit` - Audit configuration changes
+
+- `rhema config stats` - Show configuration statistics
+
+- `rhema config schema` - Show configuration schema
+
+- `rhema config documentation` - Show configuration documentation
 
 ## Usage Examples
 
+
 ### Global Configuration
+
 
 ```bash
 # Show global configuration
-gacp config show global
+
+
+rhema config show global
 
 # Edit global configuration
-gacp config edit global
+
+
+rhema config edit global
 
 # Set user name
-gacp config set global user.name "John Doe"
+
+
+rhema config set global user.name "John Doe"
 
 # Set user email
-gacp config set global user.email "john@example.com"
+
+
+rhema config set global user.email "john@example.com"
 
 # Set default editor
-gacp config set global user.preferences.default_editor "vim"
+
+
+rhema config set global user.preferences.default_editor "vim"
 
 # Set environment
-gacp config set global environment.current "development"
+
+
+rhema config set global environment.current "development"
 
 # Export configuration
-gacp config export global --format json --output config.json
+
+
+rhema config export global --format json --output config.json
 
 # Import configuration
-gacp config import global --format json --input config.json
+
+
+rhema config import global --format json --input config.json
 
 # Validate configuration
-gacp config validate global
+
+
+rhema config validate global
 
 # Backup configuration
-gacp config backup global
+
+
+rhema config backup global
 
 # Check configuration health
-gacp config health global
+
+
+rhema config health global
 ```
 
 ### Repository Configuration
 
+
 ```bash
 # Show repository configuration
-gacp config show repository --path /path/to/repo
+
+
+rhema config show repository --path /path/to/repo
 
 # Edit repository configuration
-gacp config edit repository --path /path/to/repo
+
+
+rhema config edit repository --path /path/to/repo
 
 # Set repository name
-gacp config set repository --path /path/to/repo repository.name "my-project"
+
+
+rhema config set repository --path /path/to/repo repository.name "my-project"
 
 # Set default branch
-gacp config set repository --path /path/to/repo settings.default_branch "main"
+
+
+rhema config set repository --path /path/to/repo settings.default_branch "main"
 
 # Export repository configuration
-gacp config export repository --path /path/to/repo --format yaml --output repo-config.yaml
+
+
+rhema config export repository --path /path/to/repo --format yaml --output repo-config.yaml
 
 # Import repository configuration
-gacp config import repository --path /path/to/repo --format yaml --input repo-config.yaml
+
+
+rhema config import repository --path /path/to/repo --format yaml --input repo-config.yaml
 
 # Validate repository configuration
-gacp config validate repository --path /path/to/repo
+
+
+rhema config validate repository --path /path/to/repo
 
 # Backup repository configuration
-gacp config backup repository --path /path/to/repo
+
+
+rhema config backup repository --path /path/to/repo
 ```
 
 ### Configuration Management
 
+
 ```bash
 # Validate all configurations
-gacp config validate all
+
+
+rhema config validate all
 
 # Backup all configurations
-gacp config backup all
+
+
+rhema config backup all
 
 # Migrate all configurations
-gacp config migrate all
+
+
+rhema config migrate all
 
 # Show configuration statistics
-gacp config stats all
+
+
+rhema config stats all
 
 # Audit configuration changes
-gacp config audit global --since "2024-01-01"
+
+
+rhema config audit global --since "2024-01-01"
 
 # Show configuration schema
-gacp config schema global
+
+
+rhema config schema global
 
 # Show configuration documentation
-gacp config documentation global
+
+
+rhema config documentation global
 ```
 
 ## Configuration File Formats
 
-### Global Configuration (`~/.gacp/config.yaml`)
+
+### Global Configuration (`~/.rhema/config.yaml`)
+
 
 ```yaml
 version: "1.0.0"
@@ -279,7 +443,7 @@ user:
       auto_save_interval: 30
 
 application:
-  name: "GACP CLI"
+  name: "Rhema CLI"
   version: "1.0.0"
   description: "Git-Based Agent Context Protocol CLI"
   settings:
@@ -290,7 +454,7 @@ application:
     max_log_size: 100
     log_rotation_count: 5
     telemetry_enabled: true
-    telemetry_endpoint: "https://telemetry.gacp.dev"
+    telemetry_endpoint: "https://telemetry.rhema.dev"
     auto_update_enabled: true
     update_check_interval: 24
   features:
@@ -302,7 +466,7 @@ application:
     collaboration_features: true
     analytics_features: true
   plugins:
-    plugin_directory: "~/.gacp/plugins"
+    plugin_directory: "~/.rhema/plugins"
     auto_load_plugins: true
     enabled_plugins: ["git", "ai", "analytics"]
     disabled_plugins: []
@@ -318,8 +482,8 @@ environment:
         DEBUG: "true"
         LOG_LEVEL: "debug"
       paths:
-        data: "~/.gacp/data/dev"
-        cache: "~/.gacp/cache/dev"
+        data: "~/.rhema/data/dev"
+        cache: "~/.rhema/cache/dev"
       settings: {}
     testing:
       name: "Testing"
@@ -328,8 +492,8 @@ environment:
         DEBUG: "false"
         LOG_LEVEL: "info"
       paths:
-        data: "~/.gacp/data/test"
-        cache: "~/.gacp/cache/test"
+        data: "~/.rhema/data/test"
+        cache: "~/.rhema/cache/test"
       settings: {}
     staging:
       name: "Staging"
@@ -338,8 +502,8 @@ environment:
         DEBUG: "false"
         LOG_LEVEL: "warn"
       paths:
-        data: "~/.gacp/data/staging"
-        cache: "~/.gacp/cache/staging"
+        data: "~/.rhema/data/staging"
+        cache: "~/.rhema/cache/staging"
       settings: {}
     production:
       name: "Production"
@@ -348,19 +512,19 @@ environment:
         DEBUG: "false"
         LOG_LEVEL: "error"
       paths:
-        data: "~/.gacp/data/prod"
-        cache: "~/.gacp/cache/prod"
+        data: "~/.rhema/data/prod"
+        cache: "~/.rhema/cache/prod"
       settings: {}
   environment_variables:
-    GACP_HOME: "~/.gacp"
-    GACP_CONFIG: "~/.gacp/config.yaml"
+    Rhema_HOME: "~/.rhema"
+    Rhema_CONFIG: "~/.rhema/config.yaml"
   paths:
-    home: "~/.gacp"
-    config: "~/.gacp"
-    data: "~/.gacp/data"
-    cache: "~/.gacp/cache"
-    log: "~/.gacp/logs"
-    temp: "~/.gacp/temp"
+    home: "~/.rhema"
+    config: "~/.rhema"
+    data: "~/.rhema/data"
+    cache: "~/.rhema/cache"
+    log: "~/.rhema/logs"
+    temp: "~/.rhema/temp"
     workspace: null
     custom: {}
 
@@ -372,7 +536,7 @@ security:
     kdf: "PBKDF2"
     salt_size: 32
     iteration_count: 100000
-    key_file: "~/.gacp/keys/master.key"
+    key_file: "~/.rhema/keys/master.key"
     master_password_required: true
   authentication:
     method: "password"
@@ -395,7 +559,7 @@ security:
   audit:
     enabled: true
     log_level: "info"
-    log_file: "~/.gacp/logs/audit.log"
+    log_file: "~/.rhema/logs/audit.log"
     retention_days: 90
     events: ["config_change", "auth", "access"]
     filters: {}
@@ -412,7 +576,7 @@ performance:
     cache_type: "file"
     cache_size: 1000
     cache_ttl: 3600
-    cache_directory: "~/.gacp/cache"
+    cache_directory: "~/.rhema/cache"
     compression_enabled: true
     encryption_enabled: false
   threading:
@@ -456,10 +620,10 @@ integrations:
     ide_settings:
       vscode:
         auto_sync: true
-        extensions: ["gacp-vscode"]
+        extensions: ["rhema-vscode"]
       intellij:
         auto_sync: true
-        plugins: ["gacp-intellij"]
+        plugins: ["rhema-intellij"]
     auto_sync_enabled: true
     sync_interval: 30
   cicd:
@@ -504,13 +668,14 @@ stats:
 updated_at: "2024-01-01T00:00:00Z"
 ```
 
-### Repository Configuration (`.gacp/config.yaml`)
+### Repository Configuration (`.rhema/config.yaml`)
+
 
 ```yaml
 version: "1.0.0"
 repository:
   name: "my-project"
-  description: "A sample GACP project"
+  description: "A sample Rhema project"
   url: "https://github.com/user/my-project"
   repository_type: "git"
   owner: "user"
@@ -544,12 +709,18 @@ settings:
     auto_assign: true
     required_reviewers: ["user1", "user2"]
     guidelines:
+
       - "Check for security vulnerabilities"
+
       - "Ensure proper error handling"
+
       - "Verify test coverage"
     checklist:
+
       - "Code follows style guidelines"
+
       - "Tests pass"
+
       - "Documentation updated"
     timeout_hours: 48
   testing:
@@ -574,12 +745,14 @@ settings:
     standards: ["OpenAPI", "Markdown"]
   deployment:
     environments:
+
       - name: "staging"
         url: "https://staging.my-project.com"
         variables:
           DATABASE_URL: "postgresql://staging"
         triggers: ["main"]
         auto_deploy: true
+
       - name: "production"
         url: "https://my-project.com"
         variables:
@@ -593,6 +766,7 @@ settings:
       timeout_minutes: 10
       versions_to_keep: 5
     health_checks:
+
       - name: "api-health"
         url: "/health"
         interval_seconds: 30
@@ -609,6 +783,7 @@ scopes:
   inheritance:
     enabled: true
     rules:
+
       - name: "global-settings"
         source_pattern: "global"
         target_pattern: "*"
@@ -618,6 +793,7 @@ scopes:
   validation:
     enabled: true
     rules:
+
       - name: "scope-naming"
         pattern: "^[a-z0-9-]+$"
         message: "Scope names must be lowercase with hyphens"
@@ -627,6 +803,7 @@ scopes:
 workflow:
   workflow_type: "git-flow"
   steps:
+
     - name: "validate"
       step_type: "validation"
       config:
@@ -634,6 +811,7 @@ workflow:
         lint_check: true
       dependencies: []
       timeout_seconds: 300
+
     - name: "test"
       step_type: "testing"
       config:
@@ -641,6 +819,7 @@ workflow:
         coverage: true
       dependencies: ["validate"]
       timeout_seconds: 600
+
     - name: "build"
       step_type: "build"
       config:
@@ -649,11 +828,13 @@ workflow:
       dependencies: ["test"]
       timeout_seconds: 900
   triggers:
+
     - name: "push"
       trigger_type: "git_push"
       conditions:
         branch: "main"
   conditions:
+
     - name: "has-tests"
       expression: "file_exists('tests/')"
       description: "Check if tests directory exists"
@@ -671,18 +852,23 @@ security:
   access_control:
     enabled: true
     access_levels:
+
       - name: "admin"
         permissions: ["read", "write", "delete", "admin"]
         description: "Full administrative access"
+
       - name: "developer"
         permissions: ["read", "write"]
         description: "Developer access"
+
       - name: "reviewer"
         permissions: ["read", "review"]
         description: "Reviewer access"
     policies:
+
       - name: "main-branch-protection"
         rules:
+
           - name: "admin-only"
             pattern: "main"
             permissions: ["admin"]
@@ -700,10 +886,12 @@ security:
   compliance:
     framework: "SOC2"
     rules:
+
       - name: "encryption-at-rest"
         description: "All data must be encrypted at rest"
         check: "encryption_enabled"
         severity: "critical"
+
       - name: "access-control"
         description: "Access control must be enabled"
         check: "access_control_enabled"
@@ -722,20 +910,23 @@ integrations:
       workflow_file: ".github/workflows/ci.yml"
     pipeline:
       stages:
+
         - name: "validate"
           commands: ["cargo check", "cargo clippy"]
           dependencies: []
           timeout_minutes: 10
+
         - name: "test"
           commands: ["cargo test"]
           dependencies: ["validate"]
           timeout_minutes: 20
+
         - name: "build"
           commands: ["cargo build --release"]
           dependencies: ["test"]
           timeout_minutes: 30
       triggers: ["push", "pull_request"]
-      artifacts: ["target/release/gacp"]
+      artifacts: ["target/release/rhema"]
   issue_tracking:
     enabled: true
     provider: "github"
@@ -747,10 +938,12 @@ integrations:
   communication:
     enabled: true
     channels:
+
       - name: "general"
         channel_type: "slack"
         config:
           webhook_url: "https://hooks.slack.com/..."
+
       - name: "alerts"
         channel_type: "email"
         config:
@@ -793,54 +986,78 @@ updated_at: "2024-01-01T00:00:00Z"
 
 ## Security Features
 
+
 ### Encryption
+
 
 The configuration system supports encryption for sensitive configuration data:
 
 ```bash
 # Enable encryption
-gacp config set global security.encryption.enabled true
+
+
+rhema config set global security.encryption.enabled true
 
 # Set encryption algorithm
-gacp config set global security.encryption.algorithm "AES-256-GCM"
+
+
+rhema config set global security.encryption.algorithm "AES-256-GCM"
 
 # Set key file
-gacp config set global security.encryption.key_file "~/.gacp/keys/master.key"
+
+
+rhema config set global security.encryption.key_file "~/.rhema/keys/master.key"
 ```
 
 ### Access Control
+
 
 Role-based access control for configuration management:
 
 ```bash
 # Enable RBAC
-gacp config set global security.authorization.rbac_enabled true
+
+
+rhema config set global security.authorization.rbac_enabled true
 
 # Set default role
-gacp config set global security.authorization.default_role "user"
+
+
+rhema config set global security.authorization.default_role "user"
 
 # Set admin role
-gacp config set global security.authorization.admin_role "admin"
+
+
+rhema config set global security.authorization.admin_role "admin"
 ```
 
 ### Audit Logging
+
 
 Comprehensive audit logging for configuration changes:
 
 ```bash
 # Enable audit logging
-gacp config set global security.audit.enabled true
+
+
+rhema config set global security.audit.enabled true
 
 # Set audit log level
-gacp config set global security.audit.log_level "info"
+
+
+rhema config set global security.audit.log_level "info"
 
 # Set audit log file
-gacp config set global security.audit.log_file "~/.gacp/logs/audit.log"
+
+
+rhema config set global security.audit.log_file "~/.rhema/logs/audit.log"
 ```
 
 ## Best Practices
 
+
 ### Configuration Organization
+
 
 1. **Use Environment-Specific Settings**: Configure different settings for development, testing, staging, and production environments.
 
@@ -860,6 +1077,7 @@ gacp config set global security.audit.log_file "~/.gacp/logs/audit.log"
 
 ### Security Best Practices
 
+
 1. **Encrypt Sensitive Data**: Use encryption for API keys, passwords, and other sensitive information.
 
 2. **Use Environment Variables**: Store sensitive data in environment variables when possible.
@@ -878,6 +1096,7 @@ gacp config set global security.audit.log_file "~/.gacp/logs/audit.log"
 
 ### Performance Best Practices
 
+
 1. **Cache Configuration**: Enable caching for frequently accessed configuration data.
 
 2. **Optimize File Size**: Keep configuration files concise and well-organized.
@@ -890,7 +1109,9 @@ gacp config set global security.audit.log_file "~/.gacp/logs/audit.log"
 
 ## Troubleshooting
 
+
 ### Common Issues
+
 
 1. **Configuration Not Found**: Ensure configuration files exist in the expected locations.
 
@@ -904,39 +1125,59 @@ gacp config set global security.audit.log_file "~/.gacp/logs/audit.log"
 
 ### Debugging
 
+
 ```bash
 # Enable debug mode
-gacp config set global application.settings.debug_mode true
+
+
+rhema config set global application.settings.debug_mode true
 
 # Enable verbose logging
-gacp config set global application.settings.verbose_logging true
+
+
+rhema config set global application.settings.verbose_logging true
 
 # Check configuration health
-gacp config health all
+
+
+rhema config health all
 
 # Validate configuration
-gacp config validate all
+
+
+rhema config validate all
 
 # Show configuration statistics
-gacp config stats all
+
+
+rhema config stats all
 ```
 
 ### Recovery
 
+
 ```bash
 # Restore from backup
-gacp config restore global --backup-file backup-2024-01-01.json
+
+
+rhema config restore global --backup-file backup-2024-01-01.json
 
 # Reset to defaults
-gacp config reset global --confirm
+
+
+rhema config reset global --confirm
 
 # Migrate configuration
-gacp config migrate all
+
+
+rhema config migrate all
 ```
 
 ## API Reference
 
+
 ### Configuration Manager
+
 
 The `ConfigManager` provides the main interface for configuration management:
 
@@ -955,23 +1196,30 @@ pub struct ConfigManager {
 
 ### Key Methods
 
+
 - `new()` - Create a new configuration manager
+
 - `global_config()` - Get global configuration
+
 - `load_repository_config()` - Load repository configuration
+
 - `validate_all()` - Validate all configurations
+
 - `backup_all()` - Backup all configurations
+
 - `migrate_all()` - Migrate all configurations
 
 ### Configuration Traits
+
 
 All configuration types implement the `Config` trait:
 
 ```rust
 pub trait Config: Serialize + DeserializeOwned + Validate {
     fn version(&self) -> &str;
-    fn validate_config(&self) -> GacpResult<()>;
-    fn load_from_file(path: &Path) -> GacpResult<Self>;
-    fn save_to_file(&self, path: &Path) -> GacpResult<()>;
+    fn validate_config(&self) -> RhemaResult<()>;
+    fn load_from_file(path: &Path) -> RhemaResult<Self>;
+    fn save_to_file(&self, path: &Path) -> RhemaResult<()>;
     fn schema() -> serde_json::Value;
     fn documentation() -> &'static str;
 }
@@ -979,7 +1227,9 @@ pub trait Config: Serialize + DeserializeOwned + Validate {
 
 ## Future Enhancements
 
+
 ### Planned Features
+
 
 1. **Configuration Templates**: Pre-built configuration templates for common use cases.
 
@@ -999,6 +1249,7 @@ pub trait Config: Serialize + DeserializeOwned + Validate {
 
 ### Integration Roadmap
 
+
 1. **Cloud Providers**: Enhanced integration with AWS, Azure, and GCP.
 
 2. **CI/CD Platforms**: Better integration with GitHub Actions, GitLab CI, and Jenkins.
@@ -1010,6 +1261,7 @@ pub trait Config: Serialize + DeserializeOwned + Validate {
 5. **IDE Extensions**: Enhanced IDE integration for configuration management.
 
 ## Contributing
+
 
 To contribute to the configuration management system:
 
@@ -1030,6 +1282,7 @@ To contribute to the configuration management system:
 8. **Error Handling**: Implement proper error handling and user-friendly error messages.
 
 ## Support
+
 
 For support with the configuration management system:
 

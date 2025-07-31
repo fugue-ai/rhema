@@ -1,35 +1,54 @@
 # Proposal 0015: Agent Coordination System Implementation
 
+
 ## Overview
+
 
 This proposal outlines the implementation of a sophisticated agent coordination system for Rhema, based on the formal specifications defined in the TLA+ tests. The system will enable multi-agent collaboration with resource locking, state management, and safety invariant enforcement.
 
 ## Background
 
-The current Rhema implementation lacks the agent coordination capabilities modeled in the TLA+ tests (`tests/tla/gacp_core.tla`, `tests/tla/gacp_invariants.tla`, `tests/tla/gacp_edge_cases.tla`). These tests define a comprehensive system for:
+
+The current Rhema implementation lacks the agent coordination capabilities modeled in the TLA+ tests (`tests/tla/rhema_core.tla`, `tests/tla/rhema_invariants.tla`, `tests/tla/rhema_edge_cases.tla`). These tests define a comprehensive system for:
 
 - Agent state management (`idle`, `working`, `blocked`, `completed`)
+
 - Resource locking per scope
+
 - Cross-scope synchronization with status tracking
+
 - Safety invariant enforcement
+
 - Failure recovery mechanisms
 
 ## Problem Statement
 
+
 Traditional agentic developer workflow systems suffer from:
+
 - **Task Isolation**: Agents work without awareness of concurrent tasks
+
 - **Resource Conflicts**: Multiple agents competing for the same resources
+
 - **Dependency Blindness**: Agents unaware of how changes affect other tasks
+
 - **Context Fragmentation**: Knowledge scattered across different sessions
+
 - **Coordination Failures**: No mechanism for agent coordination
 
 ## Solution: Agent Coordination System
 
+
 ### Core Components
 
+
 #### 1. Agent State Management
+
+
 ```rust
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+
+
 pub enum AgentState {
     Idle,
     Working,
@@ -46,6 +65,8 @@ pub struct AgentManager {
 ```
 
 #### 2. Resource Locking System
+
+
 ```rust
 pub struct LockManager {
     locks: HashMap<String, Option<String>>, // scope_path -> agent_id
@@ -54,6 +75,8 @@ pub struct LockManager {
 }
 
 #[derive(Debug, Clone)]
+
+
 pub struct LockEvent {
     timestamp: DateTime<Utc>,
     scope_path: String,
@@ -63,8 +86,12 @@ pub struct LockEvent {
 ```
 
 #### 3. Synchronization Status Tracking
+
+
 ```rust
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+
+
 pub enum SyncStatus {
     Idle,
     Syncing,
@@ -80,6 +107,8 @@ pub struct SyncCoordinator {
 ```
 
 #### 4. Safety Invariant System
+
+
 ```rust
 pub struct SafetyValidator {
     context_validator: ContextValidator,
@@ -89,21 +118,34 @@ pub struct SafetyValidator {
 }
 
 #[derive(Debug, thiserror::Error)]
+
+
 pub enum SafetyViolation {
     #[error("Context consistency violation: {0}")]
+
+
     ContextConsistency(String),
     #[error("Dependency integrity violation: {0}")]
+
+
     DependencyIntegrity(String),
     #[error("Agent coordination violation: {0}")]
+
+
     AgentCoordination(String),
     #[error("Lock consistency violation: {0}")]
+
+
     LockConsistency(String),
 }
 ```
 
 ### Key Operations
 
+
 #### Agent Operations
+
+
 ```rust
 impl AgentManager {
     pub async fn agent_join(&mut self, agent_id: String) -> Result<(), AgentError>
@@ -115,6 +157,8 @@ impl AgentManager {
 ```
 
 #### Lock Operations
+
+
 ```rust
 impl LockManager {
     pub async fn acquire_lock(&mut self, scope_path: &str, agent_id: &str) -> Result<bool, LockError>
@@ -125,6 +169,8 @@ impl LockManager {
 ```
 
 #### Synchronization Operations
+
+
 ```rust
 impl SyncCoordinator {
     pub async fn start_sync(&mut self, scope_path: &str) -> Result<(), SyncError>
@@ -136,7 +182,10 @@ impl SyncCoordinator {
 
 ### Safety Invariants
 
+
 #### 1. Context Consistency
+
+
 ```rust
 impl ContextValidator {
     pub fn validate_yaml_content(&self, content: &str) -> Result<(), SafetyViolation>
@@ -146,6 +195,8 @@ impl ContextValidator {
 ```
 
 #### 2. Dependency Integrity
+
+
 ```rust
 impl DependencyValidator {
     pub fn validate_dependency_graph(&self, graph: &HashMap<String, Vec<String>>) -> Result<(), SafetyViolation>
@@ -155,6 +206,8 @@ impl DependencyValidator {
 ```
 
 #### 3. Agent Coordination
+
+
 ```rust
 impl AgentValidator {
     pub fn validate_agent_states(&self, agents: &HashMap<String, AgentState>) -> Result<(), SafetyViolation>
@@ -164,6 +217,8 @@ impl AgentValidator {
 ```
 
 #### 4. Lock Consistency
+
+
 ```rust
 impl LockValidator {
     pub fn validate_lock_ownership(&self, locks: &HashMap<String, Option<String>>, agents: &[String]) -> Result<(), SafetyViolation>
@@ -174,7 +229,10 @@ impl LockValidator {
 
 ### Integration Points
 
+
 #### 1. MCP Daemon Integration
+
+
 ```rust
 pub struct AgentCoordinationService {
     agent_manager: AgentManager,
@@ -192,6 +250,8 @@ impl AgentCoordinationService {
 ```
 
 #### 2. CLI Integration
+
+
 ```rust
 // New commands to add to src/commands/mod.rs
 pub mod agent;
@@ -215,66 +275,116 @@ pub fn check_invariants(args: InvariantArgs) -> RhemaResult<()>
 
 ### Implementation Phases
 
+
 #### Phase 1: Core Data Structures (Week 1)
+
+
 - [ ] Define all enums and structs
+
 - [ ] Implement basic serialization/deserialization
+
 - [ ] Create error types and result handling
+
 - [ ] Add basic validation logic
 
 #### Phase 2: Agent Management (Week 2)
+
+
 - [ ] Implement AgentManager with state transitions
+
 - [ ] Add agent join/leave operations
+
 - [ ] Implement agent progress tracking
+
 - [ ] Add timeout and cleanup mechanisms
 
 #### Phase 3: Resource Locking (Week 3)
+
+
 - [ ] Implement LockManager with acquire/release
+
 - [ ] Add lock consistency validation
+
 - [ ] Implement lock timeout handling
+
 - [ ] Add lock history tracking
 
 #### Phase 4: Synchronization (Week 4)
+
+
 - [ ] Implement SyncCoordinator
+
 - [ ] Add dependency-aware sync ordering
+
 - [ ] Implement sync status tracking
+
 - [ ] Add sync failure handling
 
 #### Phase 5: Safety System (Week 5)
+
+
 - [ ] Implement all safety validators
+
 - [ ] Add runtime invariant checking
+
 - [ ] Implement violation reporting
+
 - [ ] Add safety monitoring
 
 #### Phase 6: Integration (Week 6)
+
+
 - [ ] Integrate with MCP daemon
+
 - [ ] Add CLI commands
+
 - [ ] Implement monitoring and observability
+
 - [ ] Add comprehensive testing
 
 ### Testing Strategy
 
+
 #### Unit Tests
+
+
 - Test each component in isolation
+
 - Verify all state transitions
+
 - Test error conditions and edge cases
+
 - Validate safety invariants
 
 #### Integration Tests
+
+
 - Test agent coordination scenarios
+
 - Verify lock acquisition and release
+
 - Test synchronization workflows
+
 - Validate safety violation detection
 
 #### TLA+ Model Validation
+
+
 - Ensure implementation matches TLA+ specifications
+
 - Verify all safety invariants are enforced
+
 - Test liveness properties
+
 - Validate edge case handling
 
 ### Configuration
 
+
 ```yaml
 # rhema.yaml configuration additions
+
+
 agent_coordination:
   enabled: true
   max_concurrent_agents: 3
@@ -292,64 +402,110 @@ agent_coordination:
 
 ### Monitoring and Observability
 
+
 #### Metrics
+
+
 - Agent state transitions
+
 - Lock acquisition/release rates
+
 - Sync operation success/failure rates
+
 - Safety violation counts
+
 - Response times and throughput
 
 #### Logging
+
+
 - Structured logging for all operations
+
 - Audit trail for agent actions
+
 - Safety violation reports
+
 - Performance metrics
 
 #### Health Checks
+
+
 - Agent coordination system health
+
 - Lock consistency validation
+
 - Sync status monitoring
+
 - Safety invariant verification
 
 ### Migration Strategy
 
+
 #### Phase 1: Optional Integration
+
+
 - Make agent coordination optional
+
 - Maintain backward compatibility
+
 - Allow gradual adoption
 
 #### Phase 2: Default Enabled
+
+
 - Enable by default for new installations
+
 - Provide migration tools for existing setups
+
 - Maintain opt-out capability
 
 #### Phase 3: Full Integration
+
+
 - Integrate deeply with existing systems
+
 - Optimize for performance
+
 - Add advanced features
 
 ### Success Criteria
 
+
 1. **Safety**: All TLA+ safety invariants are enforced
+
 2. **Performance**: Minimal overhead on existing operations
+
 3. **Reliability**: Robust error handling and recovery
+
 4. **Usability**: Intuitive CLI and API interfaces
+
 5. **Observability**: Comprehensive monitoring and debugging
+
 6. **Compatibility**: Seamless integration with existing features
 
 ### Risks and Mitigation
 
+
 #### Technical Risks
+
+
 - **Performance Impact**: Implement efficient data structures and caching
+
 - **Complexity**: Modular design with clear interfaces
+
 - **Race Conditions**: Use proper synchronization primitives
 
 #### Operational Risks
+
+
 - **Backward Compatibility**: Maintain existing APIs and behavior
+
 - **Migration Complexity**: Provide automated migration tools
+
 - **Debugging Difficulty**: Comprehensive logging and monitoring
 
 ### Conclusion
+
 
 This agent coordination system will transform Rhema from a single-agent tool into a multi-agent collaboration platform. By implementing the formal specifications from the TLA+ tests, we ensure correctness, safety, and reliability while enabling sophisticated agent coordination scenarios.
 

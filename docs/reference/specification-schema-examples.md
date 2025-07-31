@@ -1,6 +1,8 @@
 # Specification Schema Examples
 
+
 ## rhema.yaml (Scope Definition)
+
 
 ```yaml
 rhema:
@@ -16,8 +18,11 @@ rhema:
       parent: "../shared"
       children: ["../user-api", "../user-ui"]
     responsibilities:
+
       - "User authentication"
+
       - "User profile management"
+
       - "Password reset functionality"
     tech:
       primary_languages: ["Rust", "TypeScript"]
@@ -25,14 +30,19 @@ rhema:
       databases: ["PostgreSQL"]
   tooling:
     focus_areas:
+
       - "Security best practices"
+
       - "Performance optimization"
     recommended_analysis:
+
       - "Dependency analysis"
+
       - "Security audit"
 ```
 
 ## knowledge.yaml (Knowledge Base)
+
 
 ```yaml
 components:
@@ -42,6 +52,7 @@ components:
     interfaces:
       auth:
         endpoints:
+
           - path: "/auth/login"
             method: "POST"
             purpose: "User authentication"
@@ -50,6 +61,7 @@ components:
       internal: ["shared", "database"]
       external: ["redis", "jwt"]
     known_issues:
+
       - issue: "Memory leak in session handling"
         severity: "medium"
         impact: "Gradual performance degradation"
@@ -69,6 +81,7 @@ architecture:
 
 insights:
   performance:
+
     - finding: "Database queries are not optimized"
       impact: "High latency on user operations"
       solution: "Add database indexes and query optimization"
@@ -79,8 +92,10 @@ insights:
 
 ## todos.yaml (Work Items)
 
+
 ```yaml
 todos:
+
   - id: "todo-001"
     title: "Implement rate limiting"
     description: "Add rate limiting to prevent abuse"

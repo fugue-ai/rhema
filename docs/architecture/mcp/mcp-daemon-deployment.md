@@ -1,75 +1,109 @@
-# GACP MCP Daemon Deployment Guide
+# Rhema MCP Daemon Deployment Guide
+
 
 ## Overview
 
-This guide covers deploying the GACP MCP Daemon in various environments, from local development to production cloud deployments.
+
+This guide covers deploying the Rhema MCP Daemon in various environments, from local development to production cloud deployments.
 
 ## Docker Deployment
 
+
 ### Basic Dockerfile
+
 
 ```dockerfile
 # Multi-stage build for smaller image
+
+
 FROM rust:1.70 as builder
 
 WORKDIR /app
 COPY . .
 
 # Build the application
+
+
 RUN cargo build --release
 
 # Runtime stage
+
+
 FROM debian:bullseye-slim
 
 # Install runtime dependencies
+
+
 RUN apt-get update && \
     apt-get install -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN useradd -r -s /bin/false gacp
+
+
+RUN useradd -r -s /bin/false rhema
 
 # Copy binary from builder stage
-COPY --from=builder /app/target/release/gacp /usr/local/bin/gacp
+
+
+COPY --from=builder /app/target/release/rhema /usr/local/bin/rhema
 
 # Create necessary directories
-RUN mkdir -p /app/.gacp /var/log/gacp /tmp && \
-    chown -R gacp:gacp /app /var/log/gacp /tmp
+
+
+RUN mkdir -p /app/.rhema /var/log/rhema /tmp && \
+    chown -R rhema:rhema /app /var/log/rhema /tmp
 
 WORKDIR /app
-USER gacp
+USER rhema
 
 # Expose ports
+
+
 EXPOSE 8080
 
 # Health check
+
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 # Default command
-CMD ["gacp", "daemon", "start", "--host", "0.0.0.0", "--port", "8080"]
+
+
+CMD ["rhema", "daemon", "start", "--host", "0.0.0.0", "--port", "8080"]
 ```
 
 ### Docker Compose Setup
+
 
 ```yaml
 version: '3.8'
 
 services:
-  gacp-mcp:
+  rhema-mcp:
     build: .
     ports:
+
       - "8080:8080"
     volumes:
-      - ./.gacp:/app/.gacp:ro
+
+      - ./.rhema:/app/.rhema:ro
+
       - ./config:/app/config:ro
-      - gacp-logs:/var/log/gacp
-      - /tmp/gacp-mcp.sock:/tmp/gacp-mcp.sock
+
+      - rhema-logs:/var/log/rhema
+
+      - /tmp/rhema-mcp.sock:/tmp/rhema-mcp.sock
     environment:
-      - GACP_API_KEY=${GACP_API_KEY}
-      - GACP_REDIS_URL=redis://redis:6379
-      - GACP_LOG_LEVEL=info
+
+      - Rhema_API_KEY=${Rhema_API_KEY}
+
+      - Rhema_REDIS_URL=redis://redis:6379
+
+      - Rhema_LOG_LEVEL=info
     depends_on:
+
       - redis
     restart: unless-stopped
     healthcheck:
@@ -82,8 +116,10 @@ services:
   redis:
     image: redis:7-alpine
     ports:
+
       - "6379:6379"
     volumes:
+
       - redis-data:/data
     restart: unless-stopped
     command: redis-server --appendonly yes
@@ -91,21 +127,27 @@ services:
   nginx:
     image: nginx:alpine
     ports:
+
       - "80:80"
+
       - "443:443"
     volumes:
+
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
-      - gacp-mcp
+
+      - rhema-mcp
     restart: unless-stopped
 
 volumes:
-  gacp-logs:
+  rhema-logs:
   redis-data:
 ```
 
 ### Nginx Configuration
+
 
 ```nginx
 events {
@@ -113,12 +155,14 @@ events {
 }
 
 http {
-    upstream gacp_backend {
-        server gacp-mcp:8080;
+    upstream rhema_backend {
+        server rhema-mcp:8080;
     }
 
     # Rate limiting
-    limit_req_zone $binary_remote_addr zone=gacp_api:10m rate=10r/s;
+
+
+    limit_req_zone $binary_remote_addr zone=rhema_api:10m rate=10r/s;
 
     server {
         listen 80;
@@ -137,16 +181,20 @@ http {
         ssl_prefer_server_ciphers off;
 
         # Security headers
+
+
         add_header X-Frame-Options DENY;
         add_header X-Content-Type-Options nosniff;
         add_header X-XSS-Protection "1; mode=block";
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
         # Rate limiting
-        limit_req zone=gacp_api burst=20 nodelay;
+
+
+        limit_req zone=rhema_api burst=20 nodelay;
 
         location / {
-            proxy_pass http://gacp_backend;
+            proxy_pass http://rhema_backend;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -157,8 +205,10 @@ http {
         }
 
         # Health check endpoint
+
+
         location /health {
-            proxy_pass http://gacp_backend/health;
+            proxy_pass http://rhema_backend/health;
             access_log off;
         }
     }
@@ -167,12 +217,13 @@ http {
 
 ### Production Docker Compose
 
+
 ```yaml
 version: '3.8'
 
 services:
-  gacp-mcp:
-    image: gacp-mcp:latest
+  rhema-mcp:
+    image: rhema-mcp:latest
     deploy:
       replicas: 3
       resources:
@@ -188,18 +239,26 @@ services:
         max_attempts: 3
         window: 120s
     ports:
+
       - "8080:8080"
     volumes:
-      - ./.gacp:/app/.gacp:ro
+
+      - ./.rhema:/app/.rhema:ro
+
       - ./config:/app/config:ro
     environment:
-      - GACP_API_KEY=${GACP_API_KEY}
-      - GACP_REDIS_URL=redis://redis:6379
-      - GACP_LOG_LEVEL=info
+
+      - Rhema_API_KEY=${Rhema_API_KEY}
+
+      - Rhema_REDIS_URL=redis://redis:6379
+
+      - Rhema_LOG_LEVEL=info
     depends_on:
+
       - redis
     networks:
-      - gacp-network
+
+      - rhema-network
 
   redis:
     image: redis:7-alpine
@@ -209,40 +268,58 @@ services:
           cpus: '0.5'
           memory: 512M
     volumes:
+
       - redis-data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     networks:
-      - gacp-network
+
+      - rhema-network
 
   prometheus:
     image: prom/prometheus:latest
     ports:
+
       - "9090:9090"
     volumes:
+
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
       - prometheus-data:/prometheus
     command:
+
       - '--config.file=/etc/prometheus/prometheus.yml'
+
       - '--storage.tsdb.path=/prometheus'
+
       - '--web.console.libraries=/etc/prometheus/console_libraries'
+
       - '--web.console.templates=/etc/prometheus/consoles'
+
       - '--storage.tsdb.retention.time=200h'
+
       - '--web.enable-lifecycle'
     networks:
-      - gacp-network
+
+      - rhema-network
 
   grafana:
     image: grafana/grafana:latest
     ports:
+
       - "3000:3000"
     volumes:
+
       - grafana-data:/var/lib/grafana
+
       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+
       - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
     environment:
+
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
     networks:
-      - gacp-network
+
+      - rhema-network
 
 volumes:
   redis-data:
@@ -250,48 +327,55 @@ volumes:
   grafana-data:
 
 networks:
-  gacp-network:
+  rhema-network:
     driver: overlay
 ```
 
 ## Kubernetes Deployment
 
+
 ### Namespace
+
 
 ```yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: gacp
+  name: rhema
   labels:
-    name: gacp
+    name: rhema
 ```
 
 ### ConfigMap
+
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gacp-config
-  namespace: gacp
+  name: rhema-config
+  namespace: rhema
 data:
-  gacp-mcp.yaml: |
+  rhema-mcp.yaml: |
     host: "0.0.0.0"
     port: 8080
-    redis_url: "redis://gacp-redis:6379"
+    redis_url: "redis://rhema-redis:6379"
     
     auth:
       enabled: true
       allowed_origins:
+
         - "https://your-app.example.com"
     
     watcher:
       enabled: true
       watch_dirs:
-        - ".gacp"
+
+        - ".rhema"
       file_patterns:
+
         - "*.yaml"
+
         - "*.yml"
       debounce_ms: 100
     
@@ -308,12 +392,13 @@ data:
 
 ### Secret
 
+
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gacp-secrets
-  namespace: gacp
+  name: rhema-secrets
+  namespace: rhema
 type: Opaque
 data:
   api-key: <base64-encoded-api-key>
@@ -322,19 +407,20 @@ data:
 
 ### Deployment
 
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gacp-mcp
-  namespace: gacp
+  name: rhema-mcp
+  namespace: rhema
   labels:
-    app: gacp-mcp
+    app: rhema-mcp
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: gacp-mcp
+      app: rhema-mcp
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -343,7 +429,7 @@ spec:
   template:
     metadata:
       labels:
-        app: gacp-mcp
+        app: rhema-mcp
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
@@ -355,34 +441,42 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       containers:
-      - name: gacp-mcp
-        image: gacp-mcp:latest
+
+      - name: rhema-mcp
+        image: rhema-mcp:latest
         imagePullPolicy: Always
         ports:
+
         - containerPort: 8080
           name: http
         env:
-        - name: GACP_API_KEY
+
+        - name: Rhema_API_KEY
           valueFrom:
             secretKeyRef:
-              name: gacp-secrets
+              name: rhema-secrets
               key: api-key
-        - name: GACP_JWT_SECRET
+
+        - name: Rhema_JWT_SECRET
           valueFrom:
             secretKeyRef:
-              name: gacp-secrets
+              name: rhema-secrets
               key: jwt-secret
-        - name: GACP_REDIS_URL
-          value: "redis://gacp-redis:6379"
-        - name: GACP_LOG_LEVEL
+
+        - name: Rhema_REDIS_URL
+          value: "redis://rhema-redis:6379"
+
+        - name: Rhema_LOG_LEVEL
           value: "info"
         volumeMounts:
-        - name: gacp-config
-          mountPath: /app/.gacp
+
+        - name: rhema-config
+          mountPath: /app/.rhema
           readOnly: true
+
         - name: config-file
-          mountPath: /etc/gacp/gacp-mcp.yaml
-          subPath: gacp-mcp.yaml
+          mountPath: /etc/rhema/rhema-mcp.yaml
+          subPath: rhema-mcp.yaml
         resources:
           requests:
             memory: "256Mi"
@@ -415,28 +509,32 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 30
       volumes:
-      - name: gacp-config
+
+      - name: rhema-config
         configMap:
-          name: gacp-config
+          name: rhema-config
+
       - name: config-file
         configMap:
-          name: gacp-config
+          name: rhema-config
 ```
 
 ### Service
+
 
 ```yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: gacp-mcp-service
-  namespace: gacp
+  name: rhema-mcp-service
+  namespace: rhema
   labels:
-    app: gacp-mcp
+    app: rhema-mcp
 spec:
   selector:
-    app: gacp-mcp
+    app: rhema-mcp
   ports:
+
   - protocol: TCP
     port: 80
     targetPort: 8080
@@ -446,12 +544,13 @@ spec:
 
 ### Ingress
 
+
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: gacp-mcp-ingress
-  namespace: gacp
+  name: rhema-mcp-ingress
+  namespace: rhema
   annotations:
     kubernetes.io/ingress.class: "nginx"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -460,44 +559,51 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   tls:
+
   - hosts:
+
     - api.your-domain.com
-    secretName: gacp-mcp-tls
+    secretName: rhema-mcp-tls
   rules:
+
   - host: api.your-domain.com
     http:
       paths:
+
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: gacp-mcp-service
+            name: rhema-mcp-service
             port:
               number: 80
 ```
 
 ### Horizontal Pod Autoscaler
 
+
 ```yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: gacp-mcp-hpa
-  namespace: gacp
+  name: rhema-mcp-hpa
+  namespace: rhema
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: gacp-mcp
+    name: rhema-mcp
   minReplicas: 3
   maxReplicas: 10
   metrics:
+
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
         averageUtilization: 70
+
   - type: Resource
     resource:
       name: memory
@@ -508,12 +614,14 @@ spec:
     scaleDown:
       stabilizationWindowSeconds: 300
       policies:
+
       - type: Percent
         value: 10
         periodSeconds: 60
     scaleUp:
       stabilizationWindowSeconds: 60
       policies:
+
       - type: Percent
         value: 50
         periodSeconds: 60
@@ -521,34 +629,41 @@ spec:
 
 ### Redis Deployment
 
+
 ```yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: gacp-redis
-  namespace: gacp
+  name: rhema-redis
+  namespace: rhema
 spec:
-  serviceName: gacp-redis
+  serviceName: rhema-redis
   replicas: 3
   selector:
     matchLabels:
-      app: gacp-redis
+      app: rhema-redis
   template:
     metadata:
       labels:
-        app: gacp-redis
+        app: rhema-redis
     spec:
       containers:
+
       - name: redis
         image: redis:7-alpine
         ports:
+
         - containerPort: 6379
         command:
+
         - redis-server
+
         - /etc/redis/redis.conf
         volumeMounts:
+
         - name: redis-config
           mountPath: /etc/redis
+
         - name: redis-data
           mountPath: /data
         resources:
@@ -559,6 +674,7 @@ spec:
             memory: "256Mi"
             cpu: "200m"
   volumeClaimTemplates:
+
   - metadata:
       name: redis-data
     spec:
@@ -570,22 +686,26 @@ spec:
 
 ## Cloud Deployment
 
+
 ### AWS ECS Deployment
+
 
 ```yaml
 # task-definition.json
+
+
 {
-  "family": "gacp-mcp",
+  "family": "rhema-mcp",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::123456789012:role/gacp-mcp-task-role",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/rhema-mcp-task-role",
   "containerDefinitions": [
     {
-      "name": "gacp-mcp",
-      "image": "123456789012.dkr.ecr.us-west-2.amazonaws.com/gacp-mcp:latest",
+      "name": "rhema-mcp",
+      "image": "123456789012.dkr.ecr.us-west-2.amazonaws.com/rhema-mcp:latest",
       "portMappings": [
         {
           "containerPort": 8080,
@@ -594,24 +714,24 @@ spec:
       ],
       "environment": [
         {
-          "name": "GACP_REDIS_URL",
-          "value": "redis://gacp-redis:6379"
+          "name": "Rhema_REDIS_URL",
+          "value": "redis://rhema-redis:6379"
         }
       ],
       "secrets": [
         {
-          "name": "GACP_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-west-2:123456789012:secret:gacp-api-key"
+          "name": "Rhema_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-west-2:123456789012:secret:rhema-api-key"
         },
         {
-          "name": "GACP_JWT_SECRET",
-          "valueFrom": "arn:aws:secretsmanager:us-west-2:123456789012:secret:gacp-jwt-secret"
+          "name": "Rhema_JWT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-west-2:123456789012:secret:rhema-jwt-secret"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/gacp-mcp",
+          "awslogs-group": "/ecs/rhema-mcp",
           "awslogs-region": "us-west-2",
           "awslogs-stream-prefix": "ecs"
         }
@@ -630,62 +750,96 @@ spec:
 
 ### Google Cloud Run
 
+
 ```yaml
 # cloudbuild.yaml
+
+
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/gacp-mcp:$COMMIT_SHA', '.']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/gacp-mcp:$COMMIT_SHA']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/rhema-mcp:$COMMIT_SHA', '.']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/rhema-mcp:$COMMIT_SHA']
 
 - name: 'gcr.io/cloud-builders/gcloud'
   args:
+
   - 'run'
+
   - 'deploy'
-  - 'gacp-mcp'
+
+  - 'rhema-mcp'
+
   - '--image'
-  - 'gcr.io/$PROJECT_ID/gacp-mcp:$COMMIT_SHA'
+
+  - 'gcr.io/$PROJECT_ID/rhema-mcp:$COMMIT_SHA'
+
   - '--region'
+
   - 'us-central1'
+
   - '--platform'
+
   - 'managed'
+
   - '--allow-unauthenticated'
+
   - '--port'
+
   - '8080'
+
   - '--memory'
+
   - '1Gi'
+
   - '--cpu'
+
   - '1'
+
   - '--max-instances'
+
   - '10'
+
   - '--set-env-vars'
-  - 'GACP_REDIS_URL=redis://gacp-redis:6379'
+
+  - 'Rhema_REDIS_URL=redis://rhema-redis:6379'
+
   - '--set-secrets'
-  - 'GACP_API_KEY=gacp-api-key:latest,GACP_JWT_SECRET=gacp-jwt-secret:latest'
+
+  - 'Rhema_API_KEY=rhema-api-key:latest,Rhema_JWT_SECRET=rhema-jwt-secret:latest'
 
 images:
-- 'gcr.io/$PROJECT_ID/gacp-mcp:$COMMIT_SHA'
+
+- 'gcr.io/$PROJECT_ID/rhema-mcp:$COMMIT_SHA'
 ```
 
 ### Azure Container Instances
 
+
 ```yaml
 # azure-deployment.yaml
+
+
 apiVersion: 2019-12-01
 location: eastus
-name: gacp-mcp
+name: rhema-mcp
 properties:
   containers:
-  - name: gacp-mcp
+
+  - name: rhema-mcp
     properties:
-      image: gacp-mcp:latest
+      image: rhema-mcp:latest
       ports:
+
       - port: 8080
       environmentVariables:
-      - name: GACP_REDIS_URL
-        value: "redis://gacp-redis:6379"
-      - name: GACP_LOG_LEVEL
+
+      - name: Rhema_REDIS_URL
+        value: "redis://rhema-redis:6379"
+
+      - name: Rhema_LOG_LEVEL
         value: "info"
       resources:
         requests:
@@ -699,43 +853,53 @@ properties:
   ipAddress:
     type: Public
     ports:
+
     - protocol: tcp
       port: 8080
 ```
 
 ## Monitoring and Observability
 
+
 ### Prometheus Configuration
+
 
 ```yaml
 # prometheus.yml
+
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
 rule_files:
-  - "gacp-rules.yml"
+
+  - "rhema-rules.yml"
 
 scrape_configs:
-  - job_name: 'gacp-mcp'
+
+  - job_name: 'rhema-mcp'
     static_configs:
-      - targets: ['gacp-mcp:8080']
+
+      - targets: ['rhema-mcp:8080']
     metrics_path: /metrics
     scrape_interval: 10s
     scrape_timeout: 5s
 
   - job_name: 'redis'
     static_configs:
-      - targets: ['gacp-redis:6379']
+
+      - targets: ['rhema-redis:6379']
     metrics_path: /metrics
 ```
 
 ### Grafana Dashboard
 
+
 ```json
 {
   "dashboard": {
-    "title": "GACP MCP Daemon",
+    "title": "Rhema MCP Daemon",
     "panels": [
       {
         "title": "Request Rate",
@@ -772,7 +936,7 @@ scrape_configs:
         "type": "stat",
         "targets": [
           {
-            "expr": "gacp_cache_hit_rate",
+            "expr": "rhema_cache_hit_rate",
             "legendFormat": "Cache Hit Rate"
           }
         ]
@@ -784,62 +948,79 @@ scrape_configs:
 
 ## Security Considerations
 
+
 ### Network Security
+
 
 ```yaml
 # Network policies for Kubernetes
+
+
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: gacp-mcp-network-policy
-  namespace: gacp
+  name: rhema-mcp-network-policy
+  namespace: rhema
 spec:
   podSelector:
     matchLabels:
-      app: gacp-mcp
+      app: rhema-mcp
   policyTypes:
+
   - Ingress
+
   - Egress
   ingress:
+
   - from:
+
     - namespaceSelector:
         matchLabels:
           name: ingress-nginx
     ports:
+
     - protocol: TCP
       port: 8080
   egress:
+
   - to:
+
     - podSelector:
         matchLabels:
-          app: gacp-redis
+          app: rhema-redis
     ports:
+
     - protocol: TCP
       port: 6379
+
   - to: []
     ports:
+
     - protocol: TCP
       port: 53
+
     - protocol: UDP
       port: 53
 ```
 
 ### RBAC Configuration
 
+
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: gacp-mcp
-  namespace: gacp
+  name: rhema-mcp
+  namespace: rhema
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: gacp-mcp-role
-  namespace: gacp
+  name: rhema-mcp-role
+  namespace: rhema
 rules:
+
 - apiGroups: [""]
   resources: ["configmaps", "secrets"]
   verbs: ["get", "list", "watch"]
@@ -848,59 +1029,81 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: gacp-mcp-rolebinding
-  namespace: gacp
+  name: rhema-mcp-rolebinding
+  namespace: rhema
 subjects:
+
 - kind: ServiceAccount
-  name: gacp-mcp
-  namespace: gacp
+  name: rhema-mcp
+  namespace: rhema
 roleRef:
   kind: Role
-  name: gacp-mcp-role
+  name: rhema-mcp-role
   apiGroup: rbac.authorization.k8s.io
 ```
 
 ## Backup and Recovery
 
+
 ### Backup Script
+
 
 ```bash
 #!/bin/bash
 
-# Backup GACP MCP Daemon configuration and data
-BACKUP_DIR="/backup/gacp-mcp"
+
+# Backup Rhema MCP Daemon configuration and data
+
+
+BACKUP_DIR="/backup/rhema-mcp"
 DATE=$(date +%Y%m%d_%H%M%S)
 
 # Create backup directory
+
+
 mkdir -p "$BACKUP_DIR/$DATE"
 
 # Backup configuration
-kubectl get configmap gacp-config -n gacp -o yaml > "$BACKUP_DIR/$DATE/configmap.yaml"
-kubectl get secret gacp-secrets -n gacp -o yaml > "$BACKUP_DIR/$DATE/secret.yaml"
+
+
+kubectl get configmap rhema-config -n rhema -o yaml > "$BACKUP_DIR/$DATE/configmap.yaml"
+kubectl get secret rhema-secrets -n rhema -o yaml > "$BACKUP_DIR/$DATE/secret.yaml"
 
 # Backup Redis data
-kubectl exec -n gacp gacp-redis-0 -- redis-cli BGSAVE
+
+
+kubectl exec -n rhema rhema-redis-0 -- redis-cli BGSAVE
 sleep 10
-kubectl cp gacp/gacp-redis-0:/data/dump.rdb "$BACKUP_DIR/$DATE/redis-dump.rdb"
+kubectl cp rhema/rhema-redis-0:/data/dump.rdb "$BACKUP_DIR/$DATE/redis-dump.rdb"
 
 # Backup logs
-kubectl logs -n gacp -l app=gacp-mcp --tail=1000 > "$BACKUP_DIR/$DATE/logs.txt"
+
+
+kubectl logs -n rhema -l app=rhema-mcp --tail=1000 > "$BACKUP_DIR/$DATE/logs.txt"
 
 # Compress backup
-tar -czf "$BACKUP_DIR/gacp-mcp-backup-$DATE.tar.gz" -C "$BACKUP_DIR" "$DATE"
+
+
+tar -czf "$BACKUP_DIR/rhema-mcp-backup-$DATE.tar.gz" -C "$BACKUP_DIR" "$DATE"
 
 # Clean up old backups (keep last 7 days)
-find "$BACKUP_DIR" -name "gacp-mcp-backup-*.tar.gz" -mtime +7 -delete
 
-echo "Backup completed: $BACKUP_DIR/gacp-mcp-backup-$DATE.tar.gz"
+
+find "$BACKUP_DIR" -name "rhema-mcp-backup-*.tar.gz" -mtime +7 -delete
+
+echo "Backup completed: $BACKUP_DIR/rhema-mcp-backup-$DATE.tar.gz"
 ```
 
 ### Recovery Script
 
+
 ```bash
 #!/bin/bash
 
-# Recovery script for GACP MCP Daemon
+
+# Recovery script for Rhema MCP Daemon
+
+
 BACKUP_FILE="$1"
 
 if [ -z "$BACKUP_FILE" ]; then
@@ -909,38 +1112,51 @@ if [ -z "$BACKUP_FILE" ]; then
 fi
 
 # Extract backup
+
+
 tar -xzf "$BACKUP_FILE"
 BACKUP_DIR=$(basename "$BACKUP_FILE" .tar.gz)
 
 # Restore configuration
+
+
 kubectl apply -f "$BACKUP_DIR/configmap.yaml"
 kubectl apply -f "$BACKUP_DIR/secret.yaml"
 
 # Restart deployment to pick up new configuration
-kubectl rollout restart deployment/gacp-mcp -n gacp
+
+
+kubectl rollout restart deployment/rhema-mcp -n rhema
 
 # Restore Redis data
-kubectl cp "$BACKUP_DIR/redis-dump.rdb" gacp/gacp-redis-0:/data/dump.rdb
-kubectl exec -n gacp gacp-redis-0 -- redis-cli BGREWRITEAOF
+
+
+kubectl cp "$BACKUP_DIR/redis-dump.rdb" rhema/rhema-redis-0:/data/dump.rdb
+kubectl exec -n rhema rhema-redis-0 -- redis-cli BGREWRITEAOF
 
 echo "Recovery completed"
 ```
 
 ## Performance Tuning
 
+
 ### Resource Optimization
+
 
 ```yaml
 # High-performance configuration
+
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gacp-mcp
+  name: rhema-mcp
 spec:
   template:
     spec:
       containers:
-      - name: gacp-mcp
+
+      - name: rhema-mcp
         resources:
           requests:
             memory: "1Gi"
@@ -949,25 +1165,34 @@ spec:
             memory: "2Gi"
             cpu: "1000m"
         env:
-        - name: GACP_CACHE_MAX_SIZE
+
+        - name: Rhema_CACHE_MAX_SIZE
           value: "50000"
-        - name: GACP_CACHE_TTL_SECONDS
+
+        - name: Rhema_CACHE_TTL_SECONDS
           value: "7200"
-        - name: GACP_WATCHER_DEBOUNCE_MS
+
+        - name: Rhema_WATCHER_DEBOUNCE_MS
           value: "50"
 ```
 
 ### Load Testing
 
+
 ```bash
 #!/bin/bash
 
+
 # Load testing script
+
+
 DAEMON_URL="http://localhost:8080"
 CONCURRENT_USERS=100
 DURATION=300
 
 # Install hey if not available
+
+
 if ! command -v hey &> /dev/null; then
     go install github.com/rakyll/hey@latest
 fi
@@ -978,9 +1203,13 @@ echo "Concurrent users: $CONCURRENT_USERS"
 echo "Duration: $DURATION seconds"
 
 # Health check load test
+
+
 hey -n 1000 -c $CONCURRENT_USERS -z ${DURATION}s "$DAEMON_URL/health"
 
 # Query load test
+
+
 hey -n 1000 -c $CONCURRENT_USERS -z ${DURATION}s -m POST \
     -H "Content-Type: application/json" \
     -d '{"query": "SELECT * FROM scopes"}' \

@@ -1,34 +1,48 @@
-# GACP MCP Daemon API Documentation
+# Rhema MCP Daemon API Documentation
+
 
 ## Overview
 
-The GACP MCP (Model Context Protocol) Daemon provides a standardized interface for managing AI agent context through distributed YAML files in Git repositories. The daemon supports multiple communication protocols: HTTP REST API, WebSocket for real-time communication, and Unix domain sockets for local access.
+
+The Rhema MCP (Model Context Protocol) Daemon provides a standardized interface for managing AI agent context through distributed YAML files in Git repositories. The daemon supports multiple communication protocols: HTTP REST API, WebSocket for real-time communication, and Unix domain sockets for local access.
 
 ## Base URLs
 
+
 - **HTTP API**: `http://localhost:8080`
+
 - **WebSocket API**: `ws://localhost:8081/ws`
-- **Unix Socket**: `/tmp/gacp-mcp.sock`
+
+- **Unix Socket**: `/tmp/rhema-mcp.sock`
 
 ## Authentication
+
 
 The daemon supports multiple authentication methods:
 
 ### API Key Authentication
+
+
 ```http
 Authorization: Bearer your-api-key-here
 ```
 
 ### JWT Token Authentication
+
+
 ```http
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ## HTTP REST API
 
+
 ### Health & Status Endpoints
 
+
 #### GET /health
+
+
 Get daemon health status and metrics.
 
 **Response:**
@@ -47,12 +61,14 @@ Get daemon health status and metrics.
 ```
 
 #### GET /info
+
+
 Get daemon information and capabilities.
 
 **Response:**
 ```json
 {
-  "name": "GACP MCP Daemon",
+  "name": "Rhema MCP Daemon",
   "version": "1.0.0",
   "protocol_version": "1.0.0",
   "capabilities": {
@@ -72,7 +88,10 @@ Get daemon information and capabilities.
 
 ### JSON-RPC Endpoint
 
+
 #### POST /rpc
+
+
 Execute JSON-RPC 2.0 method calls.
 
 **Request:**
@@ -82,7 +101,7 @@ Execute JSON-RPC 2.0 method calls.
   "id": 1,
   "method": "resources/list",
   "params": {
-    "uri": "gacp://scopes"
+    "uri": "rhema://scopes"
   }
 }
 ```
@@ -95,7 +114,7 @@ Execute JSON-RPC 2.0 method calls.
   "result": {
     "resources": [
       {
-        "uri": "gacp://scopes/test",
+        "uri": "rhema://scopes/test",
         "name": "Test Scope",
         "description": "A test scope",
         "mime_type": "application/yaml",
@@ -110,13 +129,20 @@ Execute JSON-RPC 2.0 method calls.
 
 ### Resource Management
 
+
 #### GET /resources
+
+
 List available resources with optional filtering.
 
 **Query Parameters:**
+
 - `uri` (optional): Filter resources by URI pattern
+
 - `type` (optional): Filter by resource type
+
 - `limit` (optional): Maximum number of resources to return (default: 100)
+
 - `offset` (optional): Number of resources to skip (default: 0)
 
 **Response:**
@@ -124,7 +150,7 @@ List available resources with optional filtering.
 {
   "resources": [
     {
-      "uri": "gacp://scopes/test/scope.yaml",
+      "uri": "rhema://scopes/test/scope.yaml",
       "name": "Test Scope",
       "description": "A test scope for development",
       "mime_type": "application/yaml",
@@ -145,15 +171,18 @@ List available resources with optional filtering.
 ```
 
 #### GET /resources/{uri}
+
+
 Read a specific resource by URI.
 
 **Path Parameters:**
+
 - `uri`: The resource URI (URL encoded)
 
 **Response:**
 ```json
 {
-  "uri": "gacp://scopes/test/scope.yaml",
+  "uri": "rhema://scopes/test/scope.yaml",
   "name": "Test Scope",
   "description": "A test scope for development",
   "mime_type": "application/yaml",
@@ -173,7 +202,10 @@ Read a specific resource by URI.
 
 ### Query Execution
 
+
 #### POST /query
+
+
 Execute CQL (Context Query Language) queries.
 
 **Request:**
@@ -208,7 +240,10 @@ Execute CQL (Context Query Language) queries.
 
 ### Scope Management
 
+
 #### GET /scopes
+
+
 List all available scopes.
 
 **Response:**
@@ -231,9 +266,12 @@ List all available scopes.
 ```
 
 #### GET /scopes/{scope_id}
+
+
 Get details for a specific scope.
 
 **Path Parameters:**
+
 - `scope_id`: The scope identifier
 
 **Response:**
@@ -257,6 +295,8 @@ Get details for a specific scope.
 ```
 
 #### GET /scopes/{scope_id}/knowledge
+
+
 Get knowledge base for a specific scope.
 
 **Response:**
@@ -277,6 +317,8 @@ Get knowledge base for a specific scope.
 ```
 
 #### GET /scopes/{scope_id}/todos
+
+
 Get todo items for a specific scope.
 
 **Response:**
@@ -300,6 +342,8 @@ Get todo items for a specific scope.
 ```
 
 #### GET /scopes/{scope_id}/decisions
+
+
 Get decisions for a specific scope.
 
 **Response:**
@@ -323,6 +367,8 @@ Get decisions for a specific scope.
 ```
 
 #### GET /scopes/{scope_id}/patterns
+
+
 Get patterns for a specific scope.
 
 **Response:**
@@ -352,7 +398,10 @@ Get patterns for a specific scope.
 
 ### Statistics
 
+
 #### GET /stats
+
+
 Get context statistics and metrics.
 
 **Response:**
@@ -380,7 +429,9 @@ Get context statistics and metrics.
 
 ## WebSocket API
 
+
 ### Connection
+
 
 Connect to the WebSocket endpoint:
 ```javascript
@@ -388,6 +439,7 @@ const ws = new WebSocket('ws://localhost:8081/ws');
 ```
 
 ### Message Format
+
 
 All WebSocket messages use JSON-RPC 2.0 format:
 
@@ -398,7 +450,7 @@ All WebSocket messages use JSON-RPC 2.0 format:
   "id": 1,
   "method": "resources/subscribe",
   "params": {
-    "uri": "gacp://scopes/test"
+    "uri": "rhema://scopes/test"
   }
 }
 ```
@@ -416,6 +468,7 @@ All WebSocket messages use JSON-RPC 2.0 format:
 
 ### Notifications
 
+
 The server sends notifications for resource changes:
 
 ```json
@@ -423,7 +476,7 @@ The server sends notifications for resource changes:
   "jsonrpc": "2.0",
   "method": "resources/changed",
   "params": {
-    "uri": "gacp://scopes/test/scope.yaml",
+    "uri": "rhema://scopes/test/scope.yaml",
     "event_type": "modified",
     "timestamp": "2024-01-15T10:30:00Z"
   }
@@ -432,26 +485,36 @@ The server sends notifications for resource changes:
 
 ### Supported Methods
 
+
 All HTTP API methods are available via WebSocket, plus:
 
 - `resources/subscribe` - Subscribe to resource changes
+
 - `resources/unsubscribe` - Unsubscribe from resource changes
+
 - `system/ping` - Ping the server
 
 ## Unix Socket API
 
+
 ### Connection
+
 
 Connect to the Unix socket:
 ```bash
 # Using netcat
-nc -U /tmp/gacp-mcp.sock
+
+
+nc -U /tmp/rhema-mcp.sock
 
 # Using socat
-socat - UNIX-CONNECT:/tmp/gacp-mcp.sock
+
+
+socat - UNIX-CONNECT:/tmp/rhema-mcp.sock
 ```
 
 ### Message Format
+
 
 Same JSON-RPC 2.0 format as WebSocket API, with newline-delimited messages:
 
@@ -461,7 +524,9 @@ Same JSON-RPC 2.0 format as WebSocket API, with newline-delimited messages:
 
 ## Error Handling
 
+
 ### Error Response Format
+
 
 ```json
 {
@@ -479,29 +544,45 @@ Same JSON-RPC 2.0 format as WebSocket API, with newline-delimited messages:
 
 ### HTTP Status Codes
 
+
 - `200 OK` - Success
+
 - `400 Bad Request` - Invalid request format
+
 - `401 Unauthorized` - Authentication required
+
 - `403 Forbidden` - Insufficient permissions
+
 - `404 Not Found` - Resource not found
+
 - `500 Internal Server Error` - Server error
 
 ### JSON-RPC Error Codes
 
+
 - `-32700` - Parse error
+
 - `-32600` - Invalid Request
+
 - `-32601` - Method not found
+
 - `-32602` - Invalid params
+
 - `-32603` - Internal error
+
 - `-32000` - Server error
+
 - `-32001` - Application error
 
 ## Rate Limiting
 
+
 The API implements rate limiting:
 
 - **HTTP API**: 1000 requests per minute per IP
+
 - **WebSocket**: 100 messages per minute per connection
+
 - **Unix Socket**: 1000 messages per minute per process
 
 Rate limit headers:
@@ -513,6 +594,7 @@ X-RateLimit-Reset: 1642248600
 
 ## CORS
 
+
 CORS is enabled for HTTP API with the following configuration:
 
 ```http
@@ -523,10 +605,12 @@ Access-Control-Allow-Headers: Content-Type, Authorization
 
 ## Examples
 
+
 ### JavaScript Client
 
+
 ```javascript
-class GacpClient {
+class RhemaClient {
   constructor(baseUrl = 'http://localhost:8080', apiKey = null) {
     this.baseUrl = baseUrl;
     this.apiKey = apiKey;
@@ -568,18 +652,19 @@ class GacpClient {
 }
 
 // Usage
-const client = new GacpClient('http://localhost:8080', 'your-api-key');
+const client = new RhemaClient('http://localhost:8080', 'your-api-key');
 const health = await client.health();
-const scopes = await client.listResources('gacp://scopes');
+const scopes = await client.listResources('rhema://scopes');
 ```
 
 ### Python Client
+
 
 ```python
 import requests
 import json
 
-class GacpClient:
+class RhemaClient:
     def __init__(self, base_url='http://localhost:8080', api_key=None):
         self.base_url = base_url
         self.api_key = api_key
@@ -610,35 +695,52 @@ class GacpClient:
         return response.json()
 
 # Usage
-client = GacpClient('http://localhost:8080', 'your-api-key')
+
+
+client = RhemaClient('http://localhost:8080', 'your-api-key')
 health = client.health()
-scopes = client.list_resources('gacp://scopes')
+scopes = client.list_resources('rhema://scopes')
 ```
 
 ### cURL Examples
 
+
 ```bash
 # Health check
+
+
 curl -X GET http://localhost:8080/health
 
 # List resources
-curl -X GET "http://localhost:8080/resources?uri=gacp://scopes"
+
+
+curl -X GET "http://localhost:8080/resources?uri=rhema://scopes"
 
 # Execute query
+
+
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
   -d '{"query": "SELECT * FROM scopes WHERE type = \"service\""}'
 
 # With authentication
+
+
 curl -X GET http://localhost:8080/scopes \
   -H "Authorization: Bearer your-api-key"
 ```
 
 ## Best Practices
 
+
 1. **Error Handling**: Always check for errors in responses
+
 2. **Rate Limiting**: Respect rate limits and implement exponential backoff
+
 3. **Caching**: Cache responses when appropriate
+
 4. **Authentication**: Use API keys for production environments
+
 5. **WebSocket**: Use WebSocket for real-time updates
+
 6. **Unix Socket**: Use Unix socket for local, high-performance access 

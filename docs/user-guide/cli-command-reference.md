@@ -1,6 +1,8 @@
 # CLI Command Reference
 
+
 ## Initialization and Discovery
+
 
 ```bash
 rhema init [--scope-type TYPE] [--scope-name NAME]  # Initialize new scope
@@ -11,6 +13,7 @@ rhema tree                                           # Show scope hierarchy
 
 ## Content Management
 
+
 ```bash
 rhema show FILE [--scope SCOPE]                      # Display YAML file content
 rhema query "CQL_QUERY"                              # Execute context query
@@ -18,6 +21,7 @@ rhema search "TERM" [--in FILE]                      # Search across context fil
 ```
 
 ## Validation and Health
+
 
 ```bash
 rhema validate [--recursive]                         # Validate YAML files
@@ -27,6 +31,7 @@ rhema stats                                          # Show context metrics
 
 ## Work Item Management
 
+
 ```bash
 rhema todo add "TITLE" [--priority LEVEL]            # Add todo
 rhema todo list [--status STATUS]                    # List todos
@@ -34,6 +39,7 @@ rhema todo complete ID [--outcome "DESCRIPTION"]     # Complete todo
 ```
 
 ## Knowledge Management
+
 
 ```bash
 rhema insight record "INSIGHT" [--confidence LEVEL]  # Record insight
@@ -43,6 +49,7 @@ rhema decision record "TITLE" [--status STATUS]      # Record decision
 
 ## Cross-Scope Operations
 
+
 ```bash
 rhema dependencies                                   # Show scope relationships
 rhema impact FILE                                    # Show affected scopes
@@ -50,6 +57,7 @@ rhema sync-knowledge                                 # Update cross-scope refere
 ```
 
 ## Performance Monitoring and Analytics
+
 
 ```bash
 rhema performance start                              # Start performance monitoring
@@ -61,17 +69,26 @@ rhema performance config                             # Show monitoring configura
 
 ### Performance Monitoring Features
 
+
 - **System Performance Monitoring**: CPU, memory, disk I/O, network latency, file system operations
+
 - **User Experience Monitoring**: Command execution time, success rates, response times, error tracking
+
 - **Usage Analytics**: Command usage patterns, feature adoption, workflow completion rates
+
 - **Performance Reporting**: Automated reports with trends, recommendations, and impact assessment
+
 - **Threshold Alerts**: Configurable alerts for performance bottlenecks and degradations
+
 - **Real-time Dashboards**: Web-based dashboards for live performance monitoring
 
 ### Example Performance Report
 
+
 ```bash
 # Generate a 24-hour performance report
+
+
 rhema performance report --hours 24
 ```
 

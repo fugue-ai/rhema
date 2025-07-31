@@ -1,16 +1,20 @@
 # Global Rhema Configuration Reference
 
+
 ## Overview
+
 
 The global rhema configuration file is stored at `~/.rhema/config.yaml` and contains user-wide settings that apply across all rhema projects. This file manages personal preferences, application settings, security configurations, and integration settings.
 
 ## File Location
+
 
 ```
 ~/.rhema/config.yaml
 ```
 
 ## Complete Configuration Structure
+
 
 ```yaml
 version: "1.0.0"
@@ -269,155 +273,237 @@ updated_at: "2024-01-01T00:00:00Z"
 
 ## Configuration Sections
 
+
 ### 1. User Section
+
 
 The `user` section contains personal information and preferences:
 
 - **id**: Unique user identifier
+
 - **name**: User's full name
+
 - **email**: User's email address
+
 - **preferences**: User-specific settings including:
+
   - Output format preferences
+
   - Editor settings
+
   - UI theme and appearance
+
   - Notification settings
+
   - Language and timezone preferences
 
 ### 2. Application Section
 
+
 The `application` section manages core application behavior:
 
 - **name**: Application name
+
 - **version**: Current version
+
 - **settings**: Core application settings including:
+
   - Debug and logging configuration
+
   - Telemetry settings
+
   - Auto-update preferences
+
 - **features**: Feature flags for enabling/disabling functionality
+
 - **plugins**: Plugin management settings
 
 ### 3. Environment Section
 
+
 The `environment` section handles environment-specific configurations:
 
 - **current**: Currently active environment
+
 - **environments**: Environment-specific settings for development, testing, staging, and production
+
 - **environment_variables**: Global environment variables
+
 - **paths**: Directory paths for various data types
 
 ### 4. Security Section
 
+
 The `security` section manages all security-related configurations:
 
 - **encryption**: Encryption algorithm and key management
+
 - **authentication**: Authentication methods and session management
+
 - **authorization**: Role-based access control settings
+
 - **audit**: Audit logging configuration
+
 - **compliance**: Compliance framework settings
 
 ### 5. Performance Section
 
+
 The `performance` section optimizes application performance:
 
 - **cache**: Cache configuration and settings
+
 - **threading**: Thread pool and concurrency settings
+
 - **memory**: Memory management and garbage collection
+
 - **network**: Network connection and timeout settings
 
 ### 6. Integrations Section
 
+
 The `integrations` section configures external service integrations:
 
 - **git**: Git provider and workflow settings
+
 - **ide**: IDE integration settings
+
 - **cicd**: CI/CD pipeline configuration
+
 - **cloud**: Cloud service provider settings
+
 - **external_services**: Additional external service configurations
 
 ### 7. System Sections
 
+
 - **custom**: Custom configuration extensions
+
 - **audit_log**: Configuration change tracking
+
 - **health**: System health status and recommendations
+
 - **stats**: Configuration statistics and metrics
 
 ## CLI Commands for Configuration Management
 
+
 ```bash
 # Display global configuration
+
+
 rhema config show global [--format <format>]
 
 # Edit global configuration
+
+
 rhema config edit global [--editor <editor>]
 
 # Validate global configuration
+
+
 rhema config validate global [--fix]
 
 # Check configuration health
+
+
 rhema config health global
 
 # Backup global configuration
+
+
 rhema config backup global
 
 # Export global configuration
+
+
 rhema config export global --format yaml --output global-config.yaml
 
 # Import global configuration
+
+
 rhema config import global --format yaml --input global-config.yaml
 ```
 
 ## Configuration Hierarchy
 
+
 The rhema configuration system follows this hierarchy:
 
 1. **Global Configuration** (`~/.rhema/config.yaml`) - User-wide settings
+
 2. **Repository Configuration** (`.rhema/config.yaml`) - Project-specific settings
+
 3. **Scope Configuration** - Scope-specific settings within projects
 
 Global configuration provides defaults that can be overridden by repository-specific configurations.
 
 ## Best Practices
 
+
 1. **Backup Regularly**: Use `rhema config backup global` to create regular backups
+
 2. **Validate Changes**: Always validate configuration after making changes
+
 3. **Use Version Control**: Consider versioning your global configuration
+
 4. **Secure Sensitive Data**: Ensure encryption is enabled for sensitive configurations
+
 5. **Environment Separation**: Use different configurations for different environments
 
 ## Troubleshooting
 
+
 ### Common Issues
 
+
 1. **Configuration Not Found**: Ensure the file exists at `~/.rhema/config.yaml`
+
 2. **Permission Errors**: Check file permissions and ownership
+
 3. **Validation Errors**: Use `rhema config validate global --fix` to auto-fix issues
+
 4. **Performance Issues**: Review and adjust performance settings
 
 ### Health Checks
 
+
 ```bash
 # Check configuration health
+
+
 rhema config health global
 
 # View health recommendations
+
+
 rhema config health global --verbose
 ```
 
 ## Migration and Updates
 
+
 When updating rhema versions, the configuration system automatically handles migrations:
 
 ```bash
 # Check for pending migrations
+
+
 rhema config migrate global --dry-run
 
 # Apply migrations
+
+
 rhema config migrate global
 ```
 
 ## Related Documentation
 
+
 - [Configuration Management](./configuration-management.md)
+
 - [Repository Configuration](./repository-config-reference.md)
+
 - [CLI Command Reference](./cli-command-reference.md)
+
 - [Security Configuration](./security-configuration.md) 

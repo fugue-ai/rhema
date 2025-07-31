@@ -1,82 +1,136 @@
-# GACP MCP Daemon Usage Guide
+# Rhema MCP Daemon Usage Guide
+
 
 ## Table of Contents
 
+
 1. [Installation](#installation)
+
 2. [Quick Start](#quick-start)
+
 3. [Deployment Options](#deployment-options)
+
 4. [Integration Examples](#integration-examples)
+
 5. [Monitoring and Maintenance](#monitoring-and-maintenance)
+
 6. [Troubleshooting](#troubleshooting)
+
 7. [Best Practices](#best-practices)
 
 ## Installation
 
+
 ### Prerequisites
 
+
 - Rust 1.70+ (for building from source)
-- Git repository with GACP context files
+
+- Git repository with Rhema context files
+
 - Optional: Redis for distributed caching
 
 ### Building from Source
 
+
 ```bash
 # Clone the repository
-git clone https://github.com/fugue-ai/gacp.git
-cd gacp
+
+
+git clone https://github.com/fugue-ai/rhema.git
+cd rhema
 
 # Build the project
+
+
 cargo build --release
 
 # Install globally
+
+
 cargo install --path .
 ```
 
 ### Using Pre-built Binaries
 
-Download the latest release from the [GitHub releases page](https://github.com/fugue-ai/gacp/releases).
+
+Download the latest release from the [GitHub releases page](https://github.com/fugue-ai/rhema/releases).
 
 ## Quick Start
 
-### 1. Initialize GACP Context
 
-First, ensure you have a GACP-enabled repository:
+### 1. Initialize Rhema Context
+
+
+First, ensure you have a Rhema-enabled repository:
 
 ```bash
-# Initialize GACP in your repository
-gacp init --scope-type service --scope-name my-service
+# Initialize Rhema in your repository
+
+
+rhema init --scope-type service --scope-name my-service
 
 # This creates the basic structure:
-# .gacp/
+
+
+# .rhema/
+
+
 # ├── scopes/
+
+
 # │   └── my-service/
+
+
 # │       ├── scope.yaml
+
+
 # │       ├── knowledge.yaml
+
+
 # │       ├── todos.yaml
+
+
 # │       ├── decisions.yaml
+
+
 # │       └── patterns.yaml
+
+
 ```
 
 ### 2. Start the Daemon
 
+
 ```bash
 # Start with default configuration
-gacp daemon start
+
+
+rhema daemon start
 
 # Start with custom configuration
-gacp daemon start --host 0.0.0.0 --port 8080 --auth --api-key "your-secret-key"
+
+
+rhema daemon start --host 0.0.0.0 --port 8080 --auth --api-key "your-secret-key"
 ```
 
 ### 3. Verify the Daemon
 
+
 ```bash
 # Check health
+
+
 curl http://localhost:8080/health
 
 # List scopes
+
+
 curl http://localhost:8080/scopes
 
 # Execute a query
+
+
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
   -d '{"query": "SELECT * FROM scopes"}'
@@ -84,17 +138,24 @@ curl -X POST http://localhost:8080/query \
 
 ## Deployment Options
 
+
 ### Local Development
+
 
 ```bash
 # Simple local development setup
-gacp daemon start --host 127.0.0.1 --port 8080
+
+
+rhema daemon start --host 127.0.0.1 --port 8080
 
 # With file watching for development
-gacp daemon start --watch --watch-dirs ".gacp,config"
+
+
+rhema daemon start --watch --watch-dirs ".rhema,config"
 ```
 
 ### Docker Deployment
+
 
 Create a `Dockerfile`:
 
@@ -106,10 +167,10 @@ RUN cargo build --release
 
 FROM debian:bullseye-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/target/release/gacp /usr/local/bin/gacp
+COPY --from=builder /app/target/release/rhema /usr/local/bin/rhema
 WORKDIR /app
 EXPOSE 8080
-CMD ["gacp", "daemon", "start", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["rhema", "daemon", "start", "--host", "0.0.0.0", "--port", "8080"]
 ```
 
 Create `docker-compose.yml`:
@@ -117,22 +178,29 @@ Create `docker-compose.yml`:
 ```yaml
 version: '3.8'
 services:
-  gacp-mcp:
+  rhema-mcp:
     build: .
     ports:
+
       - "8080:8080"
     volumes:
+
       - .:/app
-      - /tmp/gacp-mcp.sock:/tmp/gacp-mcp.sock
+
+      - /tmp/rhema-mcp.sock:/tmp/rhema-mcp.sock
     environment:
-      - GACP_API_KEY=your-secret-key
-      - GACP_REDIS_URL=redis://redis:6379
+
+      - Rhema_API_KEY=your-secret-key
+
+      - Rhema_REDIS_URL=redis://redis:6379
     depends_on:
+
       - redis
 
   redis:
     image: redis:7-alpine
     ports:
+
       - "6379:6379"
 ```
 
@@ -144,41 +212,47 @@ docker-compose up -d
 
 ### Kubernetes Deployment
 
+
 Create `k8s-deployment.yaml`:
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gacp-mcp
+  name: rhema-mcp
   labels:
-    app: gacp-mcp
+    app: rhema-mcp
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: gacp-mcp
+      app: rhema-mcp
   template:
     metadata:
       labels:
-        app: gacp-mcp
+        app: rhema-mcp
     spec:
       containers:
-      - name: gacp-mcp
-        image: gacp-mcp:latest
+
+      - name: rhema-mcp
+        image: rhema-mcp:latest
         ports:
+
         - containerPort: 8080
         env:
-        - name: GACP_API_KEY
+
+        - name: Rhema_API_KEY
           valueFrom:
             secretKeyRef:
-              name: gacp-secrets
+              name: rhema-secrets
               key: api-key
-        - name: GACP_REDIS_URL
-          value: "redis://gacp-redis:6379"
+
+        - name: Rhema_REDIS_URL
+          value: "redis://rhema-redis:6379"
         volumeMounts:
-        - name: gacp-config
-          mountPath: /app/.gacp
+
+        - name: rhema-config
+          mountPath: /app/.rhema
         livenessProbe:
           httpGet:
             path: /health
@@ -192,19 +266,21 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
       volumes:
-      - name: gacp-config
+
+      - name: rhema-config
         configMap:
-          name: gacp-config
+          name: rhema-config
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: gacp-mcp-service
+  name: rhema-mcp-service
 spec:
   selector:
-    app: gacp-mcp
+    app: rhema-mcp
   ports:
+
   - protocol: TCP
     port: 80
     targetPort: 8080
@@ -219,22 +295,23 @@ kubectl apply -f k8s-deployment.yaml
 
 ### Systemd Service
 
-Create `/etc/systemd/system/gacp-mcp.service`:
+
+Create `/etc/systemd/system/rhema-mcp.service`:
 
 ```ini
 [Unit]
-Description=GACP MCP Daemon
+Description=Rhema MCP Daemon
 After=network.target
 
 [Service]
 Type=simple
-User=gacp
-Group=gacp
-WorkingDirectory=/opt/gacp
-ExecStart=/usr/local/bin/gacp daemon start --config /etc/gacp/gacp-mcp.yaml
+User=rhema
+Group=rhema
+WorkingDirectory=/opt/rhema
+ExecStart=/usr/local/bin/rhema daemon start --config /etc/rhema/rhema-mcp.yaml
 Restart=always
 RestartSec=10
-Environment=GACP_API_KEY=your-secret-key
+Environment=Rhema_API_KEY=your-secret-key
 
 [Install]
 WantedBy=multi-user.target
@@ -244,21 +321,23 @@ Enable and start the service:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable gacp-mcp
-sudo systemctl start gacp-mcp
-sudo systemctl status gacp-mcp
+sudo systemctl enable rhema-mcp
+sudo systemctl start rhema-mcp
+sudo systemctl status rhema-mcp
 ```
 
 ## Integration Examples
 
+
 ### Python Integration
+
 
 ```python
 import requests
 import json
 from typing import Dict, Any, Optional
 
-class GacpClient:
+class RhemaClient:
     def __init__(self, base_url: str = "http://localhost:8080", api_key: Optional[str] = None):
         self.base_url = base_url
         self.session = requests.Session()
@@ -304,22 +383,32 @@ class GacpClient:
         return response.json()
 
 # Usage example
-client = GacpClient('http://localhost:8080', 'your-api-key')
+
+
+client = RhemaClient('http://localhost:8080', 'your-api-key')
 
 # Check health
+
+
 health = client.health()
 print(f"Daemon status: {health['status']}")
 
 # List scopes
+
+
 scopes = client.list_scopes()
 for scope in scopes:
     print(f"Scope: {scope['path']}")
 
 # Execute query
+
+
 result = client.execute_query("SELECT * FROM scopes WHERE type = 'service'")
 print(f"Found {len(result['results'])} service scopes")
 
 # Get knowledge
+
+
 knowledge = client.get_knowledge('my-service')
 if knowledge:
     print(f"Knowledge base: {knowledge['title']}")
@@ -327,8 +416,9 @@ if knowledge:
 
 ### JavaScript/Node.js Integration
 
+
 ```javascript
-class GacpClient {
+class RhemaClient {
   constructor(baseUrl = 'http://localhost:8080', apiKey = null) {
     this.baseUrl = baseUrl;
     this.apiKey = apiKey;
@@ -389,7 +479,7 @@ class GacpClient {
 }
 
 // Usage example
-const client = new GacpClient('http://localhost:8080', 'your-api-key');
+const client = new RhemaClient('http://localhost:8080', 'your-api-key');
 
 async function main() {
   try {
@@ -422,8 +512,9 @@ main();
 
 ### WebSocket Integration
 
+
 ```javascript
-class GacpWebSocketClient {
+class RhemaWebSocketClient {
   constructor(url = 'ws://localhost:8081/ws', apiKey = null) {
     this.url = url;
     this.apiKey = apiKey;
@@ -516,7 +607,7 @@ class GacpWebSocketClient {
 }
 
 // Usage example
-const wsClient = new GacpWebSocketClient('ws://localhost:8081/ws', 'your-api-key');
+const wsClient = new RhemaWebSocketClient('ws://localhost:8081/ws', 'your-api-key');
 
 // Handle resource changes
 wsClient.onResourceChanged = (params) => {
@@ -528,7 +619,7 @@ async function main() {
     await wsClient.connect();
     
     // Subscribe to resource changes
-    const subscription = await wsClient.subscribe('gacp://scopes/my-service');
+    const subscription = await wsClient.subscribe('rhema://scopes/my-service');
     console.log('Subscribed:', subscription.subscription_id);
 
     // Execute query
@@ -551,13 +642,19 @@ main();
 
 ### Unix Socket Integration
 
+
 ```bash
 #!/bin/bash
 
+
 # Unix socket client example
-SOCKET_PATH="/tmp/gacp-mcp.sock"
+
+
+SOCKET_PATH="/tmp/rhema-mcp.sock"
 
 # Function to send JSON-RPC request
+
+
 send_request() {
     local method="$1"
     local params="$2"
@@ -572,70 +669,104 @@ EOF
 }
 
 # Health check
+
+
 echo "Checking health..."
 send_request "system/health" "{}" 1
 
 # List scopes
+
+
 echo "Listing scopes..."
-send_request "resources/list" '{"uri": "gacp://scopes"}' 2
+send_request "resources/list" '{"uri": "rhema://scopes"}' 2
 
 # Execute query
+
+
 echo "Executing query..."
 send_request "query/execute" '{"query": "SELECT * FROM scopes"}' 3
 ```
 
 ## Monitoring and Maintenance
 
+
 ### Health Monitoring
+
 
 ```bash
 # Basic health check
+
+
 curl -f http://localhost:8080/health || exit 1
 
 # Detailed health information
+
+
 curl http://localhost:8080/health | jq '.'
 
 # Check specific metrics
+
+
 curl http://localhost:8080/health | jq '.memory_usage'
 curl http://localhost:8080/health | jq '.cache_hit_rate'
 ```
 
 ### Log Monitoring
 
+
 ```bash
 # Follow logs
-tail -f /var/log/gacp-mcp.log
+
+
+tail -f /var/log/rhema-mcp.log
 
 # Search for errors
-grep ERROR /var/log/gacp-mcp.log
+
+
+grep ERROR /var/log/rhema-mcp.log
 
 # Monitor connection count
+
+
 watch -n 5 'curl -s http://localhost:8080/health | jq ".connections"'
 ```
 
 ### Performance Monitoring
 
+
 ```bash
 # Check memory usage
+
+
 curl http://localhost:8080/health | jq '.memory_usage'
 
 # Monitor cache performance
+
+
 curl http://localhost:8080/stats | jq '.cache_stats'
 
 # Check query performance
+
+
 curl http://localhost:8080/stats | jq '.query_stats'
 ```
 
 ### Automated Monitoring Script
 
+
 ```bash
 #!/bin/bash
 
-# Monitoring script for GACP MCP Daemon
+
+# Monitoring script for Rhema MCP Daemon
+
+
 DAEMON_URL="http://localhost:8080"
 ALERT_EMAIL="admin@example.com"
 
 # Check if daemon is running
+
+
 check_health() {
     local response=$(curl -s -w "%{http_code}" "$DAEMON_URL/health" -o /tmp/health.json)
     local status_code="${response: -3}"
@@ -656,6 +787,8 @@ check_health() {
 }
 
 # Check memory usage
+
+
 check_memory() {
     local used=$(jq -r '.memory_usage.used' /tmp/health.json)
     local total=$(jq -r '.memory_usage.total' /tmp/health.json)
@@ -671,6 +804,8 @@ check_memory() {
 }
 
 # Check cache performance
+
+
 check_cache() {
     local hit_rate=$(jq -r '.cache_hit_rate' /tmp/health.json)
     local percentage=$(echo "$hit_rate * 100" | bc -l | cut -d. -f1)
@@ -685,6 +820,8 @@ check_cache() {
 }
 
 # Main monitoring function
+
+
 main() {
     local errors=0
     
@@ -701,9 +838,11 @@ main() {
     fi
     
     if [ "$errors" -gt 0 ]; then
-        echo "ALERT: $errors issues detected with GACP MCP Daemon"
+        echo "ALERT: $errors issues detected with Rhema MCP Daemon"
         # Send alert email
-        echo "GACP MCP Daemon monitoring alert" | mail -s "Daemon Alert" "$ALERT_EMAIL"
+
+
+        echo "Rhema MCP Daemon monitoring alert" | mail -s "Daemon Alert" "$ALERT_EMAIL"
         exit 1
     fi
     
@@ -715,129 +854,202 @@ main
 
 ## Troubleshooting
 
+
 ### Common Issues
+
 
 #### Daemon Won't Start
 
+
 ```bash
 # Check if port is already in use
+
+
 sudo lsof -i :8080
 
 # Check if Unix socket file exists
-ls -la /tmp/gacp-mcp.sock
+
+
+ls -la /tmp/rhema-mcp.sock
 
 # Check permissions
-sudo chown gacp:gacp /tmp/gacp-mcp.sock
-sudo chmod 660 /tmp/gacp-mcp.sock
+
+
+sudo chown rhema:rhema /tmp/rhema-mcp.sock
+sudo chmod 660 /tmp/rhema-mcp.sock
 ```
 
 #### Authentication Errors
 
+
 ```bash
 # Check API key configuration
-grep api_key /etc/gacp/gacp-mcp.yaml
+
+
+grep api_key /etc/rhema/rhema-mcp.yaml
 
 # Test with curl
+
+
 curl -H "Authorization: Bearer your-api-key" http://localhost:8080/health
 ```
 
 #### Redis Connection Issues
 
+
 ```bash
 # Test Redis connectivity
+
+
 redis-cli ping
 
 # Check Redis URL
-echo $GACP_REDIS_URL
+
+
+echo $Rhema_REDIS_URL
 
 # Test connection with redis-cli
+
+
 redis-cli -u "redis://localhost:6379" ping
 ```
 
 #### File Watching Issues
 
+
 ```bash
 # Check inotify limits (Linux)
+
+
 cat /proc/sys/fs/inotify/max_user_watches
 
 # Increase limits
+
+
 echo 524288 | sudo tee /proc/sys/fs/inotify/max_user_watches
 
 # Check file permissions
-ls -la .gacp/
+
+
+ls -la .rhema/
 ```
 
 ### Debug Mode
+
 
 Enable debug logging for troubleshooting:
 
 ```bash
 # Start with debug logging
-gacp daemon start --log-level debug
+
+
+rhema daemon start --log-level debug
 
 # Or modify config file
-sed -i 's/level: "info"/level: "debug"/' gacp-mcp.yaml
+
+
+sed -i 's/level: "info"/level: "debug"/' rhema-mcp.yaml
 ```
 
 ### Log Analysis
 
+
 ```bash
 # Find errors
-grep -i error /var/log/gacp-mcp.log
+
+
+grep -i error /var/log/rhema-mcp.log
 
 # Find warnings
-grep -i warn /var/log/gacp-mcp.log
+
+
+grep -i warn /var/log/rhema-mcp.log
 
 # Monitor real-time
-tail -f /var/log/gacp-mcp.log | grep -E "(ERROR|WARN)"
+
+
+tail -f /var/log/rhema-mcp.log | grep -E "(ERROR|WARN)"
 
 # Analyze performance
-grep "execution_time" /var/log/gacp-mcp.log | awk '{sum+=$NF; count++} END {print "Average:", sum/count}'
+
+
+grep "execution_time" /var/log/rhema-mcp.log | awk '{sum+=$NF; count++} END {print "Average:", sum/count}'
 ```
 
 ## Best Practices
 
+
 ### Security
 
+
 1. **Always use authentication in production**
+
 2. **Use strong, randomly generated API keys**
+
 3. **Restrict CORS origins to your application domains**
+
 4. **Use HTTPS in production environments**
+
 5. **Regularly rotate API keys and JWT secrets**
+
 6. **Monitor access logs for suspicious activity**
 
 ### Performance
 
+
 1. **Use Redis for distributed caching**
+
 2. **Configure appropriate cache TTL values**
+
 3. **Monitor memory usage and cache hit rates**
+
 4. **Use connection pooling for database connections**
+
 5. **Implement rate limiting for API endpoints**
+
 6. **Use WebSocket for real-time updates**
 
 ### Reliability
 
+
 1. **Implement health checks and monitoring**
+
 2. **Use systemd or similar for process management**
+
 3. **Set up log rotation and archival**
+
 4. **Implement graceful shutdown handling**
+
 5. **Use load balancers for high availability**
+
 6. **Regularly backup configuration and data**
 
 ### Development
 
+
 1. **Use version control for configuration files**
+
 2. **Implement automated testing for API endpoints**
+
 3. **Use environment-specific configurations**
+
 4. **Document API changes and breaking changes**
+
 5. **Implement proper error handling in clients**
+
 6. **Use structured logging for better debugging**
 
 ### Deployment
 
+
 1. **Use containerization for consistent deployments**
+
 2. **Implement blue-green deployments for zero downtime**
+
 3. **Use configuration management tools**
+
 4. **Set up automated monitoring and alerting**
+
 5. **Implement proper backup and recovery procedures**
+
 6. **Use infrastructure as code for deployment automation** 

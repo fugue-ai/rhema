@@ -1,67 +1,98 @@
-# Setting Up Sublime Text for GACP Development
+# Setting Up Sublime Text for Rhema Development
 
-This guide will help you configure Sublime Text to work effectively with GACP (Git-Based Agent Context Protocol) projects. Sublime Text's speed, extensibility, and powerful text editing capabilities make it an excellent choice for GACP development.
+
+This guide will help you configure Sublime Text to work effectively with Rhema (Git-Based Agent Context Protocol) projects. Sublime Text's speed, extensibility, and powerful text editing capabilities make it an excellent choice for Rhema development.
 
 ## Prerequisites
 
+
 - [Sublime Text](https://www.sublimetext.com/) installed on your system
-- [GACP CLI](../README.md#installation) installed
+
+- [Rhema CLI](../README.md#installation) installed
+
 - A Git repository (or create one for testing)
 
 ## Installation
 
-### 1. Install GACP CLI
 
-First, ensure you have the GACP CLI installed:
+### 1. Install Rhema CLI
+
+
+First, ensure you have the Rhema CLI installed:
 
 ```bash
 # From Cargo (recommended)
-cargo install gacp-cli
+
+
+cargo install rhema-cli
 
 # Or build from source
-git clone https://github.com/fugue-ai/gacp.git
-cd gacp
+
+
+git clone https://github.com/fugue-ai/rhema.git
+cd rhema
 cargo build --release
 ```
 
 ### 2. Verify Installation
 
+
 ```bash
-gacp --version
+rhema --version
 ```
 
 ## Sublime Text Configuration
 
+
 ### 1. Install Package Control
+
 
 Package Control is essential for managing Sublime Text packages:
 
 1. Open Sublime Text
+
 2. Go to **Tools** → **Install Package Control**
+
 3. Restart Sublime Text
 
 ### 2. Install Recommended Packages
 
+
 Install these packages via Package Control (**Preferences** → **Package Control** → **Install Package**):
 
 #### Essential Packages
+
+
 - **[Package Control](https://packagecontrol.io/packages/Package%20Control)** - Package manager (usually pre-installed)
+
 - **[Git](https://packagecontrol.io/packages/Git)** - Git integration
+
 - **[GitGutter](https://packagecontrol.io/packages/GitGutter)** - Git diff indicators
+
 - **[YAML](https://packagecontrol.io/packages/YAML)** - YAML syntax highlighting and validation
+
 - **[Rust Enhanced](https://packagecontrol.io/packages/Rust%20Enhanced)** - Rust language support
 
 #### Recommended Packages
+
+
 - **[SideBarEnhancements](https://packagecontrol.io/packages/SideBarEnhancements)** - Enhanced sidebar functionality
+
 - **[BracketHighlighter](https://packagecontrol.io/packages/BracketHighlighter)** - Bracket and tag highlighting
+
 - **[AutoFileName](https://packagecontrol.io/packages/AutoFileName)** - Auto-complete filenames
+
 - **[Color Highlighter](https://packagecontrol.io/packages/Color%20Highlighter)** - Color value highlighting
+
 - **[TrailingSpaces](https://packagecontrol.io/packages/TrailingSpaces)** - Highlight trailing spaces
+
 - **[Alignment](https://packagecontrol.io/packages/Alignment)** - Align text and code
 
 ### 3. Configure Sublime Text Settings
 
+
 #### User Settings
+
 
 Open **Preferences** → **Settings** and add these settings:
 
@@ -112,10 +143,13 @@ Open **Preferences** → **Settings** and add these settings:
 
 #### YAML-Specific Settings
 
+
 Create a YAML syntax-specific settings file:
 
 1. Open a YAML file
+
 2. Go to **View** → **Syntax** → **YAML**
+
 3. Go to **Preferences** → **Settings - More** → **Syntax Specific - User**
 
 Add these settings:
@@ -137,7 +171,9 @@ Add these settings:
 
 ### 4. Configure Package Settings
 
+
 #### GitGutter Settings
+
 
 Open **Preferences** → **Package Settings** → **GitGutter** → **Settings - User**:
 
@@ -178,6 +214,7 @@ Open **Preferences** → **Package Settings** → **GitGutter** → **Settings -
 
 #### Rust Enhanced Settings
 
+
 Open **Preferences** → **Package Settings** → **Rust Enhanced** → **Settings - User**:
 
 ```json
@@ -197,56 +234,85 @@ Open **Preferences** → **Package Settings** → **Rust Enhanced** → **Settin
 
 ## Workflow Integration
 
-### 1. Initialize a GACP Scope
+
+### 1. Initialize a Rhema Scope
+
 
 1. Open your project in Sublime Text
-2. Open the Command Palette (**Ctrl+Shift+P** or **Cmd+Shift+P**)
-3. Type "Terminal" and select **Terminal: Open Default**
-4. Run `gacp init`
 
-This creates the initial `.gacp/` directory with template files.
+2. Open the Command Palette (**Ctrl+Shift+P** or **Cmd+Shift+P**)
+
+3. Type "Terminal" and select **Terminal: Open Default**
+
+4. Run `rhema init`
+
+This creates the initial `.rhema/` directory with template files.
 
 ### 2. Configure AI Context
+
 
 Create a `.copilot` file in your project root:
 
 ```
-# GACP Context Integration
+# Rhema Context Integration
 
-This project uses GACP (Git-Based Agent Context Protocol) for structured context management.
+
+This project uses Rhema (Git-Based Agent Context Protocol) for structured context management.
 
 ## Key Files to Reference:
-- .gacp/gacp.yaml - Scope definition and metadata
-- .gacp/knowledge.yaml - Domain knowledge and insights  
-- .gacp/todos.yaml - Work items and tasks
-- .gacp/decisions.yaml - Architecture decisions
-- .gacp/patterns.yaml - Design patterns
-- .gacp/conventions.yaml - Coding standards
+
+
+- .rhema/rhema.yaml - Scope definition and metadata
+
+- .rhema/knowledge.yaml - Domain knowledge and insights  
+
+- .rhema/todos.yaml - Work items and tasks
+
+- .rhema/decisions.yaml - Architecture decisions
+
+- .rhema/patterns.yaml - Design patterns
+
+- .rhema/conventions.yaml - Coding standards
 
 ## When Providing Assistance:
-1. Check .gacp/knowledge.yaml for existing insights and domain knowledge
-2. Review .gacp/decisions.yaml for architectural decisions
-3. Consider .gacp/patterns.yaml for established design patterns
-4. Follow .gacp/conventions.yaml for coding standards
-5. Update relevant GACP files when making significant changes
 
-## Common GACP Commands:
-- gacp query "todos WHERE status='in_progress'" - Find active work
-- gacp insight record "finding" - Record new insights
-- gacp decision record "title" - Record architectural decisions
-- gacp validate --recursive - Validate all GACP files
+
+1. Check .rhema/knowledge.yaml for existing insights and domain knowledge
+
+2. Review .rhema/decisions.yaml for architectural decisions
+
+3. Consider .rhema/patterns.yaml for established design patterns
+
+4. Follow .rhema/conventions.yaml for coding standards
+
+5. Update relevant Rhema files when making significant changes
+
+## Common Rhema Commands:
+
+
+- rhema query "todos WHERE status='in_progress'" - Find active work
+
+- rhema insight record "finding" - Record new insights
+
+- rhema decision record "title" - Record architectural decisions
+
+- rhema validate --recursive - Validate all Rhema files
 ```
 
 ### 3. Create Custom Snippets
 
-#### GACP Todo Snippet
+
+#### Rhema Todo Snippet
+
 
 1. Go to **Tools** → **Developer** → **New Snippet**
+
 2. Replace the content with:
 
 ```xml
 <snippet>
     <content><![CDATA[
+
 - id: "todo-${1:001}"
   title: "${2:Todo title}"
   description: "${3:Detailed description}"
@@ -257,19 +323,21 @@ This project uses GACP (Git-Based Agent Context Protocol) for structured context
   tags: [${12:tag1, tag2}]
   related_components: [${13:component1, component2}]
 ]]></content>
-    <tabTrigger>gacp-todo</tabTrigger>
+    <tabTrigger>rhema-todo</tabTrigger>
     <scope>source.yaml</scope>
-    <description>Create a new GACP todo item</description>
+    <description>Create a new Rhema todo item</description>
 </snippet>
 ```
 
-#### GACP Insight Snippet
+#### Rhema Insight Snippet
+
 
 Create another snippet:
 
 ```xml
 <snippet>
     <content><![CDATA[
+
 - finding: "${1:Insight finding}"
   impact: "${2:Impact description}"
   solution: "${3:Proposed solution}"
@@ -279,19 +347,21 @@ Create another snippet:
   category: ${7|performance,security,architecture,user_experience|}
   recorded_at: "${8:$CURRENT_YEAR}-${9:$CURRENT_MONTH}-${10:$CURRENT_DATE}T${11:$CURRENT_HOUR}:${12:$CURRENT_MINUTE}:00Z"
 ]]></content>
-    <tabTrigger>gacp-insight</tabTrigger>
+    <tabTrigger>rhema-insight</tabTrigger>
     <scope>source.yaml</scope>
-    <description>Record a new GACP insight</description>
+    <description>Record a new Rhema insight</description>
 </snippet>
 ```
 
-#### GACP Decision Snippet
+#### Rhema Decision Snippet
+
 
 Create another snippet:
 
 ```xml
 <snippet>
     <content><![CDATA[
+
 - id: "decision-${1:001}"
   title: "${2:Decision title}"
   description: "${3:Detailed description}"
@@ -301,63 +371,86 @@ Create another snippet:
   impact: "${7:Impact description}"
   decided_at: "${8:$CURRENT_YEAR}-${9:$CURRENT_MONTH}-${10:$CURRENT_DATE}T${11:$CURRENT_HOUR}:${12:$CURRENT_MINUTE}:00Z"
 ]]></content>
-    <tabTrigger>gacp-decision</tabTrigger>
+    <tabTrigger>rhema-decision</tabTrigger>
     <scope>source.yaml</scope>
-    <description>Record a new GACP architectural decision</description>
+    <description>Record a new Rhema architectural decision</description>
 </snippet>
 ```
 
 ### 4. Save the Snippets
 
+
 Save these snippets in your User snippets directory:
+
 - **Windows**: `%APPDATA%\Sublime Text 3\Packages\User\`
+
 - **macOS**: `~/Library/Application Support/Sublime Text 3/Packages/User/`
+
 - **Linux**: `~/.config/sublime-text-3/Packages/User/`
 
 ## Git Integration
 
+
 ### 1. Git Package Configuration
+
 
 The Git package provides basic Git functionality:
 
 - **Git: Status** - Show Git status
+
 - **Git: Add** - Stage files
+
 - **Git: Commit** - Commit changes
+
 - **Git: Push** - Push to remote
+
 - **Git: Pull** - Pull from remote
+
 - **Git: Log** - Show commit history
 
 ### 2. GitGutter Features
 
+
 GitGutter provides visual indicators:
 
 - **Modified lines** - Yellow dots
+
 - **Added lines** - Green dots
+
 - **Deleted lines** - Red dots
+
 - **Ignored lines** - Gray dots
 
 ### 3. Git Hooks Setup
 
-Configure Git hooks for GACP validation:
+
+Configure Git hooks for Rhema validation:
 
 #### Pre-commit Hook
+
+
 Create a `.git/hooks/pre-commit` file:
 
 ```bash
 #!/bin/sh
-# GACP Pre-commit Hook
 
-echo "Running GACP validation..."
 
-# Run GACP validation
-if command -v gacp >/dev/null 2>&1; then
-    if ! gacp validate --recursive; then
-        echo "GACP validation failed. Please fix issues before committing."
+# Rhema Pre-commit Hook
+
+
+echo "Running Rhema validation..."
+
+# Run Rhema validation
+
+
+if command -v rhema >/dev/null 2>&1; then
+    if ! rhema validate --recursive; then
+        echo "Rhema validation failed. Please fix issues before committing."
         exit 1
     fi
-    echo "GACP validation passed."
+    echo "Rhema validation passed."
 else
-    echo "GACP CLI not found. Skipping validation."
+    echo "Rhema CLI not found. Skipping validation."
 fi
 ```
 
@@ -368,46 +461,50 @@ chmod +x .git/hooks/pre-commit
 
 ## Custom Build Systems
 
-### 1. GACP Build System
 
-Create a custom build system for GACP commands:
+### 1. Rhema Build System
+
+
+Create a custom build system for Rhema commands:
 
 1. Go to **Tools** → **Build System** → **New Build System**
+
 2. Add this configuration:
 
 ```json
 {
-  "cmd": ["gacp", "$file_name"],
+  "cmd": ["rhema", "$file_name"],
   "selector": "source.yaml",
   "working_dir": "$file_path",
   "variants": [
     {
       "name": "Validate",
-      "cmd": ["gacp", "validate", "--recursive"],
+      "cmd": ["rhema", "validate", "--recursive"],
       "working_dir": "$project_path"
     },
     {
       "name": "Health",
-      "cmd": ["gacp", "health"],
+      "cmd": ["rhema", "health"],
       "working_dir": "$project_path"
     },
     {
       "name": "Scopes",
-      "cmd": ["gacp", "scopes"],
+      "cmd": ["rhema", "scopes"],
       "working_dir": "$project_path"
     },
     {
       "name": "Query",
-      "cmd": ["gacp", "query", "$file_name"],
+      "cmd": ["rhema", "query", "$file_name"],
       "working_dir": "$project_path"
     }
   ]
 }
 ```
 
-3. Save as `GACP.sublime-build`
+3. Save as `Rhema.sublime-build`
 
 ### 2. Rust Build System
+
 
 For Rust development, create a Rust build system:
 
@@ -438,11 +535,14 @@ For Rust development, create a Rust build system:
 
 ## Keyboard Shortcuts
 
+
 ### 1. Custom Key Bindings
+
 
 Create custom key bindings:
 
 1. Go to **Preferences** → **Key Bindings**
+
 2. Add these bindings:
 
 ```json
@@ -451,7 +551,7 @@ Create custom key bindings:
     "keys": ["ctrl+shift+g", "v"],
     "command": "exec",
     "args": {
-      "cmd": ["gacp", "validate", "--recursive"],
+      "cmd": ["rhema", "validate", "--recursive"],
       "working_dir": "$project_path"
     }
   },
@@ -459,7 +559,7 @@ Create custom key bindings:
     "keys": ["ctrl+shift+g", "h"],
     "command": "exec",
     "args": {
-      "cmd": ["gacp", "health"],
+      "cmd": ["rhema", "health"],
       "working_dir": "$project_path"
     }
   },
@@ -467,7 +567,7 @@ Create custom key bindings:
     "keys": ["ctrl+shift+g", "s"],
     "command": "exec",
     "args": {
-      "cmd": ["gacp", "scopes"],
+      "cmd": ["rhema", "scopes"],
       "working_dir": "$project_path"
     }
   },
@@ -475,7 +575,7 @@ Create custom key bindings:
     "keys": ["ctrl+shift+g", "i"],
     "command": "exec",
     "args": {
-      "cmd": ["gacp", "init"],
+      "cmd": ["rhema", "init"],
       "working_dir": "$project_path"
     }
   }
@@ -484,65 +584,105 @@ Create custom key bindings:
 
 ### 2. Useful Default Shortcuts
 
+
 - **Ctrl+Shift+P** - Command Palette
+
 - **Ctrl+P** - Quick Open
+
 - **Ctrl+Shift+F** - Find in Files
+
 - **Ctrl+R** - Goto Symbol
+
 - **Ctrl+G** - Goto Line
+
 - **Ctrl+D** - Select Next Occurrence
+
 - **Ctrl+L** - Select Line
+
 - **Ctrl+Shift+K** - Delete Line
+
 - **Ctrl+Shift+D** - Duplicate Line
+
 - **Ctrl+J** - Join Lines
+
 - **Ctrl+Shift+J** - Split Selection into Lines
 
 ## Best Practices
 
+
 ### 1. Regular Context Maintenance
 
-- Run `gacp validate --recursive` before commits
+
+- Run `rhema validate --recursive` before commits
+
 - Update knowledge files when discovering new insights
+
 - Record decisions as they're made, not after the fact
+
 - Keep todos current and accurate
 
 ### 2. Sublime Text Specific
 
+
 - Use multiple cursors for repetitive edits
+
 - Leverage Sublime Text's powerful search and replace
-- Use snippets for consistent GACP file creation
+
+- Use snippets for consistent Rhema file creation
+
 - Take advantage of the command palette for quick access
 
 ### 3. Team Coordination
 
-- Commit GACP files with related code changes
-- Use GACP context in code reviews
-- Share insights and decisions through GACP files
+
+- Commit Rhema files with related code changes
+
+- Use Rhema context in code reviews
+
+- Share insights and decisions through Rhema files
+
 - Use cross-scope queries for project-wide coordination
 
 ## Troubleshooting
 
+
 ### Common Issues
 
-1. **YAML validation errors**: Ensure your GACP files follow the schema in `schemas/gacp.json`
-2. **Missing context**: Run `gacp health` to check scope completeness
+
+1. **YAML validation errors**: Ensure your Rhema files follow the schema in `schemas/rhema.json`
+
+2. **Missing context**: Run `rhema health` to check scope completeness
+
 3. **Package not working**: Check package installation and configuration
-4. **Build system errors**: Ensure GACP CLI is in your PATH
+
+4. **Build system errors**: Ensure Rhema CLI is in your PATH
+
 5. **Git integration issues**: Check Git package settings
 
 ### Getting Help
 
-- Run `gacp --help` for command documentation
-- Check the [GACP README](../README.md) for protocol details
-- Use `gacp validate --recursive` to identify issues
+
+- Run `rhema --help` for command documentation
+
+- Check the [Rhema README](../README.md) for protocol details
+
+- Use `rhema validate --recursive` to identify issues
+
 - Review the [protocol schemas](../schemas/) for file formats
+
 - Check Sublime Text documentation and package help
 
 ## Next Steps
 
-1. **Initialize your first scope**: `gacp init`
-2. **Explore existing context**: `gacp scopes` and `gacp query`
-3. **Start recording knowledge**: Use `gacp insight record`
-4. **Set up team workflows**: Share GACP practices with your team
-5. **Integrate with CI/CD**: Add GACP validation to your build pipeline
 
-For more advanced usage, see the [GACP CLI Reference](../README.md#cli-command-reference), [Protocol Documentation](../schemas/), and [Rust Development Setup](../development/rust-setup.md). 
+1. **Initialize your first scope**: `rhema init`
+
+2. **Explore existing context**: `rhema scopes` and `rhema query`
+
+3. **Start recording knowledge**: Use `rhema insight record`
+
+4. **Set up team workflows**: Share Rhema practices with your team
+
+5. **Integrate with CI/CD**: Add Rhema validation to your build pipeline
+
+For more advanced usage, see the [Rhema CLI Reference](../README.md#cli-command-reference), [Protocol Documentation](../schemas/), and [Rust Development Setup](../development/rust-setup.md). 
