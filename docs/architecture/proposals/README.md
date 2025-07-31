@@ -415,6 +415,29 @@ Implement Conflict-Free Replicated Data Types (CRDTs) in Rhema to enable distrib
 
 ---
 
+### 📋 [Rhema Specification Repository Separation](./0019-rhema-specification-repository-separation.md)
+
+
+**Status**: ❌ **Not Started**  
+**Priority**: High  
+**Effort**: 6-8 weeks  
+
+Move the specification component of Rhema into its own dedicated repository called `rhema-specification` to enable independent versioning, community contributions, and ecosystem growth.
+
+**Key Features**:
+
+- Independent specification versioning and evolution
+
+- Dedicated repository for specification-focused contributions
+
+- Comprehensive specification documentation and tooling
+
+- Automated schema validation and code generation
+
+- Ecosystem growth through third-party implementations
+
+---
+
 ## Proposal Status Overview
 
 
@@ -438,6 +461,7 @@ Implement Conflict-Free Replicated Data Types (CRDTs) in Rhema to enable distrib
 | Rhema Cache Directory System | ❌ Not Started | High | 8-12 weeks | Q2 2025 |
 | Multi-Agent Coordination Monitoring System | ❌ Not Started | Critical | 16-20 weeks | Q2-Q3 2025 |
 | CRDT Applications in Rhema | ❌ Not Started | High | 18-24 weeks | Q3-Q4 2025 |
+| Rhema Specification Repository Separation | ❌ Not Started | High | 6-8 weeks | Q2 2025 |
 
 ## Priority Matrix
 
@@ -467,6 +491,8 @@ Implement Conflict-Free Replicated Data Types (CRDTs) in Rhema to enable distrib
 - **Advanced AI Context Bootstrapping** - Enhanced AI agent context management
 
 - **AST Action Hooks** - Axiomatic mechanisms for safe code transformations
+
+- **Rhema Specification Repository Separation** - Independent specification development and ecosystem growth
 
 ### 🟢 Medium Priority (Next 6-12 months)
 
