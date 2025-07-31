@@ -514,7 +514,7 @@ impl AdvancedInteractiveSession {
         let json_schema = args.contains(&"--json-schema");
         let migrate = args.contains(&"--migrate");
 
-        crate::validate::run(&self.rhema, recursive, json_schema, migrate)
+        crate::validate::run(&self.rhema, recursive, json_schema, migrate, false, false, false)
     }
 
     fn handle_migrate(&mut self, args: &[&str]) -> RhemaResult<()> {
@@ -587,7 +587,7 @@ impl AdvancedInteractiveSession {
     }
 
     fn handle_dependencies(&mut self) -> RhemaResult<()> {
-        crate::dependencies::run(&self.rhema)
+        crate::dependencies::run(&self.rhema, false, false, false, false, false, "text")
     }
 
     fn handle_impact(&mut self, args: &[&str]) -> RhemaResult<()> {
@@ -1074,7 +1074,7 @@ impl AdvancedInteractiveSession {
     }
 
     fn visualize_dependencies(&self) {
-        match crate::dependencies::run(&self.rhema) {
+        match crate::dependencies::run(&self.rhema, false, false, true, false, false, "text") {
             Ok(_) => println!("{}", "Dependencies visualization complete".green()),
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
@@ -1303,7 +1303,7 @@ impl AdvancedInteractiveSession {
             }
         }
 
-        crate::validate::run(&self.rhema, recursive, json_schema, migrate)
+        crate::validate::run(&self.rhema, recursive, json_schema, migrate, false, false, false)
     }
 
     fn handle_migrate_enhanced(
@@ -1378,7 +1378,7 @@ impl AdvancedInteractiveSession {
         &mut self,
         _parser: &mut InteractiveCommandParser,
     ) -> RhemaResult<()> {
-        crate::dependencies::run(&self.rhema)
+        crate::dependencies::run(&self.rhema, false, false, false, false, false, "text")
     }
 
     fn handle_impact_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {

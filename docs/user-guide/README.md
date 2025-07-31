@@ -20,7 +20,7 @@ This section contains comprehensive documentation for using Rhema's features and
 
 - **[Interactive Mode](./interactive-mode.md)** - Using Rhema's interactive interface for dynamic workflows
 
-- **[Interactive Mode Improvements](./interactive-mode-improvements.md)** - Advanced interactive features and enhancements
+
 
 ### 📊 Monitoring & Performance
 

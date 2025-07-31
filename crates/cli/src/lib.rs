@@ -19,6 +19,7 @@ pub mod interactive;
 pub mod interactive_advanced;
 pub mod interactive_builder;
 pub mod interactive_parser;
+pub mod lock;
 pub mod migrate;
 pub mod pattern;
 pub mod performance;

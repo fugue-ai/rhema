@@ -46,8 +46,19 @@ nav:
     - Configuration Management: user-guide/configuration-management.md
     - Batch Operations: user-guide/batch-operations.md
     - Interactive Mode: user-guide/interactive-mode.md
-    - Interactive Mode Improvements: user-guide/interactive-mode-improvements.md
     - Performance Monitoring: user-guide/performance-monitoring.md
+    - Conflict Resolution: user-guide/conflict-resolution.md
+    - Enhanced Dependencies Command: user-guide/enhanced-dependencies-command.md
+    - Enhanced Validation Command: user-guide/enhanced-validation-command.md
+    - Lock File Health Checks: user-guide/lock-file-health-checks.md
+  - Core Features:
+    - Overview: core-features/README.md
+    - Lock Configuration System: core-features/lock-configuration-system.md
+    - Lock File Cache System: core-features/lock-file-cache-system.md
+    - Lock File AI Integration: core-features/lock-file-ai-integration.md
+    - CI/CD Lock File Integration: core-features/ci-cd-lock-file-integration.md
+    - AI Service Lock File Enhancement: core-features/ai-service-lock-file-enhancement.md
+    - Conflict Resolver Usage: core-features/conflict-resolver-usage.md
   - Reference:
     - Global Config Reference: reference/global-config-reference.md
     - Specification Schema Examples: reference/specification-schema-examples.md
@@ -90,7 +101,7 @@ nav:
       - Multi Agent Coordination Monitoring: architecture/proposals/0017-multi-agent-coordination-monitoring.md
       - CRDT Applications in Rhema: architecture/proposals/0018-crdt-applications-in-rhema.md
     - MCP Documentation:
-      - MCP Daemon: architecture/mcp/mcp-daemon.md
+      - MCP Overview: architecture/mcp/README.md
       - MCP Daemon API: architecture/mcp/mcp-daemon-api.md
       - MCP Daemon Config: architecture/mcp/mcp-daemon-config.md
       - MCP Daemon Deployment: architecture/mcp/mcp-daemon-deployment.md
@@ -103,6 +114,7 @@ nav:
     - E-commerce Epic Orchestration: examples/ecommerce-epic-orchestration.md
     - Enhanced Context Injection: examples/enhanced-context-injection.md
     - Implicit to Explicit Knowledge: examples/implicit-to-explicit-knowledge.md
+    - Lock File Operations: examples/lock-file-operations.md
     - Prompt Chain Persistence: examples/prompt-chain-persistence.md
     - Prompt Effectiveness Tracking: examples/prompt-effectiveness-tracking.md
     - Prompt Versioning: examples/prompt-versioning.md

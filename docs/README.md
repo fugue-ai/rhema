@@ -1,13 +1,10 @@
 # Rhema Documentation
 
-
-This directory contains the documentation for the Rhema project, now built with [MkDocs](https://www.mkdocs.org/) and the [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme.
+This directory contains the comprehensive documentation for the Rhema project, built with [MkDocs](https://www.mkdocs.org/) and the [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme.
 
 ## 🚀 Quick Start
 
-
 ### Local Development
-
 
 1. Install the documentation dependencies:
    ```bash
@@ -23,7 +20,6 @@ This directory contains the documentation for the Rhema project, now built with 
 
 ### Building for Production
 
-
 To build the documentation for production:
 
 ```bash
@@ -34,76 +30,105 @@ This will create a `site/` directory with the static HTML files.
 
 ## 📁 Documentation Structure
 
+The documentation is organized into the following logical sections:
 
-The documentation is organized into the following sections:
+### 🎯 Getting Started
+Essential guides for new users to get up and running quickly
+- Quick Start guides
+- Workspace setup
+- Basic concepts
 
-- **Getting Started** - Essential guides for new users
+### 📖 User Guide
+Comprehensive feature documentation for end users
+- CLI commands and usage
+- Configuration management
+- Interactive mode
+- Performance monitoring
+- Batch operations
+- Conflict resolution
 
-- **User Guide** - Comprehensive feature documentation
+### 🔧 Core Features
+Deep dives into Rhema's core functionality
+- Lock file system
+- AI integration
+- Cache system
+- Context injection
+- CI/CD integration
 
-- **Reference** - Technical reference materials
+### 📚 Reference
+Technical reference materials and specifications
+- Configuration schemas
+- API documentation
+- Schema examples
 
-- **Development Setup** - Guides for contributors
+### 🏗️ Architecture
+Design decisions, proposals, and technical architecture
+- System design documents
+- Architecture proposals
+- MCP (Model Context Protocol) documentation
 
-- **Architecture** - Design decisions and proposals
+### 💡 Examples
+Practical use cases and real-world examples
+- Advanced usage patterns
+- Template management
+- Query examples
+- Workflow demonstrations
 
-- **Examples** - Practical use cases and examples
+### 🛠️ Development Setup
+Guides for contributors and developers
+- Local development setup
+- Editor configuration
+- CI/CD pipelines
+- Contributing guidelines
 
 ## 🔧 Configuration
-
 
 The documentation is configured via `mkdocs.yml` in the project root. Key features include:
 
 - **Material for MkDocs theme** with dark/light mode toggle
-
 - **Search functionality** with suggestions and highlighting
-
 - **Code syntax highlighting** with copy buttons
-
 - **Responsive design** for mobile and desktop
-
 - **Git revision dates** for tracking document changes
-
 - **Mathematical notation support** via MathJax
 
 ## 🚀 Deployment
-
 
 The documentation is automatically deployed to GitHub Pages via GitHub Actions when changes are pushed to the `main` branch. The workflow is defined in `.github/workflows/docs.yml`.
 
 ## 📝 Contributing
 
-
 When contributing to the documentation:
 
-1. Follow the existing structure and formatting
+1. **Follow the structure**: Place new content in the appropriate section
+2. **Use clear language**: Write concise, practical content with examples
+3. **Include code snippets**: Where appropriate, provide working examples
+4. **Update navigation**: Add new pages to the navigation in `mkdocs.yml`
+5. **Test locally**: Verify your changes work before submitting
+6. **Use consistent formatting**: Follow existing markdown patterns
 
-2. Use clear, concise language with practical examples
+### Content Guidelines
 
-3. Include code snippets where appropriate
-
-4. Update the navigation in `mkdocs.yml` if adding new pages
-
-5. Test your changes locally before submitting
+- **Getting Started**: Focus on quick wins and basic concepts
+- **User Guide**: Comprehensive but accessible feature documentation
+- **Core Features**: Technical deep-dives with implementation details
+- **Reference**: Complete, accurate technical specifications
+- **Architecture**: Design rationale and system overview
+- **Examples**: Real-world, practical use cases
+- **Development Setup**: Step-by-step contributor guides
 
 ## 🎨 Customization
 
-
 ### Styling
-
 
 Custom CSS can be added to `docs/stylesheets/extra.css`. The current customizations include:
 
 - Improved code block styling
-
 - Better table formatting
-
 - Enhanced navigation hover effects
-
 - Mobile responsiveness improvements
 
 ### JavaScript
-
 
 Custom JavaScript can be added to `docs/javascripts/`. Currently includes:
 
@@ -111,9 +136,6 @@ Custom JavaScript can be added to `docs/javascripts/`. Currently includes:
 
 ## 📚 Additional Resources
 
-
 - [MkDocs Documentation](https://www.mkdocs.org/)
-
 - [Material for MkDocs Documentation](https://squidfunk.github.io/mkdocs-material/)
-
 - [PyMdown Extensions](https://facelessuser.github.io/pymdown-extensions/) 

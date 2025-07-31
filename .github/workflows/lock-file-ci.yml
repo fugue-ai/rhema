@@ -1,0 +1,398 @@
+name: Lock File Verification
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'rhema.lock'
+      - '.github/workflows/lock-file-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'rhema.lock'
+  workflow_dispatch:
+    inputs:
+      lock_operation:
+        description: 'Lock file operation to perform'
+        required: true
+        default: 'validate'
+        type: choice
+        options:
+          - validate
+          - generate
+          - consistency
+          - update
+          - health
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUST_LOG: info
+  LOCK_FILE_PATH: rhema.lock
+  LOCK_REPORTS_DIR: lock-reports
+
+jobs:
+  lock-file-validation:
+    name: Lock File Validation
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || github.event.inputs.lock_operation == 'validate' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+      
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        components: rustfmt, clippy
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-stable-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-stable-
+          
+    - name: Build Rhema CLI
+      run: cargo build --release
+      
+    - name: Install Rhema CLI
+      run: cargo install --path .
+      
+    - name: Create reports directory
+      run: mkdir -p ${{ env.LOCK_REPORTS_DIR }}
+      
+    - name: Validate lock file
+      run: |
+        rhema lock ci-validate \
+          --file ${{ env.LOCK_FILE_PATH }} \
+          --exit-code 1 \
+          --max-circular-deps 0 \
+          --max-age 24 \
+          --fail-on-warnings \
+          --report-file ${{ env.LOCK_REPORTS_DIR }}/validation-report.json \
+          --format json
+      
+    - name: Upload validation report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lock-validation-report
+        path: ${{ env.LOCK_REPORTS_DIR }}/validation-report.json
+        retention-days: 30
+
+  lock-file-generation:
+    name: Lock File Generation
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event.inputs.lock_operation == 'generate' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+      
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-stable-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-stable-
+          
+    - name: Build Rhema CLI
+      run: cargo build --release
+      
+    - name: Install Rhema CLI
+      run: cargo install --path .
+      
+    - name: Create reports directory
+      run: mkdir -p ${{ env.LOCK_REPORTS_DIR }}
+      
+    - name: Generate lock file
+      run: |
+        rhema lock ci-generate \
+          --output ${{ env.LOCK_FILE_PATH }} \
+          --strategy latest \
+          --fail-on-circular \
+          --timeout 300 \
+          --report-file ${{ env.LOCK_REPORTS_DIR }}/generation-report.json \
+          --format json \
+          --exit-code 1
+      
+    - name: Validate generated lock file
+      run: |
+        rhema lock ci-validate \
+          --file ${{ env.LOCK_FILE_PATH }} \
+          --exit-code 1 \
+          --max-circular-deps 0 \
+          --fail-on-warnings \
+          --report-file ${{ env.LOCK_REPORTS_DIR }}/post-generation-validation.json \
+          --format json
+      
+    - name: Commit lock file changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add ${{ env.LOCK_FILE_PATH }}
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update lock file [skip ci]"
+        git push
+      
+    - name: Upload generation report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lock-generation-report
+        path: ${{ env.LOCK_REPORTS_DIR }}/*.json
+        retention-days: 30
+
+  lock-file-consistency:
+    name: Lock File Consistency Check
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || github.event.inputs.lock_operation == 'consistency' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+      
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-stable-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-stable-
+          
+    - name: Build Rhema CLI
+      run: cargo build --release
+      
+    - name: Install Rhema CLI
+      run: cargo install --path .
+      
+    - name: Create reports directory
+      run: mkdir -p ${{ env.LOCK_REPORTS_DIR }}
+      
+    - name: Check lock file consistency
+      run: |
+        rhema lock ci-consistency \
+          --file ${{ env.LOCK_FILE_PATH }} \
+          --git-branch main \
+          --allow-semver-diffs \
+          --max-version-drift "0.1.0" \
+          --report-file ${{ env.LOCK_REPORTS_DIR }}/consistency-report.json \
+          --format json \
+          --exit-code 1
+      
+    - name: Upload consistency report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lock-consistency-report
+        path: ${{ env.LOCK_REPORTS_DIR }}/consistency-report.json
+        retention-days: 30
+
+  lock-file-update:
+    name: Lock File Update
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.lock_operation == 'update' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+      
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-stable-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-stable-
+          
+    - name: Build Rhema CLI
+      run: cargo build --release
+      
+    - name: Install Rhema CLI
+      run: cargo install --path .
+      
+    - name: Create reports directory
+      run: mkdir -p ${{ env.LOCK_REPORTS_DIR }}
+      
+    - name: Update lock file
+      run: |
+        rhema lock ci-update \
+          --file ${{ env.LOCK_FILE_PATH }} \
+          --update-strategy auto \
+          --strategy latest \
+          --security-only \
+          --max-updates 10 \
+          --backup \
+          --report-file ${{ env.LOCK_REPORTS_DIR }}/update-report.json \
+          --format json \
+          --exit-code 1
+      
+    - name: Validate updated lock file
+      run: |
+        rhema lock ci-validate \
+          --file ${{ env.LOCK_FILE_PATH }} \
+          --exit-code 1 \
+          --max-circular-deps 0 \
+          --fail-on-warnings \
+          --report-file ${{ env.LOCK_REPORTS_DIR }}/post-update-validation.json \
+          --format json
+      
+    - name: Commit lock file updates
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add ${{ env.LOCK_FILE_PATH }}
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update lock file dependencies [skip ci]"
+        git push
+      
+    - name: Upload update report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lock-update-report
+        path: ${{ env.LOCK_REPORTS_DIR }}/*.json
+        retention-days: 30
+
+  lock-file-health:
+    name: Lock File Health Check
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event.inputs.lock_operation == 'health' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+      
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-stable-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-stable-
+          
+    - name: Build Rhema CLI
+      run: cargo build --release
+      
+    - name: Install Rhema CLI
+      run: cargo install --path .
+      
+    - name: Create reports directory
+      run: mkdir -p ${{ env.LOCK_REPORTS_DIR }}
+      
+    - name: Health check lock file
+      run: |
+        rhema lock ci-health \
+          --file ${{ env.LOCK_FILE_PATH }} \
+          --integrity \
+          --freshness \
+          --availability \
+          --performance \
+          --report-file ${{ env.LOCK_REPORTS_DIR }}/health-report.json \
+          --format json \
+          --exit-code 1
+      
+    - name: Upload health report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lock-health-report
+        path: ${{ env.LOCK_REPORTS_DIR }}/health-report.json
+        retention-days: 30
+
+  lock-file-summary:
+    name: Lock File Summary
+    runs-on: ubuntu-latest
+    needs: [lock-file-validation, lock-file-consistency, lock-file-health]
+    if: always()
+    
+    steps:
+    - name: Download all reports
+      uses: actions/download-artifact@v4
+      with:
+        path: reports
+        
+    - name: Generate summary
+      run: |
+        echo "## Lock File CI/CD Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Validation Status" >> $GITHUB_STEP_SUMMARY
+        if [ -f "reports/lock-validation-report/validation-report.json" ]; then
+          echo "✅ Validation completed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Validation failed or skipped" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Consistency Status" >> $GITHUB_STEP_SUMMARY
+        if [ -f "reports/lock-consistency-report/consistency-report.json" ]; then
+          echo "✅ Consistency check completed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Consistency check failed or skipped" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Health Status" >> $GITHUB_STEP_SUMMARY
+        if [ -f "reports/lock-health-report/health-report.json" ]; then
+          echo "✅ Health check completed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Health check failed or skipped" >> $GITHUB_STEP_SUMMARY
+        fi 

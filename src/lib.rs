@@ -37,11 +37,18 @@ pub use rhema_config::{config, GlobalConfig, RepositoryConfig};
 
 // Re-export CLI commands from the cli crate
 pub use rhema_cli::{
-    commands, interactive, interactive_advanced, interactive_parser, Rhema as CliRhema,
+    interactive, interactive_advanced, interactive_parser, Rhema as CliRhema,
 };
 
 // Re-export integrations from the integrations crate
 pub use rhema_integrations::{integrations, IntegrationManager};
+
+// Re-export lock file system
+pub mod lock;
+pub use lock::{LockGenerator, LockSystem, DependencyResolver, LockValidator};
+
+// Re-export commands from CLI crate
+pub use rhema_cli::commands;
 
 use anyhow::Result;
 use std::collections::HashMap;

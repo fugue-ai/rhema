@@ -51,6 +51,14 @@ pub enum BatchSubcommands {
         /// Dry run mode (don't modify files)
         #[arg(long)]
         dry_run: bool,
+
+        /// Use lock file for batch operations
+        #[arg(long)]
+        use_lock_file: bool,
+
+        /// Update/generate lock file before running batch
+        #[arg(long)]
+        update_lock: bool,
     },
 
     /// Batch command execution and processing
@@ -70,6 +78,14 @@ pub enum BatchSubcommands {
         /// Maximum number of parallel workers
         #[arg(long, value_name = "WORKERS", default_value = "4")]
         max_workers: usize,
+
+        /// Use lock file for batch operations
+        #[arg(long)]
+        use_lock_file: bool,
+
+        /// Update/generate lock file before running batch
+        #[arg(long)]
+        update_lock: bool,
     },
 
     /// Mass data import and export capabilities
@@ -93,6 +109,14 @@ pub enum BatchSubcommands {
         /// Scope filter (optional)
         #[arg(long, value_name = "SCOPE")]
         scope_filter: Option<String>,
+
+        /// Use lock file for batch operations
+        #[arg(long)]
+        use_lock_file: bool,
+
+        /// Update/generate lock file before running batch
+        #[arg(long)]
+        update_lock: bool,
     },
 
     /// Bulk validation and health checking
@@ -112,6 +136,14 @@ pub enum BatchSubcommands {
         /// Include detailed information
         #[arg(long)]
         detailed: bool,
+
+        /// Use lock file for batch operations
+        #[arg(long)]
+        use_lock_file: bool,
+
+        /// Update/generate lock file before running batch
+        #[arg(long)]
+        update_lock: bool,
     },
 
     /// Batch reporting and analytics
@@ -135,6 +167,14 @@ pub enum BatchSubcommands {
         /// Include detailed information
         #[arg(long)]
         include_details: bool,
+
+        /// Use lock file for batch operations
+        #[arg(long)]
+        use_lock_file: bool,
+
+        /// Update/generate lock file before running batch
+        #[arg(long)]
+        update_lock: bool,
     },
 }
 
@@ -182,24 +222,32 @@ pub fn run(rhema: &Rhema, subcommand: &BatchSubcommands) -> RhemaResult<()> {
             input_file,
             scope_filter,
             dry_run,
+            use_lock_file,
+            update_lock,
         } => run_context_operations(
             rhema,
             operation,
             input_file,
             scope_filter.as_deref(),
             *dry_run,
+            *use_lock_file,
+            *update_lock,
         ),
         BatchSubcommands::Commands {
             command_file,
             scope_filter,
             parallel,
             max_workers,
+            use_lock_file,
+            update_lock,
         } => run_command_execution(
             rhema,
             command_file,
             scope_filter.as_deref(),
             *parallel,
             *max_workers,
+            *use_lock_file,
+            *update_lock,
         ),
         BatchSubcommands::Data {
             operation,
@@ -207,6 +255,8 @@ pub fn run(rhema: &Rhema, subcommand: &BatchSubcommands) -> RhemaResult<()> {
             output_path,
             format,
             scope_filter,
+            use_lock_file,
+            update_lock,
         } => run_data_operations(
             rhema,
             operation,
@@ -214,18 +264,24 @@ pub fn run(rhema: &Rhema, subcommand: &BatchSubcommands) -> RhemaResult<()> {
             output_path,
             format,
             scope_filter.as_deref(),
+            *use_lock_file,
+            *update_lock,
         ),
         BatchSubcommands::Validate {
             validation_type,
             scope_filter,
             output_file,
             detailed,
+            use_lock_file,
+            update_lock,
         } => run_validation_operations(
             rhema,
             validation_type,
             scope_filter.as_deref(),
             output_file.as_deref(),
             *detailed,
+            *use_lock_file,
+            *update_lock,
         ),
         BatchSubcommands::Report {
             report_type,
@@ -233,6 +289,8 @@ pub fn run(rhema: &Rhema, subcommand: &BatchSubcommands) -> RhemaResult<()> {
             output_file,
             format,
             include_details,
+            use_lock_file,
+            update_lock,
         } => run_reporting_operations(
             rhema,
             report_type,
@@ -240,6 +298,8 @@ pub fn run(rhema: &Rhema, subcommand: &BatchSubcommands) -> RhemaResult<()> {
             output_file,
             format,
             *include_details,
+            *use_lock_file,
+            *update_lock,
         ),
     }
 }
@@ -251,6 +311,8 @@ pub fn run_context_operations(
     input_file: &str,
     scope_filter: Option<&str>,
     dry_run: bool,
+    use_lock_file: bool,
+    update_lock: bool,
 ) -> RhemaResult<()> {
     println!("🔄 Executing batch context operations...");
     println!("{}", "─".repeat(80));
@@ -362,6 +424,8 @@ pub fn run_command_execution(
     scope_filter: Option<&str>,
     parallel: bool,
     _max_workers: usize,
+    use_lock_file: bool,
+    update_lock: bool,
 ) -> RhemaResult<()> {
     println!("⚡ Executing batch commands...");
     println!("{}", "─".repeat(80));
@@ -468,6 +532,8 @@ pub fn run_data_operations(
     output_path: &str,
     format: &str,
     scope_filter: Option<&str>,
+    use_lock_file: bool,
+    update_lock: bool,
 ) -> RhemaResult<()> {
     println!("📊 Executing batch data operations...");
     println!("{}", "─".repeat(80));
@@ -573,6 +639,8 @@ pub fn run_validation_operations(
     scope_filter: Option<&str>,
     output_file: Option<&str>,
     detailed: bool,
+    use_lock_file: bool,
+    update_lock: bool,
 ) -> RhemaResult<()> {
     println!("🔍 Executing batch validation operations...");
     println!("{}", "─".repeat(80));
@@ -665,6 +733,8 @@ pub fn run_reporting_operations(
     output_file: &str,
     format: &str,
     include_details: bool,
+    use_lock_file: bool,
+    update_lock: bool,
 ) -> RhemaResult<()> {
     println!("📈 Generating batch reports...");
     println!("{}", "─".repeat(80));
@@ -1243,7 +1313,7 @@ fn execute_command_on_scope(
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false);
 
-            match crate::validate::run(rhema, recursive, false, false) {
+            match crate::validate::run(rhema, recursive, false, false, false, false, false) {
                 Ok(_) => {
                     metadata.insert("validation_result".to_string(), "success".to_string());
                     true

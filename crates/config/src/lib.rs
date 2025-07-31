@@ -2,6 +2,7 @@ pub mod backup;
 pub mod config;
 pub mod global;
 pub mod invariants;
+pub mod lock;
 pub mod migration;
 pub mod repository;
 pub mod scope;
@@ -28,6 +29,15 @@ pub use types::{
 // Re-export specific types from modules
 pub use backup::RestoredConfig;
 pub use global::GlobalConfig;
+pub use lock::{
+    AlertThresholds, CacheConfig, CacheEvictionPolicy, CacheType, ConflictResolutionConfig,
+    ConflictResolutionStrategy, ConstraintType, EnvironmentLockConfig, LockConfig, MemoryConfig,
+    MetricsFormat, MonitoringConfig, NetworkConfig, NotificationChannel, OptimizationConfig,
+    OptimizationLevel, ParallelConfig, PerformanceConfig, ResolutionConfig, ResolutionStrategy,
+    UpdateFrequency, UpdateNotificationConfig, UpdatePoliciesConfig, UpdateRollbackConfig,
+    UpdateSchedulingConfig, ValidationConfig, ValidationLevel, ValidationRulesConfig,
+    ValidationSeverity, VersionConstraintConfig,
+};
 pub use repository::RepositoryConfig;
 pub use scope::ScopeConfig;
 pub use security::SecurityConfig;

@@ -2,8 +2,7 @@ pub mod agent;
 pub mod ai_service;
 pub mod context_injection;
 
-pub use agent::*;
-pub use ai_service::*;
+pub use agent::lock_context::*;
 pub use context_injection::*;
 
 // Error type conversions

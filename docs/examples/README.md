@@ -27,6 +27,8 @@ This directory contains practical examples demonstrating how to use Rhema effect
 
 - **[E-commerce Epic Orchestration](ecommerce-epic-orchestration.md)** - Complex project coordination example
 
+- **[Lock File Operations](lock-file-operations.md)** - Managing dependency locks and ensuring reproducible builds
+
 ## 🎯 How to Use These Examples
 
 
@@ -52,6 +54,8 @@ Each example file contains:
 - **Working with queries?** See [CQL Queries](cql-queries.md)
 
 - **Managing large projects?** Review [E-commerce Epic Orchestration](ecommerce-epic-orchestration.md)
+
+- **Managing dependencies?** Check [Lock File Operations](lock-file-operations.md)
 
 ## 📝 Contributing Examples
 

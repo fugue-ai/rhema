@@ -1754,3 +1754,858 @@ impl JsonSchema for RhemaScope {
         })
     }
 }
+
+/// Dependency type enumeration for lock files
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum DependencyType {
+    Required,
+    Optional,
+    Peer,
+    Development,
+    Build,
+}
+
+/// Validation status for lock files
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ValidationStatus {
+    Valid,
+    Invalid,
+    Warning,
+    Pending,
+}
+
+/// Resolution strategy for dependency conflicts
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ResolutionStrategy {
+    Latest,
+    Earliest,
+    Pinned,
+    Range,
+    Compatible,
+}
+
+/// Conflict resolution method
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ConflictResolution {
+    Manual,
+    Automatic,
+    Prompt,
+    Skip,
+    Fail,
+}
+
+/// Main lock file structure for the Rhema lock file system
+/// 
+/// This structure represents the complete state of a Rhema project's dependencies
+/// and provides deterministic, reproducible builds by locking all dependency
+/// versions and metadata.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RhemaLock {
+    /// Version of the lock file format
+    pub lockfile_version: String,
+    
+    /// Timestamp when the lock file was generated
+    pub generated_at: DateTime<Utc>,
+    
+    /// Information about what generated this lock file
+    pub generated_by: String,
+    
+    /// Checksum of the lock file contents for integrity verification
+    pub checksum: String,
+    
+    /// Locked scopes in the project
+    pub scopes: HashMap<String, LockedScope>,
+    
+    /// Metadata about the lock file
+    pub metadata: LockMetadata,
+}
+
+/// Individual locked scope structure
+/// 
+/// Represents a single scope with its locked dependencies and metadata.
+/// Each scope is identified by its path and contains all resolved dependencies.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockedScope {
+    /// Version of the scope that was locked
+    pub version: String,
+    
+    /// Path to the scope in the project
+    pub path: String,
+    
+    /// All dependencies for this scope with their resolved versions
+    pub dependencies: HashMap<String, LockedDependency>,
+    
+    /// Checksum of the scope's source for integrity verification
+    pub source_checksum: Option<String>,
+    
+    /// Timestamp when this scope was last resolved
+    pub resolved_at: DateTime<Utc>,
+    
+    /// Whether this scope has any circular dependencies
+    pub has_circular_dependencies: bool,
+    
+    /// Custom metadata for the scope
+    #[serde(flatten)]
+    pub custom: HashMap<String, serde_yaml::Value>,
+}
+
+/// Individual locked dependency structure
+/// 
+/// Represents a single dependency with its resolved version and metadata.
+/// This ensures deterministic builds by locking the exact version and path.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockedDependency {
+    /// Resolved version of the dependency
+    pub version: String,
+    
+    /// Path to the dependency
+    pub path: String,
+    
+    /// Timestamp when this dependency was resolved
+    pub resolved_at: DateTime<Utc>,
+    
+    /// Checksum of the dependency for integrity verification
+    pub checksum: String,
+    
+    /// Type of dependency (required, optional, peer, etc.)
+    pub dependency_type: DependencyType,
+    
+    /// Original version constraint that was resolved
+    pub original_constraint: Option<String>,
+    
+    /// Whether this dependency is transitive (dependency of a dependency)
+    pub is_transitive: bool,
+    
+    /// Direct dependencies of this dependency
+    pub dependencies: Option<Vec<String>>,
+    
+    /// Custom metadata for the dependency
+    #[serde(flatten)]
+    pub custom: HashMap<String, serde_yaml::Value>,
+}
+
+/// Metadata structure for lock files
+/// 
+/// Contains aggregate information about the lock file and its contents,
+/// useful for validation, analysis, and debugging.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockMetadata {
+    /// Total number of scopes in the lock file
+    pub total_scopes: u32,
+    
+    /// Total number of dependencies across all scopes
+    pub total_dependencies: u32,
+    
+    /// Number of circular dependencies detected
+    pub circular_dependencies: u32,
+    
+    /// Overall validation status of the lock file
+    pub validation_status: ValidationStatus,
+    
+    /// Strategy used for dependency resolution
+    pub resolution_strategy: ResolutionStrategy,
+    
+    /// Method used for conflict resolution
+    pub conflict_resolution: ConflictResolution,
+    
+    /// Timestamp when the lock file was last validated
+    pub last_validated: Option<DateTime<Utc>>,
+    
+    /// List of validation warnings or errors
+    pub validation_messages: Option<Vec<String>>,
+    
+    /// Performance metrics for lock file operations
+    pub performance_metrics: Option<LockPerformanceMetrics>,
+    
+    /// Custom metadata
+    #[serde(flatten)]
+    pub custom: HashMap<String, serde_yaml::Value>,
+}
+
+/// Performance metrics for lock file operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockPerformanceMetrics {
+    /// Time taken to generate the lock file in milliseconds
+    pub generation_time_ms: u64,
+    
+    /// Time taken to validate the lock file in milliseconds
+    pub validation_time_ms: Option<u64>,
+    
+    /// Memory usage during lock file operations in bytes
+    pub memory_usage_bytes: Option<u64>,
+    
+    /// Number of dependency resolution attempts
+    pub resolution_attempts: u32,
+    
+    /// Number of cache hits during resolution
+    pub cache_hits: u32,
+    
+    /// Number of cache misses during resolution
+    pub cache_misses: u32,
+}
+
+impl RhemaLock {
+    /// Create a new RhemaLock with default values
+    pub fn new(generated_by: &str) -> Self {
+        Self {
+            lockfile_version: "1.0.0".to_string(),
+            generated_at: Utc::now(),
+            generated_by: generated_by.to_string(),
+            checksum: String::new(), // Will be calculated later
+            scopes: HashMap::new(),
+            metadata: LockMetadata::new(),
+        }
+    }
+    
+    /// Calculate the checksum of the lock file contents
+    pub fn calculate_checksum(&self) -> String {
+        // TODO: Implement proper checksum calculation
+        // For now, return a placeholder
+        format!("checksum_{}", self.generated_at.timestamp())
+    }
+    
+    /// Update the checksum field
+    pub fn update_checksum(&mut self) {
+        self.checksum = self.calculate_checksum();
+    }
+    
+    /// Add a locked scope to the lock file
+    pub fn add_scope(&mut self, path: String, scope: LockedScope) {
+        self.scopes.insert(path, scope);
+        self.update_metadata();
+    }
+    
+    /// Get a locked scope by path
+    pub fn get_scope(&self, path: &str) -> Option<&LockedScope> {
+        self.scopes.get(path)
+    }
+    
+    /// Remove a scope from the lock file
+    pub fn remove_scope(&mut self, path: &str) -> Option<LockedScope> {
+        let scope = self.scopes.remove(path);
+        self.update_metadata();
+        scope
+    }
+    
+    /// Update metadata based on current scopes
+    fn update_metadata(&mut self) {
+        let total_scopes = self.scopes.len() as u32;
+        let total_dependencies: u32 = self.scopes.values()
+            .map(|scope| scope.dependencies.len() as u32)
+            .sum();
+        let circular_dependencies: u32 = self.scopes.values()
+            .filter(|scope| scope.has_circular_dependencies)
+            .count() as u32;
+        
+        self.metadata.total_scopes = total_scopes;
+        self.metadata.total_dependencies = total_dependencies;
+        self.metadata.circular_dependencies = circular_dependencies;
+    }
+    
+    /// Validate the lock file
+    pub fn validate(&self) -> crate::RhemaResult<()> {
+        // Validate lock file version
+        if self.lockfile_version.is_empty() {
+            return Err(crate::RhemaError::ValidationError(
+                "Lock file version cannot be empty".to_string(),
+            ));
+        }
+        
+        // Validate generated_by
+        if self.generated_by.is_empty() {
+            return Err(crate::RhemaError::ValidationError(
+                "Generated by field cannot be empty".to_string(),
+            ));
+        }
+        
+        // Validate checksum
+        if self.checksum.is_empty() {
+            return Err(crate::RhemaError::ValidationError(
+                "Checksum cannot be empty".to_string(),
+            ));
+        }
+        
+        // Validate scopes
+        for (path, scope) in &self.scopes {
+            if path.is_empty() {
+                return Err(crate::RhemaError::ValidationError(
+                    "Scope path cannot be empty".to_string(),
+                ));
+            }
+            scope.validate()?;
+        }
+        
+        // Validate metadata
+        self.metadata.validate()?;
+        
+        Ok(())
+    }
+}
+
+impl LockedScope {
+    /// Create a new LockedScope
+    pub fn new(version: &str, path: &str) -> Self {
+        Self {
+            version: version.to_string(),
+            path: path.to_string(),
+            dependencies: HashMap::new(),
+            source_checksum: None,
+            resolved_at: Utc::now(),
+            has_circular_dependencies: false,
+            custom: HashMap::new(),
+        }
+    }
+    
+    /// Add a dependency to the scope
+    pub fn add_dependency(&mut self, name: String, dependency: LockedDependency) {
+        self.dependencies.insert(name, dependency);
+    }
+    
+    /// Get a dependency by name
+    pub fn get_dependency(&self, name: &str) -> Option<&LockedDependency> {
+        self.dependencies.get(name)
+    }
+    
+    /// Remove a dependency from the scope
+    pub fn remove_dependency(&mut self, name: &str) -> Option<LockedDependency> {
+        self.dependencies.remove(name)
+    }
+    
+    /// Check if the scope has any dependencies
+    pub fn has_dependencies(&self) -> bool {
+        !self.dependencies.is_empty()
+    }
+    
+    /// Get the number of dependencies
+    pub fn dependency_count(&self) -> usize {
+        self.dependencies.len()
+    }
+    
+    /// Validate the locked scope
+    pub fn validate(&self) -> crate::RhemaResult<()> {
+        if self.version.is_empty() {
+            return Err(crate::RhemaError::ValidationError(
+                "Scope version cannot be empty".to_string(),
+            ));
+        }
+        
+        if self.path.is_empty() {
+            return Err(crate::RhemaError::ValidationError(
+                "Scope path cannot be empty".to_string(),
+            ));
+        }
+        
+        // Validate dependencies
+        for (name, dependency) in &self.dependencies {
+            if name.is_empty() {
+                return Err(crate::RhemaError::ValidationError(
+                    "Dependency name cannot be empty".to_string(),
+                ));
+            }
+            dependency.validate()?;
+        }
+        
+        Ok(())
+    }
+}
+
+impl LockedDependency {
+    /// Create a new LockedDependency
+    pub fn new(
+        version: &str,
+        path: &str,
+        dependency_type: DependencyType,
+    ) -> Self {
+        Self {
+            version: version.to_string(),
+            path: path.to_string(),
+            resolved_at: Utc::now(),
+            checksum: String::new(), // Will be calculated later
+            dependency_type,
+            original_constraint: None,
+            is_transitive: false,
+            dependencies: None,
+            custom: HashMap::new(),
+        }
+    }
+    
+    /// Calculate the checksum of the dependency
+    pub fn calculate_checksum(&self) -> String {
+        // TODO: Implement proper checksum calculation
+        // For now, return a placeholder
+        format!("dep_checksum_{}_{}", self.path, self.version)
+    }
+    
+    /// Update the checksum field
+    pub fn update_checksum(&mut self) {
+        self.checksum = self.calculate_checksum();
+    }
+    
+    /// Set the original version constraint
+    pub fn set_original_constraint(&mut self, constraint: &str) {
+        self.original_constraint = Some(constraint.to_string());
+    }
+    
+    /// Mark the dependency as transitive
+    pub fn mark_transitive(&mut self) {
+        self.is_transitive = true;
+    }
+    
+    /// Add a direct dependency
+    pub fn add_dependency(&mut self, dependency_name: &str) {
+        if let Some(ref mut deps) = self.dependencies {
+            deps.push(dependency_name.to_string());
+        } else {
+            self.dependencies = Some(vec![dependency_name.to_string()]);
+        }
+    }
+    
+    /// Validate the locked dependency
+    pub fn validate(&self) -> crate::RhemaResult<()> {
+        if self.version.is_empty() {
+            return Err(crate::RhemaError::ValidationError(
+                "Dependency version cannot be empty".to_string(),
+            ));
+        }
+        
+        if self.path.is_empty() {
+            return Err(crate::RhemaError::ValidationError(
+                "Dependency path cannot be empty".to_string(),
+            ));
+        }
+        
+        if self.checksum.is_empty() {
+            return Err(crate::RhemaError::ValidationError(
+                "Dependency checksum cannot be empty".to_string(),
+            ));
+        }
+        
+        Ok(())
+    }
+}
+
+impl LockMetadata {
+    /// Create a new LockMetadata with default values
+    pub fn new() -> Self {
+        Self {
+            total_scopes: 0,
+            total_dependencies: 0,
+            circular_dependencies: 0,
+            validation_status: ValidationStatus::Pending,
+            resolution_strategy: ResolutionStrategy::Latest,
+            conflict_resolution: ConflictResolution::Automatic,
+            last_validated: None,
+            validation_messages: None,
+            performance_metrics: None,
+            custom: HashMap::new(),
+        }
+    }
+    
+    /// Set the validation status
+    pub fn set_validation_status(&mut self, status: ValidationStatus) {
+        self.validation_status = status;
+        self.last_validated = Some(Utc::now());
+    }
+    
+    /// Add a validation message
+    pub fn add_validation_message(&mut self, message: &str) {
+        if let Some(ref mut messages) = self.validation_messages {
+            messages.push(message.to_string());
+        } else {
+            self.validation_messages = Some(vec![message.to_string()]);
+        }
+    }
+    
+    /// Set performance metrics
+    pub fn set_performance_metrics(&mut self, metrics: LockPerformanceMetrics) {
+        self.performance_metrics = Some(metrics);
+    }
+    
+    /// Calculate cache hit rate
+    pub fn cache_hit_rate(&self) -> Option<f64> {
+        if let Some(ref metrics) = self.performance_metrics {
+            let total = metrics.cache_hits + metrics.cache_misses;
+            if total > 0 {
+                Some(metrics.cache_hits as f64 / total as f64)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    
+    /// Validate the lock metadata
+    pub fn validate(&self) -> crate::RhemaResult<()> {
+        // Basic validation - metadata should always be valid
+        // as it's generated internally
+        Ok(())
+    }
+}
+
+impl Default for LockMetadata {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LockPerformanceMetrics {
+    /// Create new performance metrics
+    pub fn new(generation_time_ms: u64) -> Self {
+        Self {
+            generation_time_ms,
+            validation_time_ms: None,
+            memory_usage_bytes: None,
+            resolution_attempts: 0,
+            cache_hits: 0,
+            cache_misses: 0,
+        }
+    }
+    
+    /// Set validation time
+    pub fn set_validation_time(&mut self, time_ms: u64) {
+        self.validation_time_ms = Some(time_ms);
+    }
+    
+    /// Set memory usage
+    pub fn set_memory_usage(&mut self, bytes: u64) {
+        self.memory_usage_bytes = Some(bytes);
+    }
+    
+    /// Increment resolution attempts
+    pub fn increment_resolution_attempts(&mut self) {
+        self.resolution_attempts += 1;
+    }
+    
+    /// Record a cache hit
+    pub fn record_cache_hit(&mut self) {
+        self.cache_hits += 1;
+    }
+    
+    /// Record a cache miss
+    pub fn record_cache_miss(&mut self) {
+        self.cache_misses += 1;
+    }
+}
+
+// Implement Validatable trait for lock file structures
+impl Validatable for RhemaLock {
+    fn validate(&self) -> crate::RhemaResult<()> {
+        self.validate()
+    }
+    
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
+        // Validate lock file version format
+        if !self.lockfile_version.chars().all(|c| c.is_alphanumeric() || c == '.') {
+            return Err(crate::RhemaError::ValidationError(
+                "Invalid lock file version format".to_string(),
+            ));
+        }
+        Ok(())
+    }
+    
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
+        // Validate that all scope paths are unique
+        let mut paths = std::collections::HashSet::new();
+        for path in self.scopes.keys() {
+            if !paths.insert(path) {
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Duplicate scope path: {}",
+                    path
+                )));
+            }
+        }
+        
+        // Validate that metadata counts match actual counts
+        if self.metadata.total_scopes as usize != self.scopes.len() {
+            return Err(crate::RhemaError::ValidationError(
+                "Metadata total_scopes does not match actual scope count".to_string(),
+            ));
+        }
+        
+        let actual_deps: u32 = self.scopes.values()
+            .map(|scope| scope.dependencies.len() as u32)
+            .sum();
+        
+        if self.metadata.total_dependencies != actual_deps {
+            return Err(crate::RhemaError::ValidationError(
+                "Metadata total_dependencies does not match actual dependency count".to_string(),
+            ));
+        }
+        
+        Ok(())
+    }
+}
+
+impl Validatable for LockedScope {
+    fn validate(&self) -> crate::RhemaResult<()> {
+        self.validate()
+    }
+    
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
+        // LockedScope doesn't have its own schema version
+        Ok(())
+    }
+    
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
+        // Validate that dependency names are unique
+        let mut names = std::collections::HashSet::new();
+        for name in self.dependencies.keys() {
+            if !names.insert(name) {
+                return Err(crate::RhemaError::ValidationError(format!(
+                    "Duplicate dependency name in scope {}: {}",
+                    self.path, name
+                )));
+            }
+        }
+        
+        Ok(())
+    }
+}
+
+impl Validatable for LockedDependency {
+    fn validate(&self) -> crate::RhemaResult<()> {
+        self.validate()
+    }
+    
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
+        // LockedDependency doesn't have its own schema version
+        Ok(())
+    }
+    
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
+        // Validate that dependencies list doesn't contain duplicates
+        if let Some(ref deps) = self.dependencies {
+            let mut names = std::collections::HashSet::new();
+            for dep in deps {
+                if !names.insert(dep) {
+                    return Err(crate::RhemaError::ValidationError(format!(
+                        "Duplicate dependency in dependency list: {}",
+                        dep
+                    )));
+                }
+            }
+        }
+        
+        Ok(())
+    }
+}
+
+impl Validatable for LockMetadata {
+    fn validate(&self) -> crate::RhemaResult<()> {
+        self.validate()
+    }
+    
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
+        // LockMetadata doesn't have its own schema version
+        Ok(())
+    }
+    
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
+        // Validate that circular dependencies count is reasonable
+        if self.circular_dependencies > self.total_scopes {
+            return Err(crate::RhemaError::ValidationError(
+                "Circular dependencies count cannot exceed total scopes".to_string(),
+            ));
+        }
+        
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rhema_lock_creation() {
+        let lock = RhemaLock::new("test-generator");
+        
+        assert_eq!(lock.lockfile_version, "1.0.0");
+        assert_eq!(lock.generated_by, "test-generator");
+        assert!(lock.scopes.is_empty());
+        assert_eq!(lock.metadata.total_scopes, 0);
+        assert_eq!(lock.metadata.total_dependencies, 0);
+    }
+
+    #[test]
+    fn test_locked_scope_creation() {
+        let scope = LockedScope::new("1.2.3", "crates/core");
+        
+        assert_eq!(scope.version, "1.2.3");
+        assert_eq!(scope.path, "crates/core");
+        assert!(scope.dependencies.is_empty());
+        assert!(!scope.has_circular_dependencies);
+    }
+
+    #[test]
+    fn test_locked_dependency_creation() {
+        let dep = LockedDependency::new("2.0.0", "crates/ai", DependencyType::Required);
+        
+        assert_eq!(dep.version, "2.0.0");
+        assert_eq!(dep.path, "crates/ai");
+        assert_eq!(dep.dependency_type, DependencyType::Required);
+        assert!(!dep.is_transitive);
+        assert!(dep.original_constraint.is_none());
+    }
+
+    #[test]
+    fn test_lock_metadata_creation() {
+        let metadata = LockMetadata::new();
+        
+        assert_eq!(metadata.total_scopes, 0);
+        assert_eq!(metadata.total_dependencies, 0);
+        assert_eq!(metadata.circular_dependencies, 0);
+        assert_eq!(metadata.validation_status, ValidationStatus::Pending);
+        assert_eq!(metadata.resolution_strategy, ResolutionStrategy::Latest);
+        assert_eq!(metadata.conflict_resolution, ConflictResolution::Automatic);
+    }
+
+    #[test]
+    fn test_adding_scope_to_lock() {
+        let mut lock = RhemaLock::new("test-generator");
+        let scope = LockedScope::new("1.0.0", "crates/core");
+        
+        lock.add_scope("crates/core".to_string(), scope);
+        
+        assert_eq!(lock.scopes.len(), 1);
+        assert!(lock.get_scope("crates/core").is_some());
+        assert_eq!(lock.metadata.total_scopes, 1);
+    }
+
+    #[test]
+    fn test_adding_dependency_to_scope() {
+        let mut scope = LockedScope::new("1.0.0", "crates/core");
+        let dep = LockedDependency::new("2.0.0", "crates/ai", DependencyType::Required);
+        
+        scope.add_dependency("ai".to_string(), dep);
+        
+        assert_eq!(scope.dependencies.len(), 1);
+        assert!(scope.get_dependency("ai").is_some());
+        assert!(scope.has_dependencies());
+        assert_eq!(scope.dependency_count(), 1);
+    }
+
+    #[test]
+    fn test_dependency_operations() {
+        let mut dep = LockedDependency::new("1.0.0", "crates/test", DependencyType::Optional);
+        
+        dep.set_original_constraint("^1.0.0");
+        dep.mark_transitive();
+        dep.add_dependency("sub-dep");
+        
+        assert_eq!(dep.original_constraint, Some("^1.0.0".to_string()));
+        assert!(dep.is_transitive);
+        assert_eq!(dep.dependencies, Some(vec!["sub-dep".to_string()]));
+    }
+
+    #[test]
+    fn test_metadata_operations() {
+        let mut metadata = LockMetadata::new();
+        
+        metadata.set_validation_status(ValidationStatus::Valid);
+        metadata.add_validation_message("Test message");
+        
+        assert_eq!(metadata.validation_status, ValidationStatus::Valid);
+        assert!(metadata.last_validated.is_some());
+        assert_eq!(metadata.validation_messages, Some(vec!["Test message".to_string()]));
+    }
+
+    #[test]
+    fn test_performance_metrics() {
+        let mut metrics = LockPerformanceMetrics::new(100);
+        
+        metrics.set_validation_time(50);
+        metrics.set_memory_usage(1024);
+        metrics.record_cache_hit();
+        metrics.record_cache_miss();
+        metrics.record_cache_hit();
+        
+        assert_eq!(metrics.generation_time_ms, 100);
+        assert_eq!(metrics.validation_time_ms, Some(50));
+        assert_eq!(metrics.memory_usage_bytes, Some(1024));
+        assert_eq!(metrics.cache_hits, 2);
+        assert_eq!(metrics.cache_misses, 1);
+    }
+
+    #[test]
+    fn test_serialization_deserialization() {
+        let mut lock = RhemaLock::new("test-generator");
+        let mut scope = LockedScope::new("1.0.0", "crates/core");
+        let dep = LockedDependency::new("2.0.0", "crates/ai", DependencyType::Required);
+        
+        scope.add_dependency("ai".to_string(), dep);
+        lock.add_scope("crates/core".to_string(), scope);
+        
+        // Serialize to YAML
+        let yaml = serde_yaml::to_string(&lock).unwrap();
+        assert!(!yaml.is_empty());
+        
+        // Deserialize from YAML
+        let deserialized_lock: RhemaLock = serde_yaml::from_str(&yaml).unwrap();
+        
+        assert_eq!(deserialized_lock.lockfile_version, lock.lockfile_version);
+        assert_eq!(deserialized_lock.generated_by, lock.generated_by);
+        assert_eq!(deserialized_lock.scopes.len(), lock.scopes.len());
+    }
+
+    #[test]
+    fn test_validation() {
+        let mut lock = RhemaLock::new("test-generator");
+        let scope = LockedScope::new("1.0.0", "crates/core");
+        
+        lock.add_scope("crates/core".to_string(), scope);
+        lock.update_checksum();
+        
+        // Should validate successfully
+        assert!(lock.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validation_errors() {
+        let mut lock = RhemaLock::new("test-generator");
+        
+        // Empty checksum should cause validation error
+        lock.checksum = String::new();
+        assert!(lock.validate().is_err());
+        
+        // Empty generated_by should cause validation error
+        lock.generated_by = String::new();
+        assert!(lock.validate().is_err());
+    }
+
+    #[test]
+    fn test_enum_serialization() {
+        let dep_type = DependencyType::Required;
+        let yaml = serde_yaml::to_string(&dep_type).unwrap();
+        assert_eq!(yaml.trim(), "required");
+        
+        let deserialized: DependencyType = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(deserialized, DependencyType::Required);
+    }
+
+    #[test]
+    fn test_cache_hit_rate_calculation() {
+        let mut metadata = LockMetadata::new();
+        let mut metrics = LockPerformanceMetrics::new(100);
+        
+        metrics.record_cache_hit();
+        metrics.record_cache_hit();
+        metrics.record_cache_miss();
+        
+        metadata.set_performance_metrics(metrics);
+        
+        let hit_rate = metadata.cache_hit_rate().unwrap();
+        assert!((hit_rate - 2.0/3.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_empty_cache_hit_rate() {
+        let metadata = LockMetadata::new();
+        assert!(metadata.cache_hit_rate().is_none());
+    }
+}

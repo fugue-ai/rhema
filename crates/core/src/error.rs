@@ -151,6 +151,15 @@ pub enum RhemaError {
     #[error("Lock error: {0}")]
     LockError(String),
 
+    #[error("Invalid version: {0}")]
+    InvalidVersion(String),
+
+    #[error("Resolution error: {0}")]
+    ResolutionError(String),
+
+    #[error("Serialization error: {0}")]
+    SerializationError(String),
+
     #[error("Sync error: {0}")]
     CoordinationError(String),
 

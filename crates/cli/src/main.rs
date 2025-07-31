@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-use crate::git::GitSubcommands;
-use crate::performance::PerformanceSubcommands;
-use crate::{
+use rhema_cli::git::GitSubcommands;
+use rhema_cli::lock::LockSubcommands;
+use rhema_cli::performance::PerformanceSubcommands;
+use rhema_cli::commands::{
     ContextRulesSubcommands, DecisionSubcommands, InsightSubcommands, PatternSubcommands,
     PromptSubcommands, TemplateSubcommands, TodoSubcommands, WorkflowSubcommands,
 };
-use crate::{Rhema, RhemaResult};
+use rhema_cli::{Rhema, RhemaResult};
 use clap::{Parser, Subcommand};
+
+// Import all the modules we need
+use rhema_cli::{
+    batch, bootstrap_context, config, context_rules, daemon, decision, dependencies,
+    export_context, generate_readme, git, health, impact, init, insight, lock, migrate,
+    pattern, performance, primer, prompt, query, schema, scopes, search, show, stats,
+    sync, template, todo, validate, workflow, interactive, commands,
+};
 
 #[derive(Parser)]
 #[command(name = "rhema")]
@@ -133,6 +142,18 @@ enum Commands {
         /// Migrate schemas to latest version
         #[arg(long)]
         migrate: bool,
+
+        /// Validate against lock file
+        #[arg(long)]
+        lock_file: bool,
+
+        /// Validate lock file only (skip other validations)
+        #[arg(long)]
+        lock_only: bool,
+
+        /// Strict lock file validation (treat warnings as errors)
+        #[arg(long)]
+        strict: bool,
     },
 
     /// Migrate schema files to latest version
@@ -192,7 +213,31 @@ enum Commands {
     },
 
     /// Show scope dependencies
-    Dependencies,
+    Dependencies {
+        /// Analyze from lock file instead of current state
+        #[arg(long)]
+        lock_file: bool,
+
+        /// Compare lock file with current state
+        #[arg(long)]
+        compare: bool,
+
+        /// Show dependency chain visualization
+        #[arg(long)]
+        visualize: bool,
+
+        /// Detect version conflicts
+        #[arg(long)]
+        conflicts: bool,
+
+        /// Show detailed impact analysis
+        #[arg(long)]
+        impact: bool,
+
+        /// Output format (text, json, yaml)
+        #[arg(long, value_name = "FORMAT", default_value = "text")]
+        format: String,
+    },
 
     /// Show impact of changes
     Impact {
@@ -208,6 +253,12 @@ enum Commands {
     Git {
         #[command(subcommand)]
         subcommand: GitSubcommands,
+    },
+
+    /// Manage lock files
+    Lock {
+        #[command(subcommand)]
+        subcommand: LockSubcommands,
     },
 
     /// Export context data
@@ -345,7 +396,7 @@ enum Commands {
     /// Manage MCP daemon service
     Daemon {
         #[command(flatten)]
-        args: crate::daemon::DaemonArgs,
+        args: daemon::DaemonArgs,
     },
 
     /// Performance monitoring and analytics
@@ -357,31 +408,31 @@ enum Commands {
     /// Manage configuration
     Config {
         #[command(subcommand)]
-        subcommand: commands::config::ConfigSubcommands,
+        subcommand: config::ConfigSubcommands,
     },
 
     /// Manage prompt patterns
     Prompt {
         #[command(subcommand)]
-        subcommand: PromptSubcommands,
+        subcommand: prompt::PromptSubcommands,
     },
 
     /// Manage context injection rules
     ContextRules {
         #[command(subcommand)]
-        subcommand: ContextRulesSubcommands,
+        subcommand: context_rules::ContextRulesSubcommands,
     },
 
     /// Manage prompt chain workflows
     Workflow {
         #[command(subcommand)]
-        subcommand: WorkflowSubcommands,
+        subcommand: workflow::WorkflowSubcommands,
     },
 
     /// Manage and share prompt templates
     Template {
         #[command(subcommand)]
-        subcommand: TemplateSubcommands,
+        subcommand: template::TemplateSubcommands,
     },
 
     /// Start interactive mode
@@ -415,16 +466,16 @@ fn main() -> RhemaResult<()> {
             scope_type,
             scope_name,
             auto_config,
-        } => crate::init::run(
+        } => init::run(
             &rhema,
             scope_type.as_deref(),
             scope_name.as_deref(),
             auto_config,
         ),
-        Commands::Scopes => crate::scopes::run(&rhema),
-        Commands::Scope { path } => crate::scopes::show_scope(&rhema, path.as_deref()),
-        Commands::Tree => crate::scopes::show_tree(&rhema),
-        Commands::Show { file, scope } => crate::show::run(&rhema, &file, scope.as_deref()),
+        Commands::Scopes => scopes::run(&rhema),
+        Commands::Scope { path } => scopes::show_scope(&rhema, path.as_deref()),
+        Commands::Tree => scopes::show_tree(&rhema),
+        Commands::Show { file, scope } => show::run(&rhema, &file, scope.as_deref()),
         Commands::Query {
             query,
             stats,
@@ -433,42 +484,53 @@ fn main() -> RhemaResult<()> {
             field_provenance,
         } => {
             if field_provenance {
-                crate::query::run_with_field_provenance(&rhema, &query)
+                query::run_with_field_provenance(&rhema, &query)
             } else if provenance {
-                crate::query::run_with_provenance(&rhema, &query)
+                query::run_with_provenance(&rhema, &query)
             } else if stats {
-                crate::query::run_with_stats(&rhema, &query)
+                query::run_with_stats(&rhema, &query)
             } else if format != "yaml" {
-                crate::query::run_formatted(&rhema, &query, format.as_str())
+                query::run_formatted(&rhema, &query, format.as_str())
             } else {
-                crate::query::run(&rhema, &query)
+                query::run(&rhema, &query)
             }
         }
         Commands::Search {
             term,
             in_file,
             regex,
-        } => crate::search::run(&rhema, &term, in_file.as_deref(), regex),
+        } => search::run(&rhema, &term, in_file.as_deref(), regex),
         Commands::Validate {
             recursive,
             json_schema,
             migrate,
-        } => crate::validate::run(&rhema, recursive, json_schema, migrate),
-        Commands::Migrate { recursive, dry_run } => crate::migrate::run(&rhema, recursive, dry_run),
+            lock_file,
+            lock_only,
+            strict,
+        } => validate::run(&rhema, recursive, json_schema, migrate, lock_file, lock_only, strict),
+        Commands::Migrate { recursive, dry_run } => migrate::run(&rhema, recursive, dry_run),
         Commands::Schema {
             template_type,
             output_file,
-        } => rhema_core::schema::run(&rhema, &template_type, output_file.as_deref()),
-        Commands::Health { scope } => crate::health::run(&rhema, scope.as_deref()),
-        Commands::Stats => crate::stats::run(&rhema),
-        Commands::Todo { subcommand } => crate::todo::run(&rhema, &subcommand),
-        Commands::Insight { subcommand } => crate::insight::run(&rhema, &subcommand),
-        Commands::Pattern { subcommand } => crate::pattern::run(&rhema, &subcommand),
-        Commands::Decision { subcommand } => crate::decision::run(&rhema, &subcommand),
-        Commands::Dependencies => crate::dependencies::run(&rhema),
-        Commands::Impact { file } => crate::impact::run(&rhema, &file),
-        Commands::SyncKnowledge => crate::sync::run(&rhema),
-        Commands::Git { subcommand } => crate::git::run(&rhema, &subcommand),
+        } => schema::run(&rhema, &template_type, output_file.as_deref()),
+        Commands::Health { scope } => health::run(&rhema, scope.as_deref()),
+        Commands::Stats => stats::run(&rhema),
+        Commands::Todo { subcommand } => todo::run(&rhema, &subcommand),
+        Commands::Insight { subcommand } => insight::run(&rhema, &subcommand),
+        Commands::Pattern { subcommand } => pattern::run(&rhema, &subcommand),
+        Commands::Decision { subcommand } => decision::run(&rhema, &subcommand),
+        Commands::Dependencies {
+            lock_file,
+            compare,
+            visualize,
+            conflicts,
+            impact,
+            format,
+        } => dependencies::run(&rhema, lock_file, compare, visualize, conflicts, impact, &format),
+        Commands::Impact { file } => impact::run(&rhema, &file),
+        Commands::SyncKnowledge => sync::run(&rhema),
+        Commands::Git { subcommand } => git::run(&rhema, &subcommand),
+        Commands::Lock { subcommand } => subcommand.execute(&rhema),
         Commands::ExportContext {
             format,
             output_file,
@@ -481,7 +543,7 @@ fn main() -> RhemaResult<()> {
             include_conventions,
             summarize,
             ai_agent_format,
-        } => crate::export_context::run(
+        } => export_context::run(
             &rhema,
             &format,
             output_file.as_deref(),
@@ -501,7 +563,7 @@ fn main() -> RhemaResult<()> {
             template_type,
             include_examples,
             validate,
-        } => crate::primer::run(
+        } => primer::run(
             &rhema,
             scope_name.as_deref(),
             output_dir.as_deref(),
@@ -520,7 +582,7 @@ fn main() -> RhemaResult<()> {
             let custom_sections_vec = custom_sections
                 .as_ref()
                 .map(|s| s.split(',').map(|s| s.trim().to_string()).collect());
-            crate::generate_readme::run(
+            generate_readme::run(
                 &rhema,
                 scope_name.as_deref(),
                 output_file.as_deref(),
@@ -539,7 +601,7 @@ fn main() -> RhemaResult<()> {
             optimize_for_ai,
             create_primer,
             create_readme,
-        } => crate::bootstrap_context::run(
+        } => bootstrap_context::run(
             &rhema,
             &use_case,
             &output_format,
@@ -551,22 +613,22 @@ fn main() -> RhemaResult<()> {
             create_readme,
         ),
         Commands::Daemon { args } => {
-            tokio::runtime::Runtime::new()?.block_on(crate::daemon::execute_daemon(args))
+            tokio::runtime::Runtime::new()?.block_on(daemon::execute_daemon(args))
         }
         Commands::Performance { subcommand } => tokio::runtime::Runtime::new()?.block_on(
-            crate::performance::run_performance_command(&rhema, &subcommand),
+            performance::run_performance_command(&rhema, &subcommand),
         ),
-        Commands::Config { subcommand } => crate::config::run(&rhema, &subcommand),
-        Commands::Prompt { subcommand } => crate::prompt::run(&rhema, &subcommand),
-        Commands::ContextRules { subcommand } => crate::context_rules::run(&rhema, &subcommand),
-        Commands::Workflow { subcommand } => crate::workflow::run(&rhema, &subcommand),
-        Commands::Template { subcommand } => crate::template::run(&rhema, &subcommand),
+        Commands::Config { subcommand } => config::run(&rhema, &subcommand),
+        Commands::Prompt { subcommand } => prompt::run(&rhema, &subcommand),
+        Commands::ContextRules { subcommand } => context_rules::run(&rhema, &subcommand),
+        Commands::Workflow { subcommand } => workflow::run(&rhema, &subcommand),
+        Commands::Template { subcommand } => template::run(&rhema, &subcommand),
         Commands::Interactive {
             config,
             no_auto_complete,
             no_syntax_highlighting,
             no_context_aware,
-        } => crate::interactive::run_interactive_with_config(
+        } => interactive::run_interactive_with_config(
             rhema,
             config.as_deref(),
             no_auto_complete,

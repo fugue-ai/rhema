@@ -30,7 +30,7 @@ Comprehensive guides for using Rhema's features and capabilities.
 
 - **[Interactive Mode](user-guide/interactive-mode.md)** - Using Rhema's interactive interface
 
-- **[Interactive Mode Improvements](user-guide/interactive-mode-improvements.md)** - Advanced interactive features
+
 
 - **[Performance Monitoring](user-guide/performance-monitoring.md)** - Monitoring and optimizing Rhema performance
 
@@ -50,11 +50,11 @@ Guides for developers contributing to Rhema.
 
 - **[Development Overview](development-setup/development.md)** - General development information
 
-- **[Local Setup](development-setup/local-setup.md)** - Setting up a local development environment
+- **[Local Setup](development-setup/development/local-setup.md)** - Setting up a local development environment
 
-- **[Rust Setup](development-setup/rust-setup.md)** - Rust-specific development setup
+- **[Rust Setup](development-setup/development/rust-setup.md)** - Rust-specific development setup
 
-- **[Git Setup](development-setup/git-setup.md)** - Git configuration for development
+- **[Git Setup](development-setup/development/git-setup.md)** - Git configuration for development
 
 - **[Editor Setup](development-setup/editor-setup/)** - IDE and editor configuration guides
 

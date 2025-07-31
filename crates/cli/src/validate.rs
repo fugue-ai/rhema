@@ -21,6 +21,11 @@ use colored::*;
 use serde_yaml;
 use std::path::Path;
 use walkdir::WalkDir;
+use rhema_core::lock::LockFileOps;
+use rhema_core::schema::RhemaLock;
+use std::collections::HashMap;
+use sha2::{Digest, Sha256};
+use chrono::{Utc, Duration};
 
 /// Find the scope file in the given directory, checking multiple possible locations
 fn find_scope_file(scope_path: &Path) -> Option<std::path::PathBuf> {
@@ -48,7 +53,15 @@ fn find_scope_file(scope_path: &Path) -> Option<std::path::PathBuf> {
     None
 }
 
-pub fn run(rhema: &Rhema, recursive: bool, json_schema: bool, migrate: bool) -> RhemaResult<()> {
+pub fn run(
+    rhema: &Rhema,
+    recursive: bool,
+    json_schema: bool,
+    migrate: bool,
+    lock_file: bool,
+    lock_only: bool,
+    strict: bool,
+) -> RhemaResult<()> {
     println!("🔍 Validating Rhema context files...");
     println!("{}", "─".repeat(80));
 
@@ -57,10 +70,16 @@ pub fn run(rhema: &Rhema, recursive: bool, json_schema: bool, migrate: bool) -> 
         return Ok(());
     }
 
+    // Handle lock-only validation
+    if lock_only {
+        return validate_lock_file_only(rhema, strict);
+    }
+
     let mut total_files = 0;
     let mut valid_files = 0;
     let mut errors = Vec::new();
     let mut migrations_performed = 0;
+    let mut lock_errors = Vec::new();
 
     if recursive {
         // Validate all scopes in the repository
@@ -101,6 +120,13 @@ pub fn run(rhema: &Rhema, recursive: bool, json_schema: bool, migrate: bool) -> 
         migrations_performed = scope_migrations;
     }
 
+    // Validate lock file if requested
+    if lock_file {
+        println!("🔒 Validating lock file...");
+        let lock_validation_result = validate_lock_file(rhema, strict)?;
+        lock_errors.extend(lock_validation_result);
+    }
+
     // Print summary
     println!("{}", "─".repeat(80));
     println!("📊 Validation Summary:");
@@ -113,20 +139,29 @@ pub fn run(rhema: &Rhema, recursive: bool, json_schema: bool, migrate: bool) -> 
             migrations_performed.to_string().yellow()
         );
     }
+    if lock_file {
+        println!("  🔒 Lock file errors: {}", lock_errors.len().to_string().red());
+    }
 
-    if !errors.is_empty() {
+    // Combine all errors
+    let all_errors = [&errors[..], &lock_errors[..]].concat();
+
+    if !all_errors.is_empty() {
         println!("\n❌ Validation Errors:");
-        for (i, error) in errors.iter().enumerate() {
+        for (i, error) in all_errors.iter().enumerate() {
             println!("  {}. {}", (i + 1).to_string().red(), error);
         }
         return Err(crate::RhemaError::SchemaValidation(format!(
             "Validation failed with {} errors",
-            errors.len()
+            all_errors.len()
         )));
     } else {
         println!("🎉 All files are valid!");
         if migrations_performed > 0 {
             println!("🔄 Schema migrations completed successfully!");
+        }
+        if lock_file {
+            println!("🔒 Lock file validation passed!");
         }
     }
 
@@ -687,4 +722,311 @@ fn print_fallback_schemas() {
             }
         }
     })).unwrap());
+}
+
+/// Validate lock file only (skip other validations)
+fn validate_lock_file_only(rhema: &Rhema, strict: bool) -> RhemaResult<()> {
+    println!("🔒 Validating lock file only...");
+    println!("{}", "─".repeat(80));
+
+    let lock_errors = validate_lock_file(rhema, strict)?;
+
+    println!("{}", "─".repeat(80));
+    println!("📊 Lock File Validation Summary:");
+    println!("  🔒 Lock file errors: {}", lock_errors.len().to_string().red());
+
+    if !lock_errors.is_empty() {
+        println!("\n❌ Lock File Validation Errors:");
+        for (i, error) in lock_errors.iter().enumerate() {
+            println!("  {}. {}", (i + 1).to_string().red(), error);
+        }
+        return Err(crate::RhemaError::SchemaValidation(format!(
+            "Lock file validation failed with {} errors",
+            lock_errors.len()
+        )));
+    } else {
+        println!("🎉 Lock file validation passed!");
+    }
+
+    Ok(())
+}
+
+/// Comprehensive lock file validation
+fn validate_lock_file(rhema: &Rhema, strict: bool) -> RhemaResult<Vec<String>> {
+    let mut errors = Vec::new();
+    let mut warnings = Vec::new();
+
+    // 1. Check if lock file exists
+    let lock_file_path = rhema.repo_root.join("rhema.lock");
+    if !lock_file_path.exists() {
+        errors.push("Lock file (rhema.lock) does not exist".to_string());
+        return Ok(errors);
+    }
+
+    // 2. Parse and validate lock file structure
+    let lock_content = std::fs::read_to_string(&lock_file_path)
+        .map_err(|e| crate::RhemaError::IoError(e))?;
+
+    let lock_file: RhemaLock = serde_yaml::from_str(&lock_content)
+        .map_err(|e| crate::RhemaError::InvalidYaml {
+            file: lock_file_path.display().to_string(),
+            message: e.to_string(),
+        })?;
+
+    // 3. Validate all scopes in lock file exist
+    println!("  🔍 Checking scope existence...");
+    for (scope_path, locked_scope) in &lock_file.scopes {
+        let scope_dir = rhema.repo_root.join(scope_path);
+        if !scope_dir.exists() {
+            errors.push(format!(
+                "Scope '{}' in lock file does not exist in filesystem",
+                scope_path
+            ));
+            continue;
+        }
+
+        // Check if scope file exists
+        if let Some(scope_file) = find_scope_file(&scope_dir) {
+            let scope_content = std::fs::read_to_string(&scope_file)
+                .map_err(|e| crate::RhemaError::IoError(e))?;
+
+            let current_scope: crate::RhemaScope = serde_yaml::from_str(&scope_content)
+                .map_err(|e| crate::RhemaError::InvalidYaml {
+                    file: scope_file.display().to_string(),
+                    message: e.to_string(),
+                })?;
+
+            // Validate scope checksum
+            let current_checksum = calculate_scope_checksum(&scope_dir)?;
+            if let Some(source_checksum) = &locked_scope.source_checksum {
+                if current_checksum != *source_checksum {
+                    errors.push(format!(
+                        "Scope '{}' checksum mismatch: expected {}, got {}",
+                        scope_path, source_checksum, current_checksum
+                    ));
+                }
+            }
+
+            // 4. Validate all dependencies in lock file are valid
+            println!("    🔍 Validating dependencies for scope '{}'...", scope_path);
+            for (dep_path, locked_dep) in &locked_scope.dependencies {
+                // Check if dependency exists
+                let dep_dir = rhema.repo_root.join(dep_path);
+                if !dep_dir.exists() {
+                    errors.push(format!(
+                        "Dependency '{}' in scope '{}' does not exist",
+                        dep_path, scope_path
+                    ));
+                    continue;
+                }
+
+                // Validate dependency checksum
+                let dep_checksum = calculate_scope_checksum(&dep_dir)?;
+                if dep_checksum != locked_dep.checksum {
+                    errors.push(format!(
+                        "Dependency '{}' in scope '{}' checksum mismatch: expected {}, got {}",
+                        dep_path, scope_path, locked_dep.checksum, dep_checksum
+                    ));
+                }
+
+                // Check dependency type consistency
+                if let Some(dep_scope_file) = find_scope_file(&dep_dir) {
+                    let dep_content = std::fs::read_to_string(&dep_scope_file)
+                        .map_err(|e| crate::RhemaError::IoError(e))?;
+
+                    let dep_scope: crate::RhemaScope = serde_yaml::from_str(&dep_content)
+                        .map_err(|e| crate::RhemaError::InvalidYaml {
+                            file: dep_scope_file.display().to_string(),
+                            message: e.to_string(),
+                        })?;
+
+                    if format!("{:?}", locked_dep.dependency_type) != dep_scope.scope_type {
+                        errors.push(format!(
+                            "Dependency type mismatch for '{}' in scope '{}': locked={:?}, current={}",
+                            dep_path, scope_path, locked_dep.dependency_type, dep_scope.scope_type
+                        ));
+                    }
+                }
+            }
+        } else {
+            errors.push(format!(
+                "Scope file not found for scope '{}' in lock file",
+                scope_path
+            ));
+        }
+    }
+
+    // 5. Check for circular dependencies
+    println!("  🔍 Checking for circular dependencies...");
+    let circular_deps = detect_circular_dependencies(&lock_file)?;
+    for cycle in circular_deps {
+        errors.push(format!("Circular dependency detected: {}", cycle.join(" -> ")));
+    }
+
+    // 6. Validate version constraints
+    println!("  🔍 Validating version constraints...");
+    for (scope_path, locked_scope) in &lock_file.scopes {
+        for (dep_path, locked_dep) in &locked_scope.dependencies {
+            if let Some(version_constraint) = &locked_dep.original_constraint {
+                // Check if version constraint is satisfied
+                if !is_version_constraint_satisfied(dep_path, version_constraint, rhema)? {
+                    errors.push(format!(
+                        "Version constraint '{}' not satisfied for dependency '{}' in scope '{}'",
+                        version_constraint, dep_path, scope_path
+                    ));
+                }
+            }
+        }
+    }
+
+    // 7. Check lock file age (warnings only)
+    println!("  🔍 Checking lock file age...");
+    let lock_metadata = std::fs::metadata(&lock_file_path)
+        .map_err(|e| crate::RhemaError::IoError(e))?;
+    let modified_time = lock_metadata.modified()
+        .map_err(|e| crate::RhemaError::IoError(e))?;
+    let lock_modified: chrono::DateTime<Utc> = chrono::DateTime::from(modified_time);
+    let now = Utc::now();
+    let age = now.signed_duration_since(lock_modified);
+
+    if age > chrono::Duration::days(30) {
+        let warning = format!(
+            "Lock file is {} days old (last modified: {})",
+            age.num_days(),
+            lock_modified.format("%Y-%m-%d %H:%M:%S")
+        );
+        if strict {
+            errors.push(warning);
+        } else {
+            warnings.push(warning);
+        }
+    }
+
+    // Print warnings if not in strict mode
+    if !warnings.is_empty() && !strict {
+        println!("  ⚠️  Warnings:");
+        for warning in &warnings {
+            println!("    {}", warning.yellow());
+        }
+    }
+
+    // Combine errors and warnings if in strict mode
+    if strict {
+        errors.extend(warnings);
+    }
+
+    Ok(errors)
+}
+
+/// Calculate checksum for a scope directory
+fn calculate_scope_checksum(scope_dir: &Path) -> RhemaResult<String> {
+    let mut hasher = Sha256::new();
+    
+    // Walk through all files in the scope directory
+    for entry in WalkDir::new(scope_dir)
+        .follow_links(true)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        let path = entry.path();
+        
+        if path.is_file() {
+            // Add file path to hash
+            hasher.update(path.to_string_lossy().as_bytes());
+            
+            // Add file content to hash
+            if let Ok(content) = std::fs::read(path) {
+                hasher.update(&content);
+            }
+        }
+    }
+    
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+/// Detect circular dependencies in the lock file
+fn detect_circular_dependencies(lock_file: &RhemaLock) -> RhemaResult<Vec<Vec<String>>> {
+    let mut cycles = Vec::new();
+    let mut visited = std::collections::HashSet::new();
+    let mut rec_stack = std::collections::HashSet::new();
+
+    for scope_path in lock_file.scopes.keys() {
+        if !visited.contains(scope_path) {
+            let mut path = Vec::new();
+            if has_cycle_dfs(
+                scope_path,
+                lock_file,
+                &mut visited,
+                &mut rec_stack,
+                &mut path,
+                &mut cycles,
+            ) {
+                // Cycle detected, but we continue to find all cycles
+            }
+        }
+    }
+
+    Ok(cycles)
+}
+
+/// DFS to detect cycles in dependency graph
+fn has_cycle_dfs(
+    scope_path: &str,
+    lock_file: &RhemaLock,
+    visited: &mut std::collections::HashSet<String>,
+    rec_stack: &mut std::collections::HashSet<String>,
+    path: &mut Vec<String>,
+    cycles: &mut Vec<Vec<String>>,
+) -> bool {
+    visited.insert(scope_path.to_string());
+    rec_stack.insert(scope_path.to_string());
+    path.push(scope_path.to_string());
+
+    if let Some(locked_scope) = lock_file.scopes.get(scope_path) {
+        for dep_path in locked_scope.dependencies.keys() {
+            if !visited.contains(dep_path) {
+                if has_cycle_dfs(dep_path, lock_file, visited, rec_stack, path, cycles) {
+                    return true;
+                }
+            } else if rec_stack.contains(dep_path) {
+                // Found a cycle
+                let cycle_start = path.iter().position(|p| p == dep_path).unwrap_or(0);
+                let cycle = path[cycle_start..].to_vec();
+                cycles.push(cycle);
+            }
+        }
+    }
+
+    rec_stack.remove(scope_path);
+    path.pop();
+    false
+}
+
+/// Check if version constraint is satisfied
+fn is_version_constraint_satisfied(
+    dep_path: &str,
+    version_constraint: &str,
+    rhema: &Rhema,
+) -> RhemaResult<bool> {
+    // For now, we'll implement a simple version constraint checker
+    // This can be enhanced to support semantic versioning
+    
+    let dep_dir = rhema.repo_root.join(dep_path);
+    if let Some(scope_file) = find_scope_file(&dep_dir) {
+        let content = std::fs::read_to_string(&scope_file)
+            .map_err(|e| crate::RhemaError::IoError(e))?;
+
+        let scope: crate::RhemaScope = serde_yaml::from_str(&content)
+            .map_err(|e| crate::RhemaError::InvalidYaml {
+                file: scope_file.display().to_string(),
+                message: e.to_string(),
+            })?;
+
+        // Simple version matching for now
+        // TODO: Implement proper semantic versioning constraint parsing
+        return Ok(&scope.version == version_constraint);
+    }
+
+    // If no version found, assume constraint is not satisfied
+    Ok(false)
 }

@@ -27,6 +27,7 @@ use rhema_cli::context_rules::ContextRulesSubcommands;
 use rhema_cli::prompt::PromptSubcommands;
 use rhema_cli::template::TemplateSubcommands;
 use rhema_cli::workflow::WorkflowSubcommands;
+use rhema_cli::lock::LockSubcommands;
 
 #[derive(Parser)]
 #[command(name = "rhema")]
@@ -389,6 +390,12 @@ enum Commands {
         subcommand: TemplateSubcommands,
     },
 
+    /// Manage lock files
+    Lock {
+        #[command(subcommand)]
+        subcommand: LockSubcommands,
+    },
+
     /// Start interactive mode
     Interactive {
         /// Configuration file for interactive mode
@@ -458,7 +465,7 @@ fn main() -> RhemaResult<()> {
             recursive,
             json_schema,
             migrate,
-        } => rhema_cli::validate::run(&rhema, recursive, json_schema, migrate),
+        } => rhema_cli::validate::run(&rhema, recursive, json_schema, migrate, false, false, false),
         Commands::Migrate { recursive, dry_run } => {
             rhema_cli::migrate::run(&rhema, recursive, dry_run)
         }
@@ -472,7 +479,7 @@ fn main() -> RhemaResult<()> {
         Commands::Insight { subcommand } => rhema_cli::insight::run(&rhema, &subcommand),
         Commands::Pattern { subcommand } => rhema_cli::pattern::run(&rhema, &subcommand),
         Commands::Decision { subcommand } => rhema_cli::decision::run(&rhema, &subcommand),
-        Commands::Dependencies => rhema_cli::dependencies::run(&rhema),
+        Commands::Dependencies => rhema_cli::dependencies::run(&rhema, false, false, false, false, false, "text"),
         Commands::Impact { file } => rhema_cli::impact::run(&rhema, &file),
         Commands::SyncKnowledge => rhema_cli::sync::run(&rhema),
         Commands::Git { subcommand } => rhema_cli::git::run(&rhema, &subcommand),
@@ -568,6 +575,7 @@ fn main() -> RhemaResult<()> {
         Commands::ContextRules { subcommand } => rhema_cli::context_rules::run(&rhema, &subcommand),
         Commands::Workflow { subcommand } => rhema_cli::workflow::run(&rhema, &subcommand),
         Commands::Template { subcommand } => rhema_cli::template::run(&rhema, &subcommand),
+        Commands::Lock { subcommand } => subcommand.execute(&rhema),
         Commands::Interactive {
             config,
             no_auto_complete,

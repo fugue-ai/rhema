@@ -1,0 +1,366 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/lock",
+  "title": "Rhema Lock File Schema",
+  "description": "JSON Schema for Rhema lock file system - provides deterministic dependency resolution and reproducible builds",
+  "type": "object",
+  "required": ["lockfile_version", "generated_at", "generated_by", "checksum", "scopes", "metadata"],
+  "properties": {
+    "lockfile_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version of the lock file format"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the lock file was generated"
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Information about what generated this lock file"
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "description": "SHA-256 checksum of the lock file contents for integrity verification"
+    },
+    "scopes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/locked_scope"
+      },
+      "description": "Locked scopes in the project"
+    },
+    "metadata": {
+      "$ref": "#/$defs/lock_metadata"
+    }
+  },
+  "$defs": {
+    "locked_scope": {
+      "type": "object",
+      "required": ["version", "path", "dependencies", "resolved_at", "has_circular_dependencies"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Version of the scope that was locked"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to the scope in the project"
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/locked_dependency"
+          },
+          "description": "All dependencies for this scope with their resolved versions"
+        },
+        "source_checksum": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "description": "SHA-256 checksum of the scope's source for integrity verification"
+        },
+        "resolved_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when this scope was last resolved"
+        },
+        "has_circular_dependencies": {
+          "type": "boolean",
+          "description": "Whether this scope has any circular dependencies"
+        }
+      },
+      "additionalProperties": {
+        "type": "object"
+      },
+      "description": "Individual locked scope structure representing a single scope with its locked dependencies and metadata"
+    },
+    "locked_dependency": {
+      "type": "object",
+      "required": ["version", "path", "resolved_at", "checksum", "dependency_type", "is_transitive"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Resolved version of the dependency"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to the dependency"
+        },
+        "resolved_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when this dependency was resolved"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "description": "SHA-256 checksum of the dependency for integrity verification"
+        },
+        "dependency_type": {
+          "$ref": "#/$defs/dependency_type"
+        },
+        "original_constraint": {
+          "type": "string",
+          "description": "Original version constraint that was resolved"
+        },
+        "is_transitive": {
+          "type": "boolean",
+          "description": "Whether this dependency is transitive (dependency of a dependency)"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Direct dependencies of this dependency"
+        }
+      },
+      "additionalProperties": {
+        "type": "object"
+      },
+      "description": "Individual locked dependency structure representing a single dependency with its resolved version and metadata"
+    },
+    "lock_metadata": {
+      "type": "object",
+      "required": ["total_scopes", "total_dependencies", "circular_dependencies", "validation_status", "resolution_strategy", "conflict_resolution"],
+      "properties": {
+        "total_scopes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of scopes in the lock file"
+        },
+        "total_dependencies": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of dependencies across all scopes"
+        },
+        "circular_dependencies": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of circular dependencies detected"
+        },
+        "validation_status": {
+          "$ref": "#/$defs/validation_status"
+        },
+        "resolution_strategy": {
+          "$ref": "#/$defs/resolution_strategy"
+        },
+        "conflict_resolution": {
+          "$ref": "#/$defs/conflict_resolution"
+        },
+        "last_validated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the lock file was last validated"
+        },
+        "validation_messages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of validation warnings or errors"
+        },
+        "performance_metrics": {
+          "$ref": "#/$defs/lock_performance_metrics"
+        }
+      },
+      "additionalProperties": {
+        "type": "object"
+      },
+      "description": "Metadata structure for lock files containing aggregate information about the lock file and its contents"
+    },
+    "lock_performance_metrics": {
+      "type": "object",
+      "required": ["generation_time_ms", "resolution_attempts", "cache_hits", "cache_misses"],
+      "properties": {
+        "generation_time_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Time taken to generate the lock file in milliseconds"
+        },
+        "validation_time_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Time taken to validate the lock file in milliseconds"
+        },
+        "memory_usage_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Memory usage during lock file operations in bytes"
+        },
+        "resolution_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of dependency resolution attempts"
+        },
+        "cache_hits": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of cache hits during resolution"
+        },
+        "cache_misses": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of cache misses during resolution"
+        }
+      },
+      "description": "Performance metrics for lock file operations"
+    },
+    "dependency_type": {
+      "type": "string",
+      "enum": ["required", "optional", "peer", "development", "build"],
+      "description": "Type of dependency"
+    },
+    "validation_status": {
+      "type": "string",
+      "enum": ["valid", "invalid", "warning", "pending"],
+      "description": "Overall validation status of the lock file"
+    },
+    "resolution_strategy": {
+      "type": "string",
+      "enum": ["latest", "earliest", "pinned", "range", "compatible"],
+      "description": "Strategy used for dependency resolution"
+    },
+    "conflict_resolution": {
+      "type": "string",
+      "enum": ["manual", "automatic", "prompt", "skip", "fail"],
+      "description": "Method used for conflict resolution"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "performance_metrics": {
+                "properties": {
+                  "cache_hits": { "type": "integer" },
+                  "cache_misses": { "type": "integer" }
+                },
+                "required": ["cache_hits", "cache_misses"]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "performance_metrics": {
+                "properties": {
+                  "cache_hit_rate": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Calculated cache hit rate (cache_hits / (cache_hits + cache_misses))"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "validation_status": { "const": "invalid" }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "validation_messages": {
+                "type": "array",
+                "minItems": 1,
+                "description": "Must contain at least one validation error message when status is invalid"
+              }
+            },
+            "required": ["validation_messages"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "circular_dependencies": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "validation_status": {
+                "enum": ["warning", "invalid"]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "lockfile_version": "1.0.0",
+      "generated_at": "2025-01-15T10:30:00Z",
+      "generated_by": "rhema-cli v1.0.0",
+      "checksum": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+      "scopes": {
+        "crates/core": {
+          "version": "1.0.0",
+          "path": "crates/core",
+          "dependencies": {
+            "crates/ai": {
+              "version": "2.0.0",
+              "path": "crates/ai",
+              "resolved_at": "2025-01-15T10:30:00Z",
+              "checksum": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890",
+              "dependency_type": "required",
+              "is_transitive": false,
+              "dependencies": ["crates/config"]
+            }
+          },
+          "resolved_at": "2025-01-15T10:30:00Z",
+          "has_circular_dependencies": false
+        }
+      },
+      "metadata": {
+        "total_scopes": 1,
+        "total_dependencies": 1,
+        "circular_dependencies": 0,
+        "validation_status": "valid",
+        "resolution_strategy": "latest",
+        "conflict_resolution": "automatic",
+        "performance_metrics": {
+          "generation_time_ms": 150,
+          "resolution_attempts": 3,
+          "cache_hits": 2,
+          "cache_misses": 1
+        }
+      }
+    }
+  ]
+} 

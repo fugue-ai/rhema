@@ -18,6 +18,7 @@ The schema has been split into individual files for better maintainability and m
 - **`decisions.json`** - Architecture Decision Records (ADRs)
 - **`patterns.json`** - Established patterns and best practices
 - **`conventions.json`** - Team standards and guidelines
+- **`lock.json`** - Lock file system for deterministic dependency resolution and reproducible builds
 
 ## Usage
 
@@ -38,6 +39,15 @@ Reference the main schema file to access all definitions:
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$ref": "./schemas/rhema.json#/$defs/rhema_scope"
+}
+```
+
+Or reference the lock schema specifically:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "./schemas/rhema.json#/$defs/lock"
 }
 ```
 
