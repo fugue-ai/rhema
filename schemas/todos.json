@@ -1,0 +1,123 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/todos",
+  "title": "Work Items and Completion History",
+  "description": "Tracks current tasks, completed work, and lessons learned",
+  "type": "object",
+  "properties": {
+    "active": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "required": ["title", "priority", "status", "created"],
+          "properties": {
+            "title": {"type": "string"},
+            "description": {"type": "string"},
+            "priority": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"]
+            },
+            "status": {
+              "type": "string",
+              "enum": ["todo", "in_progress", "blocked", "review", "done"]
+            },
+            "created": {
+              "type": "string",
+              "format": "date"
+            },
+            "context": {
+              "type": "object",
+              "properties": {
+                "related_files": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "related_components": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "cross_scope_dependencies": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "scope": {"type": "string"},
+                      "reason": {"type": "string"},
+                      "blocked_since": {
+                        "type": "string",
+                        "format": "date"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "acceptance_criteria": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "estimated_effort": {"type": "string"},
+            "tags": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "completed": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "required": ["title", "completed"],
+          "properties": {
+            "title": {"type": "string"},
+            "description": {"type": "string"},
+            "completed": {
+              "type": "string",
+              "format": "date"
+            },
+            "outcome": {"type": "string"},
+            "impact": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "lessons_learned": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "knowledge_updated": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "effort_actual": {"type": "string"},
+            "tags": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "metrics_established": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "endpoint": {"type": "string"},
+                  "p95_response_time": {"type": "string"},
+                  "p99_response_time": {"type": "string"},
+                  "requests_per_second": {"type": "string"}
+                }
+              }
+            },
+            "next_actions": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+} 

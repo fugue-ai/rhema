@@ -1,0 +1,20 @@
+# Act configuration for local pipeline execution
+# Install act: https://github.com/nektos/act
+
+# Use medium-sized image for better compatibility
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# Set environment variables for local execution
+--env-file .env.local
+
+# Enable verbose output for debugging
+-v
+
+# Use bind mounts for better performance
+--bind
+
+# Set working directory
+--workflows .github/workflows/
+
+# Enable reuse of containers
+--reuse 

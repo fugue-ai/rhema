@@ -1,11 +1,59 @@
-use crate::{Gacp, GacpResult, schema::{Validatable, SchemaMigratable, JsonSchema, CURRENT_SCHEMA_VERSION}};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult, schema::{Validatable, SchemaMigratable, JsonSchema, CURRENT_SCHEMA_VERSION}};
 use colored::*;
 use serde_yaml;
 use std::path::Path;
 use walkdir::WalkDir;
 
-pub fn run(gacp: &Gacp, recursive: bool, json_schema: bool, migrate: bool) -> GacpResult<()> {
-    println!("🔍 Validating GACP context files...");
+/// Find the scope file in the given directory, checking multiple possible locations
+fn find_scope_file(scope_path: &Path) -> Option<std::path::PathBuf> {
+    // Define the possible locations in order of preference
+    let possible_locations = [
+        scope_path.join("rhema.yaml"),
+        scope_path.join("scope.yaml"),
+    ];
+    
+    // Check if we're in a .rhema directory, then also check parent directory
+    let parent_locations = if scope_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
+        let parent = scope_path.parent().unwrap_or(scope_path);
+        vec![
+            parent.join("rhema.yaml"),
+            parent.join("scope.yaml"),
+        ]
+    } else {
+        vec![]
+    };
+    
+    // Combine all possible locations
+    let all_locations = [&possible_locations[..], &parent_locations[..]].concat();
+    
+    // Find the first existing file
+    for location in all_locations {
+        if location.exists() {
+            return Some(location);
+        }
+    }
+    
+    None
+}
+
+pub fn run(rhema: &Rhema, recursive: bool, json_schema: bool, migrate: bool) -> RhemaResult<()> {
+    println!("🔍 Validating Rhema context files...");
     println!("{}", "─".repeat(80));
     
     if json_schema {
@@ -20,7 +68,7 @@ pub fn run(gacp: &Gacp, recursive: bool, json_schema: bool, migrate: bool) -> Ga
     
     if recursive {
         // Validate all scopes in the repository
-        let scopes = gacp.discover_scopes()?;
+        let scopes = rhema.discover_scopes()?;
         
         for scope in scopes {
             println!("📁 Validating scope: {}", scope.definition.name.bright_blue());
@@ -33,11 +81,11 @@ pub fn run(gacp: &Gacp, recursive: bool, json_schema: bool, migrate: bool) -> Ga
     } else {
         // Validate only the current scope
         let current_dir = std::env::current_dir()
-            .map_err(|e| crate::GacpError::IoError(e))?;
+            .map_err(|e| crate::RhemaError::IoError(e))?;
         
-        let scopes = gacp.discover_scopes()?;
+        let scopes = rhema.discover_scopes()?;
         let scope = crate::scope::find_nearest_scope(&current_dir, &scopes)
-            .ok_or_else(|| crate::GacpError::ConfigError("No GACP scope found in current directory or parent directories".to_string()))?;
+            .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
         
         println!("📁 Validating scope: {}", scope.definition.name.bright_blue());
         let (scope_files, scope_valid, scope_errors, scope_migrations) = validate_scope(&scope.path, migrate)?;
@@ -62,7 +110,7 @@ pub fn run(gacp: &Gacp, recursive: bool, json_schema: bool, migrate: bool) -> Ga
         for (i, error) in errors.iter().enumerate() {
             println!("  {}. {}", (i + 1).to_string().red(), error);
         }
-        return Err(crate::GacpError::SchemaValidation(
+        return Err(crate::RhemaError::SchemaValidation(
             format!("Validation failed with {} errors", errors.len())
         ));
     } else {
@@ -75,28 +123,31 @@ pub fn run(gacp: &Gacp, recursive: bool, json_schema: bool, migrate: bool) -> Ga
     Ok(())
 }
 
-fn validate_scope(scope_path: &Path, migrate: bool) -> GacpResult<(usize, usize, Vec<String>, usize)> {
+fn validate_scope(scope_path: &Path, migrate: bool) -> RhemaResult<(usize, usize, Vec<String>, usize)> {
     let mut total_files = 0;
     let mut valid_files = 0;
     let mut errors = Vec::new();
     let mut migrations_performed = 0;
     
     // Validate the scope definition itself
-    let gacp_file = scope_path.join("gacp.yaml");
-    if gacp_file.exists() {
+    // TODO: Integrate with lock file system for comprehensive validation
+    if let Some(rhema_file) = find_scope_file(scope_path) {
         total_files += 1;
-        match validate_gacp_file(&gacp_file, migrate) {
+        let file_name = rhema_file.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("scope file");
+        match validate_rhema_file(&rhema_file, migrate) {
             Ok(migrations) => {
                 valid_files += 1;
                 migrations_performed += migrations;
-                println!("  ✅ gacp.yaml");
+                println!("  ✅ {}", file_name);
                 if migrations > 0 {
                     println!("    🔄 Schema migrated to version {}", CURRENT_SCHEMA_VERSION.yellow());
                 }
             }
             Err(e) => {
-                errors.push(format!("gacp.yaml: {}", e));
-                println!("  ❌ gacp.yaml: {}", e);
+                errors.push(format!("{}: {}", file_name, e));
+                println!("  ❌ {}: {}", file_name, e);
             }
         }
     }
@@ -114,8 +165,8 @@ fn validate_scope(scope_path: &Path, migrate: bool) -> GacpResult<(usize, usize,
                 .and_then(|n| n.to_str())
                 .unwrap_or("unknown");
             
-            // Skip gacp.yaml as we already validated it
-            if file_name == "gacp.yaml" {
+            // Skip scope files as we already validated them
+            if file_name == "rhema.yaml" || file_name == "scope.yaml" {
                 continue;
             }
             
@@ -136,12 +187,12 @@ fn validate_scope(scope_path: &Path, migrate: bool) -> GacpResult<(usize, usize,
     Ok((total_files, valid_files, errors, migrations_performed))
 }
 
-fn validate_gacp_file(file_path: &Path, migrate: bool) -> GacpResult<usize> {
+fn validate_rhema_file(file_path: &Path, migrate: bool) -> RhemaResult<usize> {
     let content = std::fs::read_to_string(file_path)
-        .map_err(|e| crate::GacpError::IoError(e))?;
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
-    let mut scope: crate::GacpScope = serde_yaml::from_str(&content)
-        .map_err(|e| crate::GacpError::InvalidYaml {
+    let mut scope: crate::RhemaScope = serde_yaml::from_str(&content)
+        .map_err(|e| crate::RhemaError::InvalidYaml {
             file: file_path.display().to_string(),
             message: e.to_string(),
         })?;
@@ -154,18 +205,18 @@ fn validate_gacp_file(file_path: &Path, migrate: bool) -> GacpResult<usize> {
             Ok(()) => {
                 // Write the migrated content back to file
                 let migrated_content = serde_yaml::to_string(&scope)
-                    .map_err(|e| crate::GacpError::InvalidYaml {
+                    .map_err(|e| crate::RhemaError::InvalidYaml {
                         file: file_path.display().to_string(),
                         message: format!("Failed to serialize migrated scope: {}", e),
                     })?;
                 
                 std::fs::write(file_path, migrated_content)
-                    .map_err(|e| crate::GacpError::IoError(e))?;
+                    .map_err(|e| crate::RhemaError::IoError(e))?;
                 
                 migrations = 1;
             }
             Err(e) => {
-                return Err(crate::GacpError::SchemaValidation(
+                return Err(crate::RhemaError::SchemaValidation(
                     format!("Schema migration failed: {}", e)
                 ));
             }
@@ -178,9 +229,9 @@ fn validate_gacp_file(file_path: &Path, migrate: bool) -> GacpResult<usize> {
     Ok(migrations)
 }
 
-fn validate_context_file(file_path: &Path) -> GacpResult<()> {
+fn validate_context_file(file_path: &Path) -> RhemaResult<()> {
     let content = std::fs::read_to_string(file_path)
-        .map_err(|e| crate::GacpError::IoError(e))?;
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
     let file_name = file_path.file_name()
         .and_then(|n| n.to_str())
@@ -190,7 +241,7 @@ fn validate_context_file(file_path: &Path) -> GacpResult<()> {
     match file_name {
         "todos.yaml" => {
             let todos: crate::Todos = serde_yaml::from_str(&content)
-                .map_err(|e| crate::GacpError::InvalidYaml {
+                .map_err(|e| crate::RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
@@ -198,7 +249,7 @@ fn validate_context_file(file_path: &Path) -> GacpResult<()> {
         }
         "knowledge.yaml" => {
             let knowledge: crate::Knowledge = serde_yaml::from_str(&content)
-                .map_err(|e| crate::GacpError::InvalidYaml {
+                .map_err(|e| crate::RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
@@ -206,7 +257,7 @@ fn validate_context_file(file_path: &Path) -> GacpResult<()> {
         }
         "patterns.yaml" => {
             let patterns: crate::Patterns = serde_yaml::from_str(&content)
-                .map_err(|e| crate::GacpError::InvalidYaml {
+                .map_err(|e| crate::RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
@@ -214,7 +265,7 @@ fn validate_context_file(file_path: &Path) -> GacpResult<()> {
         }
         "decisions.yaml" => {
             let decisions: crate::Decisions = serde_yaml::from_str(&content)
-                .map_err(|e| crate::GacpError::InvalidYaml {
+                .map_err(|e| crate::RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
@@ -222,7 +273,7 @@ fn validate_context_file(file_path: &Path) -> GacpResult<()> {
         }
         "conventions.yaml" => {
             let conventions: crate::Conventions = serde_yaml::from_str(&content)
-                .map_err(|e| crate::GacpError::InvalidYaml {
+                .map_err(|e| crate::RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
@@ -231,7 +282,7 @@ fn validate_context_file(file_path: &Path) -> GacpResult<()> {
         _ => {
             // For unknown files, just validate that they're valid YAML
             let _: serde_yaml::Value = serde_yaml::from_str(&content)
-                .map_err(|e| crate::GacpError::InvalidYaml {
+                .map_err(|e| crate::RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;
@@ -242,11 +293,34 @@ fn validate_context_file(file_path: &Path) -> GacpResult<()> {
 }
 
 fn print_json_schemas() {
-    println!("📋 JSON Schemas for GACP Context Files");
+    println!("📋 JSON Schemas for Rhema Context Files");
     println!("{}", "─".repeat(80));
     
-    println!("🔧 GACP Scope Schema:");
-    println!("{}", serde_json::to_string_pretty(&crate::GacpScope::json_schema()).unwrap());
+    // Read the comprehensive schema file
+    match std::fs::read_to_string("schemas/rhema-v1.json") {
+        Ok(schema_content) => {
+            match serde_json::from_str::<serde_json::Value>(&schema_content) {
+                Ok(schema) => {
+                    println!("{}", serde_json::to_string_pretty(&schema).unwrap());
+                }
+                Err(e) => {
+                    println!("❌ Error parsing schema file: {}", e);
+                    println!("📋 Using fallback schemas...");
+                    print_fallback_schemas();
+                }
+            }
+        }
+        Err(e) => {
+            println!("❌ Error reading schema file: {}", e);
+            println!("📋 Using fallback schemas...");
+            print_fallback_schemas();
+        }
+    }
+}
+
+fn print_fallback_schemas() {
+    println!("🔧 Rhema Scope Schema:");
+    println!("{}", serde_json::to_string_pretty(&crate::RhemaScope::json_schema()).unwrap());
     
     println!("\n📚 Knowledge Schema:");
     println!("{}", serde_json::to_string_pretty(&serde_json::json!({

@@ -1,22 +1,39 @@
-use crate::{Gacp, GacpResult};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult};
 use crate::scope::find_nearest_scope;
 use colored::*;
 use std::path::Path;
 use walkdir::WalkDir;
 
-pub fn run(gacp: &Gacp, term: &str, in_file: Option<&str>) -> GacpResult<()> {
+pub fn run(rhema: &Rhema, term: &str, in_file: Option<&str>, regex: bool) -> RhemaResult<()> {
     // Get the current working directory to find the nearest scope
     let current_dir = std::env::current_dir()
-        .map_err(|e| crate::GacpError::IoError(e))?;
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
     // Discover all scopes
-    let scopes = gacp.discover_scopes()?;
+    let scopes = rhema.discover_scopes()?;
     
     // Find the nearest scope to the current directory
     let scope = find_nearest_scope(&current_dir, &scopes)
-        .ok_or_else(|| crate::GacpError::ConfigError("No GACP scope found in current directory or parent directories".to_string()))?;
+        .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
     
-    println!("🔍 Searching for '{}' in scope: {}", term.bright_blue(), scope.definition.name);
+    let search_type = if regex { "regex pattern" } else { "term" };
+    println!("🔍 Searching for '{}' ({}) in scope: {}", term.bright_blue(), search_type, scope.definition.name);
     println!("{}", "─".repeat(80));
     
     let mut found_matches = false;
@@ -42,11 +59,15 @@ pub fn run(gacp: &Gacp, term: &str, in_file: Option<&str>) -> GacpResult<()> {
             }
             
             // Search in this file
-            if let Ok(matches) = search_in_file(path, term) {
-                if !matches.is_empty() {
-                    found_matches = true;
-                    display_search_results(file_name, path, &matches);
-                }
+            let matches = if regex {
+                search_in_file_regex(path, term)?
+            } else {
+                search_in_file(path, term)?
+            };
+            
+            if !matches.is_empty() {
+                found_matches = true;
+                display_search_results(file_name, path, &matches);
             }
         }
     }
@@ -58,59 +79,48 @@ pub fn run(gacp: &Gacp, term: &str, in_file: Option<&str>) -> GacpResult<()> {
     Ok(())
 }
 
-fn search_in_file(file_path: &Path, term: &str) -> Result<Vec<SearchMatch>, std::io::Error> {
-    let content = std::fs::read_to_string(file_path)?;
-    let term_lower = term.to_lowercase();
-    let mut matches = Vec::new();
+/// Search for text in a file
+fn search_in_file(file_path: &Path, term: &str) -> RhemaResult<Vec<String>> {
+    let content = std::fs::read_to_string(file_path)
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
-    for (line_num, line) in content.lines().enumerate() {
-        let line_lower = line.to_lowercase();
-        if line_lower.contains(&term_lower) {
-            let start_pos = line_lower.find(&term_lower).unwrap();
-            let end_pos = start_pos + term.len();
-            
-            matches.push(SearchMatch {
-                line_number: line_num + 1,
-                line_content: line.to_string(),
-                match_start: start_pos,
-                match_end: end_pos,
-            });
+    let mut matches = Vec::new();
+    let lines: Vec<&str> = content.lines().collect();
+    
+    for (line_num, line) in lines.iter().enumerate() {
+        if line.to_lowercase().contains(&term.to_lowercase()) {
+            matches.push(format!("Line {}: {}", line_num + 1, line.trim()));
         }
     }
     
     Ok(matches)
 }
 
-fn display_search_results(file_name: &str, file_path: &Path, matches: &[SearchMatch]) {
-    println!("📄 File: {} ({})", file_name.bright_blue(), file_path.display().to_string().dimmed());
-    println!("🎯 Found {} match(es)", matches.len().to_string().green());
+/// Search for regex pattern in a file
+fn search_in_file_regex(file_path: &Path, pattern: &str) -> RhemaResult<Vec<String>> {
+    let regex = regex::Regex::new(pattern)
+        .map_err(|_| crate::RhemaError::InvalidQuery(format!("Invalid regex pattern: {}", pattern)))?;
     
-    for (i, m) in matches.iter().enumerate() {
-        println!("  {}. Line {}: {}", 
-            (i + 1).to_string().cyan(),
-            m.line_number.to_string().yellow(),
-            highlight_match(&m.line_content, m.match_start, m.match_end)
-        );
-    }
-    println!("{}", "─".repeat(80));
-}
-
-fn highlight_match(line: &str, start: usize, end: usize) -> String {
-    if start >= line.len() || end > line.len() || start >= end {
-        return line.to_string();
+    let content = std::fs::read_to_string(file_path)
+        .map_err(|e| crate::RhemaError::IoError(e))?;
+    
+    let mut matches = Vec::new();
+    let lines: Vec<&str> = content.lines().collect();
+    
+    for (line_num, line) in lines.iter().enumerate() {
+        if regex.is_match(line) {
+            matches.push(format!("Line {}: {}", line_num + 1, line.trim()));
+        }
     }
     
-    let before = &line[..start];
-    let matched = &line[start..end];
-    let after = &line[end..];
-    
-    format!("{}{}{}", before, matched.bright_red().bold(), after)
+    Ok(matches)
 }
 
-#[derive(Debug)]
-struct SearchMatch {
-    line_number: usize,
-    line_content: String,
-    match_start: usize,
-    match_end: usize,
+/// Display search results
+fn display_search_results(file_name: &str, file_path: &Path, matches: &[String]) {
+    println!("📄 {} ({})", file_name.bright_green(), file_path.display());
+    for match_line in matches {
+        println!("  {}", match_line);
+    }
+    println!();
 } 

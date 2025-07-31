@@ -1,0 +1,154 @@
+workflows:
+  - id: "code-review-workflow-1"
+    name: "Complete Code Review Workflow"
+    description: "Multi-step workflow for comprehensive code reviews"
+    version: "1.0.0"
+    created_at: "2025-01-01T00:00:00Z"
+    updated_at: "2025-01-15T10:30:00Z"
+    author: "alice@example.com"
+    usage_stats:
+      total_executions: 25
+      successful_executions: 22
+      average_execution_time: 45.2
+      last_executed: "2025-01-15T10:30:00Z"
+    success_criteria:
+      - "All code review steps completed"
+      - "Security review passed"
+      - "Performance review completed"
+      - "Documentation updated"
+    tags:
+      - code-review
+      - security
+      - performance
+    steps:
+      - id: "step-1"
+        name: "Initial Code Review"
+        description: "Basic code quality and best practices review"
+        prompt_pattern: "Code Review Request"
+        task_type: "code_review"
+        order: 1
+        required: true
+        dependencies: null
+        variables:
+          review_type: "initial"
+          focus_areas: "code_quality,best_practices"
+        conditions: null
+      
+      - id: "step-2"
+        name: "Security Review"
+        description: "Security-focused code review"
+        prompt_pattern: "Code Review Request"
+        task_type: "security_review"
+        order: 2
+        required: true
+        dependencies:
+          - "step-1"
+        variables:
+          review_type: "security"
+          focus_areas: "vulnerabilities,authentication,data_protection"
+        conditions: null
+      
+      - id: "step-3"
+        name: "Performance Review"
+        description: "Performance and optimization review"
+        prompt_pattern: "Code Review Request"
+        task_type: "performance_optimization"
+        order: 3
+        required: false
+        dependencies:
+          - "step-1"
+        variables:
+          review_type: "performance"
+          focus_areas: "optimization,benchmarks,efficiency"
+        conditions: null
+      
+      - id: "step-4"
+        name: "Documentation Update"
+        description: "Update documentation based on code changes"
+        prompt_pattern: "Documentation Update"
+        task_type: "documentation"
+        order: 4
+        required: false
+        dependencies:
+          - "step-1"
+          - "step-2"
+        variables:
+          doc_type: "code_documentation"
+          update_scope: "api_changes,new_features"
+        conditions: null
+
+  - id: "bug-fix-workflow-1"
+    name: "Bug Fix and Testing Workflow"
+    description: "Workflow for fixing bugs and ensuring proper testing"
+    version: "1.0.0"
+    created_at: "2025-01-10T00:00:00Z"
+    updated_at: "2025-01-12T14:20:00Z"
+    author: "bob@example.com"
+    usage_stats:
+      total_executions: 15
+      successful_executions: 13
+      average_execution_time: 30.5
+      last_executed: "2025-01-12T14:20:00Z"
+    success_criteria:
+      - "Bug identified and fixed"
+      - "Tests written and passing"
+      - "Regression testing completed"
+    tags:
+      - bug-fix
+      - testing
+      - quality
+    steps:
+      - id: "step-1"
+        name: "Bug Analysis"
+        description: "Analyze the bug and understand root cause"
+        prompt_pattern: "Bug Report Template"
+        task_type: "bug_fix"
+        order: 1
+        required: true
+        dependencies: null
+        variables:
+          analysis_type: "root_cause"
+          severity: "medium"
+        conditions: null
+      
+      - id: "step-2"
+        name: "Fix Implementation"
+        description: "Implement the bug fix"
+        prompt_pattern: "Code Review Request"
+        task_type: "bug_fix"
+        order: 2
+        required: true
+        dependencies:
+          - "step-1"
+        variables:
+          fix_type: "bug_fix"
+          priority: "high"
+        conditions: null
+      
+      - id: "step-3"
+        name: "Test Writing"
+        description: "Write tests to prevent regression"
+        prompt_pattern: "Test Writing"
+        task_type: "testing"
+        order: 3
+        required: true
+        dependencies:
+          - "step-2"
+        variables:
+          test_type: "regression"
+          coverage: "high"
+        conditions: null
+      
+      - id: "step-4"
+        name: "Regression Testing"
+        description: "Run full test suite to ensure no regressions"
+        prompt_pattern: "Test Execution"
+        task_type: "testing"
+        order: 4
+        required: true
+        dependencies:
+          - "step-3"
+        variables:
+          test_suite: "full"
+          environment: "staging"
+        conditions: null 

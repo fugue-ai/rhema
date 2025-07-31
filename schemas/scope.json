@@ -1,0 +1,113 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/scope",
+  "title": "Rhema Scope Definition",
+  "description": "Defines the boundaries and purpose of a Rhema context scope",
+  "type": "object",
+  "required": ["rhema"],
+  "properties": {
+    "rhema": {
+      "type": "object",
+      "required": ["version", "scope"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Rhema protocol version"
+        },
+        "scope": {
+          "type": "object",
+          "required": ["type", "name", "description"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["repository", "service", "application", "library", "component"],
+              "description": "Type of scope this context represents"
+            },
+            "name": {
+              "type": "string",
+              "description": "Human-readable name for this scope"
+            },
+            "description": {
+              "type": "string",
+              "description": "Detailed description of scope purpose and responsibilities"
+            },
+            "boundaries": {
+              "type": "object",
+              "properties": {
+                "includes": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "File patterns included in this scope"
+                },
+                "excludes": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "File patterns excluded from this scope"
+                }
+              }
+            },
+            "dependencies": {
+              "type": "object",
+              "properties": {
+                "parent": {
+                  "type": "string",
+                  "description": "Path to parent scope"
+                },
+                "children": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "Paths to child scopes"
+                },
+                "peers": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "Paths to peer scopes this scope collaborates with"
+                }
+              }
+            },
+            "responsibilities": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "List of responsibilities this scope handles"
+            },
+            "tech": {
+              "type": "object",
+              "properties": {
+                "primary_languages": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "frameworks": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "databases": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "tooling": {
+          "type": "object",
+          "properties": {
+            "focus_areas": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Areas AI agents should focus on in this scope"
+            },
+            "recommended_analysis": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Types of analysis recommended for this scope"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+} 

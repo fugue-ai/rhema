@@ -1,19 +1,35 @@
-use crate::{Gacp, GacpResult, InsightSubcommands};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult, InsightSubcommands};
 use crate::file_ops;
 use crate::scope::find_nearest_scope;
 use colored::*;
 
-pub fn run(gacp: &Gacp, subcommand: &InsightSubcommands) -> GacpResult<()> {
+pub fn run(rhema: &Rhema, subcommand: &InsightSubcommands) -> RhemaResult<()> {
     // Get the current working directory to find the nearest scope
     let current_dir = std::env::current_dir()
-        .map_err(|e| crate::GacpError::IoError(e))?;
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
     // Discover all scopes
-    let scopes = gacp.discover_scopes()?;
+    let scopes = rhema.discover_scopes()?;
     
     // Find the nearest scope to the current directory
     let scope = find_nearest_scope(&current_dir, &scopes)
-        .ok_or_else(|| crate::GacpError::ConfigError("No GACP scope found in current directory or parent directories".to_string()))?;
+        .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
     
     match subcommand {
         InsightSubcommands::Record { title, content, confidence, category, tags } => {
@@ -38,7 +54,7 @@ fn record_insight(
     confidence: &Option<u8>,
     category: &Option<String>,
     tags: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let id = file_ops::add_knowledge(
         &scope.path,
         title.to_string(),
@@ -69,7 +85,7 @@ fn list_insights(
     category: &Option<String>,
     tag: &Option<String>,
     min_confidence: &Option<u8>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let insights = file_ops::list_knowledge(
         &scope.path,
         category.clone(),
@@ -120,7 +136,7 @@ fn update_insight(
     confidence: &Option<u8>,
     category: &Option<String>,
     tags: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::update_knowledge(
         &scope.path,
         id,
@@ -159,7 +175,7 @@ fn update_insight(
 fn delete_insight(
     scope: &crate::Scope,
     id: &str,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::delete_knowledge(&scope.path, id)?;
     
     println!("🗑️  Insight {} deleted successfully", id.green());

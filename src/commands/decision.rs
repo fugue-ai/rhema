@@ -1,19 +1,35 @@
-use crate::{Gacp, GacpResult, DecisionSubcommands, DecisionStatus};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult, DecisionSubcommands, DecisionStatus};
 use crate::file_ops;
 use crate::scope::find_nearest_scope;
 use colored::*;
 
-pub fn run(gacp: &Gacp, subcommand: &DecisionSubcommands) -> GacpResult<()> {
+pub fn run(rhema: &Rhema, subcommand: &DecisionSubcommands) -> RhemaResult<()> {
     // Get the current working directory to find the nearest scope
     let current_dir = std::env::current_dir()
-        .map_err(|e| crate::GacpError::IoError(e))?;
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
     // Discover all scopes
-    let scopes = gacp.discover_scopes()?;
+    let scopes = rhema.discover_scopes()?;
     
     // Find the nearest scope to the current directory
     let scope = find_nearest_scope(&current_dir, &scopes)
-        .ok_or_else(|| crate::GacpError::ConfigError("No GACP scope found in current directory or parent directories".to_string()))?;
+        .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
     
     match subcommand {
         DecisionSubcommands::Record { title, description, status, context, makers, alternatives, rationale, consequences } => {
@@ -41,7 +57,7 @@ fn record_decision(
     alternatives: &Option<String>,
     rationale: &Option<String>,
     consequences: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let id = file_ops::add_decision(
         &scope.path,
         title.to_string(),
@@ -81,7 +97,7 @@ fn list_decisions(
     scope: &crate::Scope,
     status: &Option<DecisionStatus>,
     maker: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let decisions = file_ops::list_decisions(
         &scope.path,
         status.clone(),
@@ -146,7 +162,7 @@ fn update_decision(
     alternatives: &Option<String>,
     rationale: &Option<String>,
     consequences: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::update_decision(
         &scope.path,
         id,
@@ -198,7 +214,7 @@ fn update_decision(
 fn delete_decision(
     scope: &crate::Scope,
     id: &str,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::delete_decision(&scope.path, id)?;
     
     println!("🗑️  Decision {} deleted successfully", id.green());

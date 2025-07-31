@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::HashMap;
@@ -7,9 +23,9 @@ use validator::ValidationError;
 /// Schema version for compatibility tracking
 pub const CURRENT_SCHEMA_VERSION: &str = "1.0.0";
 
-/// Core GACP scope definition
+/// Core Rhema scope definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GacpScope {
+pub struct RhemaScope {
     /// Scope name and identifier
     pub name: String,
     
@@ -28,6 +44,9 @@ pub struct GacpScope {
     /// Dependencies on other scopes
     pub dependencies: Option<Vec<ScopeDependency>>,
     
+    /// Protocol information for AI context bootstrapping
+    pub protocol_info: Option<ProtocolInfo>,
+    
     /// Custom fields for extensibility
     #[serde(flatten)]
     pub custom: HashMap<String, Value>,
@@ -44,6 +63,121 @@ pub struct ScopeDependency {
     
     /// Version constraint
     pub version: Option<String>,
+}
+
+/// Protocol information for AI context bootstrapping
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProtocolInfo {
+    /// Protocol version
+    pub version: String,
+    
+    /// Protocol description and purpose
+    pub description: Option<String>,
+    
+    /// Key concepts and terminology
+    pub concepts: Option<Vec<ConceptDefinition>>,
+    
+    /// CQL examples and usage patterns
+    pub cql_examples: Option<Vec<CqlExample>>,
+    
+    /// Common patterns and conventions
+    pub patterns: Option<Vec<PatternDefinition>>,
+    
+    /// Integration guidelines
+    pub integrations: Option<Vec<IntegrationGuide>>,
+    
+    /// Troubleshooting and common issues
+    pub troubleshooting: Option<Vec<TroubleshootingItem>>,
+    
+    /// Custom protocol extensions
+    #[serde(flatten)]
+    pub custom: HashMap<String, Value>,
+}
+
+/// Concept definition for protocol documentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConceptDefinition {
+    /// Concept name
+    pub name: String,
+    
+    /// Concept description
+    pub description: String,
+    
+    /// Related concepts
+    pub related: Option<Vec<String>>,
+    
+    /// Usage examples
+    pub examples: Option<Vec<String>>,
+}
+
+/// CQL example for protocol documentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CqlExample {
+    /// Example name/title
+    pub name: String,
+    
+    /// CQL query
+    pub query: String,
+    
+    /// Description of what the query does
+    pub description: String,
+    
+    /// Expected output format
+    pub output_format: Option<String>,
+    
+    /// Use case context
+    pub use_case: Option<String>,
+}
+
+/// Pattern definition for protocol documentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PatternDefinition {
+    /// Pattern name
+    pub name: String,
+    
+    /// Pattern description
+    pub description: String,
+    
+    /// When to use this pattern
+    pub when_to_use: Option<String>,
+    
+    /// Implementation examples
+    pub examples: Option<Vec<String>>,
+}
+
+/// Integration guide for protocol documentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IntegrationGuide {
+    /// Integration name
+    pub name: String,
+    
+    /// Integration description
+    pub description: String,
+    
+    /// Setup instructions
+    pub setup: Option<Vec<String>>,
+    
+    /// Configuration examples
+    pub configuration: Option<Vec<String>>,
+    
+    /// Best practices
+    pub best_practices: Option<Vec<String>>,
+}
+
+/// Troubleshooting item for protocol documentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TroubleshootingItem {
+    /// Issue name
+    pub issue: String,
+    
+    /// Problem description
+    pub description: String,
+    
+    /// Solution steps
+    pub solution: Vec<String>,
+    
+    /// Prevention tips
+    pub prevention: Option<Vec<String>>,
 }
 
 /// Knowledge base structure
@@ -350,6 +484,471 @@ pub enum EnforcementLevel {
     Deprecated,
 }
 
+/// Prompt pattern entry for prompts.yaml
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptPattern {
+    /// Unique identifier
+    pub id: String,
+    /// Prompt name
+    pub name: String,
+    /// Prompt description
+    pub description: Option<String>,
+    /// Current prompt template (with optional {{CONTEXT}} variable)
+    pub template: String,
+    /// Context injection method: prepend, append, or template_variable
+    pub injection: PromptInjectionMethod,
+    /// Usage analytics and effectiveness tracking
+    pub usage_analytics: UsageAnalytics,
+    /// Version information
+    pub version: PromptVersion,
+    /// Optional tags for categorization
+    pub tags: Option<Vec<String>>,
+    
+    // TODO: Advanced features for future versions:
+    // - context_rules: Vec<ContextRule> - Conditional context injection based on task type
+    // - variables: HashMap<String, String> - Template variables beyond {{CONTEXT}}
+    // - multi_file_context: bool - Support loading multiple context files
+    // - context_priority: u8 - Priority for context injection when multiple rules match
+}
+
+/// Version information for prompt patterns
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptVersion {
+    /// Current version string (e.g., "1.2.3")
+    pub current: String,
+    /// Version history
+    pub history: Vec<VersionEntry>,
+    /// Creation timestamp
+    pub created_at: DateTime<Utc>,
+    /// Last updated timestamp
+    pub updated_at: DateTime<Utc>,
+}
+
+impl PromptVersion {
+    /// Create a new version with initial version
+    pub fn new(initial_version: &str) -> Self {
+        let now = Utc::now();
+        Self {
+            current: initial_version.to_string(),
+            history: vec![VersionEntry {
+                version: initial_version.to_string(),
+                template: String::new(), // Will be set by caller
+                description: "Initial version".to_string(),
+                timestamp: now,
+                author: None,
+                changes: vec!["Initial creation".to_string()],
+            }],
+            created_at: now,
+            updated_at: now,
+        }
+    }
+    
+    /// Create a new version
+    pub fn create_version(&mut self, new_version: &str, template: &str, description: &str, changes: Vec<String>, author: Option<String>) {
+        let now = Utc::now();
+        
+        // Add current version to history
+        self.history.push(VersionEntry {
+            version: self.current.clone(),
+            template: template.to_string(),
+            description: description.to_string(),
+            timestamp: now,
+            author,
+            changes,
+        });
+        
+        // Update current version
+        self.current = new_version.to_string();
+        self.updated_at = now;
+    }
+    
+    /// Get version history
+    pub fn get_history(&self) -> &Vec<VersionEntry> {
+        &self.history
+    }
+    
+    /// Get a specific version entry
+    pub fn get_version(&self, version: &str) -> Option<&VersionEntry> {
+        self.history.iter().find(|entry| entry.version == version)
+    }
+    
+    /// Get the latest version entry
+    pub fn get_latest(&self) -> Option<&VersionEntry> {
+        self.history.last()
+    }
+}
+
+/// Individual version entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VersionEntry {
+    /// Version string
+    pub version: String,
+    /// Template at this version
+    pub template: String,
+    /// Description of this version
+    pub description: String,
+    /// When this version was created
+    pub timestamp: DateTime<Utc>,
+    /// Author of this version (optional)
+    pub author: Option<String>,
+    /// List of changes in this version
+    pub changes: Vec<String>,
+}
+
+/// Usage analytics for prompt patterns
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageAnalytics {
+    /// Total number of times this prompt was used
+    pub total_uses: u32,
+    /// Number of successful uses (user marked as successful)
+    pub successful_uses: u32,
+    /// Last time this prompt was used
+    pub last_used: Option<DateTime<Utc>>,
+    /// Feedback history for this prompt
+    pub feedback_history: Vec<FeedbackEntry>,
+}
+
+impl UsageAnalytics {
+    /// Calculate success rate based on usage data
+    pub fn success_rate(&self) -> f64 {
+        if self.total_uses == 0 {
+            0.0
+        } else {
+            self.successful_uses as f64 / self.total_uses as f64
+        }
+    }
+    
+    /// Record a new usage of this prompt
+    pub fn record_usage(&mut self, successful: bool, feedback: Option<String>) {
+        self.total_uses += 1;
+        if successful {
+            self.successful_uses += 1;
+        }
+        self.last_used = Some(Utc::now());
+        
+        if let Some(feedback_text) = feedback {
+            self.feedback_history.push(FeedbackEntry {
+                timestamp: Utc::now(),
+                successful,
+                feedback: feedback_text,
+            });
+        }
+    }
+    
+    /// Create new usage analytics
+    pub fn new() -> Self {
+        Self {
+            total_uses: 0,
+            successful_uses: 0,
+            last_used: None,
+            feedback_history: Vec::new(),
+        }
+    }
+}
+
+/// Individual feedback entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeedbackEntry {
+    /// When this feedback was recorded
+    pub timestamp: DateTime<Utc>,
+    /// Whether the prompt was successful
+    pub successful: bool,
+    /// User feedback text
+    pub feedback: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PromptInjectionMethod {
+    Prepend,
+    Append,
+    TemplateVariable,
+}
+
+/// Top-level structure for prompts.yaml
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Prompts {
+    pub prompts: Vec<PromptPattern>,
+}
+
+/// Top-level structure for workflows.yaml
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Workflows {
+    pub workflows: Vec<PromptChain>,
+}
+
+/// Prompt chain workflow
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptChain {
+    /// Unique identifier
+    pub id: String,
+    /// Chain name
+    pub name: String,
+    /// Chain description
+    pub description: Option<String>,
+    /// Steps in the chain
+    pub steps: Vec<ChainStep>,
+    /// Chain metadata
+    pub metadata: ChainMetadata,
+    /// Optional tags for categorization
+    pub tags: Option<Vec<String>>,
+}
+
+/// Individual step in a prompt chain
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChainStep {
+    /// Step identifier
+    pub id: String,
+    /// Step name
+    pub name: String,
+    /// Step description
+    pub description: Option<String>,
+    /// Prompt pattern to use (ID or name)
+    pub prompt_pattern: String,
+    /// Task type for context injection
+    pub task_type: Option<String>,
+    /// Step order in the chain
+    pub order: u32,
+    /// Whether this step is required
+    pub required: bool,
+    /// Step dependencies (other step IDs that must complete first)
+    pub dependencies: Option<Vec<String>>,
+    /// Step-specific variables
+    pub variables: Option<HashMap<String, String>>,
+    /// Step conditions (when to execute this step)
+    pub conditions: Option<Vec<String>>,
+}
+
+/// Chain metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChainMetadata {
+    /// Chain version
+    pub version: String,
+    /// Creation timestamp
+    pub created_at: DateTime<Utc>,
+    /// Last updated timestamp
+    pub updated_at: DateTime<Utc>,
+    /// Author of the chain
+    pub author: Option<String>,
+    /// Usage statistics
+    pub usage_stats: ChainUsageStats,
+    /// Success criteria
+    pub success_criteria: Option<Vec<String>>,
+}
+
+/// Chain usage statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChainUsageStats {
+    /// Total number of times this chain was executed
+    pub total_executions: u32,
+    /// Number of successful executions
+    pub successful_executions: u32,
+    /// Average execution time in seconds
+    pub average_execution_time: Option<f64>,
+    /// Last executed timestamp
+    pub last_executed: Option<DateTime<Utc>>,
+}
+
+impl ChainUsageStats {
+    /// Calculate success rate
+    pub fn success_rate(&self) -> f64 {
+        if self.total_executions == 0 {
+            0.0
+        } else {
+            self.successful_executions as f64 / self.total_executions as f64
+        }
+    }
+    
+    /// Record a new execution
+    pub fn record_execution(&mut self, successful: bool, execution_time: Option<f64>) {
+        self.total_executions += 1;
+        if successful {
+            self.successful_executions += 1;
+        }
+        self.last_executed = Some(Utc::now());
+        
+        if let Some(time) = execution_time {
+            // Update average execution time
+            let current_avg = self.average_execution_time.unwrap_or(0.0);
+            let new_avg = (current_avg * (self.total_executions - 1) as f64 + time) / self.total_executions as f64;
+            self.average_execution_time = Some(new_avg);
+        }
+    }
+    
+    /// Create new usage stats
+    pub fn new() -> Self {
+        Self {
+            total_executions: 0,
+            successful_executions: 0,
+            average_execution_time: None,
+            last_executed: None,
+        }
+    }
+}
+
+/// Template library for sharing templates across teams
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateLibrary {
+    /// Library name
+    pub name: String,
+    /// Library description
+    pub description: Option<String>,
+    /// Library owner/team
+    pub owner: String,
+    /// Library version
+    pub version: String,
+    /// Creation timestamp
+    pub created_at: DateTime<Utc>,
+    /// Last updated timestamp
+    pub updated_at: DateTime<Utc>,
+    /// Templates in this library
+    pub templates: Vec<SharedTemplate>,
+    /// Library tags for categorization
+    pub tags: Option<Vec<String>>,
+    /// Access control settings
+    pub access_control: Option<TemplateAccessControl>,
+}
+
+/// Shared template with metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SharedTemplate {
+    /// Template ID
+    pub id: String,
+    /// Template name
+    pub name: String,
+    /// Template description
+    pub description: Option<String>,
+    /// Template content
+    pub template: String,
+    /// Template metadata
+    pub metadata: TemplateMetadata,
+    /// Template tags
+    pub tags: Option<Vec<String>>,
+    /// Usage statistics
+    pub usage_stats: TemplateUsageStats,
+}
+
+/// Template metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateMetadata {
+    /// Template author
+    pub author: Option<String>,
+    /// Template version
+    pub version: String,
+    /// Creation timestamp
+    pub created_at: DateTime<Utc>,
+    /// Last updated timestamp
+    pub updated_at: DateTime<Utc>,
+    /// Template category
+    pub category: Option<String>,
+    /// Template complexity level
+    pub complexity: Option<TemplateComplexity>,
+    /// Template language/framework
+    pub language: Option<String>,
+    /// Template dependencies
+    pub dependencies: Option<Vec<String>>,
+    /// Template examples
+    pub examples: Option<Vec<String>>,
+}
+
+/// Template complexity levels
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TemplateComplexity {
+    Beginner,
+    Intermediate,
+    Advanced,
+    Expert,
+}
+
+/// Template access control
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateAccessControl {
+    /// Public access (true = public, false = private)
+    pub public: bool,
+    /// Allowed teams/organizations
+    pub allowed_teams: Option<Vec<String>>,
+    /// Allowed users
+    pub allowed_users: Option<Vec<String>>,
+    /// Read-only access (true = read-only, false = editable)
+    pub read_only: bool,
+}
+
+/// Template usage statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateUsageStats {
+    /// Total downloads
+    pub total_downloads: u32,
+    /// Total uses
+    pub total_uses: u32,
+    /// Average rating (1.0-5.0)
+    pub average_rating: Option<f64>,
+    /// Number of ratings
+    pub rating_count: u32,
+    /// Last downloaded timestamp
+    pub last_downloaded: Option<DateTime<Utc>>,
+    /// Last used timestamp
+    pub last_used: Option<DateTime<Utc>>,
+}
+
+impl TemplateUsageStats {
+    /// Create new usage stats
+    pub fn new() -> Self {
+        Self {
+            total_downloads: 0,
+            total_uses: 0,
+            average_rating: None,
+            rating_count: 0,
+            last_downloaded: None,
+            last_used: None,
+        }
+    }
+    
+    /// Record a download
+    pub fn record_download(&mut self) {
+        self.total_downloads += 1;
+        self.last_downloaded = Some(Utc::now());
+    }
+    
+    /// Record usage
+    pub fn record_usage(&mut self) {
+        self.total_uses += 1;
+        self.last_used = Some(Utc::now());
+    }
+    
+    /// Add a rating
+    pub fn add_rating(&mut self, rating: f64) {
+        let current_avg = self.average_rating.unwrap_or(0.0);
+        let new_avg = (current_avg * self.rating_count as f64 + rating) / (self.rating_count + 1) as f64;
+        self.average_rating = Some(new_avg);
+        self.rating_count += 1;
+    }
+}
+
+/// Template import/export metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateExport {
+    /// Export metadata
+    pub metadata: ExportMetadata,
+    /// Exported templates
+    pub templates: Vec<SharedTemplate>,
+    /// Export timestamp
+    pub exported_at: DateTime<Utc>,
+    /// Export version
+    pub export_version: String,
+}
+
+/// Export metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportMetadata {
+    /// Source scope
+    pub source_scope: String,
+    /// Export description
+    pub description: Option<String>,
+    /// Export tags
+    pub tags: Option<Vec<String>>,
+    /// Export author
+    pub author: Option<String>,
+}
+
 // Validation regex patterns
 lazy_static::lazy_static! {
     static ref NAME_REGEX: regex::Regex = regex::Regex::new(r"^[a-zA-Z0-9_-]+$").unwrap();
@@ -518,85 +1117,231 @@ fn validate_review_date(review_date: &Option<DateTime<Utc>>) -> Result<(), Valid
 
 /// Schema validation trait with enhanced validation
 pub trait Validatable {
-    fn validate(&self) -> crate::GacpResult<()>;
-    fn validate_schema_version(&self) -> crate::GacpResult<()>;
-    fn validate_cross_fields(&self) -> crate::GacpResult<()>;
+    fn validate(&self) -> crate::RhemaResult<()>;
+    fn validate_schema_version(&self) -> crate::RhemaResult<()>;
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()>;
 }
 
-impl Validatable for GacpScope {
-    fn validate(&self) -> crate::GacpResult<()> {
+impl Validatable for RhemaScope {
+    fn validate(&self) -> crate::RhemaResult<()> {
         // Basic field validation
-        if self.name.is_empty() {
-            return Err(crate::GacpError::SchemaValidation("Scope name cannot be empty".to_string()));
-        }
-        if !NAME_REGEX.is_match(&self.name) {
-            return Err(crate::GacpError::SchemaValidation("Scope name must be alphanumeric with hyphens/underscores".to_string()));
-        }
-        if self.scope_type.is_empty() {
-            return Err(crate::GacpError::SchemaValidation("Scope type cannot be empty".to_string()));
-        }
-        if self.version.is_empty() {
-            return Err(crate::GacpError::SchemaValidation("Version cannot be empty".to_string()));
-        }
-        if !VERSION_REGEX.is_match(&self.version) {
-            return Err(crate::GacpError::SchemaValidation("Version must follow semantic versioning".to_string()));
+        if self.name.trim().is_empty() {
+            return Err(crate::RhemaError::ValidationError("Scope name cannot be empty".to_string()));
         }
         
-        self.validate_schema_version()?;
-        self.validate_cross_fields()?;
+        if self.scope_type.trim().is_empty() {
+            return Err(crate::RhemaError::ValidationError("Scope type cannot be empty".to_string()));
+        }
+        
+        if self.version.trim().is_empty() {
+            return Err(crate::RhemaError::ValidationError("Version cannot be empty".to_string()));
+        }
+        
+        // Validate version format (semver-like)
+        if !self.version.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '-') {
+            return Err(crate::RhemaError::ValidationError("Invalid version format".to_string()));
+        }
+        
+        // Validate dependencies if present
+        if let Some(deps) = &self.dependencies {
+            for _dep in deps {
+                // TODO: Implement validation for ScopeDependency
+// TODO: Add lock file schema structures (RhemaLock, LockedScope, LockedDependency)
+// TODO: Integrate with lock file system for deterministic dependency resolution
+                // dep.validate()?;
+            }
+        }
+        
+        // Validate protocol info if present
+        if let Some(info) = &self.protocol_info {
+            info.validate()?;
+        }
+        
         Ok(())
     }
 
-    fn validate_schema_version(&self) -> crate::GacpResult<()> {
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
         if let Some(schema_version) = &self.schema_version {
-            if !VERSION_REGEX.is_match(schema_version) {
-                return Err(crate::GacpError::SchemaValidation(
-                    "Invalid schema version format".to_string()
-                ));
-            }
-            
-            // Check for major version compatibility
-            let current_major = CURRENT_SCHEMA_VERSION.split('.').next().unwrap_or("1");
-            let schema_major = schema_version.split('.').next().unwrap_or("1");
-            
-            if current_major != schema_major {
-                return Err(crate::GacpError::SchemaValidation(
-                    format!("Incompatible schema version: {} (current: {})", schema_version, CURRENT_SCHEMA_VERSION)
+            if schema_version != CURRENT_SCHEMA_VERSION {
+                return Err(crate::RhemaError::ValidationError(
+                    format!("Schema version mismatch. Expected {}, got {}", CURRENT_SCHEMA_VERSION, schema_version)
                 ));
             }
         }
         Ok(())
     }
 
-    fn validate_cross_fields(&self) -> crate::GacpResult<()> {
-        // Validate that dependencies don't reference the same scope
-        if let Some(dependencies) = &self.dependencies {
-            let mut paths = std::collections::HashSet::new();
-            for dep in dependencies {
-                if !paths.insert(&dep.path) {
-                    return Err(crate::GacpError::SchemaValidation(
-                        format!("Duplicate dependency path: {}", dep.path)
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
+        // Validate that scope type is valid
+        let valid_types = ["repository", "service", "application", "library", "component"];
+        if !valid_types.contains(&self.scope_type.as_str()) {
+            return Err(crate::RhemaError::ValidationError(
+                format!("Invalid scope type: {}. Valid types are: {}", self.scope_type, valid_types.join(", "))
+            ));
+        }
+        
+        Ok(())
+    }
+}
+
+impl Validatable for ProtocolInfo {
+    fn validate(&self) -> crate::RhemaResult<()> {
+        if self.version.trim().is_empty() {
+            return Err(crate::RhemaError::ValidationError("Protocol version cannot be empty".to_string()));
+        }
+        
+        // Validate concepts if present
+        if let Some(concepts) = &self.concepts {
+            for concept in concepts {
+                if concept.name.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Concept name cannot be empty".to_string()));
+                }
+                if concept.description.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Concept description cannot be empty".to_string()));
+                }
+            }
+        }
+        
+        // Validate CQL examples if present
+        if let Some(examples) = &self.cql_examples {
+            for example in examples {
+                if example.name.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("CQL example name cannot be empty".to_string()));
+                }
+                if example.query.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("CQL query cannot be empty".to_string()));
+                }
+                if example.description.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("CQL example description cannot be empty".to_string()));
+                }
+            }
+        }
+        
+        // Validate patterns if present
+        if let Some(patterns) = &self.patterns {
+            for pattern in patterns {
+                if pattern.name.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Pattern name cannot be empty".to_string()));
+                }
+                if pattern.description.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Pattern description cannot be empty".to_string()));
+                }
+            }
+        }
+        
+        // Validate integrations if present
+        if let Some(integrations) = &self.integrations {
+            for integration in integrations {
+                if integration.name.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Integration name cannot be empty".to_string()));
+                }
+                if integration.description.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Integration description cannot be empty".to_string()));
+                }
+            }
+        }
+        
+        // Validate troubleshooting if present
+        if let Some(troubleshooting) = &self.troubleshooting {
+            for item in troubleshooting {
+                if item.issue.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Troubleshooting issue cannot be empty".to_string()));
+                }
+                if item.description.trim().is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Troubleshooting description cannot be empty".to_string()));
+                }
+                if item.solution.is_empty() {
+                    return Err(crate::RhemaError::ValidationError("Troubleshooting solution cannot be empty".to_string()));
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
+        // Protocol info doesn't have its own schema version
+        Ok(())
+    }
+
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
+        // Validate that concept names are unique
+        if let Some(concepts) = &self.concepts {
+            let mut names = std::collections::HashSet::new();
+            for concept in concepts {
+                if !names.insert(&concept.name) {
+                    return Err(crate::RhemaError::ValidationError(
+                        format!("Duplicate concept name: {}", concept.name)
                     ));
                 }
             }
         }
+        
+        // Validate that CQL example names are unique
+        if let Some(examples) = &self.cql_examples {
+            let mut names = std::collections::HashSet::new();
+            for example in examples {
+                if !names.insert(&example.name) {
+                    return Err(crate::RhemaError::ValidationError(
+                        format!("Duplicate CQL example name: {}", example.name)
+                    ));
+                }
+            }
+        }
+        
+        // Validate that pattern names are unique
+        if let Some(patterns) = &self.patterns {
+            let mut names = std::collections::HashSet::new();
+            for pattern in patterns {
+                if !names.insert(&pattern.name) {
+                    return Err(crate::RhemaError::ValidationError(
+                        format!("Duplicate pattern name: {}", pattern.name)
+                    ));
+                }
+            }
+        }
+        
+        // Validate that integration names are unique
+        if let Some(integrations) = &self.integrations {
+            let mut names = std::collections::HashSet::new();
+            for integration in integrations {
+                if !names.insert(&integration.name) {
+                    return Err(crate::RhemaError::ValidationError(
+                        format!("Duplicate integration name: {}", integration.name)
+                    ));
+                }
+            }
+        }
+        
+        // Validate that troubleshooting issue names are unique
+        if let Some(troubleshooting) = &self.troubleshooting {
+            let mut names = std::collections::HashSet::new();
+            for item in troubleshooting {
+                if !names.insert(&item.issue) {
+                    return Err(crate::RhemaError::ValidationError(
+                        format!("Duplicate troubleshooting issue: {}", item.issue)
+                    ));
+                }
+            }
+        }
+        
         Ok(())
     }
 }
 
 impl Validatable for Knowledge {
-    fn validate(&self) -> crate::GacpResult<()> {
+    fn validate(&self) -> crate::RhemaResult<()> {
         // Basic field validation
         if self.entries.is_empty() {
-            return Err(crate::GacpError::SchemaValidation("Knowledge must contain at least one entry".to_string()));
+            return Err(crate::RhemaError::ValidationError("Knowledge must contain at least one entry".to_string()));
         }
         
         for entry in &self.entries {
             if entry.title.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Knowledge entry title cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Knowledge entry title cannot be empty".to_string()));
             }
             if entry.content.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Knowledge entry content cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Knowledge entry content cannot be empty".to_string()));
             }
         }
         
@@ -605,17 +1350,17 @@ impl Validatable for Knowledge {
         Ok(())
     }
 
-    fn validate_schema_version(&self) -> crate::GacpResult<()> {
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
         // Knowledge doesn't have schema version field, so always valid
         Ok(())
     }
 
-    fn validate_cross_fields(&self) -> crate::GacpResult<()> {
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
         // Validate unique IDs
         let mut ids = std::collections::HashSet::new();
         for entry in &self.entries {
             if !ids.insert(&entry.id) {
-                return Err(crate::GacpError::SchemaValidation(
+                return Err(crate::RhemaError::ValidationError(
                     format!("Duplicate knowledge entry ID: {}", entry.id)
                 ));
             }
@@ -626,7 +1371,7 @@ impl Validatable for Knowledge {
             for entry in &self.entries {
                 if let Some(category) = &entry.category {
                     if !categories.contains_key(category) {
-                        return Err(crate::GacpError::SchemaValidation(
+                        return Err(crate::RhemaError::ValidationError(
                             format!("Knowledge entry references non-existent category: {}", category)
                         ));
                     }
@@ -638,11 +1383,11 @@ impl Validatable for Knowledge {
 }
 
 impl Validatable for Todos {
-    fn validate(&self) -> crate::GacpResult<()> {
+    fn validate(&self) -> crate::RhemaResult<()> {
         // Basic field validation
         for todo in &self.todos {
             if todo.title.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Todo title cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Todo title cannot be empty".to_string()));
             }
         }
         
@@ -651,16 +1396,16 @@ impl Validatable for Todos {
         Ok(())
     }
 
-    fn validate_schema_version(&self) -> crate::GacpResult<()> {
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
         Ok(())
     }
 
-    fn validate_cross_fields(&self) -> crate::GacpResult<()> {
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
         // Validate unique IDs
         let mut ids = std::collections::HashSet::new();
         for todo in &self.todos {
             if !ids.insert(&todo.id) {
-                return Err(crate::GacpError::SchemaValidation(
+                return Err(crate::RhemaError::ValidationError(
                     format!("Duplicate todo ID: {}", todo.id)
                 ));
             }
@@ -670,12 +1415,12 @@ impl Validatable for Todos {
         for todo in &self.todos {
             if todo.status == TodoStatus::Completed {
                 if todo.completed_at.is_none() {
-                    return Err(crate::GacpError::SchemaValidation(
+                    return Err(crate::RhemaError::ValidationError(
                         format!("Completed todo {} must have completion timestamp", todo.id)
                     ));
                 }
             } else if todo.completed_at.is_some() {
-                return Err(crate::GacpError::SchemaValidation(
+                return Err(crate::RhemaError::ValidationError(
                     format!("Non-completed todo {} cannot have completion timestamp", todo.id)
                 ));
             }
@@ -685,14 +1430,14 @@ impl Validatable for Todos {
 }
 
 impl Validatable for Decisions {
-    fn validate(&self) -> crate::GacpResult<()> {
+    fn validate(&self) -> crate::RhemaResult<()> {
         // Basic field validation
         for decision in &self.decisions {
             if decision.title.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Decision title cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Decision title cannot be empty".to_string()));
             }
             if decision.description.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Decision description cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Decision description cannot be empty".to_string()));
             }
         }
         
@@ -701,16 +1446,16 @@ impl Validatable for Decisions {
         Ok(())
     }
 
-    fn validate_schema_version(&self) -> crate::GacpResult<()> {
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
         Ok(())
     }
 
-    fn validate_cross_fields(&self) -> crate::GacpResult<()> {
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
         // Validate unique IDs
         let mut ids = std::collections::HashSet::new();
         for decision in &self.decisions {
             if !ids.insert(&decision.id) {
-                return Err(crate::GacpError::SchemaValidation(
+                return Err(crate::RhemaError::ValidationError(
                     format!("Duplicate decision ID: {}", decision.id)
                 ));
             }
@@ -720,7 +1465,7 @@ impl Validatable for Decisions {
         for decision in &self.decisions {
             if let Some(review_date) = decision.review_date {
                 if review_date <= decision.decided_at {
-                    return Err(crate::GacpError::SchemaValidation(
+                    return Err(crate::RhemaError::ValidationError(
                         format!("Decision {} review date must be after decision date", decision.id)
                     ));
                 }
@@ -731,14 +1476,14 @@ impl Validatable for Decisions {
 }
 
 impl Validatable for Patterns {
-    fn validate(&self) -> crate::GacpResult<()> {
+    fn validate(&self) -> crate::RhemaResult<()> {
         // Basic field validation
         for pattern in &self.patterns {
             if pattern.name.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Pattern name cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Pattern name cannot be empty".to_string()));
             }
             if pattern.description.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Pattern description cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Pattern description cannot be empty".to_string()));
             }
         }
         
@@ -747,16 +1492,16 @@ impl Validatable for Patterns {
         Ok(())
     }
 
-    fn validate_schema_version(&self) -> crate::GacpResult<()> {
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
         Ok(())
     }
 
-    fn validate_cross_fields(&self) -> crate::GacpResult<()> {
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
         // Validate unique IDs
         let mut ids = std::collections::HashSet::new();
         for pattern in &self.patterns {
             if !ids.insert(&pattern.id) {
-                return Err(crate::GacpError::SchemaValidation(
+                return Err(crate::RhemaError::ValidationError(
                     format!("Duplicate pattern ID: {}", pattern.id)
                 ));
             }
@@ -767,7 +1512,7 @@ impl Validatable for Patterns {
             if let Some(related) = &pattern.related_patterns {
                 for related_id in related {
                     if !ids.contains(related_id) {
-                        return Err(crate::GacpError::SchemaValidation(
+                        return Err(crate::RhemaError::ValidationError(
                             format!("Pattern {} references non-existent pattern: {}", pattern.id, related_id)
                         ));
                     }
@@ -779,14 +1524,14 @@ impl Validatable for Patterns {
 }
 
 impl Validatable for Conventions {
-    fn validate(&self) -> crate::GacpResult<()> {
+    fn validate(&self) -> crate::RhemaResult<()> {
         // Basic field validation
         for convention in &self.conventions {
             if convention.name.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Convention name cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Convention name cannot be empty".to_string()));
             }
             if convention.description.is_empty() {
-                return Err(crate::GacpError::SchemaValidation("Convention description cannot be empty".to_string()));
+                return Err(crate::RhemaError::ValidationError("Convention description cannot be empty".to_string()));
             }
         }
         
@@ -795,16 +1540,16 @@ impl Validatable for Conventions {
         Ok(())
     }
 
-    fn validate_schema_version(&self) -> crate::GacpResult<()> {
+    fn validate_schema_version(&self) -> crate::RhemaResult<()> {
         Ok(())
     }
 
-    fn validate_cross_fields(&self) -> crate::GacpResult<()> {
+    fn validate_cross_fields(&self) -> crate::RhemaResult<()> {
         // Validate unique IDs
         let mut ids = std::collections::HashSet::new();
         for convention in &self.conventions {
             if !ids.insert(&convention.id) {
-                return Err(crate::GacpError::SchemaValidation(
+                return Err(crate::RhemaError::ValidationError(
                     format!("Duplicate convention ID: {}", convention.id)
                 ));
             }
@@ -815,12 +1560,12 @@ impl Validatable for Conventions {
 
 /// Schema migration utilities
 pub trait SchemaMigratable {
-    fn migrate_to_latest(&mut self) -> crate::GacpResult<()>;
+    fn migrate_to_latest(&mut self) -> crate::RhemaResult<()>;
     fn get_schema_version(&self) -> Option<String>;
 }
 
-impl SchemaMigratable for GacpScope {
-    fn migrate_to_latest(&mut self) -> crate::GacpResult<()> {
+impl SchemaMigratable for RhemaScope {
+    fn migrate_to_latest(&mut self) -> crate::RhemaResult<()> {
         let current_version = self.get_schema_version().unwrap_or_else(|| "0.1.0".to_string());
         
         if current_version != CURRENT_SCHEMA_VERSION {
@@ -836,7 +1581,7 @@ impl SchemaMigratable for GacpScope {
                     // Future migration logic
                 }
                 _ => {
-                    return Err(crate::GacpError::SchemaValidation(
+                    return Err(crate::RhemaError::ValidationError(
                         format!("Cannot migrate from version {} to {}", current_version, CURRENT_SCHEMA_VERSION)
                     ));
                 }
@@ -859,7 +1604,7 @@ pub trait JsonSchema {
     fn json_schema() -> serde_json::Value;
 }
 
-impl JsonSchema for GacpScope {
+impl JsonSchema for RhemaScope {
     fn json_schema() -> serde_json::Value {
         serde_json::json!({
             "type": "object",

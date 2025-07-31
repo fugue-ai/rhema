@@ -1,0 +1,220 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/conventions",
+  "title": "Team Standards and Guidelines",
+  "description": "Documents team-specific standards and workflows",
+  "type": "object",
+  "properties": {
+    "coding_standards": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "properties": {
+            "style_guide": {"type": "string"},
+            "line_length": {"type": "integer"},
+            "formatter": {"type": "string"},
+            "linter": {"type": "string"},
+            "type_checker": {"type": "string"},
+            "naming_conventions": {
+              "type": "object",
+              "additionalProperties": {"type": "string"}
+            },
+            "imports": {
+              "type": "object",
+              "properties": {
+                "order": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "style": {"type": "string"},
+                "avoid": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              }
+            },
+            "documentation": {
+              "type": "object",
+              "properties": {
+                "docstring_style": {"type": "string"},
+                "required_for": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "example": {"type": "string"}
+              }
+            },
+            "keywords": {"type": "string"},
+            "table_names": {"type": "string"},
+            "column_names": {"type": "string"},
+            "formatting": {"type": "string"}
+          }
+        }
+      }
+    },
+    "git_workflow": {
+      "type": "object",
+      "properties": {
+        "branching": {
+          "type": "object",
+          "properties": {
+            "strategy": {"type": "string"},
+            "main_branch": {"type": "string"},
+            "feature_branches": {"type": "string"},
+            "hotfix_branches": {"type": "string"}
+          }
+        },
+        "commit_messages": {
+          "type": "object",
+          "properties": {
+            "format": {"type": "string"},
+            "structure": {"type": "string"},
+            "types": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "examples": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "guidelines": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        },
+        "pull_requests": {
+          "type": "object",
+          "properties": {
+            "requirements": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "review_checklist": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "merge_strategy": {"type": "string"}
+          }
+        }
+      }
+    },
+    "code_review": {
+      "type": "object",
+      "properties": {
+        "process": {
+          "type": "object",
+          "properties": {
+            "timeline": {"type": "string"},
+            "focus_areas": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        },
+        "guidelines": {
+          "type": "object",
+          "properties": {
+            "for_authors": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "for_reviewers": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        },
+        "automation": {
+          "type": "object",
+          "properties": {
+            "required_checks": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "testing": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "target": {"type": "string"},
+            "exclusions": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        },
+        "conventions": {
+          "type": "object",
+          "properties": {
+            "file_naming": {"type": "string"},
+            "test_naming": {"type": "string"},
+            "structure": {"type": "string"}
+          }
+        },
+        "tools": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "environments": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "process": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "rollback": {
+          "type": "object",
+          "properties": {
+            "strategy": {"type": "string"},
+            "triggers": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "alerting": {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "escalation": {"type": "string"}
+          }
+        },
+        "dashboards": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+} 

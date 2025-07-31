@@ -1,21 +1,37 @@
-use crate::{Gacp, GacpResult};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult};
 use colored::*;
 use std::collections::HashMap;
 
-pub fn run(gacp: &Gacp) -> GacpResult<()> {
-    let scopes = gacp.discover_scopes()?;
+pub fn run(rhema: &Rhema) -> RhemaResult<()> {
+    let scopes = rhema.discover_scopes()?;
     
     if scopes.is_empty() {
-        println!("{}", "No GACP scopes found in this repository.".yellow());
-        println!("  Run 'gacp init' to create your first scope.");
+        println!("{}", "No Rhema scopes found in this repository.".yellow());
+        println!("  Run 'rhema init' to create your first scope.");
         return Ok(());
     }
     
-    println!("{}", "GACP Scopes:".bold());
+    println!("{}", "Rhema Scopes:".bold());
     println!();
     
     for scope in &scopes {
-        let relative_path = scope.relative_path(gacp.repo_root())?;
+        let relative_path = scope.relative_path(rhema.repo_root())?;
         println!("  {} ({})", 
             scope.definition.name.yellow(), 
             scope.definition.scope_type.cyan()
@@ -31,25 +47,25 @@ pub fn run(gacp: &Gacp) -> GacpResult<()> {
     Ok(())
 }
 
-pub fn show_scope(gacp: &Gacp, path: Option<&str>) -> GacpResult<()> {
-    let scopes = gacp.discover_scopes()?;
+pub fn show_scope(rhema: &Rhema, path: Option<&str>) -> RhemaResult<()> {
+    let scopes = rhema.discover_scopes()?;
     
     if let Some(path) = path {
         // Show specific scope
-        let scope = gacp.get_scope(path)?;
-        display_scope_details(&scope, gacp.repo_root())?;
+        let scope = rhema.get_scope(path)?;
+        display_scope_details(&scope, rhema.repo_root())?;
     } else {
         // Show current scope or all scopes
         let current_dir = std::env::current_dir()?;
         let current_scope = crate::scope::find_nearest_scope(&current_dir, &scopes);
         
         if let Some(scope) = current_scope {
-            display_scope_details(scope, gacp.repo_root())?;
+            display_scope_details(scope, rhema.repo_root())?;
         } else {
-            println!("{}", "No GACP scope found in current directory.".yellow());
+            println!("{}", "No Rhema scope found in current directory.".yellow());
             println!("  Available scopes:");
             for scope in &scopes {
-                let relative_path = scope.relative_path(gacp.repo_root())?;
+                let relative_path = scope.relative_path(rhema.repo_root())?;
                 println!("    • {}", relative_path);
             }
         }
@@ -58,22 +74,22 @@ pub fn show_scope(gacp: &Gacp, path: Option<&str>) -> GacpResult<()> {
     Ok(())
 }
 
-pub fn show_tree(gacp: &Gacp) -> GacpResult<()> {
-    let scopes = gacp.discover_scopes()?;
-    let hierarchy = crate::scope::get_scope_hierarchy(&scopes, gacp.repo_root())?;
+pub fn show_tree(rhema: &Rhema) -> RhemaResult<()> {
+    let scopes = rhema.discover_scopes()?;
+    let hierarchy = crate::scope::get_scope_hierarchy(&scopes, rhema.repo_root())?;
     
     if scopes.is_empty() {
-        println!("{}", "No GACP scopes found in this repository.".yellow());
+        println!("{}", "No Rhema scopes found in this repository.".yellow());
         return Ok(());
     }
     
-    println!("{}", "GACP Scope Hierarchy:".bold());
+    println!("{}", "Rhema Scope Hierarchy:".bold());
     println!();
     
     // Find root scopes (those with no parent)
     let mut root_scopes = Vec::new();
     for scope in &scopes {
-        let scope_rel_path = scope.relative_path(gacp.repo_root())?;
+        let scope_rel_path = scope.relative_path(rhema.repo_root())?;
         let scope_dir = scope.path.parent().unwrap();
         
         let mut has_parent = false;
@@ -100,7 +116,7 @@ pub fn show_tree(gacp: &Gacp) -> GacpResult<()> {
     Ok(())
 }
 
-fn display_scope_details(scope: &crate::Scope, repo_root: &std::path::Path) -> GacpResult<()> {
+fn display_scope_details(scope: &crate::Scope, repo_root: &std::path::Path) -> RhemaResult<()> {
     let relative_path = scope.relative_path(repo_root)?;
     
     println!("{}", "Scope Details:".bold());
@@ -132,7 +148,7 @@ fn display_scope_tree(
     scope_path: &str, 
     hierarchy: &HashMap<String, Vec<String>>, 
     depth: usize
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let indent = "  ".repeat(depth);
     let prefix = if depth == 0 { "└── " } else { "├── " };
     

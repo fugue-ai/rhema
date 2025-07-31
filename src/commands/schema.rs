@@ -1,9 +1,25 @@
-use crate::{GacpResult, schema::CURRENT_SCHEMA_VERSION};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{RhemaResult, schema::CURRENT_SCHEMA_VERSION};
 use colored::*;
 use std::path::Path;
 
-pub fn run(_gacp: &crate::Gacp, template_type: &str, output_file: Option<&str>) -> GacpResult<()> {
-    println!("📋 Generating GACP schema template...");
+pub fn run(_rhema: &crate::Rhema, template_type: &str, output_file: Option<&str>) -> RhemaResult<()> {
+    println!("📋 Generating Rhema schema template...");
     println!("{}", "─".repeat(80));
     
     let template = match template_type {
@@ -15,7 +31,7 @@ pub fn run(_gacp: &crate::Gacp, template_type: &str, output_file: Option<&str>) 
         "conventions" => generate_conventions_template(),
         "all" => generate_all_templates(),
         _ => {
-            return Err(crate::GacpError::ConfigError(
+            return Err(crate::RhemaError::ConfigError(
                 format!("Unknown template type: {}. Valid types: scope, knowledge, todos, decisions, patterns, conventions, all", template_type)
             ));
         }
@@ -25,7 +41,7 @@ pub fn run(_gacp: &crate::Gacp, template_type: &str, output_file: Option<&str>) 
         // Write to file
         let output_path = Path::new(output_path);
         std::fs::write(output_path, template)
-            .map_err(|e| crate::GacpError::IoError(e))?;
+            .map_err(|e| crate::RhemaError::IoError(e))?;
         println!("✅ Template written to: {}", output_path.display().to_string().green());
     } else {
         // Print to console
@@ -37,7 +53,7 @@ pub fn run(_gacp: &crate::Gacp, template_type: &str, output_file: Option<&str>) 
 
 fn generate_scope_template() -> String {
     format!(
-        r#"# GACP Scope Definition Template
+        r#"# Rhema Scope Definition Template
 # Schema Version: {}
 
 name: "example-scope"
@@ -62,7 +78,7 @@ custom_field: "custom_value"
 
 fn generate_knowledge_template() -> String {
     format!(
-        r#"# GACP Knowledge Base Template
+        r#"# Rhema Knowledge Base Template
 # Schema Version: {}
 
 # Knowledge entries
@@ -94,7 +110,7 @@ custom_field: "custom_value"
 
 fn generate_todos_template() -> String {
     format!(
-        r#"# GACP Todo Items Template
+        r#"# Rhema Todo Items Template
 # Schema Version: {}
 
 # Todo entries
@@ -121,7 +137,7 @@ custom_field: "custom_value"
 
 fn generate_decisions_template() -> String {
     format!(
-        r#"# GACP Decision Records Template
+        r#"# Rhema Decision Records Template
 # Schema Version: {}
 
 # Decision entries
@@ -153,7 +169,7 @@ custom_field: "custom_value"
 
 fn generate_patterns_template() -> String {
     format!(
-        r#"# GACP Design Patterns Template
+        r#"# Rhema Design Patterns Template
 # Schema Version: {}
 
 # Pattern entries
@@ -185,7 +201,7 @@ custom_field: "custom_value"
 
 fn generate_conventions_template() -> String {
     format!(
-        r#"# GACP Coding Conventions Template
+        r#"# Rhema Coding Conventions Template
 # Schema Version: {}
 
 # Convention entries
@@ -213,11 +229,11 @@ custom_field: "custom_value"
 
 fn generate_all_templates() -> String {
     format!(
-        r#"# GACP Complete Template Set
+        r#"# Rhema Complete Template Set
 # Schema Version: {}
 
 # =============================================================================
-# gacp.yaml - Scope Definition
+# rhema.yaml - Scope Definition
 # =============================================================================
 
 name: "example-scope"

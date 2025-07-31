@@ -1,0 +1,441 @@
+name: rhema
+scope_type: application
+description: Monorepo Rust/Docker project using Actix Web, Rocket, Warp, SQLx, Diesel, Docker Compose, Docker Swarm
+version: 1.0.0
+schema_version: 1.0.0
+dependencies: null
+protocol_info:
+  version: 1.0.0
+  description: Protocol information for application scope
+  concepts:
+  - name: Scope
+    description: A Rhema scope represents a logical unit of the codebase with its own context and responsibilities.
+    related:
+    - Dependencies
+    - Patterns
+    examples:
+    - A microservice with its own API and business logic
+    - A frontend application with UI components
+    - A shared library with utility functions
+  - name: Knowledge
+    description: Structured information about the codebase, including insights, patterns, and best practices.
+    related:
+    - Patterns
+    - Decisions
+    examples:
+    - API documentation and usage examples
+    - Architecture patterns and implementation details
+    - Performance optimization techniques
+  - name: CQL
+    description: Context Query Language for querying Rhema data structures.
+    related:
+    - Knowledge
+    - Patterns
+    examples:
+    - SELECT * FROM knowledge WHERE category = 'api'
+    - SELECT * FROM patterns WHERE pattern_type = 'security'
+    - SELECT * FROM decisions WHERE status = 'approved'
+  cql_examples:
+  - name: Find API Knowledge
+    query: SELECT * FROM knowledge WHERE category = 'api'
+    description: Retrieve all knowledge entries related to API documentation and usage
+    output_format: JSON array of knowledge entries
+    use_case: Code review and development
+  - name: Find Security Patterns
+    query: SELECT * FROM patterns WHERE pattern_type = 'security'
+    description: Retrieve all security-related patterns and best practices
+    output_format: JSON array of pattern entries
+    use_case: Security review and implementation
+  - name: Find Approved Decisions
+    query: SELECT * FROM decisions WHERE status = 'approved'
+    description: Retrieve all approved architectural and design decisions
+    output_format: JSON array of decision entries
+    use_case: Architecture review and planning
+  patterns:
+  - name: Error Handling
+    description: Standardized approach to error handling across the scope
+    when_to_use: When implementing functions that may fail or need to report errors
+    examples:
+    - Use Result<T, E> for functions that can fail
+    - Log errors with appropriate context and severity
+    - Return meaningful error messages to users
+  - name: Configuration Management
+    description: Environment-based configuration management
+    when_to_use: When the scope needs different settings for different environments
+    examples:
+    - Use environment variables for sensitive configuration
+    - Provide sensible defaults for all configuration options
+    - Validate configuration on startup
+  integrations:
+  - name: IDE Integration
+    description: Integrate Rhema with your development environment
+    setup:
+    - Install Rhema CLI
+    - Configure IDE extensions
+    - Set up workspace settings
+    configuration:
+    - Add Rhema commands to IDE command palette
+    - Configure file watching for auto-sync
+    best_practices:
+    - Use Rhema commands from IDE for consistency
+    - Enable auto-validation on save
+  troubleshooting:
+  - issue: Configuration validation fails
+    description: Rhema configuration files have validation errors
+    solution:
+    - Run `rhema validate` to identify issues
+    - Check YAML syntax and required fields
+    - Review schema documentation
+    prevention:
+    - Use `rhema validate` before committing changes
+    - Follow schema documentation
+build_files:
+- Cargo.toml
+- package.json
+- package.json
+tech_stack:
+  languages:
+  - Rust
+  - Docker
+  frameworks:
+  - Actix Web
+  - Rocket
+  - Warp
+  - SQLx
+  - Diesel
+  - Docker Compose
+  - Docker Swarm
+  databases: []
+  infrastructure:
+  - docker
+  build_tools: []
+directories:
+- editor-plugins
+- vim
+- plugin
+- tests
+- language-server
+- src
+- intellij
+- src
+- vscode
+- tests
+- src
+- release
+- incremental
+- examples
+- deps
+- build
+- doc
+- tmp
+- debug
+- incremental
+- examples
+- deps
+- build
+- tests
+- unit
+- security
+- integration
+- common
+- tla
+- performance
+- docs
+- development
+- editor-setup
+- ci-cd
+- proposals
+- schemas
+- examples
+- scripts
+- workflows
+- objects
+- '61'
+- 0d
+- '95'
+- '59'
+- '92'
+- 0c
+- '66'
+- 3e
+- '50'
+- '68'
+- '57'
+- 3b
+- 6f
+- '03'
+- 9b
+- 9e
+- '04'
+- 6a
+- '32'
+- '35'
+- '69'
+- 3c
+- '56'
+- '51'
+- 3d
+- '58'
+- '67'
+- 0b
+- '93'
+- '94'
+- 0e
+- '60'
+- '34'
+- 5a
+- 5f
+- '33'
+- '05'
+- 9d
+- 9c
+- '02'
+- a4
+- a3
+- b5
+- b2
+- d9
+- ac
+- ad
+- bb
+- d7
+- d0
+- be
+- b3
+- df
+- da
+- b4
+- a2
+- a5
+- bd
+- d1
+- d6
+- bc
+- ae
+- d8
+- ab
+- e5
+- e2
+- f4
+- f3
+- eb
+- c7
+- c0
+- ee
+- c9
+- fc
+- fd
+- f2
+- f5
+- e3
+- cf
+- ca
+- e4
+- fe
+- c8
+- fb
+- ed
+- c1
+- c6
+- ec
+- 4e
+- '20'
+- '18'
+- '27'
+- 4b
+- pack
+- '11'
+- 7d
+- '29'
+- 7c
+- '16'
+- '42'
+- '89'
+- '45'
+- 1f
+- '73'
+- '87'
+- '80'
+- '74'
+- 1a
+- '28'
+- '17'
+- 7b
+- 8a
+- 7e
+- '10'
+- '19'
+- 4c
+- '26'
+- '21'
+- 4d
+- '75'
+- '81'
+- '86'
+- '72'
+- '44'
+- 2a
+- 2f
+- '43'
+- '88'
+- 9f
+- 6b
+- '07'
+- '38'
+- '00'
+- 6e
+- 9a
+- '36'
+- 5c
+- '09'
+- 5d
+- '31'
+- info
+- '91'
+- '65'
+- '62'
+- '96'
+- 3a
+- '54'
+- '98'
+- '53'
+- 3f
+- '30'
+- 5e
+- 5b
+- '37'
+- '08'
+- 6d
+- '01'
+- '06'
+- 6c
+- '39'
+- '99'
+- '52'
+- '55'
+- '97'
+- '63'
+- 0f
+- 0a
+- '64'
+- '90'
+- bf
+- d3
+- d4
+- ba
+- a0
+- a7
+- b8
+- b1
+- dd
+- dc
+- b6
+- a9
+- d5
+- d2
+- aa
+- af
+- b7
+- db
+- a8
+- de
+- b0
+- a6
+- b9
+- a1
+- ef
+- c3
+- c4
+- ea
+- e1
+- cd
+- cc
+- e6
+- f9
+- f0
+- f7
+- e8
+- fa
+- ff
+- c5
+- c2
+- f6
+- e9
+- f1
+- e7
+- cb
+- f8
+- ce
+- e0
+- '46'
+- 2c
+- '79'
+- 2d
+- '41'
+- '83'
+- 1b
+- '77'
+- '48'
+- '70'
+- 1e
+- '84'
+- 4a
+- '24'
+- '23'
+- 4f
+- 8d
+- '15'
+- '12'
+- 8c
+- '85'
+- 1d
+- '71'
+- '76'
+- 1c
+- '82'
+- '49'
+- '40'
+- 2e
+- 2b
+- '47'
+- '78'
+- 8b
+- '13'
+- 7f
+- 7a
+- '14'
+- 8e
+- '22'
+- '25'
+- rr-cache
+- info
+- logs
+- refs
+- hooks
+- refs
+- heads
+- tags
+- remotes
+- src
+- config
+- mcp
+- integrations
+- commands
+- git
+file_extensions:
+  toml: 2
+  sh: 3
+  rs: 106
+  tla: 3
+  sample: 13
+  mcp: 1
+  cfg: 1
+  d: 6
+  lock: 1
+  md: 39
+  rlib: 3
+  json: 5
+  kts: 1
+  yml: 2
+  js: 1
+  yaml: 5

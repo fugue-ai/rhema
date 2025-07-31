@@ -1,0 +1,28 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/",
+  "title": "Rhema Schema Collection",
+  "description": "JSON Schema definitions for Rhema Protocol YAML files",
+  
+  "$defs": {
+    "rhema_scope": {
+      "$ref": "./scope.json"
+    },
+    "knowledge": {
+      "$ref": "./knowledge.json"
+    },
+    "todos": {
+      "$ref": "./todos.json"
+    },
+    "decisions": {
+      "$ref": "./decisions.json"
+    },
+    "patterns": {
+      "$ref": "./patterns.json"
+    },
+    "conventions": {
+      "$ref": "./conventions.json"
+    }
+  }
+} 

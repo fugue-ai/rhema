@@ -1,0 +1,179 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/knowledge",
+  "title": "System Knowledge",
+  "description": "Accumulated understanding about system architecture and components",
+  "type": "object",
+  "properties": {
+    "components": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "properties": {
+            "description": {"type": "string"},
+            "key_files": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "interfaces": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "endpoints": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "path": {"type": "string"},
+                        "method": {"type": "string"},
+                        "purpose": {"type": "string"}
+                      }
+                    }
+                  },
+                  "consumers": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  }
+                }
+              }
+            },
+            "dependencies": {
+              "type": "object",
+              "properties": {
+                "internal": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "external": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              }
+            },
+            "known_issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["issue", "severity"],
+                "properties": {
+                  "issue": {"type": "string"},
+                  "severity": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high", "critical"]
+                  },
+                  "impact": {"type": "string"},
+                  "workaround": {"type": "string"},
+                  "tracked_in": {"type": "string"},
+                  "discovered": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            },
+            "complexity": {
+              "type": "string",
+              "enum": ["low", "medium", "high"]
+            },
+            "last_analyzed": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        }
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "properties": {
+        "patterns": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "type": "object",
+              "properties": {
+                "usage": {
+                  "type": "string",
+                  "enum": ["required", "recommended", "optional", "deprecated"]
+                },
+                "effectiveness": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"]
+                },
+                "description": {"type": "string"},
+                "examples": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "conventions": {"type": "string"}
+              }
+            }
+          }
+        },
+        "data_flow": {
+          "type": "object",
+          "properties": {
+            "primary": {"type": "string"},
+            "exceptions": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "bottlenecks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "location": {"type": "string"},
+                  "impact": {"type": "string"},
+                  "mitigation": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "insights": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["finding", "confidence"],
+            "properties": {
+              "finding": {"type": "string"},
+              "impact": {"type": "string"},
+              "solution": {"type": "string"},
+              "insight": {"type": "string"},
+              "confidence": {
+                "type": "string",
+                "enum": ["low", "medium", "high"]
+              },
+              "validated": {
+                "type": "string",
+                "format": "date"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "applicability": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "related_files": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+} 

@@ -1,12 +1,28 @@
-use crate::{Gacp, GacpResult, scope::build_dependency_graph};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult, scope::build_dependency_graph};
 use colored::*;
 use std::collections::{HashMap, HashSet, VecDeque};
 
-pub fn run(gacp: &Gacp) -> GacpResult<()> {
+pub fn run(rhema: &Rhema) -> RhemaResult<()> {
     println!("{}", "🔗 Analyzing scope dependencies...".blue().bold());
     
     // Discover all scopes
-    let scopes = gacp.discover_scopes()?;
+    let scopes = rhema.discover_scopes()?;
     
     if scopes.is_empty() {
         println!("{}", "No scopes found in the repository.".yellow());
@@ -14,30 +30,31 @@ pub fn run(gacp: &Gacp) -> GacpResult<()> {
     }
     
     // Build dependency graph
+    // TODO: Use lock file for deterministic dependency graph generation
     let dependency_graph = build_dependency_graph(&scopes)?;
     
     // Display dependency graph
-    display_dependency_graph(gacp, &scopes, &dependency_graph)?;
+    display_dependency_graph(rhema, &scopes, &dependency_graph)?;
     
     // Check for circular dependencies
     check_circular_dependencies(&dependency_graph)?;
     
     // Analyze dependency impact
-    analyze_dependency_impact(gacp, &scopes, &dependency_graph)?;
+    analyze_dependency_impact(rhema, &scopes, &dependency_graph)?;
     
     Ok(())
 }
 
 fn display_dependency_graph(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scopes: &[crate::scope::Scope],
     dependency_graph: &HashMap<String, Vec<String>>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("\n{}", "📊 Scope Dependency Graph".green().bold());
     println!("{}", "=".repeat(50));
     
     for scope in scopes {
-        let scope_path = scope.relative_path(gacp.repo_root())?;
+        let scope_path = scope.relative_path(rhema.repo_root())?;
         let empty_vec = Vec::new();
         let dependencies = dependency_graph.get(&scope_path).unwrap_or(&empty_vec);
         
@@ -59,7 +76,7 @@ fn display_dependency_graph(
 
 fn check_circular_dependencies(
     dependency_graph: &HashMap<String, Vec<String>>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("{}", "🔄 Checking for circular dependencies...".blue().bold());
     
     let mut circular_deps = Vec::new();
@@ -123,10 +140,10 @@ fn has_circular_dependency(
 }
 
 fn analyze_dependency_impact(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scopes: &[crate::scope::Scope],
     dependency_graph: &HashMap<String, Vec<String>>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("{}", "📈 Dependency Impact Analysis".green().bold());
     println!("{}", "=".repeat(50));
     
@@ -134,7 +151,7 @@ fn analyze_dependency_impact(
     let mut dependency_depths = HashMap::new();
     
     for scope in scopes {
-        let scope_path = scope.relative_path(gacp.repo_root())?;
+        let scope_path = scope.relative_path(rhema.repo_root())?;
         let depth = calculate_dependency_depth(dependency_graph, &scope_path);
         dependency_depths.insert(scope_path, depth);
     }
@@ -213,7 +230,7 @@ fn calculate_dependency_depth(
 
 fn analyze_dependency_chains(
     dependency_graph: &HashMap<String, Vec<String>>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("{}", "⛓️  Longest Dependency Chains:".blue().bold());
     
     let mut longest_chains = Vec::new();

@@ -1,0 +1,247 @@
+<idea-plugin>
+    <id>ai.fugue.rhema</id>
+    <name>Rhema - Git-Based Agent Context Protocol</name>
+    <vendor email="cory.parent@gmail.com" url="https://github.com/fugue-ai/rhema">Fugue AI</vendor>
+    <description><![CDATA[
+        Comprehensive IDE integration for Rhema CLI with context-aware features, IntelliSense, and advanced development tools.
+        
+        Features:
+        - Context-aware IntelliSense and autocomplete
+        - Integrated command palette and shortcuts
+        - Real-time context validation and feedback
+        - Visual context exploration and navigation
+        - Integrated debugging and troubleshooting
+        - Advanced refactoring and code generation
+        - Git integration and version control
+        - Performance profiling and optimization
+        - Custom language support and syntax highlighting
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.yaml</depends>
+    <depends>Git4Idea</depends>
+    <depends>com.intellij.modules.terminal</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Language Support -->
+        <languageSupport implementationClass="ai.fugue.rhema.language.RhemaLanguageSupport"/>
+        <fileTypeFactory implementationClass="ai.fugue.rhema.language.RhemaFileTypeFactory"/>
+        <syntaxHighlighterFactory language="RHEMA_YAML" implementationClass="ai.fugue.rhema.language.RhemaSyntaxHighlighterFactory"/>
+        
+        <!-- IntelliSense -->
+        <completion.contributor language="RHEMA_YAML" implementationClass="ai.fugue.rhema.intellisense.RhemaCompletionContributor"/>
+        <completion.contributor language="yaml" implementationClass="ai.fugue.rhema.intellisense.RhemaYamlCompletionContributor"/>
+        
+        <!-- Validation -->
+        <annotator language="RHEMA_YAML" implementationClass="ai.fugue.rhema.validation.RhemaAnnotator"/>
+        <annotator language="yaml" implementationClass="ai.fugue.rhema.validation.RhemaYamlAnnotator"/>
+        
+        <!-- Navigation -->
+        <gotoDeclarationHandler implementationClass="ai.fugue.rhema.navigation.RhemaGotoDeclarationHandler"/>
+        <findUsagesHandlerFactory implementationClass="ai.fugue.rhema.navigation.RhemaFindUsagesHandlerFactory"/>
+        <symbolProvider implementationClass="ai.fugue.rhema.navigation.RhemaSymbolProvider"/>
+        
+        <!-- Refactoring -->
+        <refactoringSupport implementationClass="ai.fugue.rhema.refactoring.RhemaRefactoringSupport"/>
+        <renamePsiElementProcessor implementationClass="ai.fugue.rhema.refactoring.RhemaRenameProcessor"/>
+        
+        <!-- Code Actions -->
+        <intentionAction implementationClass="ai.fugue.rhema.actions.RhemaQuickFixIntention"/>
+        <intentionAction implementationClass="ai.fugue.rhema.actions.RhemaRefactorIntention"/>
+        
+        <!-- Tool Windows -->
+        <toolWindow id="Rhema Scopes" secondary="true" icon="RhemaIcons.SCOPES" anchor="left" 
+                   factoryClass="ai.fugue.rhema.ui.RhemaScopesToolWindowFactory"/>
+        <toolWindow id="Rhema Context" secondary="true" icon="RhemaIcons.CONTEXT" anchor="left" 
+                   factoryClass="ai.fugue.rhema.ui.RhemaContextToolWindowFactory"/>
+        <toolWindow id="Rhema Todos" secondary="true" icon="RhemaIcons.TODOS" anchor="left" 
+                   factoryClass="ai.fugue.rhema.ui.RhemaTodosToolWindowFactory"/>
+        <toolWindow id="Rhema Insights" secondary="true" icon="RhemaIcons.INSIGHTS" anchor="left" 
+                   factoryClass="ai.fugue.rhema.ui.RhemaInsightsToolWindowFactory"/>
+        <toolWindow id="Rhema Patterns" secondary="true" icon="RhemaIcons.PATTERNS" anchor="left" 
+                   factoryClass="ai.fugue.rhema.ui.RhemaPatternsToolWindowFactory"/>
+        <toolWindow id="Rhema Decisions" secondary="true" icon="RhemaIcons.DECISIONS" anchor="left" 
+                   factoryClass="ai.fugue.rhema.ui.RhemaDecisionsToolWindowFactory"/>
+        
+        <!-- Project View -->
+        <projectViewPane implementationClass="ai.fugue.rhema.ui.RhemaProjectViewPane"/>
+        <projectViewNodeDecorator implementationClass="ai.fugue.rhema.ui.RhemaProjectViewDecorator"/>
+        
+        <!-- Settings -->
+        <applicationConfigurable parentId="tools" instance="ai.fugue.rhema.settings.RhemaApplicationConfigurable" 
+                                id="ai.fugue.rhema.settings" displayName="RHEMA"/>
+        <projectConfigurable parentId="tools" instance="ai.fugue.rhema.settings.RhemaProjectConfigurable" 
+                            id="ai.fugue.rhema.project.settings" displayName="RHEMA"/>
+        
+        <!-- Services -->
+        <applicationService serviceImplementation="ai.fugue.rhema.services.RhemaApplicationService"/>
+        <projectService serviceImplementation="ai.fugue.rhema.services.RhemaProjectService"/>
+        
+        <!-- Executors -->
+        <runConfigurationProducer implementationClass="ai.fugue.rhema.execution.RhemaRunConfigurationProducer"/>
+        <configurationType implementationClass="ai.fugue.rhema.execution.RhemaConfigurationType"/>
+        
+        <!-- Debugger -->
+        <debugger.connection implementationClass="ai.fugue.rhema.debugger.RhemaDebuggerConnection"/>
+        <debugger.connectionFactory implementationClass="ai.fugue.rhema.debugger.RhemaDebuggerConnectionFactory"/>
+        
+        <!-- Profiler -->
+        <profiler implementationClass="ai.fugue.rhema.profiler.RhemaProfiler"/>
+        <profiler.connection implementationClass="ai.fugue.rhema.profiler.RhemaProfilerConnection"/>
+        
+        <!-- Git Integration -->
+        <vcs.rootsSearcher implementationClass="ai.fugue.rhema.git.RhemaVcsRootsSearcher"/>
+        <vcs.changesViewManager implementationClass="ai.fugue.rhema.git.RhemaChangesViewManager"/>
+        
+        <!-- Terminal -->
+        <terminal.customCommandProvider implementationClass="ai.fugue.rhema.terminal.RhemaTerminalCommandProvider"/>
+        
+        <!-- Documentation -->
+        <documentationProvider implementationClass="ai.fugue.rhema.documentation.RhemaDocumentationProvider"/>
+        
+        <!-- Performance Monitoring -->
+        <performanceWatcher implementationClass="ai.fugue.rhema.performance.RhemaPerformanceWatcher"/>
+        
+        <!-- Error Reporting -->
+        <errorHandler implementationClass="ai.fugue.rhema.error.RhemaErrorHandler"/>
+        
+        <!-- Logging -->
+        <logger implementationClass="ai.fugue.rhema.logging.RhemaLogger"/>
+    </extensions>
+
+    <project-components>
+        <component>
+            <implementation-class>ai.fugue.rhema.components.RhemaProjectComponent</implementation-class>
+        </component>
+    </project-components>
+
+    <application-components>
+        <component>
+            <implementation-class>ai.fugue.rhema.components.RhemaApplicationComponent</implementation-class>
+        </component>
+    </application-components>
+
+    <actions>
+        <!-- Main Actions -->
+        <action id="Rhema.Initialize" class="ai.fugue.rhema.actions.RhemaInitializeAction" text="Initialize Rhema Scope" description="Initialize a new Rhema scope">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G I"/>
+        </action>
+        
+        <action id="Rhema.ShowContext" class="ai.fugue.rhema.actions.RhemaShowContextAction" text="Show Context" description="Show Rhema context">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G C"/>
+        </action>
+        
+        <action id="Rhema.ExecuteQuery" class="ai.fugue.rhema.actions.RhemaExecuteQueryAction" text="Execute Query" description="Execute Rhema query">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G Q"/>
+        </action>
+        
+        <action id="Rhema.SearchContext" class="ai.fugue.rhema.actions.RhemaSearchContextAction" text="Search Context" description="Search Rhema context">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G S"/>
+        </action>
+        
+        <action id="Rhema.ValidateFiles" class="ai.fugue.rhema.actions.RhemaValidateFilesAction" text="Validate Files" description="Validate Rhema files">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G V"/>
+        </action>
+        
+        <action id="Rhema.ShowScopes" class="ai.fugue.rhema.actions.RhemaShowScopesAction" text="Show Scopes" description="Show Rhema scopes">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G P"/>
+        </action>
+        
+        <action id="Rhema.ShowTree" class="ai.fugue.rhema.actions.RhemaShowTreeAction" text="Show Scope Tree" description="Show Rhema scope tree">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G T"/>
+        </action>
+        
+        <!-- Management Actions -->
+        <action id="Rhema.ManageTodos" class="ai.fugue.rhema.actions.RhemaManageTodosAction" text="Manage Todos" description="Manage Rhema todos">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.ManageInsights" class="ai.fugue.rhema.actions.RhemaManageInsightsAction" text="Manage Insights" description="Manage Rhema insights">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.ManagePatterns" class="ai.fugue.rhema.actions.RhemaManagePatternsAction" text="Manage Patterns" description="Manage Rhema patterns">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.ManageDecisions" class="ai.fugue.rhema.actions.RhemaManageDecisionsAction" text="Manage Decisions" description="Manage Rhema decisions">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <!-- Analysis Actions -->
+        <action id="Rhema.ShowDependencies" class="ai.fugue.rhema.actions.RhemaShowDependenciesAction" text="Show Dependencies" description="Show Rhema dependencies">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.ShowImpact" class="ai.fugue.rhema.actions.RhemaShowImpactAction" text="Show Impact" description="Show Rhema impact analysis">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.SyncKnowledge" class="ai.fugue.rhema.actions.RhemaSyncKnowledgeAction" text="Sync Knowledge" description="Sync Rhema knowledge">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.GitIntegration" class="ai.fugue.rhema.actions.RhemaGitIntegrationAction" text="Git Integration" description="Rhema Git integration">
+            <add-to-group group-id="VcsGroups" anchor="last"/>
+        </action>
+        
+        <!-- Utility Actions -->
+        <action id="Rhema.ShowStats" class="ai.fugue.rhema.actions.RhemaShowStatsAction" text="Show Statistics" description="Show Rhema statistics">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.CheckHealth" class="ai.fugue.rhema.actions.RhemaCheckHealthAction" text="Check Health" description="Check Rhema health">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.DebugContext" class="ai.fugue.rhema.actions.RhemaDebugContextAction" text="Debug Context" description="Debug Rhema context">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.ProfilePerformance" class="ai.fugue.rhema.actions.RhemaProfilePerformanceAction" text="Profile Performance" description="Profile Rhema performance">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.RefactorContext" class="ai.fugue.rhema.actions.RhemaRefactorContextAction" text="Refactor Context" description="Refactor Rhema context">
+            <add-to-group group-id="RefactoringMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.GenerateCode" class="ai.fugue.rhema.actions.RhemaGenerateCodeAction" text="Generate Code" description="Generate code from Rhema context">
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.ShowDocumentation" class="ai.fugue.rhema.actions.RhemaShowDocumentationAction" text="Show Documentation" description="Show Rhema documentation">
+            <add-to-group group-id="HelpMenu" anchor="last"/>
+        </action>
+        
+        <action id="Rhema.ConfigureSettings" class="ai.fugue.rhema.actions.RhemaConfigureSettingsAction" text="Configure Settings" description="Configure Rhema settings">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+
+    <projectListeners>
+        <listener class="ai.fugue.rhema.listeners.RhemaProjectListener" topic="com.intellij.openapi.project.Project"/>
+        <listener class="ai.fugue.rhema.listeners.RhemaFileListener" topic="com.intellij.openapi.vfs.VirtualFileListener"/>
+        <listener class="ai.fugue.rhema.listeners.RhemaDocumentListener" topic="com.intellij.openapi.editor.event.DocumentListener"/>
+    </projectListeners>
+
+    <applicationListeners>
+        <listener class="ai.fugue.rhema.listeners.RhemaApplicationListener" topic="com.intellij.openapi.application.ApplicationListener"/>
+    </applicationListeners>
+
+    <postStartupActivity implementation="ai.fugue.rhema.startup.RhemaPostStartupActivity"/>
+
+    <module-components>
+        <component>
+            <implementation-class>ai.fugue.rhema.components.RhemaModuleComponent</implementation-class>
+        </component>
+    </module-components>
+</idea-plugin> 

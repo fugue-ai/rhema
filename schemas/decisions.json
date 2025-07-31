@@ -1,0 +1,121 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/decisions",
+  "title": "Architecture Decision Records",
+  "description": "Documents significant architectural choices and their context",
+  "type": "object",
+  "properties": {
+    "decisions": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "required": ["id", "title", "date", "status"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^ADR-\\d{3}$"
+            },
+            "title": {"type": "string"},
+            "date": {
+              "type": "string",
+              "format": "date"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["proposed", "accepted", "deprecated", "superseded"]
+            },
+            "context": {"type": "string"},
+            "options_considered": {
+              "type": "object",
+              "patternProperties": {
+                "^[a-zA-Z][a-zA-Z0-9_]*$": {
+                  "type": "object",
+                  "properties": {
+                    "pros": {
+                      "type": "array",
+                      "items": {"type": "string"}
+                    },
+                    "cons": {
+                      "type": "array",
+                      "items": {"type": "string"}
+                    },
+                    "example": {"type": "string"}
+                  }
+                }
+              }
+            },
+            "decision": {"type": "string"},
+            "implementation": {
+              "oneOf": [
+                {"type": "string"},
+                {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "layers": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "purpose": {"type": "string"},
+                          "examples": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                          },
+                          "ttl": {"type": "string"},
+                          "size_limit": {"type": "string"},
+                          "eviction": {"type": "string"}
+                        }
+                      }
+                    },
+                    "invalidation": {
+                      "type": "object",
+                      "properties": {
+                        "strategy": {"type": "string"},
+                        "triggers": {
+                          "type": "array",
+                          "items": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "consequences": {
+              "type": "object",
+              "properties": {
+                "positive": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "negative": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "mitigations": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              }
+            },
+            "monitoring": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "tags": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+} 

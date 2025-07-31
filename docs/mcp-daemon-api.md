@@ -1,0 +1,644 @@
+# GACP MCP Daemon API Documentation
+
+## Overview
+
+The GACP MCP (Model Context Protocol) Daemon provides a standardized interface for managing AI agent context through distributed YAML files in Git repositories. The daemon supports multiple communication protocols: HTTP REST API, WebSocket for real-time communication, and Unix domain sockets for local access.
+
+## Base URLs
+
+- **HTTP API**: `http://localhost:8080`
+- **WebSocket API**: `ws://localhost:8081/ws`
+- **Unix Socket**: `/tmp/gacp-mcp.sock`
+
+## Authentication
+
+The daemon supports multiple authentication methods:
+
+### API Key Authentication
+```http
+Authorization: Bearer your-api-key-here
+```
+
+### JWT Token Authentication
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+## HTTP REST API
+
+### Health & Status Endpoints
+
+#### GET /health
+Get daemon health status and metrics.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "uptime": 3600,
+  "connections": 5,
+  "cache_hit_rate": 0.85,
+  "memory_usage": {
+    "used": 104857600,
+    "total": 8589934592,
+    "cache_size": 52428800
+  }
+}
+```
+
+#### GET /info
+Get daemon information and capabilities.
+
+**Response:**
+```json
+{
+  "name": "GACP MCP Daemon",
+  "version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "capabilities": {
+    "resources": true,
+    "queries": true,
+    "subscriptions": true,
+    "notifications": true
+  },
+  "supported_methods": [
+    "resources/list",
+    "resources/read",
+    "query/execute",
+    "system/health"
+  ]
+}
+```
+
+### JSON-RPC Endpoint
+
+#### POST /rpc
+Execute JSON-RPC 2.0 method calls.
+
+**Request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "resources/list",
+  "params": {
+    "uri": "gacp://scopes"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "resources": [
+      {
+        "uri": "gacp://scopes/test",
+        "name": "Test Scope",
+        "description": "A test scope",
+        "mime_type": "application/yaml",
+        "content": {...}
+      }
+    ],
+    "total_count": 1,
+    "next_page_token": null
+  }
+}
+```
+
+### Resource Management
+
+#### GET /resources
+List available resources with optional filtering.
+
+**Query Parameters:**
+- `uri` (optional): Filter resources by URI pattern
+- `type` (optional): Filter by resource type
+- `limit` (optional): Maximum number of resources to return (default: 100)
+- `offset` (optional): Number of resources to skip (default: 0)
+
+**Response:**
+```json
+{
+  "resources": [
+    {
+      "uri": "gacp://scopes/test/scope.yaml",
+      "name": "Test Scope",
+      "description": "A test scope for development",
+      "mime_type": "application/yaml",
+      "content": {
+        "name": "test",
+        "type": "service",
+        "version": "1.0.0"
+      },
+      "metadata": {
+        "last_modified": "2024-01-15T10:30:00Z",
+        "size": 1024
+      }
+    }
+  ],
+  "total_count": 1,
+  "next_page_token": null
+}
+```
+
+#### GET /resources/{uri}
+Read a specific resource by URI.
+
+**Path Parameters:**
+- `uri`: The resource URI (URL encoded)
+
+**Response:**
+```json
+{
+  "uri": "gacp://scopes/test/scope.yaml",
+  "name": "Test Scope",
+  "description": "A test scope for development",
+  "mime_type": "application/yaml",
+  "content": {
+    "name": "test",
+    "type": "service",
+    "version": "1.0.0",
+    "description": "A test scope"
+  },
+  "metadata": {
+    "last_modified": "2024-01-15T10:30:00Z",
+    "size": 1024,
+    "checksum": "sha256:abc123..."
+  }
+}
+```
+
+### Query Execution
+
+#### POST /query
+Execute CQL (Context Query Language) queries.
+
+**Request:**
+```json
+{
+  "query": "SELECT * FROM scopes WHERE type = 'service'",
+  "parameters": {
+    "type": "service"
+  },
+  "timeout_ms": 5000
+}
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "name": "test-service",
+      "type": "service",
+      "version": "1.0.0"
+    }
+  ],
+  "metadata": {
+    "execution_time_ms": 150,
+    "rows_returned": 1,
+    "query_plan": "..."
+  },
+  "execution_time_ms": 150
+}
+```
+
+### Scope Management
+
+#### GET /scopes
+List all available scopes.
+
+**Response:**
+```json
+[
+  {
+    "path": "test",
+    "definition": {
+      "name": "Test Scope",
+      "type": "service",
+      "version": "1.0.0"
+    },
+    "files": [
+      "scope.yaml",
+      "knowledge.yaml",
+      "todos.yaml"
+    ]
+  }
+]
+```
+
+#### GET /scopes/{scope_id}
+Get details for a specific scope.
+
+**Path Parameters:**
+- `scope_id`: The scope identifier
+
+**Response:**
+```json
+{
+  "path": "test",
+  "definition": {
+    "name": "Test Scope",
+    "type": "service",
+    "version": "1.0.0",
+    "description": "A test scope for development"
+  },
+  "files": [
+    "scope.yaml",
+    "knowledge.yaml",
+    "todos.yaml",
+    "decisions.yaml",
+    "patterns.yaml"
+  ]
+}
+```
+
+#### GET /scopes/{scope_id}/knowledge
+Get knowledge base for a specific scope.
+
+**Response:**
+```json
+{
+  "title": "Test Knowledge Base",
+  "description": "Knowledge base for test scope",
+  "entries": [
+    {
+      "title": "Architecture Overview",
+      "content": "The system follows a microservices architecture...",
+      "tags": ["architecture", "design"],
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+#### GET /scopes/{scope_id}/todos
+Get todo items for a specific scope.
+
+**Response:**
+```json
+{
+  "title": "Test Scope Todos",
+  "description": "Todo items for test scope",
+  "items": [
+    {
+      "id": "todo-1",
+      "title": "Implement new feature",
+      "description": "Add support for advanced queries",
+      "status": "in_progress",
+      "priority": "high",
+      "assignee": "developer@example.com",
+      "created_at": "2024-01-15T10:30:00Z",
+      "due_date": "2024-01-20T17:00:00Z"
+    }
+  ]
+}
+```
+
+#### GET /scopes/{scope_id}/decisions
+Get decisions for a specific scope.
+
+**Response:**
+```json
+{
+  "title": "Test Scope Decisions",
+  "description": "Architecture and design decisions",
+  "decisions": [
+    {
+      "id": "decision-1",
+      "title": "Database Technology Choice",
+      "description": "We chose PostgreSQL over MySQL for better JSON support",
+      "status": "accepted",
+      "context": "Need to store complex JSON data",
+      "consequences": "Better performance for JSON queries",
+      "created_at": "2024-01-15T10:30:00Z",
+      "review_date": "2024-01-20T17:00:00Z"
+    }
+  ]
+}
+```
+
+#### GET /scopes/{scope_id}/patterns
+Get patterns for a specific scope.
+
+**Response:**
+```json
+{
+  "title": "Test Scope Patterns",
+  "description": "Design patterns and conventions",
+  "patterns": [
+    {
+      "id": "pattern-1",
+      "name": "Repository Pattern",
+      "description": "Use repository pattern for data access",
+      "category": "architecture",
+      "examples": [
+        {
+          "title": "User Repository",
+          "code": "class UserRepository { ... }",
+          "language": "typescript"
+        }
+      ],
+      "benefits": ["Separation of concerns", "Testability"],
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+### Statistics
+
+#### GET /stats
+Get context statistics and metrics.
+
+**Response:**
+```json
+{
+  "total_scopes": 5,
+  "total_files": 25,
+  "total_knowledge_entries": 50,
+  "total_todos": 15,
+  "total_decisions": 8,
+  "total_patterns": 12,
+  "cache_stats": {
+    "hits": 1000,
+    "misses": 100,
+    "hit_rate": 0.91
+  },
+  "file_stats": {
+    "total_size": 1048576,
+    "average_size": 41943,
+    "largest_file": "knowledge.yaml",
+    "most_modified": "todos.yaml"
+  }
+}
+```
+
+## WebSocket API
+
+### Connection
+
+Connect to the WebSocket endpoint:
+```javascript
+const ws = new WebSocket('ws://localhost:8081/ws');
+```
+
+### Message Format
+
+All WebSocket messages use JSON-RPC 2.0 format:
+
+**Request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "resources/subscribe",
+  "params": {
+    "uri": "gacp://scopes/test"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "subscription_id": "sub-123"
+  }
+}
+```
+
+### Notifications
+
+The server sends notifications for resource changes:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "resources/changed",
+  "params": {
+    "uri": "gacp://scopes/test/scope.yaml",
+    "event_type": "modified",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### Supported Methods
+
+All HTTP API methods are available via WebSocket, plus:
+
+- `resources/subscribe` - Subscribe to resource changes
+- `resources/unsubscribe` - Unsubscribe from resource changes
+- `system/ping` - Ping the server
+
+## Unix Socket API
+
+### Connection
+
+Connect to the Unix socket:
+```bash
+# Using netcat
+nc -U /tmp/gacp-mcp.sock
+
+# Using socat
+socat - UNIX-CONNECT:/tmp/gacp-mcp.sock
+```
+
+### Message Format
+
+Same JSON-RPC 2.0 format as WebSocket API, with newline-delimited messages:
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "system/health", "params": {}}
+```
+
+## Error Handling
+
+### Error Response Format
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32601,
+    "message": "Method not found",
+    "data": {
+      "method": "unknown/method"
+    }
+  }
+}
+```
+
+### HTTP Status Codes
+
+- `200 OK` - Success
+- `400 Bad Request` - Invalid request format
+- `401 Unauthorized` - Authentication required
+- `403 Forbidden` - Insufficient permissions
+- `404 Not Found` - Resource not found
+- `500 Internal Server Error` - Server error
+
+### JSON-RPC Error Codes
+
+- `-32700` - Parse error
+- `-32600` - Invalid Request
+- `-32601` - Method not found
+- `-32602` - Invalid params
+- `-32603` - Internal error
+- `-32000` - Server error
+- `-32001` - Application error
+
+## Rate Limiting
+
+The API implements rate limiting:
+
+- **HTTP API**: 1000 requests per minute per IP
+- **WebSocket**: 100 messages per minute per connection
+- **Unix Socket**: 1000 messages per minute per process
+
+Rate limit headers:
+```http
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-RateLimit-Reset: 1642248600
+```
+
+## CORS
+
+CORS is enabled for HTTP API with the following configuration:
+
+```http
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization
+```
+
+## Examples
+
+### JavaScript Client
+
+```javascript
+class GacpClient {
+  constructor(baseUrl = 'http://localhost:8080', apiKey = null) {
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+  }
+
+  async health() {
+    const response = await fetch(`${this.baseUrl}/health`, {
+      headers: this.getHeaders()
+    });
+    return response.json();
+  }
+
+  async listResources(uri = null) {
+    const params = new URLSearchParams();
+    if (uri) params.append('uri', uri);
+    
+    const response = await fetch(`${this.baseUrl}/resources?${params}`, {
+      headers: this.getHeaders()
+    });
+    return response.json();
+  }
+
+  async executeQuery(query, parameters = {}) {
+    const response = await fetch(`${this.baseUrl}/query`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ query, parameters })
+    });
+    return response.json();
+  }
+
+  getHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this.apiKey) {
+      headers['Authorization'] = `Bearer ${this.apiKey}`;
+    }
+    return headers;
+  }
+}
+
+// Usage
+const client = new GacpClient('http://localhost:8080', 'your-api-key');
+const health = await client.health();
+const scopes = await client.listResources('gacp://scopes');
+```
+
+### Python Client
+
+```python
+import requests
+import json
+
+class GacpClient:
+    def __init__(self, base_url='http://localhost:8080', api_key=None):
+        self.base_url = base_url
+        self.api_key = api_key
+        self.session = requests.Session()
+        if api_key:
+            self.session.headers.update({'Authorization': f'Bearer {api_key}'})
+        self.session.headers.update({'Content-Type': 'application/json'})
+
+    def health(self):
+        response = self.session.get(f'{self.base_url}/health')
+        response.raise_for_status()
+        return response.json()
+
+    def list_resources(self, uri=None):
+        params = {}
+        if uri:
+            params['uri'] = uri
+        response = self.session.get(f'{self.base_url}/resources', params=params)
+        response.raise_for_status()
+        return response.json()
+
+    def execute_query(self, query, parameters=None):
+        data = {'query': query}
+        if parameters:
+            data['parameters'] = parameters
+        response = self.session.post(f'{self.base_url}/query', json=data)
+        response.raise_for_status()
+        return response.json()
+
+# Usage
+client = GacpClient('http://localhost:8080', 'your-api-key')
+health = client.health()
+scopes = client.list_resources('gacp://scopes')
+```
+
+### cURL Examples
+
+```bash
+# Health check
+curl -X GET http://localhost:8080/health
+
+# List resources
+curl -X GET "http://localhost:8080/resources?uri=gacp://scopes"
+
+# Execute query
+curl -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT * FROM scopes WHERE type = \"service\""}'
+
+# With authentication
+curl -X GET http://localhost:8080/scopes \
+  -H "Authorization: Bearer your-api-key"
+```
+
+## Best Practices
+
+1. **Error Handling**: Always check for errors in responses
+2. **Rate Limiting**: Respect rate limits and implement exponential backoff
+3. **Caching**: Cache responses when appropriate
+4. **Authentication**: Use API keys for production environments
+5. **WebSocket**: Use WebSocket for real-time updates
+6. **Unix Socket**: Use Unix socket for local, high-performance access 

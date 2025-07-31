@@ -1,4 +1,20 @@
-use crate::{GacpError, GacpResult, Todos, TodoEntry, Knowledge, KnowledgeEntry, Patterns, PatternEntry, Decisions, DecisionEntry, TodoStatus, Priority, DecisionStatus, PatternUsage};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{RhemaError, RhemaResult, Todos, TodoEntry, Knowledge, KnowledgeEntry, Patterns, PatternEntry, Decisions, DecisionEntry, TodoStatus, Priority, DecisionStatus, PatternUsage};
 use chrono::Utc;
 use serde_yaml;
 use std::collections::HashMap;
@@ -6,21 +22,21 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 /// Read a YAML file and deserialize it into the specified type
-pub fn read_yaml_file<T>(file_path: &Path) -> GacpResult<T>
+pub fn read_yaml_file<T>(file_path: &Path) -> RhemaResult<T>
 where
     T: serde::de::DeserializeOwned,
 {
     if !file_path.exists() {
-        return Err(GacpError::FileNotFound(
+        return Err(RhemaError::FileNotFound(
             format!("File not found: {}", file_path.display())
         ));
     }
     
     let content = std::fs::read_to_string(file_path)
-        .map_err(|e| GacpError::IoError(e))?;
+        .map_err(|e| RhemaError::IoError(e))?;
     
     let data: T = serde_yaml::from_str(&content)
-        .map_err(|e| GacpError::InvalidYaml {
+        .map_err(|e| RhemaError::InvalidYaml {
             file: file_path.display().to_string(),
             message: e.to_string(),
         })?;
@@ -29,30 +45,30 @@ where
 }
 
 /// Write a YAML file with the specified data
-pub fn write_yaml_file<T>(file_path: &Path, data: &T) -> GacpResult<()>
+pub fn write_yaml_file<T>(file_path: &Path, data: &T) -> RhemaResult<()>
 where
     T: serde::Serialize,
 {
     // Ensure the directory exists
     if let Some(parent) = file_path.parent() {
         std::fs::create_dir_all(parent)
-            .map_err(|e| GacpError::IoError(e))?;
+            .map_err(|e| RhemaError::IoError(e))?;
     }
     
     let content = serde_yaml::to_string(data)
-        .map_err(|e| GacpError::InvalidYaml {
+        .map_err(|e| RhemaError::InvalidYaml {
             file: file_path.display().to_string(),
             message: e.to_string(),
         })?;
     
     std::fs::write(file_path, content)
-        .map_err(|e| GacpError::IoError(e))?;
+        .map_err(|e| RhemaError::IoError(e))?;
     
     Ok(())
 }
 
 /// Get or create a todos file
-pub fn get_or_create_todos_file(scope_path: &Path) -> GacpResult<PathBuf> {
+pub fn get_or_create_todos_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     let todos_file = scope_path.join("todos.yaml");
     
     if !todos_file.exists() {
@@ -67,7 +83,7 @@ pub fn get_or_create_todos_file(scope_path: &Path) -> GacpResult<PathBuf> {
 }
 
 /// Get or create a knowledge file
-pub fn get_or_create_knowledge_file(scope_path: &Path) -> GacpResult<PathBuf> {
+pub fn get_or_create_knowledge_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     let knowledge_file = scope_path.join("knowledge.yaml");
     
     if !knowledge_file.exists() {
@@ -83,7 +99,7 @@ pub fn get_or_create_knowledge_file(scope_path: &Path) -> GacpResult<PathBuf> {
 }
 
 /// Get or create a patterns file
-pub fn get_or_create_patterns_file(scope_path: &Path) -> GacpResult<PathBuf> {
+pub fn get_or_create_patterns_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     let patterns_file = scope_path.join("patterns.yaml");
     
     if !patterns_file.exists() {
@@ -98,7 +114,7 @@ pub fn get_or_create_patterns_file(scope_path: &Path) -> GacpResult<PathBuf> {
 }
 
 /// Get or create a decisions file
-pub fn get_or_create_decisions_file(scope_path: &Path) -> GacpResult<PathBuf> {
+pub fn get_or_create_decisions_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     let decisions_file = scope_path.join("decisions.yaml");
     
     if !decisions_file.exists() {
@@ -120,7 +136,7 @@ pub fn add_todo(
     priority: Priority,
     assignee: Option<String>,
     due_date: Option<String>,
-) -> GacpResult<String> {
+) -> RhemaResult<String> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let mut todos: Todos = read_yaml_file(&todos_file)?;
     
@@ -129,7 +145,7 @@ pub fn add_todo(
     
     let due_date_parsed = if let Some(date_str) = due_date {
         Some(chrono::DateTime::parse_from_rfc3339(&date_str)
-            .map_err(|_| GacpError::ConfigError("Invalid date format. Use ISO 8601 format (e.g., 2023-12-01T10:00:00Z)".to_string()))?
+            .map_err(|_| RhemaError::ConfigError("Invalid date format. Use ISO 8601 format (e.g., 2023-12-01T10:00:00Z)".to_string()))?
             .with_timezone(&Utc))
     } else {
         None
@@ -162,7 +178,7 @@ pub fn list_todos(
     status_filter: Option<TodoStatus>,
     priority_filter: Option<Priority>,
     assignee_filter: Option<String>,
-) -> GacpResult<Vec<TodoEntry>> {
+) -> RhemaResult<Vec<TodoEntry>> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let todos: Todos = read_yaml_file(&todos_file)?;
     
@@ -190,13 +206,13 @@ pub fn complete_todo(
     scope_path: &Path,
     id: &str,
     outcome: Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let mut todos: Todos = read_yaml_file(&todos_file)?;
     
     let todo = todos.todos.iter_mut()
         .find(|t| t.id == id)
-        .ok_or_else(|| GacpError::ConfigError(format!("Todo with ID {} not found", id)))?;
+        .ok_or_else(|| RhemaError::ConfigError(format!("Todo with ID {} not found", id)))?;
     
     todo.status = TodoStatus::Completed;
     todo.completed_at = Some(Utc::now());
@@ -216,13 +232,13 @@ pub fn update_todo(
     priority: Option<Priority>,
     assignee: Option<String>,
     due_date: Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let mut todos: Todos = read_yaml_file(&todos_file)?;
     
     let todo = todos.todos.iter_mut()
         .find(|t| t.id == id)
-        .ok_or_else(|| GacpError::ConfigError(format!("Todo with ID {} not found", id)))?;
+        .ok_or_else(|| RhemaError::ConfigError(format!("Todo with ID {} not found", id)))?;
     
     if let Some(title) = title {
         todo.title = title;
@@ -241,7 +257,7 @@ pub fn update_todo(
     }
     if let Some(date_str) = due_date {
         let due_date_parsed = chrono::DateTime::parse_from_rfc3339(&date_str)
-            .map_err(|_| GacpError::ConfigError("Invalid date format. Use ISO 8601 format (e.g., 2023-12-01T10:00:00Z)".to_string()))?
+            .map_err(|_| RhemaError::ConfigError("Invalid date format. Use ISO 8601 format (e.g., 2023-12-01T10:00:00Z)".to_string()))?
             .with_timezone(&Utc);
         todo.due_date = Some(due_date_parsed);
     }
@@ -251,7 +267,7 @@ pub fn update_todo(
 }
 
 /// Delete a todo entry
-pub fn delete_todo(scope_path: &Path, id: &str) -> GacpResult<()> {
+pub fn delete_todo(scope_path: &Path, id: &str) -> RhemaResult<()> {
     let todos_file = get_or_create_todos_file(scope_path)?;
     let mut todos: Todos = read_yaml_file(&todos_file)?;
     
@@ -259,7 +275,7 @@ pub fn delete_todo(scope_path: &Path, id: &str) -> GacpResult<()> {
     todos.todos.retain(|t| t.id != id);
     
     if todos.todos.len() == initial_len {
-        return Err(GacpError::ConfigError(format!("Todo with ID {} not found", id)));
+        return Err(RhemaError::ConfigError(format!("Todo with ID {} not found", id)));
     }
     
     write_yaml_file(&todos_file, &todos)?;
@@ -274,7 +290,7 @@ pub fn add_knowledge(
     confidence: Option<u8>,
     category: Option<String>,
     tags: Option<String>,
-) -> GacpResult<String> {
+) -> RhemaResult<String> {
     let knowledge_file = get_or_create_knowledge_file(scope_path)?;
     let mut knowledge: Knowledge = read_yaml_file(&knowledge_file)?;
     
@@ -308,7 +324,7 @@ pub fn list_knowledge(
     category_filter: Option<String>,
     tag_filter: Option<String>,
     min_confidence: Option<u8>,
-) -> GacpResult<Vec<KnowledgeEntry>> {
+) -> RhemaResult<Vec<KnowledgeEntry>> {
     let knowledge_file = get_or_create_knowledge_file(scope_path)?;
     let knowledge: Knowledge = read_yaml_file(&knowledge_file)?;
     
@@ -344,13 +360,13 @@ pub fn update_knowledge(
     confidence: Option<u8>,
     category: Option<String>,
     tags: Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let knowledge_file = get_or_create_knowledge_file(scope_path)?;
     let mut knowledge: Knowledge = read_yaml_file(&knowledge_file)?;
     
     let entry = knowledge.entries.iter_mut()
         .find(|e| e.id == id)
-        .ok_or_else(|| GacpError::ConfigError(format!("Knowledge entry with ID {} not found", id)))?;
+        .ok_or_else(|| RhemaError::ConfigError(format!("Knowledge entry with ID {} not found", id)))?;
     
     if let Some(title) = title {
         entry.title = title;
@@ -375,7 +391,7 @@ pub fn update_knowledge(
 }
 
 /// Delete a knowledge entry
-pub fn delete_knowledge(scope_path: &Path, id: &str) -> GacpResult<()> {
+pub fn delete_knowledge(scope_path: &Path, id: &str) -> RhemaResult<()> {
     let knowledge_file = get_or_create_knowledge_file(scope_path)?;
     let mut knowledge: Knowledge = read_yaml_file(&knowledge_file)?;
     
@@ -383,7 +399,7 @@ pub fn delete_knowledge(scope_path: &Path, id: &str) -> GacpResult<()> {
     knowledge.entries.retain(|e| e.id != id);
     
     if knowledge.entries.len() == initial_len {
-        return Err(GacpError::ConfigError(format!("Knowledge entry with ID {} not found", id)));
+        return Err(RhemaError::ConfigError(format!("Knowledge entry with ID {} not found", id)));
     }
     
     write_yaml_file(&knowledge_file, &knowledge)?;
@@ -400,7 +416,7 @@ pub fn add_pattern(
     effectiveness: Option<u8>,
     examples: Option<String>,
     anti_patterns: Option<String>,
-) -> GacpResult<String> {
+) -> RhemaResult<String> {
     let patterns_file = get_or_create_patterns_file(scope_path)?;
     let mut patterns: Patterns = read_yaml_file(&patterns_file)?;
     
@@ -437,7 +453,7 @@ pub fn list_patterns(
     pattern_type_filter: Option<String>,
     usage_filter: Option<PatternUsage>,
     min_effectiveness: Option<u8>,
-) -> GacpResult<Vec<PatternEntry>> {
+) -> RhemaResult<Vec<PatternEntry>> {
     let patterns_file = get_or_create_patterns_file(scope_path)?;
     let patterns: Patterns = read_yaml_file(&patterns_file)?;
     
@@ -471,13 +487,13 @@ pub fn update_pattern(
     effectiveness: Option<u8>,
     examples: Option<String>,
     anti_patterns: Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let patterns_file = get_or_create_patterns_file(scope_path)?;
     let mut patterns: Patterns = read_yaml_file(&patterns_file)?;
     
     let pattern = patterns.patterns.iter_mut()
         .find(|p| p.id == id)
-        .ok_or_else(|| GacpError::ConfigError(format!("Pattern with ID {} not found", id)))?;
+        .ok_or_else(|| RhemaError::ConfigError(format!("Pattern with ID {} not found", id)))?;
     
     if let Some(name) = name {
         pattern.name = name;
@@ -508,7 +524,7 @@ pub fn update_pattern(
 }
 
 /// Delete a pattern entry
-pub fn delete_pattern(scope_path: &Path, id: &str) -> GacpResult<()> {
+pub fn delete_pattern(scope_path: &Path, id: &str) -> RhemaResult<()> {
     let patterns_file = get_or_create_patterns_file(scope_path)?;
     let mut patterns: Patterns = read_yaml_file(&patterns_file)?;
     
@@ -516,7 +532,7 @@ pub fn delete_pattern(scope_path: &Path, id: &str) -> GacpResult<()> {
     patterns.patterns.retain(|p| p.id != id);
     
     if patterns.patterns.len() == initial_len {
-        return Err(GacpError::ConfigError(format!("Pattern with ID {} not found", id)));
+        return Err(RhemaError::ConfigError(format!("Pattern with ID {} not found", id)));
     }
     
     write_yaml_file(&patterns_file, &patterns)?;
@@ -534,7 +550,7 @@ pub fn add_decision(
     alternatives: Option<String>,
     rationale: Option<String>,
     consequences: Option<String>,
-) -> GacpResult<String> {
+) -> RhemaResult<String> {
     let decisions_file = get_or_create_decisions_file(scope_path)?;
     let mut decisions: Decisions = read_yaml_file(&decisions_file)?;
     
@@ -571,7 +587,7 @@ pub fn list_decisions(
     scope_path: &Path,
     status_filter: Option<DecisionStatus>,
     maker_filter: Option<String>,
-) -> GacpResult<Vec<DecisionEntry>> {
+) -> RhemaResult<Vec<DecisionEntry>> {
     let decisions_file = get_or_create_decisions_file(scope_path)?;
     let decisions: Decisions = read_yaml_file(&decisions_file)?;
     
@@ -602,13 +618,13 @@ pub fn update_decision(
     alternatives: Option<String>,
     rationale: Option<String>,
     consequences: Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let decisions_file = get_or_create_decisions_file(scope_path)?;
     let mut decisions: Decisions = read_yaml_file(&decisions_file)?;
     
     let decision = decisions.decisions.iter_mut()
         .find(|d| d.id == id)
-        .ok_or_else(|| GacpError::ConfigError(format!("Decision with ID {} not found", id)))?;
+        .ok_or_else(|| RhemaError::ConfigError(format!("Decision with ID {} not found", id)))?;
     
     if let Some(title) = title {
         decision.title = title;
@@ -640,7 +656,7 @@ pub fn update_decision(
 }
 
 /// Delete a decision entry
-pub fn delete_decision(scope_path: &Path, id: &str) -> GacpResult<()> {
+pub fn delete_decision(scope_path: &Path, id: &str) -> RhemaResult<()> {
     let decisions_file = get_or_create_decisions_file(scope_path)?;
     let mut decisions: Decisions = read_yaml_file(&decisions_file)?;
     
@@ -648,7 +664,7 @@ pub fn delete_decision(scope_path: &Path, id: &str) -> GacpResult<()> {
     decisions.decisions.retain(|d| d.id != id);
     
     if decisions.decisions.len() == initial_len {
-        return Err(GacpError::ConfigError(format!("Decision with ID {} not found", id)));
+        return Err(RhemaError::ConfigError(format!("Decision with ID {} not found", id)));
     }
     
     write_yaml_file(&decisions_file, &decisions)?;

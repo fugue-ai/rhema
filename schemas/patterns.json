@@ -1,0 +1,156 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/patterns",
+  "title": "Established Patterns and Best Practices",
+  "description": "Documents proven approaches and anti-patterns",
+  "type": "object",
+  "properties": {
+    "architectural_patterns": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "properties": {
+            "usage": {
+              "type": "string",
+              "enum": ["required", "widespread", "recommended", "optional", "deprecated"]
+            },
+            "effectiveness": {
+              "type": "string",
+              "enum": ["low", "medium", "high"]
+            },
+            "description": {"type": "string"},
+            "implementation": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "examples": {
+              "type": "object",
+              "properties": {
+                "good": {"type": "string"},
+                "avoid": {"type": "string"},
+                "interface": {"type": "string"},
+                "implementation": {"type": "string"},
+                "sqlalchemy": {"type": "string"}
+              }
+            },
+            "when_to_use": {"type": "string"},
+            "when_to_avoid": {"type": "string"},
+            "benefits": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "related_files": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "evidence": {"type": "string"},
+            "configuration": {
+              "type": "object",
+              "additionalProperties": {"type": "string"}
+            },
+            "monitoring": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "performance_patterns": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "$ref": "#/properties/architectural_patterns/patternProperties/^[a-zA-Z][a-zA-Z0-9_]*$"
+        }
+      }
+    },
+    "security_patterns": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "allOf": [
+            {"$ref": "#/properties/architectural_patterns/patternProperties/^[a-zA-Z][a-zA-Z0-9_]*$"},
+            {
+              "properties": {
+                "correct_order": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^\\d+$": {"type": "string"}
+                  }
+                },
+                "rationale": {
+                  "type": "object",
+                  "additionalProperties": {"type": "string"}
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "anti_patterns": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "properties": {
+            "description": {"type": "string"},
+            "why_bad": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "instead_use": {"type": "string"},
+            "warning_signs": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "solution": {"type": "string"}
+          }
+        }
+      }
+    },
+    "coding_conventions": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "properties": {
+            "approach": {"type": "string"},
+            "description": {"type": "string"},
+            "examples": {
+              "type": "object",
+              "properties": {
+                "good": {"type": "string"},
+                "avoid": {"type": "string"}
+              }
+            },
+            "guidelines": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "testing_patterns": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "properties": {
+            "pattern": {"type": "string"},
+            "description": {"type": "string"},
+            "template": {"type": "string"},
+            "guidelines": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+} 

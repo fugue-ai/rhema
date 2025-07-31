@@ -20,10 +20,6 @@ Thumbs.db
 rust-toolchain.toml
 rust-toolchain
 
-# Documentation
-/doc/
-/docs/
-
 # Logs
 *.log
 logs/
@@ -48,11 +44,9 @@ tmp/
 ehthumbs.db
 Thumbs.db
 
-# GACP specific
-.gacp/
-*.gacp
-gacp_cache/
-gacp_backup/
+# Rhema specific
+rhema_cache/
+rhema_backup/
 
 # Test artifacts
 test_output/

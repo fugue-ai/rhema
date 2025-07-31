@@ -1,0 +1,65 @@
+# Copyright 2025 Cory Parent
+# Licensed under the Apache License, Version 2.0
+#
+# Example Rhema Scope Definition
+# This file demonstrates the comprehensive Rhema v1 schema structure
+
+rhema:
+  version: "1.0.0"
+  scope:
+    type: "service"
+    name: "user-management-service"
+    description: "A microservice responsible for user authentication, profile management, and authorization"
+    
+    boundaries:
+      includes:
+        - "src/**"
+        - "tests/**"
+        - "migrations/**"
+        - "config/**"
+      excludes:
+        - "docs/**"
+        - "*.md"
+        - "node_modules/**"
+        - "target/**"
+    
+    dependencies:
+      parent: "../shared"
+      children:
+        - "../user-api"
+        - "../user-ui"
+      peers:
+        - "../auth-service"
+        - "../notification-service"
+    
+    responsibilities:
+      - "User registration and authentication"
+      - "Password management and reset"
+      - "User profile CRUD operations"
+      - "Role-based access control"
+      - "Session management"
+      - "User data validation"
+    
+    tech:
+      primary_languages:
+        - "Rust"
+        - "TypeScript"
+      frameworks:
+        - "Actix Web"
+        - "React"
+        - "SQLx"
+      databases:
+        - "PostgreSQL"
+        - "Redis"
+  
+  tooling:
+    focus_areas:
+      - "Security best practices"
+      - "Performance optimization"
+      - "Data privacy compliance"
+      - "API design patterns"
+    recommended_analysis:
+      - "Dependency analysis"
+      - "Security audit"
+      - "Performance profiling"
+      - "Code quality assessment" 

@@ -1,13 +1,29 @@
-use crate::{Gacp, GacpResult, scope::find_nearest_scope};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult, scope::find_nearest_scope};
 use colored::*;
 
 use std::path::Path;
 
-pub fn run(gacp: &Gacp, file: &str) -> GacpResult<()> {
+pub fn run(rhema: &Rhema, file: &str) -> RhemaResult<()> {
     println!("{}", "📊 Analyzing impact of changes...".blue().bold());
     
     // Discover all scopes
-    let scopes = gacp.discover_scopes()?;
+    let scopes = rhema.discover_scopes()?;
     
     if scopes.is_empty() {
         println!("{}", "No scopes found in the repository.".yellow());
@@ -18,7 +34,7 @@ pub fn run(gacp: &Gacp, file: &str) -> GacpResult<()> {
     let file_path = if Path::new(file).is_absolute() {
         Path::new(file).to_path_buf()
     } else {
-        gacp.repo_root().join(file)
+        rhema.repo_root().join(file)
     };
     
     if !file_path.exists() {
@@ -30,34 +46,34 @@ pub fn run(gacp: &Gacp, file: &str) -> GacpResult<()> {
     let affected_scope = find_nearest_scope(&file_path, &scopes);
     
     if let Some(scope) = affected_scope {
-        let scope_path = scope.relative_path(gacp.repo_root())?;
+        let scope_path = scope.relative_path(rhema.repo_root())?;
         println!("{}", format!("🎯 File '{}' is in scope: {}", file, scope_path).green().bold());
         
         // Analyze direct impact
-        analyze_direct_impact(gacp, scope, &file_path)?;
+        analyze_direct_impact(rhema, scope, &file_path)?;
         
         // Analyze indirect impact through dependencies
-        analyze_indirect_impact(gacp, &scopes, scope)?;
+        analyze_indirect_impact(rhema, &scopes, scope)?;
         
         // Generate impact report
-        generate_impact_report(gacp, &scopes, scope, &file_path)?;
+        generate_impact_report(rhema, &scopes, scope, &file_path)?;
         
     } else {
-        println!("{}", format!("⚠️  File '{}' is not within any GACP scope", file).yellow());
+        println!("{}", format!("⚠️  File '{}' is not within any Rhema scope", file).yellow());
     }
     
     Ok(())
 }
 
 fn analyze_direct_impact(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scope: &crate::scope::Scope,
     file_path: &Path,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("\n{}", "📋 Direct Impact Analysis".green().bold());
     println!("{}", "=".repeat(50));
     
-    let scope_path = scope.relative_path(gacp.repo_root())?;
+    let scope_path = scope.relative_path(rhema.repo_root())?;
     let file_name = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown");
     
     // Determine file type and potential impact
@@ -76,20 +92,20 @@ fn analyze_direct_impact(
     // Check if file is a context file
     if scope.has_file(file_name) {
         println!("  📝 Context File: {}", "Yes".green());
-        analyze_context_file_impact(gacp, scope, file_name)?;
+        analyze_context_file_impact(rhema, scope, file_name)?;
     } else {
         println!("  📝 Context File: {}", "No".yellow());
-        analyze_source_file_impact(gacp, scope, file_path)?;
+        analyze_source_file_impact(rhema, scope, file_path)?;
     }
     
     Ok(())
 }
 
 fn analyze_context_file_impact(
-    _gacp: &Gacp,
+    _rhema: &Rhema,
     _scope: &crate::scope::Scope,
     file_name: &str,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("\n  {} Context File Impact:", "📊".blue());
     
     match file_name {
@@ -113,7 +129,7 @@ fn analyze_context_file_impact(
             println!("    • Project direction could be affected");
             println!("    • Stakeholder alignment might be impacted");
         }
-        "gacp.yaml" => {
+        "rhema.yaml" => {
             println!("    • Scope definition may be modified");
             println!("    • Dependencies could be affected");
             println!("    • Scope relationships might change");
@@ -127,10 +143,10 @@ fn analyze_context_file_impact(
 }
 
 fn analyze_source_file_impact(
-    _gacp: &Gacp,
+    _rhema: &Rhema,
     _scope: &crate::scope::Scope,
     file_path: &Path,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("\n  {} Source File Impact:", "💻".blue());
     
     let file_extension = file_path.extension().and_then(|s| s.to_str()).unwrap_or("");
@@ -176,14 +192,14 @@ fn analyze_source_file_impact(
 }
 
 fn analyze_indirect_impact(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scopes: &[crate::scope::Scope],
     affected_scope: &crate::scope::Scope,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("\n{}", "🔄 Indirect Impact Analysis".green().bold());
     println!("{}", "=".repeat(50));
     
-    let affected_scope_path = affected_scope.relative_path(gacp.repo_root())?;
+    let affected_scope_path = affected_scope.relative_path(rhema.repo_root())?;
     
     // Find scopes that depend on the affected scope
     let mut dependent_scopes = Vec::new();
@@ -191,7 +207,7 @@ fn analyze_indirect_impact(
     for scope in scopes {
         let dependencies = scope.get_dependency_paths();
         if dependencies.contains(&affected_scope_path) {
-            let scope_path = scope.relative_path(gacp.repo_root())?;
+            let scope_path = scope.relative_path(rhema.repo_root())?;
             dependent_scopes.push(scope_path);
         }
     }
@@ -215,15 +231,15 @@ fn analyze_indirect_impact(
 }
 
 fn generate_impact_report(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scopes: &[crate::scope::Scope],
     affected_scope: &crate::scope::Scope,
     file_path: &Path,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("\n{}", "📈 Impact Report Summary".green().bold());
     println!("{}", "=".repeat(50));
     
-    let scope_path = affected_scope.relative_path(gacp.repo_root())?;
+    let scope_path = affected_scope.relative_path(rhema.repo_root())?;
     let file_name = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown");
     
     // Count affected context entries
@@ -272,8 +288,8 @@ fn generate_impact_report(
     println!("\n  {} Next Steps:", "🚀".green());
     println!("    • Commit changes with descriptive message");
     println!("    • Update related context files if necessary");
-    println!("    • Run validation: gacp validate");
-    println!("    • Check health: gacp health");
+    println!("    • Run validation: rhema validate");
+    println!("    • Check health: rhema health");
     
     Ok(())
 } 

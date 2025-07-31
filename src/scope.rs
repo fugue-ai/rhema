@@ -1,39 +1,83 @@
-use crate::{GacpError, GacpScope, schema::Validatable};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{RhemaError, RhemaScope, schema::Validatable};
 use serde_yaml;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-/// Represents a GACP scope with its metadata and files
-#[derive(Debug, Clone)]
+/// Represents a Rhema scope with its metadata and files
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Scope {
     /// Path to the scope directory
     pub path: PathBuf,
     
-    /// Scope definition from gacp.yaml
-    pub definition: GacpScope,
+    /// Scope definition from rhema.yaml
+    pub definition: RhemaScope,
     
     /// Available files in this scope
     pub files: HashMap<String, PathBuf>,
 }
 
 impl Scope {
-    /// Create a new scope from a directory path
-    pub fn new(path: PathBuf) -> Result<Self, GacpError> {
-        let gacp_file = path.join("gacp.yaml");
+    /// Find the scope file in the given directory, checking multiple possible locations
+    pub fn find_scope_file(scope_path: &Path) -> Result<PathBuf, RhemaError> {
+        // Define the possible locations in order of preference
+        let mut all_locations = Vec::new();
         
-        if !gacp_file.exists() {
-            return Err(GacpError::FileNotFound(
-                format!("gacp.yaml not found in {}", path.display())
-            ));
+        // First priority: files in the scope directory itself
+        all_locations.push(scope_path.join("rhema.yaml"));
+        all_locations.push(scope_path.join("scope.yaml"));
+        
+        // Second priority: files in parent directory (if we're in a .rhema directory)
+        if scope_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
+            let parent = scope_path.parent().unwrap_or(scope_path);
+            all_locations.push(parent.join("rhema.yaml"));
+            all_locations.push(parent.join("scope.yaml"));
         }
         
-        let content = std::fs::read_to_string(&gacp_file)
-            .map_err(|e| GacpError::IoError(e))?;
+        // Find the first existing file
+        for location in &all_locations {
+            if location.exists() {
+                return Ok(location.clone());
+            }
+        }
         
-        let definition: GacpScope = serde_yaml::from_str(&content)
-            .map_err(|e| GacpError::InvalidYaml {
-                file: gacp_file.display().to_string(),
+        // If no file found, return error with all checked locations
+        let checked_locations = all_locations.iter()
+            .map(|p| p.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        
+        Err(RhemaError::FileNotFound(
+            format!("No scope file found in {} (checked: {})", scope_path.display(), checked_locations)
+        ))
+    }
+
+    /// Create a new scope from a directory path
+    pub fn new(path: PathBuf) -> Result<Self, RhemaError> {
+        let rhema_file = Self::find_scope_file(&path)?;
+        
+        let content = std::fs::read_to_string(&rhema_file)
+            .map_err(|e| RhemaError::IoError(e))?;
+        
+        let definition: RhemaScope = serde_yaml::from_str(&content)
+            .map_err(|e| RhemaError::InvalidYaml {
+                file: rhema_file.display().to_string(),
                 message: e.to_string(),
             })?;
         
@@ -51,13 +95,13 @@ impl Scope {
     }
     
     /// Discover all YAML files in the scope directory
-    fn discover_files(scope_path: &Path) -> Result<HashMap<String, PathBuf>, GacpError> {
+    fn discover_files(scope_path: &Path) -> Result<HashMap<String, PathBuf>, RhemaError> {
         let mut files = HashMap::new();
         
         for entry in std::fs::read_dir(scope_path)
-            .map_err(|e| GacpError::IoError(e))?
+            .map_err(|e| RhemaError::IoError(e))?
         {
-            let entry = entry.map_err(|e| GacpError::IoError(e))?;
+            let entry = entry.map_err(|e| RhemaError::IoError(e))?;
             let path = entry.path();
             
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("yaml") {
@@ -81,9 +125,9 @@ impl Scope {
     }
     
     /// Get the relative path from repository root
-    pub fn relative_path(&self, repo_root: &Path) -> Result<String, GacpError> {
+    pub fn relative_path(&self, repo_root: &Path) -> Result<String, RhemaError> {
         let relative = self.path.strip_prefix(repo_root)
-            .map_err(|_| GacpError::ConfigError("Scope path not in repository".to_string()))?;
+            .map_err(|_| RhemaError::ConfigError("Scope path not in repository".to_string()))?;
         Ok(relative.to_string_lossy().to_string())
     }
     
@@ -97,7 +141,7 @@ impl Scope {
 }
 
 /// Discover all scopes in a repository
-pub fn discover_scopes(repo_root: &Path) -> Result<Vec<Scope>, GacpError> {
+pub fn discover_scopes(repo_root: &Path) -> Result<Vec<Scope>, RhemaError> {
     let mut scopes = Vec::new();
     
     for entry in WalkDir::new(repo_root)
@@ -107,7 +151,7 @@ pub fn discover_scopes(repo_root: &Path) -> Result<Vec<Scope>, GacpError> {
     {
         let path = entry.path();
         
-        if path.is_dir() && path.file_name().and_then(|s| s.to_str()) == Some(".gacp") {
+        if path.is_dir() && path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
             if let Ok(scope) = Scope::new(path.to_path_buf()) {
                 scopes.push(scope);
             }
@@ -118,30 +162,30 @@ pub fn discover_scopes(repo_root: &Path) -> Result<Vec<Scope>, GacpError> {
 }
 
 /// Get a specific scope by path
-pub fn get_scope(repo_root: &Path, scope_path: &str) -> Result<Scope, GacpError> {
+pub fn get_scope(repo_root: &Path, scope_path: &str) -> Result<Scope, RhemaError> {
     let full_path = if scope_path.starts_with('/') {
         PathBuf::from(scope_path)
     } else {
         repo_root.join(scope_path)
     };
     
-    let gacp_path = if full_path.file_name().and_then(|s| s.to_str()) == Some(".gacp") {
+    let rhema_path = if full_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
         full_path
     } else {
-        full_path.join(".gacp")
+        full_path.join(".rhema")
     };
     
-    if !gacp_path.exists() {
-        return Err(GacpError::ScopeNotFound(
+    if !rhema_path.exists() {
+        return Err(RhemaError::ScopeNotFound(
             format!("Scope not found: {}", scope_path)
         ));
     }
     
-    Scope::new(gacp_path)
+    Scope::new(rhema_path)
 }
 
 /// Build a dependency graph from scopes
-pub fn build_dependency_graph(scopes: &[Scope]) -> Result<HashMap<String, Vec<String>>, GacpError> {
+pub fn build_dependency_graph(scopes: &[Scope]) -> Result<HashMap<String, Vec<String>>, RhemaError> {
     let mut graph = HashMap::new();
     
     for scope in scopes {
@@ -157,14 +201,14 @@ pub fn build_dependency_graph(scopes: &[Scope]) -> Result<HashMap<String, Vec<St
 }
 
 /// Validate that the dependency graph has no cycles
-fn validate_dependency_graph(graph: &HashMap<String, Vec<String>>) -> Result<(), GacpError> {
+fn validate_dependency_graph(graph: &HashMap<String, Vec<String>>) -> Result<(), RhemaError> {
     let mut visited = std::collections::HashSet::new();
     let mut rec_stack = std::collections::HashSet::new();
     
     for node in graph.keys() {
         if !visited.contains(node) {
             if has_cycle(graph, node, &mut visited, &mut rec_stack) {
-                return Err(GacpError::CircularDependency(
+                return Err(RhemaError::CircularDependency(
                     format!("Circular dependency detected involving {}", node)
                 ));
             }
@@ -201,14 +245,14 @@ fn has_cycle(
 }
 
 /// Get scope hierarchy (parent/child relationships)
-pub fn get_scope_hierarchy(scopes: &[Scope], repo_root: &Path) -> Result<HashMap<String, Vec<String>>, GacpError> {
+pub fn get_scope_hierarchy(scopes: &[Scope], repo_root: &Path) -> Result<HashMap<String, Vec<String>>, RhemaError> {
     let mut hierarchy = HashMap::new();
     
     for scope in scopes {
         let scope_rel_path = scope.relative_path(repo_root)?;
         let scope_dir = scope.path.parent().unwrap();
         let _scope_dir_rel = scope_dir.strip_prefix(repo_root)
-            .map_err(|_| GacpError::ConfigError("Invalid scope path".to_string()))?;
+            .map_err(|_| RhemaError::ConfigError("Invalid scope path".to_string()))?;
         
         let mut children = Vec::new();
         
@@ -256,7 +300,7 @@ pub fn get_scopes_with_file<'a>(scopes: &'a [Scope], filename: &str) -> Vec<&'a 
 }
 
 /// Validate scope relationships
-pub fn validate_scope_relationships(scopes: &[Scope], repo_root: &Path) -> Result<(), GacpError> {
+pub fn validate_scope_relationships(scopes: &[Scope], repo_root: &Path) -> Result<(), RhemaError> {
     let graph = build_dependency_graph(scopes)?;
     
     // Check that all referenced dependencies exist
@@ -268,14 +312,14 @@ pub fn validate_scope_relationships(scopes: &[Scope], repo_root: &Path) -> Resul
                 repo_root.join(dep)
             };
             
-            let gacp_path = if dep_path.file_name().and_then(|s| s.to_str()) == Some(".gacp") {
+            let rhema_path = if dep_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
                 dep_path
             } else {
-                dep_path.join(".gacp")
+                dep_path.join(".rhema")
             };
             
-            if !gacp_path.exists() {
-                return Err(GacpError::ScopeNotFound(
+            if !rhema_path.exists() {
+                return Err(RhemaError::ScopeNotFound(
                     format!("Dependency not found: {} (referenced by {})", dep, scope_path)
                 ));
             }

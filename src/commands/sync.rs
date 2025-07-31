@@ -1,13 +1,29 @@
-use crate::{Gacp, GacpResult, scope::build_dependency_graph, file_ops::read_yaml_file, Knowledge, KnowledgeEntry};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult, scope::build_dependency_graph, file_ops::read_yaml_file, Knowledge, KnowledgeEntry};
 use colored::*;
 use std::collections::HashMap;
 use chrono::Utc;
 
-pub fn run(gacp: &Gacp) -> GacpResult<()> {
+pub fn run(rhema: &Rhema) -> RhemaResult<()> {
     println!("{}", "🔄 Syncing knowledge across scopes...".blue().bold());
     
     // Discover all scopes
-    let scopes = gacp.discover_scopes()?;
+    let scopes = rhema.discover_scopes()?;
     
     if scopes.is_empty() {
         println!("{}", "No scopes found in the repository.".yellow());
@@ -18,19 +34,19 @@ pub fn run(gacp: &Gacp) -> GacpResult<()> {
     let dependency_graph = build_dependency_graph(&scopes)?;
     
     // Collect all knowledge from all scopes
-    let all_knowledge = collect_all_knowledge(gacp, &scopes)?;
+    let all_knowledge = collect_all_knowledge(rhema, &scopes)?;
     
     // Identify knowledge conflicts
     let conflicts = identify_knowledge_conflicts(&all_knowledge)?;
     
     // Sync knowledge across dependent scopes
-    sync_knowledge_across_scopes(gacp, &scopes, &dependency_graph, &all_knowledge)?;
+    sync_knowledge_across_scopes(rhema, &scopes, &dependency_graph, &all_knowledge)?;
     
     // Update cross-references
-    update_cross_references(gacp, &scopes, &all_knowledge)?;
+    update_cross_references(rhema, &scopes, &all_knowledge)?;
     
     // Resolve conflicts
-    resolve_knowledge_conflicts(gacp, &conflicts)?;
+    resolve_knowledge_conflicts(rhema, &conflicts)?;
     
     println!("{}", "✅ Knowledge sync completed!".green().bold());
     
@@ -38,15 +54,15 @@ pub fn run(gacp: &Gacp) -> GacpResult<()> {
 }
 
 fn collect_all_knowledge(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scopes: &[crate::scope::Scope],
-) -> GacpResult<HashMap<String, Vec<KnowledgeEntry>>> {
+) -> RhemaResult<HashMap<String, Vec<KnowledgeEntry>>> {
     println!("{}", "📚 Collecting knowledge from all scopes...".blue());
     
     let mut all_knowledge = HashMap::new();
     
     for scope in scopes {
-        let scope_path = scope.relative_path(gacp.repo_root())?;
+        let scope_path = scope.relative_path(rhema.repo_root())?;
         
         if scope.has_file("knowledge.yaml") {
             let knowledge_file = scope.path.join("knowledge.yaml");
@@ -68,7 +84,7 @@ fn collect_all_knowledge(
 
 fn identify_knowledge_conflicts(
     all_knowledge: &HashMap<String, Vec<KnowledgeEntry>>,
-) -> GacpResult<Vec<KnowledgeConflict>> {
+) -> RhemaResult<Vec<KnowledgeConflict>> {
     println!("{}", "🔍 Identifying knowledge conflicts...".blue());
     
     let mut conflicts = Vec::new();
@@ -120,17 +136,17 @@ fn identify_knowledge_conflicts(
 }
 
 fn sync_knowledge_across_scopes(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scopes: &[crate::scope::Scope],
     dependency_graph: &HashMap<String, Vec<String>>,
     all_knowledge: &HashMap<String, Vec<KnowledgeEntry>>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("{}", "🔄 Syncing knowledge across dependent scopes...".blue());
     
     let mut synced_count = 0;
     
     for scope in scopes {
-        let scope_path = scope.relative_path(gacp.repo_root())?;
+        let scope_path = scope.relative_path(rhema.repo_root())?;
         let empty_vec = Vec::new();
         let dependencies = dependency_graph.get(&scope_path).unwrap_or(&empty_vec);
         let dependencies = dependencies.clone();
@@ -139,7 +155,7 @@ fn sync_knowledge_across_scopes(
             if let Some(dep_knowledge) = all_knowledge.get(&dep_scope_path) {
                 // Sync relevant knowledge from dependent scope
                 let synced = sync_knowledge_from_dependency(
-                    gacp,
+                    rhema,
                     scope,
                     &dep_scope_path,
                     dep_knowledge,
@@ -155,11 +171,11 @@ fn sync_knowledge_across_scopes(
 }
 
 fn sync_knowledge_from_dependency(
-    _gacp: &Gacp,
+    _rhema: &Rhema,
     target_scope: &crate::scope::Scope,
     dep_scope_path: &str,
     dep_knowledge: &[KnowledgeEntry],
-) -> GacpResult<usize> {
+) -> RhemaResult<usize> {
     let mut synced_count = 0;
     
     // Get target scope's existing knowledge
@@ -201,7 +217,7 @@ fn sync_knowledge_from_dependency(
     Ok(synced_count)
 }
 
-fn should_sync_knowledge(entry: &KnowledgeEntry, _target_scope: &crate::schema::GacpScope) -> bool {
+fn should_sync_knowledge(entry: &KnowledgeEntry, _target_scope: &crate::schema::RhemaScope) -> bool {
     // Only sync high-confidence knowledge
     if let Some(confidence) = entry.confidence {
         if confidence < 7 {
@@ -230,16 +246,16 @@ fn should_sync_knowledge(entry: &KnowledgeEntry, _target_scope: &crate::schema::
 }
 
 fn update_cross_references(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scopes: &[crate::scope::Scope],
     all_knowledge: &HashMap<String, Vec<KnowledgeEntry>>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     println!("{}", "🔗 Updating cross-references...".blue());
     
     let mut updated_count = 0;
     
     for scope in scopes {
-        let scope_path = scope.relative_path(gacp.repo_root())?;
+        let scope_path = scope.relative_path(rhema.repo_root())?;
         
         if scope.has_file("knowledge.yaml") {
             let knowledge_file = scope.path.join("knowledge.yaml");
@@ -298,9 +314,9 @@ fn update_knowledge_references(
 }
 
 fn resolve_knowledge_conflicts(
-    gacp: &Gacp,
+    rhema: &Rhema,
     conflicts: &[KnowledgeConflict],
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     if conflicts.is_empty() {
         return Ok(());
     }
@@ -334,7 +350,7 @@ fn resolve_knowledge_conflicts(
             // Update other scopes with the canonical version
             for (scope_path, entry) in &conflict.entries {
                 if *scope_path != *best_scope {
-                    update_knowledge_entry(gacp, scope_path, &entry.id, &best_entry.content)?;
+                    update_knowledge_entry(rhema, scope_path, &entry.id, &best_entry.content)?;
                 }
             }
         }
@@ -344,14 +360,14 @@ fn resolve_knowledge_conflicts(
 }
 
 fn update_knowledge_entry(
-    gacp: &Gacp,
+    rhema: &Rhema,
     scope_path: &str,
     entry_id: &str,
     new_content: &str,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     // Find the scope
-    let scopes = gacp.discover_scopes()?;
-    let scope = scopes.iter().find(|s| s.relative_path(gacp.repo_root()).unwrap_or_default() == scope_path);
+    let scopes = rhema.discover_scopes()?;
+    let scope = scopes.iter().find(|s| s.relative_path(rhema.repo_root()).unwrap_or_default() == scope_path);
     
     if let Some(scope) = scope {
         if scope.has_file("knowledge.yaml") {

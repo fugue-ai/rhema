@@ -1,22 +1,38 @@
-use crate::{Gacp, GacpResult};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult};
 use crate::scope::{find_nearest_scope, get_scope};
 use colored::*;
 use serde_yaml;
 use std::path::Path;
 
-pub fn run(gacp: &Gacp, file: &str, scope: Option<&str>) -> GacpResult<()> {
+pub fn run(rhema: &Rhema, file: &str, scope: Option<&str>) -> RhemaResult<()> {
     let scope_path = if let Some(scope_path) = scope {
         // Use the specified scope
-        let scope_obj = get_scope(gacp.repo_root(), scope_path)?;
+        let scope_obj = get_scope(rhema.repo_root(), scope_path)?;
         scope_obj.path
     } else {
         // Find the nearest scope to the current directory
         let current_dir = std::env::current_dir()
-            .map_err(|e| crate::GacpError::IoError(e))?;
+            .map_err(|e| crate::RhemaError::IoError(e))?;
         
-        let scopes = gacp.discover_scopes()?;
+        let scopes = rhema.discover_scopes()?;
         let scope_obj = find_nearest_scope(&current_dir, &scopes)
-            .ok_or_else(|| crate::GacpError::ConfigError("No GACP scope found in current directory or parent directories".to_string()))?;
+            .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
         scope_obj.path.clone()
     };
     
@@ -28,21 +44,21 @@ pub fn run(gacp: &Gacp, file: &str, scope: Option<&str>) -> GacpResult<()> {
     };
     
     if !file_path.exists() {
-        return Err(crate::GacpError::FileNotFound(
+        return Err(crate::RhemaError::FileNotFound(
             format!("File not found: {}", file_path.display())
         ));
     }
     
     // Read and display the file content
     let content = std::fs::read_to_string(&file_path)
-        .map_err(|e| crate::GacpError::IoError(e))?;
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
     // Try to parse as YAML for pretty formatting
     match serde_yaml::from_str::<serde_yaml::Value>(&content) {
         Ok(yaml_value) => {
             // Pretty print the YAML
             let pretty_content = serde_yaml::to_string(&yaml_value)
-                .map_err(|e| crate::GacpError::InvalidYaml {
+                .map_err(|e| crate::RhemaError::InvalidYaml {
                     file: file_path.display().to_string(),
                     message: e.to_string(),
                 })?;

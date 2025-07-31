@@ -1,19 +1,35 @@
-use crate::{Gacp, GacpResult, TodoSubcommands, Priority, TodoStatus};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult, TodoSubcommands, Priority, TodoStatus};
 use crate::file_ops;
 use crate::scope::find_nearest_scope;
 use colored::*;
 
-pub fn run(gacp: &Gacp, subcommand: &TodoSubcommands) -> GacpResult<()> {
+pub fn run(rhema: &Rhema, subcommand: &TodoSubcommands) -> RhemaResult<()> {
     // Get the current working directory to find the nearest scope
     let current_dir = std::env::current_dir()
-        .map_err(|e| crate::GacpError::IoError(e))?;
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
     // Discover all scopes
-    let scopes = gacp.discover_scopes()?;
+    let scopes = rhema.discover_scopes()?;
     
     // Find the nearest scope to the current directory
     let scope = find_nearest_scope(&current_dir, &scopes)
-        .ok_or_else(|| crate::GacpError::ConfigError("No GACP scope found in current directory or parent directories".to_string()))?;
+        .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
     
     match subcommand {
         TodoSubcommands::Add { title, description, priority, assignee, due_date } => {
@@ -41,7 +57,7 @@ fn add_todo(
     priority: &Priority,
     assignee: &Option<String>,
     due_date: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let id = file_ops::add_todo(
         &scope.path,
         title.to_string(),
@@ -72,7 +88,7 @@ fn list_todos(
     status: &Option<TodoStatus>,
     priority: &Option<Priority>,
     assignee: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let todos = file_ops::list_todos(
         &scope.path,
         status.clone(),
@@ -134,7 +150,7 @@ fn complete_todo(
     scope: &crate::Scope,
     id: &str,
     outcome: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::complete_todo(&scope.path, id, outcome.clone())?;
     
     println!("✅ Todo {} completed successfully", id.green());
@@ -154,7 +170,7 @@ fn update_todo(
     priority: &Option<Priority>,
     assignee: &Option<String>,
     due_date: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::update_todo(
         &scope.path,
         id,
@@ -197,7 +213,7 @@ fn update_todo(
 fn delete_todo(
     scope: &crate::Scope,
     id: &str,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::delete_todo(&scope.path, id)?;
     
     println!("🗑️  Todo {} deleted successfully", id.green());

@@ -1,0 +1,563 @@
+{
+  "name": "rhema",
+  "displayName": "Rhema - Git-Based Agent Context Protocol",
+  "description": "Comprehensive IDE integration for Rhema CLI with context-aware features, IntelliSense, and advanced development tools",
+  "version": "0.1.0",
+  "publisher": "fugue-ai",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Other",
+    "Development Tools",
+    "Git"
+  ],
+  "keywords": [
+    "rhema",
+    "git",
+    "ai",
+    "context",
+    "yaml",
+    "protocol",
+    "agent",
+    "cli"
+  ],
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fugue-ai/rhema.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fugue-ai/rhema/issues"
+  },
+  "homepage": "https://github.com/fugue-ai/rhema",
+  "main": "./out/extension.js",
+  "scripts": {
+    "test": "node test-providers.js",
+    "test:providers": "node test-providers.js",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "activationEvents": [
+    "onLanguage:yaml",
+    "onLanguage:json",
+    "onCommand:rhema.initialize",
+    "onCommand:rhema.showContext",
+    "onCommand:rhema.executeQuery",
+    "onCommand:rhema.searchContext",
+    "onCommand:rhema.validateFiles",
+    "onCommand:rhema.showScopes",
+    "onCommand:rhema.showTree",
+    "onCommand:rhema.manageTodos",
+    "onCommand:rhema.manageInsights",
+    "onCommand:rhema.managePatterns",
+    "onCommand:rhema.manageDecisions",
+    "onCommand:rhema.showDependencies",
+    "onCommand:rhema.showImpact",
+    "onCommand:rhema.syncKnowledge",
+    "onCommand:rhema.gitIntegration",
+    "onCommand:rhema.showStats",
+    "onCommand:rhema.checkHealth",
+    "onCommand:rhema.debugContext",
+    "onCommand:rhema.profilePerformance",
+    "onCommand:rhema.refactorContext",
+    "onCommand:rhema.generateCode",
+    "onCommand:rhema.showDocumentation",
+    "onCommand:rhema.configureSettings",
+    "onCommand:rhema.runProviderTests"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "rhema.initialize",
+        "title": "Rhema: Initialize Scope",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.showContext",
+        "title": "Rhema: Show Context",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.executeQuery",
+        "title": "Rhema: Execute Query",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.searchContext",
+        "title": "Rhema: Search Context",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.validateFiles",
+        "title": "Rhema: Validate Files",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.showScopes",
+        "title": "Rhema: Show Scopes",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.showTree",
+        "title": "Rhema: Show Scope Tree",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.manageTodos",
+        "title": "Rhema: Manage Todos",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.manageInsights",
+        "title": "Rhema: Manage Insights",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.managePatterns",
+        "title": "Rhema: Manage Patterns",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.manageDecisions",
+        "title": "Rhema: Manage Decisions",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.showDependencies",
+        "title": "Rhema: Show Dependencies",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.showImpact",
+        "title": "Rhema: Show Impact",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.syncKnowledge",
+        "title": "Rhema: Sync Knowledge",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.gitIntegration",
+        "title": "Rhema: Git Integration",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.showStats",
+        "title": "Rhema: Show Statistics",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.checkHealth",
+        "title": "Rhema: Check Health",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.debugContext",
+        "title": "Rhema: Debug Context",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.profilePerformance",
+        "title": "Rhema: Profile Performance",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.refactorContext",
+        "title": "Rhema: Refactor Context",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.generateCode",
+        "title": "Rhema: Generate Code",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.showDocumentation",
+        "title": "Rhema: Show Documentation",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.configureSettings",
+        "title": "Rhema: Configure Settings",
+        "category": "RHEMA"
+      },
+      {
+        "command": "rhema.runProviderTests",
+        "title": "Rhema: Run Provider Tests",
+        "category": "RHEMA"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "rhema.initialize",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.showContext",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.executeQuery",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.searchContext",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.validateFiles",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.showScopes",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.showTree",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.manageTodos",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.manageInsights",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.managePatterns",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.manageDecisions",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.showDependencies",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.showImpact",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.syncKnowledge",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.gitIntegration",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.showStats",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.checkHealth",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.debugContext",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.profilePerformance",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.refactorContext",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.generateCode",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.showDocumentation",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "rhema.configureSettings",
+          "when": "workspaceFolderCount > 0"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "rhema.showContext",
+          "when": "resourceExtname == .yaml || resourceExtname == .yml",
+          "group": "rhema"
+        },
+        {
+          "command": "rhema.validateFiles",
+          "when": "resourceExtname == .yaml || resourceExtname == .yml",
+          "group": "rhema"
+        },
+        {
+          "command": "rhema.showImpact",
+          "when": "resourceExtname == .yaml || resourceExtname == .yml",
+          "group": "rhema"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "rhema.showScopes",
+          "when": "workspaceFolderCount > 0",
+          "group": "rhema"
+        },
+        {
+          "command": "rhema.showTree",
+          "when": "workspaceFolderCount > 0",
+          "group": "rhema"
+        },
+        {
+          "command": "rhema.validateFiles",
+          "when": "workspaceFolderCount > 0",
+          "group": "rhema"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "rhema.showContext",
+        "key": "ctrl+shift+g c",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "rhema.executeQuery",
+        "key": "ctrl+shift+g q",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "rhema.searchContext",
+        "key": "ctrl+shift+g s",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "rhema.validateFiles",
+        "key": "ctrl+shift+g v",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "rhema.showScopes",
+        "key": "ctrl+shift+g p",
+        "when": "explorerViewletFocus"
+      },
+      {
+        "command": "rhema.showTree",
+        "key": "ctrl+shift+g t",
+        "when": "explorerViewletFocus"
+      }
+    ],
+    "configuration": {
+      "title": "RHEMA",
+      "properties": {
+        "rhema.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Rhema integration"
+        },
+        "rhema.executablePath": {
+          "type": "string",
+          "default": "rhema",
+          "description": "Path to Rhema executable"
+        },
+        "rhema.autoValidate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically validate Rhema files on save"
+        },
+        "rhema.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for Rhema operations"
+        },
+        "rhema.intelliSense": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable IntelliSense for Rhema files"
+        },
+        "rhema.debugMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug mode for Rhema operations"
+        },
+        "rhema.performanceProfiling": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable performance profiling"
+        },
+        "rhema.contextExploration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable context exploration features"
+        },
+        "rhema.gitIntegration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Git integration features"
+        },
+        "rhema.autoSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically sync knowledge across scopes"
+        },
+        "rhema.theme": {
+          "type": "string",
+          "enum": ["light", "dark", "auto"],
+          "default": "auto",
+          "description": "Theme for Rhema UI elements"
+        },
+        "rhema.language": {
+          "type": "string",
+          "default": "en",
+          "description": "Language for Rhema UI elements"
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "rhemaScopes",
+          "name": "Rhema Scopes",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "rhemaContext",
+          "name": "Rhema Context",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "rhemaTodos",
+          "name": "Rhema Todos",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "rhemaInsights",
+          "name": "Rhema Insights",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "rhemaPatterns",
+          "name": "Rhema Patterns",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "rhemaDecisions",
+          "name": "Rhema Decisions",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "rhema",
+          "title": "RHEMA",
+          "icon": "resources/rhema-icon.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "rhemaScopes",
+        "contents": "No Rhema scopes found.\n[Initialize Rhema Scope](command:rhema.initialize)"
+      },
+      {
+        "view": "rhemaContext",
+        "contents": "No context files found.\n[Show Context](command:rhema.showContext)"
+      },
+      {
+        "view": "rhemaTodos",
+        "contents": "No todos found.\n[Manage Todos](command:rhema.manageTodos)"
+      },
+      {
+        "view": "rhemaInsights",
+        "contents": "No insights found.\n[Manage Insights](command:rhema.manageInsights)"
+      },
+      {
+        "view": "rhemaPatterns",
+        "contents": "No patterns found.\n[Manage Patterns](command:rhema.managePatterns)"
+      },
+      {
+        "view": "rhemaDecisions",
+        "contents": "No decisions found.\n[Manage Decisions](command:rhema.manageDecisions)"
+      }
+    ],
+    "languages": [
+      {
+        "id": "rhema-yaml",
+        "aliases": ["Rhema YAML", "rhema-yaml"],
+        "extensions": [".rhema.yaml", ".rhema.yml"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rhema-yaml",
+        "scopeName": "source.rhema.yaml",
+        "path": "./syntaxes/rhema-yaml.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "rhema-yaml",
+        "path": "./snippets/rhema-yaml.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Rhema Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/rhema-dark-color-theme.json"
+      },
+      {
+        "label": "Rhema Light",
+        "uiTheme": "vs",
+        "path": "./themes/rhema-light-color-theme.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "jest",
+    "test:integration": "jest --config jest.integration.config.js",
+    "test:e2e": "jest --config jest.e2e.config.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "vsce": "^2.0.0"
+  },
+  "dependencies": {
+    "yaml": "^2.0.0",
+    "ajv": "^8.0.0",
+    "lodash": "^4.17.21",
+    "uuid": "^9.0.0"
+  }
+} 

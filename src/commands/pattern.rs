@@ -1,19 +1,35 @@
-use crate::{Gacp, GacpResult, PatternSubcommands, PatternUsage};
+/*
+ * Copyright 2025 Cory Parent
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+use crate::{Rhema, RhemaResult, PatternSubcommands, PatternUsage};
 use crate::file_ops;
 use crate::scope::find_nearest_scope;
 use colored::*;
 
-pub fn run(gacp: &Gacp, subcommand: &PatternSubcommands) -> GacpResult<()> {
+pub fn run(rhema: &Rhema, subcommand: &PatternSubcommands) -> RhemaResult<()> {
     // Get the current working directory to find the nearest scope
     let current_dir = std::env::current_dir()
-        .map_err(|e| crate::GacpError::IoError(e))?;
+        .map_err(|e| crate::RhemaError::IoError(e))?;
     
     // Discover all scopes
-    let scopes = gacp.discover_scopes()?;
+    let scopes = rhema.discover_scopes()?;
     
     // Find the nearest scope to the current directory
     let scope = find_nearest_scope(&current_dir, &scopes)
-        .ok_or_else(|| crate::GacpError::ConfigError("No GACP scope found in current directory or parent directories".to_string()))?;
+        .ok_or_else(|| crate::RhemaError::ConfigError("No Rhema scope found in current directory or parent directories".to_string()))?;
     
     match subcommand {
         PatternSubcommands::Add { name, description, pattern_type, usage, effectiveness, examples, anti_patterns } => {
@@ -40,7 +56,7 @@ fn add_pattern(
     effectiveness: &Option<u8>,
     examples: &Option<String>,
     anti_patterns: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let id = file_ops::add_pattern(
         &scope.path,
         name.to_string(),
@@ -75,7 +91,7 @@ fn list_patterns(
     pattern_type: &Option<String>,
     usage: &Option<PatternUsage>,
     min_effectiveness: &Option<u8>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     let patterns = file_ops::list_patterns(
         &scope.path,
         pattern_type.clone(),
@@ -137,7 +153,7 @@ fn update_pattern(
     effectiveness: &Option<u8>,
     examples: &Option<String>,
     anti_patterns: &Option<String>,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::update_pattern(
         &scope.path,
         id,
@@ -184,7 +200,7 @@ fn update_pattern(
 fn delete_pattern(
     scope: &crate::Scope,
     id: &str,
-) -> GacpResult<()> {
+) -> RhemaResult<()> {
     file_ops::delete_pattern(&scope.path, id)?;
     
     println!("🗑️  Pattern {} deleted successfully", id.green());
