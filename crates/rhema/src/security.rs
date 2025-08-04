@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error, instrument};
+use tracing::{info, warn, instrument};
 use regex::Regex;
 use lazy_static::lazy_static;
 

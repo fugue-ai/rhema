@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error, instrument};
+use tracing::{info, instrument};
 
 /// Performance metrics for operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
