@@ -1,0 +1,38 @@
+scope:
+  name: "sub-scope"
+  description: "Sub-scope for testing"
+  version: "0.1.0"
+  author: "Developer"
+  created: "2025-01-01"
+  updated: "2025-01-01"
+  tags: ["test", "sub-scope"]
+  dependencies: ["../rhema.yml"]
+
+context:
+  files: ["lib/**/*.rs"]
+  patterns: ["*.rs"]
+  exclusions: ["tests/**/*"]
+  maxTokens: 5000
+  includeHidden: false
+  recursive: true
+
+todos:
+  - id: "sub-todo-1"
+    title: "Implement sub-feature"
+    description: "Add sub-scope specific functionality"
+    priority: "medium"
+    status: "todo"
+    assignee: "developer"
+    dueDate: "2025-02-10"
+    tags: ["sub-feature"]
+    related: []
+
+insights:
+  - id: "sub-insight-1"
+    title: "Sub-scope optimization opportunity"
+    description: "The sub-scope can be optimized for better performance"
+    type: "optimization"
+    confidence: 0.75
+    source: "analysis"
+    tags: ["optimization"]
+    related: [] 

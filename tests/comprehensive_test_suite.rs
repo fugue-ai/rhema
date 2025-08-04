@@ -48,6 +48,7 @@ pub struct IntegrationTestConfig {
     pub service_integration: bool,
     pub file_system_integration: bool,
     pub git_integration: bool,
+    pub coordination_integration: bool,
     pub cross_platform: bool,
     pub timeout: Duration,
 }
@@ -62,6 +63,7 @@ pub struct PerformanceTestConfig {
     pub load_testing: bool,
     pub stress_testing: bool,
     pub regression_testing: bool,
+    pub coordination_benchmarking: bool,
     pub timeout: Duration,
     pub memory_limit: usize,
 }
@@ -76,6 +78,7 @@ pub struct SecurityTestConfig {
     pub path_traversal: bool,
     pub authentication: bool,
     pub authorization: bool,
+    pub coordination_security: bool,
     pub timeout: Duration,
 }
 
@@ -139,6 +142,7 @@ impl Default for ComprehensiveTestConfig {
                 service_integration: true,
                 file_system_integration: true,
                 git_integration: true,
+                coordination_integration: true,
                 cross_platform: true,
                 timeout: Duration::from_secs(60),
             },
@@ -150,6 +154,7 @@ impl Default for ComprehensiveTestConfig {
                 load_testing: true,
                 stress_testing: true,
                 regression_testing: true,
+                coordination_benchmarking: true,
                 timeout: Duration::from_secs(300),
                 memory_limit: 1024 * 1024 * 1024, // 1GB
             },
@@ -161,6 +166,7 @@ impl Default for ComprehensiveTestConfig {
                 path_traversal: true,
                 authentication: true,
                 authorization: true,
+                coordination_security: true,
                 timeout: Duration::from_secs(60),
             },
             property_tests: PropertyTestConfig {

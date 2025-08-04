@@ -18,6 +18,7 @@ use rhema_core::{RhemaResult, RhemaScope};
 use std::collections::HashMap;
 use std::path::Path;
 use walkdir::WalkDir;
+// use regex::Regex; // Unused import
 
 /// Repository analysis results
 #[derive(Debug, Clone)]
@@ -96,6 +97,21 @@ impl RepoAnalysis {
 
         // Detect technologies
         analysis.detect_technologies(repo_path)?;
+
+        // Detect databases
+        analysis.detect_databases(repo_path)?;
+
+        // Detect infrastructure
+        analysis.detect_infrastructure(repo_path)?;
+
+        // Analyze dependencies
+        analysis.analyze_dependencies(repo_path)?;
+
+        // Analyze code quality
+        analysis.analyze_code_quality(repo_path)?;
+
+        // Analyze security
+        analysis.analyze_security(repo_path)?;
 
         // Determine project type
         analysis.determine_project_type(repo_path)?;
@@ -369,7 +385,7 @@ impl RepoAnalysis {
         );
         self.custom_fields.insert(
             "tech_stack".to_string(),
-            serde_yaml::Value::Mapping(tech_stack),
+            serde_yaml::to_value(tech_stack)?,
         );
 
         Ok(())
@@ -509,5 +525,164 @@ impl RepoAnalysis {
         ];
 
         Self::has_pattern_in_files(repo_path, &app_indicators)
+    }
+
+    /// Analyze dependencies in the repository
+    fn analyze_dependencies(&mut self, repo_path: &Path) -> RhemaResult<()> {
+        let mut dependencies = Vec::new();
+
+        // Analyze Rust dependencies
+        if let Ok(cargo_toml) = std::fs::read_to_string(repo_path.join("Cargo.toml")) {
+            for line in cargo_toml.lines() {
+                if line.trim().starts_with('[') && line.contains("dependencies") {
+                    // Parse dependency section
+                    dependencies.push(ScopeDependency {
+                        path: "Cargo.toml".to_string(),
+                        dependency_type: "rust".to_string(),
+                        version: None,
+                    });
+                }
+            }
+        }
+
+        // Analyze Node.js dependencies
+        if let Ok(_package_json) = std::fs::read_to_string(repo_path.join("package.json")) {
+            dependencies.push(ScopeDependency {
+                path: "package.json".to_string(),
+                dependency_type: "nodejs".to_string(),
+                version: None,
+            });
+        }
+
+        // Analyze Python dependencies
+        if let Ok(_requirements_txt) = std::fs::read_to_string(repo_path.join("requirements.txt")) {
+            dependencies.push(ScopeDependency {
+                path: "requirements.txt".to_string(),
+                dependency_type: "python".to_string(),
+                version: None,
+            });
+        }
+
+        self.dependencies = dependencies;
+        Ok(())
+    }
+
+    /// Analyze code quality metrics
+    fn analyze_code_quality(&mut self, repo_path: &Path) -> RhemaResult<()> {
+        let mut quality_metrics = HashMap::new();
+
+        // Count lines of code
+        let mut total_lines = 0;
+        let mut code_lines = 0;
+        let mut comment_lines = 0;
+        let mut blank_lines = 0;
+
+        for entry in WalkDir::new(repo_path)
+            .max_depth(5)
+            .follow_links(false)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+                    if matches!(ext, "rs" | "py" | "js" | "ts" | "go" | "java" | "cpp" | "c") {
+                        if let Ok(content) = std::fs::read_to_string(path) {
+                            for line in content.lines() {
+                                total_lines += 1;
+                                let trimmed = line.trim();
+                                if trimmed.is_empty() {
+                                    blank_lines += 1;
+                                } else if trimmed.starts_with("//") || trimmed.starts_with("#") || trimmed.starts_with("/*") {
+                                    comment_lines += 1;
+                                } else {
+                                    code_lines += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        quality_metrics.insert("total_lines".to_string(), serde_yaml::Value::Number(total_lines.into()));
+        quality_metrics.insert("code_lines".to_string(), serde_yaml::Value::Number(code_lines.into()));
+        quality_metrics.insert("comment_lines".to_string(), serde_yaml::Value::Number(comment_lines.into()));
+        quality_metrics.insert("blank_lines".to_string(), serde_yaml::Value::Number(blank_lines.into()));
+
+        // Calculate code quality ratios
+        if total_lines > 0 {
+            let comment_ratio = comment_lines as f64 / total_lines as f64;
+            let blank_ratio = blank_lines as f64 / total_lines as f64;
+            let code_ratio = code_lines as f64 / total_lines as f64;
+
+            quality_metrics.insert("comment_ratio".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(comment_ratio)));
+            quality_metrics.insert("blank_ratio".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(blank_ratio)));
+            quality_metrics.insert("code_ratio".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(code_ratio)));
+        }
+
+        self.custom_fields.insert("code_quality".to_string(), serde_yaml::to_value(quality_metrics)?);
+        Ok(())
+    }
+
+    /// Analyze security aspects of the repository
+    fn analyze_security(&mut self, repo_path: &Path) -> RhemaResult<()> {
+        let mut security_analysis = HashMap::new();
+        let mut security_issues = Vec::new();
+
+        // Check for common security issues
+        let security_patterns = vec![
+            ("hardcoded_password", "password\\s*=\\s*['\"].*['\"]"),
+            ("hardcoded_secret", "secret\\s*=\\s*['\"].*['\"]"),
+            ("hardcoded_api_key", "api_key\\s*=\\s*['\"].*['\"]"),
+            ("hardcoded_token", "token\\s*=\\s*['\"].*['\"]"),
+            ("sql_injection_risk", "SELECT.*WHERE.*\\+"),
+            ("xss_risk", "innerHTML|outerHTML"),
+        ];
+
+        for entry in WalkDir::new(repo_path)
+            .max_depth(5)
+            .follow_links(false)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+                    if matches!(ext, "rs" | "py" | "js" | "ts" | "go" | "java" | "cpp" | "c") {
+                        if let Ok(content) = std::fs::read_to_string(path) {
+                            for (issue_type, pattern) in &security_patterns {
+                                if let Ok(regex) = regex::Regex::new(pattern) {
+                                    if regex.is_match(&content) {
+                                        security_issues.push(format!("{}:{}", issue_type, path.display()));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        security_analysis.insert("security_issues".to_string(), serde_yaml::Value::Sequence(
+            security_issues.into_iter().map(|s| serde_yaml::Value::String(s)).collect()
+        ));
+
+        // Check for security configuration files
+        let security_files = vec!["security.txt", ".security", "security.yml", "security.yaml"];
+        let mut found_security_files = Vec::new();
+
+        for file in &security_files {
+            if repo_path.join(file).exists() {
+                found_security_files.push(file.to_string());
+            }
+        }
+
+        security_analysis.insert("security_files".to_string(), serde_yaml::Value::Sequence(
+            found_security_files.into_iter().map(|s| serde_yaml::Value::String(s)).collect()
+        ));
+
+        self.custom_fields.insert("security_analysis".to_string(), serde_yaml::to_value(security_analysis)?);
+        Ok(())
     }
 }

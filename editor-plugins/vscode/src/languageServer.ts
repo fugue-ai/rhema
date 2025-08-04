@@ -16,143 +16,147 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { LanguageClient } from 'vscode-languageclient/node';
 import { RhemaLogger } from './logger';
 import { RhemaSettings } from './settings';
 import { RhemaErrorHandler } from './errorHandler';
 
 export class RhemaLanguageServer {
-    private logger: RhemaLogger;
-    private settings: RhemaSettings;
-    private errorHandler: RhemaErrorHandler;
-    private client: vscode.LanguageClient | null = null;
-    private disposables: vscode.Disposable[] = [];
+  private logger: RhemaLogger;
+  private settings: RhemaSettings;
+  private errorHandler: RhemaErrorHandler;
+  private client: LanguageClient | null = null;
+  private disposables: vscode.Disposable[] = [];
 
-    constructor() {
-        this.logger = new RhemaLogger();
-        this.settings = new RhemaSettings();
-        this.errorHandler = new RhemaErrorHandler(this.logger);
-    }
+  constructor() {
+    this.logger = new RhemaLogger();
+    this.settings = new RhemaSettings();
+    this.errorHandler = new RhemaErrorHandler(this.logger);
+  }
 
-    async initialize(context: vscode.ExtensionContext): Promise<void> {
-        try {
-            this.logger.info('Initializing Rhema language server...');
+  async initialize(context: vscode.ExtensionContext): Promise<void> {
+    try {
+      this.logger.info('Initializing Rhema language server...');
 
-            // Get the language server path
-            const serverPath = this.getLanguageServerPath(context);
-            
-            if (!serverPath) {
-                this.logger.warn('Language server not found, skipping initialization');
-                return;
-            }
+      // Get the language server path
+      const serverPath = this.getLanguageServerPath(context);
 
-            // Create the language client
-            this.client = new vscode.LanguageClient(
-                'rhema-language-server',
-                'Rhema Language Server',
-                {
-                    run: {
-                        command: serverPath,
-                        args: ['--log-level=info']
-                    },
-                    debug: {
-                        command: serverPath,
-                        args: ['--log-level=debug']
-                    }
-                },
-                {
-                    documentSelector: [
-                        { language: 'yaml', scheme: 'file' },
-                        { language: 'rhema-yaml', scheme: 'file' }
-                    ],
-                    synchronize: {
-                        fileEvents: vscode.workspace.createFileSystemWatcher('**/*.rhema.{yaml,yml}')
-                    }
-                }
-            );
+      if (!serverPath) {
+        this.logger.warn('Language server not found, skipping initialization');
+        return;
+      }
 
-            // Start the client
-            await this.client.start();
-
-            this.logger.info('Rhema language server initialized successfully');
-        } catch (error) {
-            this.errorHandler.handleError('Failed to initialize Rhema language server', error);
+      // Create the language client
+      this.client = new LanguageClient(
+        'rhema-language-server',
+        'Rhema Language Server',
+        {
+          run: {
+            command: serverPath,
+            args: ['--log-level=info'],
+          },
+          debug: {
+            command: serverPath,
+            args: ['--log-level=debug'],
+          },
+        },
+        {
+          documentSelector: [
+            { language: 'yaml', scheme: 'file' },
+            { language: 'rhema-yaml', scheme: 'file' },
+          ],
+          synchronize: {
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.rhema.{yaml,yml}'),
+          },
         }
+      );
+
+      // Start the client
+      await this.client.start();
+
+      this.logger.info('Rhema language server initialized successfully');
+    } catch (error) {
+      this.errorHandler.handleError('Failed to initialize Rhema language server', error);
+    }
+  }
+
+  private getLanguageServerPath(context: vscode.ExtensionContext): string | null {
+    // Try to find the language server in the extension directory
+    const extensionPath = context.extensionPath;
+    const possiblePaths = [
+      path.join(extensionPath, '..', 'language-server', 'dist', 'server.js'),
+      path.join(extensionPath, '..', 'language-server', 'dist', 'cli.js'),
+      path.join(extensionPath, 'node_modules', 'rhema-language-server', 'dist', 'server.js'),
+      path.join(extensionPath, 'node_modules', 'rhema-language-server', 'dist', 'cli.js'),
+    ];
+
+    for (const serverPath of possiblePaths) {
+      if (require('fs').existsSync(serverPath)) {
+        return serverPath;
+      }
     }
 
-    private getLanguageServerPath(context: vscode.ExtensionContext): string | null {
-        // Try to find the language server in the extension directory
-        const extensionPath = context.extensionPath;
-        const possiblePaths = [
-            path.join(extensionPath, '..', 'language-server', 'dist', 'server.js'),
-            path.join(extensionPath, '..', 'language-server', 'dist', 'cli.js'),
-            path.join(extensionPath, 'node_modules', 'rhema-language-server', 'dist', 'server.js'),
-            path.join(extensionPath, 'node_modules', 'rhema-language-server', 'dist', 'cli.js')
-        ];
-
-        for (const serverPath of possiblePaths) {
-            if (require('fs').existsSync(serverPath)) {
-                return serverPath;
-            }
-        }
-
-        // Try to find it in PATH
-        try {
-            const { execSync } = require('child_process');
-            execSync('rhema-language-server --version', { stdio: 'ignore' });
-            return 'rhema-language-server';
-        } catch (error) {
-            // Language server not found in PATH
-        }
-
-        return null;
+    // Try to find it in PATH
+    try {
+      const { execSync } = require('child_process');
+      execSync('rhema-language-server --version', { stdio: 'ignore' });
+      return 'rhema-language-server';
+    } catch (error) {
+      // Language server not found in PATH
     }
 
-    async sendRequest<T>(method: string, params: any): Promise<T> {
-        if (!this.client) {
-            throw new Error('Language server client not initialized');
-        }
+    return null;
+  }
 
-        try {
-            return await this.client.sendRequest(method, params);
-        } catch (error) {
-            this.errorHandler.handleError(`Failed to send request to language server: ${method}`, error);
-            throw error;
-        }
+  async sendRequest<T>(method: string, params: any): Promise<T> {
+    if (!this.client) {
+      throw new Error('Language server client not initialized');
     }
 
-    async sendNotification(method: string, params: any): Promise<void> {
-        if (!this.client) {
-            throw new Error('Language server client not initialized');
-        }
+    try {
+      return await this.client.sendRequest(method, params);
+    } catch (error) {
+      this.errorHandler.handleError(`Failed to send request to language server: ${method}`, error);
+      throw error;
+    }
+  }
 
-        try {
-            await this.client.sendNotification(method, params);
-        } catch (error) {
-            this.errorHandler.handleError(`Failed to send notification to language server: ${method}`, error);
-            throw error;
-        }
+  async sendNotification(method: string, params: any): Promise<void> {
+    if (!this.client) {
+      throw new Error('Language server client not initialized');
     }
 
-    async deactivate(): Promise<void> {
-        await this.dispose();
+    try {
+      await this.client.sendNotification(method, params);
+    } catch (error) {
+      this.errorHandler.handleError(
+        `Failed to send notification to language server: ${method}`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  async deactivate(): Promise<void> {
+    await this.dispose();
+  }
+
+  async dispose(): Promise<void> {
+    if (this.client) {
+      await this.client.stop();
+      this.client.dispose();
+      this.client = null;
     }
 
-    async dispose(): Promise<void> {
-        if (this.client) {
-            await this.client.stop();
-            this.client.dispose();
-            this.client = null;
-        }
+    this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposables = [];
+  }
 
-        this.disposables.forEach(disposable => disposable.dispose());
-        this.disposables = [];
-    }
+  isInitialized(): boolean {
+    return this.client !== null;
+  }
 
-    isInitialized(): boolean {
-        return this.client !== null;
-    }
-
-    getClient(): vscode.LanguageClient | null {
-        return this.client;
-    }
-} 
+  getClient(): LanguageClient | null {
+    return this.client;
+  }
+}

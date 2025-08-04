@@ -1,0 +1,95 @@
+scope:
+  name: "test-scope"
+  description: "Test scope for development"
+  version: "1.0.0"
+  author: "Developer"
+  created: "2025-01-01"
+  updated: "2025-01-01"
+  tags: ["test", "development"]
+  dependencies: []
+
+context:
+  files: ["src/**/*.rs", "docs/**/*.md"]
+  patterns: ["*.rs", "*.md"]
+  exclusions: ["target/**/*", "node_modules/**/*"]
+  maxTokens: 10000
+  includeHidden: false
+  recursive: true
+
+todos:
+  - id: "todo-1"
+    title: "Implement feature X"
+    description: "Add new functionality to the system"
+    priority: "high"
+    status: "in-progress"
+    assignee: "developer"
+    dueDate: "2025-02-01"
+    tags: ["feature", "implementation"]
+    related: []
+
+  - id: "todo-2"
+    title: "Fix performance issue"
+    description: "Optimize slow database queries"
+    priority: "medium"
+    status: "todo"
+    assignee: "developer"
+    dueDate: "2025-02-15"
+    tags: ["performance", "bugfix"]
+    related: ["insight-1"]
+
+insights:
+  - id: "insight-1"
+    title: "Performance bottleneck found"
+    description: "The system shows slow response times in certain scenarios"
+    type: "performance"
+    confidence: 0.85
+    source: "analysis"
+    tags: ["performance", "optimization"]
+    related: ["todo-2"]
+
+  - id: "insight-2"
+    title: "Code duplication detected"
+    description: "Multiple modules have similar error handling patterns"
+    type: "code-quality"
+    confidence: 0.92
+    source: "static-analysis"
+    tags: ["code-quality", "refactoring"]
+    related: ["pattern-1"]
+
+patterns:
+  - id: "pattern-1"
+    name: "error-handling"
+    description: "Standard error handling pattern"
+    type: "code-pattern"
+    confidence: 0.9
+    source: "codebase"
+    tags: ["error-handling", "best-practice"]
+    related: ["insight-2"]
+
+  - id: "pattern-2"
+    name: "async-await"
+    description: "Async/await pattern for handling asynchronous operations"
+    type: "code-pattern"
+    confidence: 0.88
+    source: "codebase"
+    tags: ["async", "best-practice"]
+    related: []
+
+decisions:
+  - id: "decision-1"
+    title: "Use Rust for backend"
+    description: "Decision to use Rust for the backend implementation"
+    type: "architecture"
+    status: "approved"
+    date: "2025-01-01"
+    tags: ["architecture", "technology"]
+    related: []
+
+  - id: "decision-2"
+    title: "Database migration strategy"
+    description: "Use gradual migration with feature flags"
+    type: "implementation"
+    status: "pending"
+    date: "2025-01-15"
+    tags: ["database", "migration"]
+    related: ["todo-1"] 

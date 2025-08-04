@@ -15,7 +15,7 @@
  */
 
 use chrono::{DateTime, Utc};
-use rhema_core::{RhemaLock, RhemaResult, LockedScope, LockedDependency};
+use rhema_core::{RhemaLock, RhemaResult, LockedScope};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;

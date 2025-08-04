@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Syneidesis Integration Configuration",
+  "description": "Configuration for Syneidesis coordination library integration with Rhema",
+  "type": "object",
+  "properties": {
+    "syneidesis": {
+      "type": "object",
+      "description": "Syneidesis coordination integration settings",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether to enable Syneidesis integration",
+          "default": true
+        },
+        "run_local_server": {
+          "type": "boolean",
+          "description": "Whether to run a local coordination server",
+          "default": true
+        },
+        "server_address": {
+          "type": "string",
+          "description": "Remote server address (if not running locally)",
+          "format": "uri",
+          "pattern": "^[a-zA-Z0-9.-]+:[0-9]+$"
+        },
+        "auto_register_agents": {
+          "type": "boolean",
+          "description": "Automatically register Rhema agents with Syneidesis",
+          "default": true
+        },
+        "sync_messages": {
+          "type": "boolean",
+          "description": "Synchronize messages between Rhema and Syneidesis",
+          "default": true
+        },
+        "sync_tasks": {
+          "type": "boolean",
+          "description": "Synchronize tasks between Rhema and Syneidesis",
+          "default": true
+        },
+        "enable_health_monitoring": {
+          "type": "boolean",
+          "description": "Enable health monitoring for Syneidesis components",
+          "default": true
+        },
+        "health_check_interval": {
+          "type": "integer",
+          "description": "Health check interval in seconds",
+          "minimum": 10,
+          "maximum": 3600,
+          "default": 30
+        },
+        "message_timeout": {
+          "type": "integer",
+          "description": "Message timeout in seconds",
+          "minimum": 1,
+          "maximum": 3600,
+          "default": 60
+        },
+        "max_message_history": {
+          "type": "integer",
+          "description": "Maximum number of messages to keep in history",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 1000
+        },
+        "encryption": {
+          "type": "object",
+          "description": "Message encryption settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable message encryption",
+              "default": false
+            },
+            "algorithm": {
+              "type": "string",
+              "enum": ["AES-256", "ChaCha20-Poly1305"],
+              "description": "Encryption algorithm to use",
+              "default": "AES-256"
+            }
+          },
+          "additionalProperties": false
+        },
+        "compression": {
+          "type": "object",
+          "description": "Message compression settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable message compression",
+              "default": true
+            },
+            "algorithm": {
+              "type": "string",
+              "enum": ["gzip", "lz4", "zstd"],
+              "description": "Compression algorithm to use",
+              "default": "zstd"
+            },
+            "threshold": {
+              "type": "integer",
+              "description": "Minimum message size to compress (bytes)",
+              "minimum": 64,
+              "maximum": 65536,
+              "default": 1024
+            }
+          },
+          "additionalProperties": false
+        },
+        "logging": {
+          "type": "object",
+          "description": "Logging configuration for Syneidesis integration",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["trace", "debug", "info", "warn", "error"],
+              "description": "Log level for Syneidesis integration",
+              "default": "info"
+            },
+            "include_metrics": {
+              "type": "boolean",
+              "description": "Include performance metrics in logs",
+              "default": true
+            },
+            "structured_logging": {
+              "type": "boolean",
+              "description": "Use structured logging format",
+              "default": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": ["enabled"]
+    }
+  },
+  "additionalProperties": false
+} 

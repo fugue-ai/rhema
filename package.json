@@ -1,0 +1,31 @@
+{
+  "name": "rhema",
+  "version": "0.1.0",
+  "description": "Git-Based Agent Context Protocol",
+  "private": true,
+  "scripts": {
+    "build:typescript": "./.github/scripts/build-typescript.sh all",
+    "build:vscode": "./.github/scripts/build-typescript.sh vscode",
+    "build:language-server": "./.github/scripts/build-typescript.sh language-server",
+    "build:docs": "./.github/scripts/build-typescript.sh docs",
+    "clean:typescript": "./.github/scripts/build-typescript.sh clean",
+    "status:typescript": "./.github/scripts/build-typescript.sh status",
+    "build:all": "npm run build:typescript && cargo build",
+    "clean:all": "npm run clean:typescript && cargo clean",
+    "test:typescript": "npm run test:vscode && npm run test:language-server",
+    "test:vscode": "cd editor-plugins/vscode && npm test",
+    "test:language-server": "cd editor-plugins/language-server && npm test",
+    "install:all": "npm install && cd editor-plugins/vscode && npm install && cd ../language-server && npm install && cd ../../docs && npm install"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "workspaces": [
+    "editor-plugins/vscode",
+    "editor-plugins/language-server",
+    "docs"
+  ]
+}

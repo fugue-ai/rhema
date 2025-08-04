@@ -1117,32 +1117,36 @@ function! s:Initialize()
 endfunction
 
 " Plugin initialization
-call s:Initialize()
+call rhema#init()
 
 " Command definitions
-command! -nargs=0 RhemaInitialize call rhema#Initialize()
-command! -nargs=0 RhemaShowContext call rhema#ShowContext()
-command! -nargs=0 RhemaExecuteQuery call rhema#ExecuteQuery()
-command! -nargs=0 RhemaSearchContext call rhema#SearchContext()
-command! -nargs=0 RhemaValidateFiles call rhema#ValidateFiles()
-command! -nargs=0 RhemaShowScopes call rhema#ShowScopes()
-command! -nargs=0 RhemaShowTree call rhema#ShowTree()
-command! -nargs=0 RhemaManageTodos call rhema#ManageTodos()
-command! -nargs=0 RhemaManageInsights call rhema#ManageInsights()
-command! -nargs=0 RhemaManagePatterns call rhema#ManagePatterns()
-command! -nargs=0 RhemaManageDecisions call rhema#ManageDecisions()
-command! -nargs=0 RhemaShowDependencies call rhema#ShowDependencies()
-command! -nargs=0 RhemaShowImpact call rhema#ShowImpact()
-command! -nargs=0 RhemaSyncKnowledge call rhema#SyncKnowledge()
-command! -nargs=0 RhemaGitIntegration call rhema#GitIntegration()
-command! -nargs=0 RhemaShowStats call rhema#ShowStats()
-command! -nargs=0 RhemaCheckHealth call rhema#CheckHealth()
-command! -nargs=0 RhemaDebugContext call rhema#DebugContext()
-command! -nargs=0 RhemaProfilePerformance call rhema#ProfilePerformance()
-command! -nargs=0 RhemaRefactorContext call rhema#RefactorContext()
-command! -nargs=0 RhemaGenerateCode call rhema#GenerateCode()
-command! -nargs=0 RhemaShowDocumentation call rhema#ShowDocumentation()
-command! -nargs=0 RhemaConfigureSettings call rhema#ConfigureSettings()
+command! -nargs=0 RhemaInitialize call rhema#commands#init_scope()
+command! -nargs=0 RhemaShowContext call rhema#commands#show_context()
+command! -nargs=0 RhemaExecuteQuery call rhema#commands#execute_query()
+command! -nargs=0 RhemaSearchContext call rhema#commands#search_context()
+command! -nargs=0 RhemaValidateFiles call rhema#commands#validate_files()
+command! -nargs=0 RhemaShowScopes call rhema#commands#show_scopes()
+command! -nargs=0 RhemaShowTree call rhema#commands#show_tree()
+command! -nargs=0 RhemaManageTodos call rhema#commands#manage_todos()
+command! -nargs=0 RhemaManageInsights call rhema#commands#manage_insights()
+command! -nargs=0 RhemaManagePatterns call rhema#commands#manage_patterns()
+command! -nargs=0 RhemaManageDecisions call rhema#commands#manage_decisions()
+command! -nargs=0 RhemaShowDependencies call rhema#commands#show_dependencies()
+command! -nargs=0 RhemaShowImpact call rhema#commands#show_impact()
+command! -nargs=0 RhemaSyncKnowledge call rhema#commands#sync_knowledge()
+command! -nargs=0 RhemaGitIntegration call rhema#commands#git_integration()
+command! -nargs=0 RhemaShowStats call rhema#commands#show_stats()
+command! -nargs=0 RhemaCheckHealth call rhema#commands#check_health()
+command! -nargs=0 RhemaDebugContext call rhema#commands#debug_context()
+command! -nargs=0 RhemaProfilePerformance call rhema#commands#profile_performance()
+command! -nargs=0 RhemaRefactorContext call rhema#commands#refactor_context()
+command! -nargs=0 RhemaGenerateCode call rhema#commands#generate_code()
+command! -nargs=0 RhemaShowDocumentation call rhema#commands#show_documentation()
+command! -nargs=0 RhemaConfigureSettings call rhema#ui#show_info('Configure via g:rhema_* variables')
+command! -nargs=0 RhemaShowSidebar call rhema#ui#show_sidebar()
+command! -nargs=0 RhemaStatus call rhema#ui#show_output(string(rhema#status()), 'Plugin Status')
+command! -nargs=0 RhemaCacheClear call rhema#cache#clear()
+command! -nargs=0 RhemaCacheStats call rhema#ui#show_output(string(rhema#cache#stats()), 'Cache Statistics')
 
 " Key mappings
 if !exists('g:rhema_no_mappings') || !g:rhema_no_mappings
@@ -1169,4 +1173,8 @@ if !exists('g:rhema_no_mappings') || !g:rhema_no_mappings
     nnoremap <silent> <leader>gc :RhemaGenerateCode<CR>
     nnoremap <silent> <leader>gh :RhemaShowDocumentation<CR>
     nnoremap <silent> <leader>gc :RhemaConfigureSettings<CR>
+    nnoremap <silent> <leader>gs :RhemaShowSidebar<CR>
+    nnoremap <silent> <leader>gs :RhemaStatus<CR>
+    nnoremap <silent> <leader>gc :RhemaCacheClear<CR>
+    nnoremap <silent> <leader>gc :RhemaCacheStats<CR>
 endif 

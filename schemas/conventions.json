@@ -12,44 +12,44 @@
         "^[a-zA-Z][a-zA-Z0-9_]*$": {
           "type": "object",
           "properties": {
-            "style_guide": {"type": "string"},
-            "line_length": {"type": "integer"},
-            "formatter": {"type": "string"},
-            "linter": {"type": "string"},
-            "type_checker": {"type": "string"},
+            "style_guide": { "type": "string" },
+            "line_length": { "type": "integer" },
+            "formatter": { "type": "string" },
+            "linter": { "type": "string" },
+            "type_checker": { "type": "string" },
             "naming_conventions": {
               "type": "object",
-              "additionalProperties": {"type": "string"}
+              "additionalProperties": { "type": "string" }
             },
             "imports": {
               "type": "object",
               "properties": {
                 "order": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
-                "style": {"type": "string"},
+                "style": { "type": "string" },
                 "avoid": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 }
               }
             },
             "documentation": {
               "type": "object",
               "properties": {
-                "docstring_style": {"type": "string"},
+                "docstring_style": { "type": "string" },
                 "required_for": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
-                "example": {"type": "string"}
+                "example": { "type": "string" }
               }
             },
-            "keywords": {"type": "string"},
-            "table_names": {"type": "string"},
-            "column_names": {"type": "string"},
-            "formatting": {"type": "string"}
+            "keywords": { "type": "string" },
+            "table_names": { "type": "string" },
+            "column_names": { "type": "string" },
+            "formatting": { "type": "string" }
           }
         }
       }
@@ -60,28 +60,28 @@
         "branching": {
           "type": "object",
           "properties": {
-            "strategy": {"type": "string"},
-            "main_branch": {"type": "string"},
-            "feature_branches": {"type": "string"},
-            "hotfix_branches": {"type": "string"}
+            "strategy": { "type": "string" },
+            "main_branch": { "type": "string" },
+            "feature_branches": { "type": "string" },
+            "hotfix_branches": { "type": "string" }
           }
         },
         "commit_messages": {
           "type": "object",
           "properties": {
-            "format": {"type": "string"},
-            "structure": {"type": "string"},
+            "format": { "type": "string" },
+            "structure": { "type": "string" },
             "types": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "examples": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "guidelines": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         },
@@ -90,13 +90,13 @@
           "properties": {
             "requirements": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "review_checklist": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
-            "merge_strategy": {"type": "string"}
+            "merge_strategy": { "type": "string" }
           }
         }
       }
@@ -107,10 +107,10 @@
         "process": {
           "type": "object",
           "properties": {
-            "timeline": {"type": "string"},
+            "timeline": { "type": "string" },
             "focus_areas": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         },
@@ -119,11 +119,11 @@
           "properties": {
             "for_authors": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "for_reviewers": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         },
@@ -132,7 +132,7 @@
           "properties": {
             "required_checks": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         }
@@ -143,29 +143,29 @@
       "properties": {
         "strategy": {
           "type": "object",
-          "additionalProperties": {"type": "string"}
+          "additionalProperties": { "type": "string" }
         },
         "coverage": {
           "type": "object",
           "properties": {
-            "target": {"type": "string"},
+            "target": { "type": "string" },
             "exclusions": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         },
         "conventions": {
           "type": "object",
           "properties": {
-            "file_naming": {"type": "string"},
-            "test_naming": {"type": "string"},
-            "structure": {"type": "string"}
+            "file_naming": { "type": "string" },
+            "test_naming": { "type": "string" },
+            "structure": { "type": "string" }
           }
         },
         "tools": {
           "type": "object",
-          "additionalProperties": {"type": "string"}
+          "additionalProperties": { "type": "string" }
         }
       }
     },
@@ -174,19 +174,19 @@
       "properties": {
         "environments": {
           "type": "object",
-          "additionalProperties": {"type": "string"}
+          "additionalProperties": { "type": "string" }
         },
         "process": {
           "type": "object",
-          "additionalProperties": {"type": "string"}
+          "additionalProperties": { "type": "string" }
         },
         "rollback": {
           "type": "object",
           "properties": {
-            "strategy": {"type": "string"},
+            "strategy": { "type": "string" },
             "triggers": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         }
@@ -197,24 +197,24 @@
       "properties": {
         "metrics": {
           "type": "object",
-          "additionalProperties": {"type": "string"}
+          "additionalProperties": { "type": "string" }
         },
         "alerting": {
           "type": "object",
           "properties": {
             "channels": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
-            "escalation": {"type": "string"}
+            "escalation": { "type": "string" }
           }
         },
         "dashboards": {
           "type": "object",
-          "additionalProperties": {"type": "string"}
+          "additionalProperties": { "type": "string" }
         }
       }
     }
   },
   "additionalProperties": true
-} 
+}

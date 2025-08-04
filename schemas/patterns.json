@@ -20,39 +20,39 @@
               "type": "string",
               "enum": ["low", "medium", "high"]
             },
-            "description": {"type": "string"},
+            "description": { "type": "string" },
             "implementation": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "examples": {
               "type": "object",
               "properties": {
-                "good": {"type": "string"},
-                "avoid": {"type": "string"},
-                "interface": {"type": "string"},
-                "implementation": {"type": "string"},
-                "sqlalchemy": {"type": "string"}
+                "good": { "type": "string" },
+                "avoid": { "type": "string" },
+                "interface": { "type": "string" },
+                "implementation": { "type": "string" },
+                "sqlalchemy": { "type": "string" }
               }
             },
-            "when_to_use": {"type": "string"},
-            "when_to_avoid": {"type": "string"},
+            "when_to_use": { "type": "string" },
+            "when_to_avoid": { "type": "string" },
             "benefits": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "related_files": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
-            "evidence": {"type": "string"},
+            "evidence": { "type": "string" },
             "configuration": {
               "type": "object",
-              "additionalProperties": {"type": "string"}
+              "additionalProperties": { "type": "string" }
             },
             "monitoring": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         }
@@ -71,18 +71,20 @@
       "patternProperties": {
         "^[a-zA-Z][a-zA-Z0-9_]*$": {
           "allOf": [
-            {"$ref": "#/properties/architectural_patterns/patternProperties/^[a-zA-Z][a-zA-Z0-9_]*$"},
+            {
+              "$ref": "#/properties/architectural_patterns/patternProperties/^[a-zA-Z][a-zA-Z0-9_]*$"
+            },
             {
               "properties": {
                 "correct_order": {
                   "type": "object",
                   "patternProperties": {
-                    "^\\d+$": {"type": "string"}
+                    "^\\d+$": { "type": "string" }
                   }
                 },
                 "rationale": {
                   "type": "object",
-                  "additionalProperties": {"type": "string"}
+                  "additionalProperties": { "type": "string" }
                 }
               }
             }
@@ -96,17 +98,17 @@
         "^[a-zA-Z][a-zA-Z0-9_]*$": {
           "type": "object",
           "properties": {
-            "description": {"type": "string"},
+            "description": { "type": "string" },
             "why_bad": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
-            "instead_use": {"type": "string"},
+            "instead_use": { "type": "string" },
             "warning_signs": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
-            "solution": {"type": "string"}
+            "solution": { "type": "string" }
           }
         }
       }
@@ -117,18 +119,18 @@
         "^[a-zA-Z][a-zA-Z0-9_]*$": {
           "type": "object",
           "properties": {
-            "approach": {"type": "string"},
-            "description": {"type": "string"},
+            "approach": { "type": "string" },
+            "description": { "type": "string" },
             "examples": {
               "type": "object",
               "properties": {
-                "good": {"type": "string"},
-                "avoid": {"type": "string"}
+                "good": { "type": "string" },
+                "avoid": { "type": "string" }
               }
             },
             "guidelines": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         }
@@ -140,12 +142,12 @@
         "^[a-zA-Z][a-zA-Z0-9_]*$": {
           "type": "object",
           "properties": {
-            "pattern": {"type": "string"},
-            "description": {"type": "string"},
-            "template": {"type": "string"},
+            "pattern": { "type": "string" },
+            "description": { "type": "string" },
+            "template": { "type": "string" },
             "guidelines": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         }
@@ -153,4 +155,4 @@
     }
   },
   "additionalProperties": true
-} 
+}

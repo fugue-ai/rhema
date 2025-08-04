@@ -17,6 +17,9 @@
 use crate::{Rhema, RhemaError, RhemaResult};
 use clap::Subcommand;
 use rhema_git::*;
+use rhema_git::git_hooks::HookType;
+use rhema_git::ValidationStatus;
+use rhema_git::git::security;
 use std::path::PathBuf;
 
 // Stub type for missing git integration config
@@ -678,7 +681,7 @@ pub fn run(rhema: &Rhema, subcommand: &GitSubcommands) -> RhemaResult<()> {
 /// Run hook commands
 fn run_hooks(rhema: &Rhema, subcommand: &HookSubcommands) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     match subcommand {
         HookSubcommands::Install { hooks, force } => {
@@ -686,7 +689,7 @@ fn run_hooks(rhema: &Rhema, subcommand: &HookSubcommands) -> RhemaResult<()> {
 
             if *force {
                 // Remove existing hooks first
-                git_integration.execute_hook(git::HookType::PreCommit)?;
+                git_integration.execute_hook(HookType::PreCommit)?;
             }
 
             // Install specified hooks or all hooks
@@ -694,38 +697,38 @@ fn run_hooks(rhema: &Rhema, subcommand: &HookSubcommands) -> RhemaResult<()> {
                 hook_names
                     .iter()
                     .filter_map(|name| match name.as_str() {
-                        "pre-commit" => Some(git::HookType::PreCommit),
-                        "post-commit" => Some(git::HookType::PostCommit),
-                        "pre-push" => Some(git::HookType::PrePush),
-                        "post-merge" => Some(git::HookType::PostMerge),
-                        "pre-rebase" => Some(git::HookType::PreRebase),
+                        "pre-commit" => Some(HookType::PreCommit),
+                        "post-commit" => Some(HookType::PostCommit),
+                        "pre-push" => Some(HookType::PrePush),
+                        "post-merge" => Some(HookType::PostMerge),
+                        "pre-rebase" => Some(HookType::PreRebase),
                         _ => None,
                     })
                     .collect::<Vec<_>>()
             } else {
                 vec![
-                    git::HookType::PreCommit,
-                    git::HookType::PostCommit,
-                    git::HookType::PrePush,
-                    git::HookType::PostMerge,
+                    HookType::PreCommit,
+                    HookType::PostCommit,
+                    HookType::PrePush,
+                    HookType::PostMerge,
                 ]
             };
 
             for hook_type in hook_types {
-                match git_integration.execute_hook(hook_type) {
+                match git_integration.execute_hook(hook_type.clone()) {
                     Ok(result) => {
                         if result.success {
-                            println!("✓ {} hook installed successfully", hook_type.filename());
+                            println!("✓ {} hook installed successfully", hook_type);
                         } else {
                             println!(
                                 "⚠ {} hook installed with warnings: {:?}",
-                                hook_type.filename(),
+                                hook_type,
                                 result.warnings
                             );
                         }
                     }
                     Err(e) => {
-                        println!("✗ Failed to install {} hook: {}", hook_type.filename(), e);
+                        println!("✗ Failed to install {} hook: {}", hook_type, e);
                     }
                 }
             }
@@ -739,25 +742,25 @@ fn run_hooks(rhema: &Rhema, subcommand: &HookSubcommands) -> RhemaResult<()> {
                 hook_names
                     .iter()
                     .filter_map(|name| match name.as_str() {
-                        "pre-commit" => Some(git::HookType::PreCommit),
-                        "post-commit" => Some(git::HookType::PostCommit),
-                        "pre-push" => Some(git::HookType::PrePush),
-                        "post-merge" => Some(git::HookType::PostMerge),
-                        "pre-rebase" => Some(git::HookType::PreRebase),
+                        "pre-commit" => Some(HookType::PreCommit),
+                        "post-commit" => Some(HookType::PostCommit),
+                        "pre-push" => Some(HookType::PrePush),
+                        "post-merge" => Some(HookType::PostMerge),
+                        "pre-rebase" => Some(HookType::PreRebase),
                         _ => None,
                     })
                     .collect::<Vec<_>>()
             } else {
                 vec![
-                    git::HookType::PreCommit,
-                    git::HookType::PostCommit,
-                    git::HookType::PrePush,
-                    git::HookType::PostMerge,
+                    HookType::PreCommit,
+                    HookType::PostCommit,
+                    HookType::PrePush,
+                    HookType::PostMerge,
                 ]
             };
 
             for hook_type in hook_types {
-                println!("Removing {} hook...", hook_type.filename());
+                println!("Removing {} hook...", hook_type);
                 // Note: Actual hook removal would need to be implemented in the HookManager
             }
 
@@ -768,11 +771,11 @@ fn run_hooks(rhema: &Rhema, subcommand: &HookSubcommands) -> RhemaResult<()> {
             println!("Executing hook: {}", hook);
 
             let hook_type = match hook.as_str() {
-                "pre-commit" => git::HookType::PreCommit,
-                "post-commit" => git::HookType::PostCommit,
-                "pre-push" => git::HookType::PrePush,
-                "post-merge" => git::HookType::PostMerge,
-                "pre-rebase" => git::HookType::PreRebase,
+                "pre-commit" => HookType::PreCommit,
+                "post-commit" => HookType::PostCommit,
+                "pre-push" => HookType::PrePush,
+                "post-merge" => HookType::PostMerge,
+                "pre-rebase" => HookType::PreRebase,
                 _ => {
                     return Err(crate::RhemaError::InvalidInput(format!(
                         "Unknown hook type: {}",
@@ -807,12 +810,12 @@ fn run_hooks(rhema: &Rhema, subcommand: &HookSubcommands) -> RhemaResult<()> {
             println!("  Hooks installed: {}", integration_status.hooks_installed);
             println!("  Hook status:");
             for (hook_type, status) in &integration_status.hook_status {
-                let status_symbol = if *status { "✓" } else { "✗" };
+                let status_symbol = if status == "active" { "✓" } else { "✗" };
                 println!(
                     "    {} {}: {}",
                     status_symbol,
-                    hook_type.filename(),
-                    if *status { "Active" } else { "Inactive" }
+                    hook_type,
+                    if status == "active" { "Active" } else { "Inactive" }
                 );
             }
 
@@ -827,7 +830,7 @@ fn run_hooks(rhema: &Rhema, subcommand: &HookSubcommands) -> RhemaResult<()> {
 
             // Display hook-specific configuration
             for (hook_type, _) in &integration_status.hook_status {
-                println!("  {}: {}", hook_type.filename(), hook_type.description());
+                println!("  {}: {}", hook_type, "Hook description");
             }
 
             Ok(())
@@ -921,7 +924,7 @@ fn run_workflow(rhema: &Rhema, subcommand: &WorkflowSubcommands) -> RhemaResult<
         }
         WorkflowSubcommands::AnalyzePr { pr_number } => {
             println!("Analyzing pull request: {}", pr_number);
-            let analysis = git_integration.analyze_pull_request(*pr_number)?;
+            let analysis = git_integration.analyze_pull_request((*pr_number).try_into().unwrap())?;
 
             println!("Pull request analysis:");
             println!("  Context changes: {}", analysis.context_changes.len());
@@ -970,8 +973,8 @@ fn run_history(rhema: &Rhema, subcommand: &HistorySubcommands) -> RhemaResult<()
             println!("Tracking context evolution for scope: {}", scope);
             let evolution = git_integration.track_context_evolution(scope, *limit)?;
 
-            println!("Context evolution tracked: {} entries", evolution.len());
-            for (i, entry) in evolution.iter().take(5).enumerate() {
+            println!("Context evolution tracked: {} entries", evolution.entries.len());
+            for (i, entry) in evolution.entries.iter().take(5).enumerate() {
                 println!(
                     "  {}. {} - {}: {}",
                     i + 1,
@@ -981,29 +984,29 @@ fn run_history(rhema: &Rhema, subcommand: &HistorySubcommands) -> RhemaResult<()
                 );
             }
 
-            if evolution.len() > 5 {
-                println!("  ... and {} more entries", evolution.len() - 5);
+            if evolution.entries.len() > 5 {
+                println!("  ... and {} more entries", evolution.entries.len() - 5);
             }
 
             Ok(())
         }
         HistorySubcommands::Blame { file } => {
             println!("Getting context blame for file: {}", file.display());
-            let blame = git_integration.get_context_blame(file)?;
+            let blame = git_integration.get_context_blame(file.to_str().unwrap())?;
 
-            println!("Context blame: {} entries", blame.len());
-            for (i, entry) in blame.iter().take(10).enumerate() {
+            println!("Context blame: {} entries", blame.entries.len());
+            for (i, entry) in blame.entries.iter().take(10).enumerate() {
                 println!(
                     "  {}. {} - {}: {}",
                     i + 1,
-                    entry.author.timestamp.format("%Y-%m-%d %H:%M"),
+                    entry.timestamp.format("%Y-%m-%d %H:%M"),
                     entry.author,
                     entry.content
                 );
             }
 
-            if blame.len() > 10 {
-                println!("  ... and {} more entries", blame.len() - 10);
+            if blame.entries.len() > 10 {
+                println!("  ... and {} more entries", blame.entries.len() - 10);
             }
 
             Ok(())
@@ -1023,7 +1026,7 @@ fn run_history(rhema: &Rhema, subcommand: &HistorySubcommands) -> RhemaResult<()
             };
 
             let context_version =
-                git_integration.create_context_version(version, version_type_enum, description)?;
+                git_integration.create_context_version(version, &version_type_enum.to_string(), description)?;
             println!("Context version created: {}", context_version.version);
             println!("Type: {:?}", context_version.version_type);
             println!("Description: {}", context_version.description);
@@ -1047,7 +1050,8 @@ fn run_history(rhema: &Rhema, subcommand: &HistorySubcommands) -> RhemaResult<()
                 None
             };
 
-            let report = git_integration.generate_evolution_report(scope, since_date)?;
+            let since_date_str = since_date.map(|d| d.to_rfc3339());
+            let report = git_integration.generate_evolution_report(scope, since_date_str.as_deref())?;
 
             println!("Evolution report:");
             println!("  Total commits: {}", report.total_commits);
@@ -1073,7 +1077,7 @@ fn run_history(rhema: &Rhema, subcommand: &HistorySubcommands) -> RhemaResult<()
 /// Run automation commands
 fn run_automation(rhema: &Rhema, subcommand: &AutomationSubcommands) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     match subcommand {
         AutomationSubcommands::Start => {
@@ -1102,15 +1106,15 @@ fn run_automation(rhema: &Rhema, subcommand: &AutomationSubcommands) -> RhemaRes
         }
         AutomationSubcommands::History { limit } => {
             println!("Task history:");
-            let task_history = git_integration.get_task_history(*limit);
+            let task_history = git_integration.get_task_history(*limit)?;
 
             for (i, task) in task_history.iter().enumerate() {
                 println!(
                     "  {}. Task {}: {:?} - {:?} ({})",
                     i + 1,
-                    task.id,
-                    task.task_type,
-                    task.status,
+                    &task.id,
+                    &task.task_type,
+                    &task.status,
                     task.created_at.format("%Y-%m-%d %H:%M")
                 );
             }
@@ -1167,8 +1171,9 @@ fn run_init(
     let mut git_integration = if let Some(config_path) = config {
         // Load custom configuration
         let config_content = std::fs::read_to_string(config_path)?;
-        let config: git::GitIntegrationConfig = serde_yaml::from_str(&config_content)?;
-        rhema_git::create_advanced_git_integration_with_config(repo_path, config)?
+        let config: GitIntegrationConfig = serde_yaml::from_str(&config_content)?;
+        let config_json = serde_json::to_value(config)?;
+        rhema_git::create_advanced_git_integration_with_config(repo_path, config_json)?
     } else {
         rhema_git::create_advanced_git_integration(repo_path)?
     };
@@ -1178,7 +1183,7 @@ fn run_init(
 
     if !no_hooks {
         println!("Installing Git hooks...");
-        git_integration.execute_hook(git::HookType::PreCommit)?;
+        git_integration.execute_hook(HookType::PreCommit)?;
         println!("✓ Git hooks installed");
     }
 
@@ -1265,12 +1270,12 @@ fn run_status(rhema: &Rhema) -> RhemaResult<()> {
 
     println!("\nHook Status:");
     for (hook_type, status) in &integration_status.hook_status {
-        let status_symbol = if *status { "✓" } else { "✗" };
+        let status_symbol = if status == "Active" { "✓" } else { "✗" };
         println!(
             "  {} {}: {}",
             status_symbol,
-            hook_type.filename(),
-            if *status { "Active" } else { "Inactive" }
+            hook_type,
+            status
         );
     }
 
@@ -1343,7 +1348,7 @@ fn run_security(rhema: &Rhema, subcommand: &SecuritySubcommands) -> RhemaResult<
             let scan_path = path.as_ref().unwrap_or(&current_dir);
             println!("Running security scan on: {}", scan_path.display());
 
-            let scan_result = git_integration.run_security_scan(scan_path)?;
+            let scan_result = git_integration.run_security_scan(scan_path.to_str().unwrap())?;
 
             println!("Security scan completed:");
             println!("  Issues found: {}", scan_result.issues.len());
@@ -1412,7 +1417,7 @@ fn run_security(rhema: &Rhema, subcommand: &SecuritySubcommands) -> RhemaResult<
             if !validation_result.issues.is_empty() {
                 println!("  Issues:");
                 for (i, issue) in validation_result.issues.iter().enumerate() {
-                    println!("    {}. {}: {}", i + 1, issue.severity, issue.description);
+                    println!("    {}. {}", i + 1, issue);
                 }
             }
 
@@ -1482,7 +1487,7 @@ fn run_security(rhema: &Rhema, subcommand: &SecuritySubcommands) -> RhemaResult<
 /// Run monitoring commands
 fn run_monitoring(rhema: &Rhema, subcommand: &MonitoringSubcommands) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     match subcommand {
         MonitoringSubcommands::Start => {
@@ -1757,7 +1762,7 @@ fn run_advanced_hooks(
 
     if install {
         println!("Installing advanced Git hooks...");
-        git_integration.execute_hook(git::HookType::PreCommit)?;
+        git_integration.execute_hook(HookType::PreCommit)?;
         println!("Advanced hooks installed successfully!");
     }
 
@@ -1769,7 +1774,7 @@ fn run_advanced_hooks(
 
     if test {
         println!("Testing advanced Git hooks...");
-        let hook_result = git_integration.execute_hook(git::HookType::PreCommit)?;
+        let hook_result = git_integration.execute_hook(HookType::PreCommit)?;
         if hook_result.success {
             println!("Advanced hooks test passed!");
         } else {
@@ -1803,20 +1808,17 @@ fn run_advanced_branch_context(
         println!("Initializing branch-aware context management...");
         let branch_name = branch.unwrap_or("main");
         let mut branch_manager = git_integration.branches();
-        let context = branch_manager.initialize_branch_context(Some(branch_name.to_string()))?;
+        let context = branch_manager?.initialize_branch_context(Some(branch_name.to_string()))?;
         println!("Branch context initialized for branch: {}", context.name);
     }
 
     if validate {
         println!("Validating branch context...");
-        let validation_status = git_integration.validate_branch_context()?;
-        match validation_status {
-            git::ValidationStatus::Valid => println!("Branch context validation passed!"),
-            git::ValidationStatus::Invalid(errors) => {
-                println!("Branch context validation failed: {:?}", errors)
-            }
-            git::ValidationStatus::Pending => println!("Branch context validation pending..."),
-            git::ValidationStatus::Skipped => println!("Branch context validation skipped."),
+        let validation_result = git_integration.validate_branch_context()?;
+        if validation_result.is_valid {
+            println!("Branch context validation passed!");
+        } else {
+            println!("Branch context validation failed: {:?}", validation_result.issues);
         }
     }
 
@@ -1843,7 +1845,7 @@ fn run_advanced_branch_context(
         println!("Restoring branch context...");
         let backup_path = branch.map(|b| PathBuf::from(format!(".rhema/backups/{}.yaml", b)));
         if let Some(path) = backup_path {
-            let context = git_integration.restore_branch_context(&path)?;
+            let context = git_integration.restore_branch_context(path.to_str().unwrap())?;
             println!("Branch context restored for branch: {}", context.name);
         } else {
             println!("Please specify a branch name for restore operation");
@@ -1925,7 +1927,7 @@ fn run_advanced_workflow(
         let pr_num = pr_number
             .ok_or_else(|| RhemaError::InvalidInput("Pull request number required".to_string()))?;
         println!("Analyzing pull request: {}", pr_num);
-        let analysis = git_integration.analyze_pull_request(pr_num)?;
+        let analysis = git_integration.analyze_pull_request(pr_num.try_into().unwrap())?;
         println!("Pull request analysis completed:");
         println!("  Context changes: {}", analysis.context_changes.len());
         println!("  Risk level: {}", analysis.impact_analysis.risk_level);
@@ -1953,7 +1955,7 @@ fn run_advanced_history(
         let scope_path = scope.unwrap_or(".");
         println!("Tracking context evolution for scope: {}", scope_path);
         let evolution = git_integration.track_context_evolution(scope_path, Some(10))?;
-        println!("Context evolution tracked: {} entries", evolution.len());
+        println!("Context evolution tracked: {} entries", evolution.entries.len());
     }
 
     if report {
@@ -1970,8 +1972,8 @@ fn run_advanced_history(
         let file_path =
             file.ok_or_else(|| RhemaError::InvalidInput("File path required".to_string()))?;
         println!("Getting context blame for file: {}", file_path.display());
-        let blame = git_integration.get_context_blame(file_path)?;
-        println!("Context blame retrieved: {} entries", blame.len());
+        let blame = git_integration.get_context_blame(file_path.to_str().unwrap())?;
+        println!("Context blame retrieved: {} entries", blame.entries.len());
     }
 
     if version {
@@ -1980,7 +1982,7 @@ fn run_advanced_history(
         println!("Creating context version: {}", version_str);
         let context_version = git_integration.create_context_version(
             version_str,
-            git::history::VersionType::Patch,
+            "patch",
             "Advanced version creation",
         )?;
         println!("Context version created: {}", context_version.version);
@@ -2008,7 +2010,7 @@ fn run_advanced_automation(
     task_id: Option<&str>,
 ) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     if start {
         println!("Starting advanced automation...");
@@ -2039,11 +2041,11 @@ fn run_advanced_automation(
 
     if history {
         println!("Advanced automation history:");
-        let task_history = git_integration.get_task_history(Some(10));
+        let task_history = git_integration.get_task_history(Some(10))?;
         for task in task_history {
             println!(
                 "  Task {}: {:?} - {:?}",
-                task.id, task.task_type, task.status
+                &task.id, &task.task_type, &task.status
             );
         }
     }
@@ -2077,7 +2079,7 @@ fn run_advanced_security(
 
     if scan {
         println!("Running security scan...");
-        let scan_path = repo_path;
+        let scan_path = repo_path.to_str().unwrap();
         let scan_result = git_integration.run_security_scan(scan_path)?;
         println!(
             "Security scan completed: {} issues found",
@@ -2145,7 +2147,7 @@ fn run_advanced_monitoring(
     limit: Option<usize>,
 ) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     if start {
         println!("Starting advanced monitoring...");

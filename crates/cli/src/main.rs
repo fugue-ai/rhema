@@ -17,19 +17,22 @@
 use rhema_cli::git::GitSubcommands;
 use rhema_cli::lock::LockSubcommands;
 use rhema_cli::performance::PerformanceSubcommands;
+use rhema_cli::locomo::LocomoSubcommands;
+use rhema_cli::coordination::{CoordinationSubcommands, CoordinationManager};
 use rhema_cli::commands::{
-    ContextRulesSubcommands, DecisionSubcommands, InsightSubcommands, PatternSubcommands,
+    ContextRulesSubcommands, DecisionSubcommands, InsightSubcommands, IntentSubcommands, PatternSubcommands,
     PromptSubcommands, TemplateSubcommands, TodoSubcommands, WorkflowSubcommands,
 };
-use rhema_cli::{Rhema, RhemaResult};
+use rhema_cli::{Rhema, RhemaResult, RhemaError};
 use clap::{Parser, Subcommand};
+use std::str::FromStr;
 
 // Import all the modules we need
 use rhema_cli::{
     batch, bootstrap_context, config, context_rules, daemon, decision, dependencies,
     export_context, generate_readme, git, health, impact, init, insight, lock, migrate,
     pattern, performance, primer, prompt, query, schema, scopes, search, show, stats,
-    sync, template, todo, validate, workflow, interactive, commands,
+    sync, template, todo, validate, workflow, interactive, interactive_enhanced, commands,
 };
 
 #[derive(Parser)]
@@ -200,10 +203,22 @@ enum Commands {
         subcommand: InsightSubcommands,
     },
 
+    // /// Unified RAG and K/V knowledge system
+    // Knowledge {
+    //     #[command(subcommand)]
+    //     subcommand: knowledge::KnowledgeSubcommands,
+    // },
+
     /// Manage patterns
     Pattern {
         #[command(subcommand)]
         subcommand: PatternSubcommands,
+    },
+
+    /// Manage agent coordination and communication
+    Coordination {
+        #[command(subcommand)]
+        subcommand: CoordinationSubcommands,
     },
 
     /// Manage decisions
@@ -435,6 +450,12 @@ enum Commands {
         subcommand: template::TemplateSubcommands,
     },
 
+    /// Manage LOCOMO
+    Locomo {
+        #[command(subcommand)]
+        subcommand: LocomoSubcommands,
+    },
+
     /// Start interactive mode
     Interactive {
         /// Configuration file for interactive mode
@@ -453,6 +474,163 @@ enum Commands {
         #[arg(long)]
         no_context_aware: bool,
     },
+
+    /// Start enhanced interactive mode with advanced features
+    Enhanced {
+        /// Configuration file for enhanced interactive mode
+        #[arg(long, value_name = "CONFIG")]
+        config: Option<String>,
+
+        /// Disable auto-completion
+        #[arg(long)]
+        no_auto_complete: bool,
+
+        /// Disable syntax highlighting
+        #[arg(long)]
+        no_syntax_highlighting: bool,
+
+        /// Disable context-aware features
+        #[arg(long)]
+        no_context_aware: bool,
+    },
+
+    // /// Manage LOCOMO
+    // Locomo {
+    //     #[command(subcommand)]
+    //     subcommand: LocomoSubcommands,
+    // },
+
+    /// Action Protocol for safe agent-assisted codebase modifications
+    Intent {
+        #[command(subcommand)]
+        subcommand: IntentSubcommands,
+    },
+
+}
+
+/// Execute coordination commands
+async fn run_coordination_command(cmd: &CoordinationSubcommands) -> RhemaResult<()> {
+    let manager = CoordinationManager::new();
+    
+    match cmd {
+        CoordinationSubcommands::Agent { subcommand } => {
+            manager.execute_agent_command(subcommand).await
+        }
+        CoordinationSubcommands::Session { subcommand } => {
+            manager.execute_session_command(subcommand).await
+        }
+        CoordinationSubcommands::System { subcommand } => {
+            manager.execute_system_command(subcommand).await
+        }
+    }
+}
+
+/// Execute intent commands
+async fn run_intent_command(cmd: &IntentSubcommands) -> RhemaResult<()> {
+    use rhema_action::cli::ActionCli;
+    use rhema_action::schema::{ActionIntent, ActionType, SafetyLevel};
+    use rhema_action::error::ActionResult;
+    
+    // Convert CLI commands to action crate commands
+    let action_cmd = match cmd {
+        IntentSubcommands::Plan { description, action_type, safety_level, scope, output_file } => {
+            let action_type = ActionType::from_str(action_type).unwrap_or(ActionType::Refactor);
+            let safety_level = SafetyLevel::from_str(safety_level).unwrap_or(SafetyLevel::Medium);
+            
+            rhema_action::cli::IntentSubcommands::Plan {
+                description: description.clone(),
+                action_type,
+                safety_level,
+                scope: scope.clone(),
+                output_file: output_file.clone(),
+            }
+        }
+        IntentSubcommands::Preview { intent_file, detailed, safety } => {
+            rhema_action::cli::IntentSubcommands::Preview {
+                intent_file: intent_file.clone(),
+                detailed: *detailed,
+                safety: *safety,
+            }
+        }
+        IntentSubcommands::Execute { intent_file, require_approval, skip_validation, dry_run } => {
+            rhema_action::cli::IntentSubcommands::Execute {
+                intent_file: intent_file.clone(),
+                require_approval: *require_approval,
+                skip_validation: *skip_validation,
+                dry_run: *dry_run,
+            }
+        }
+        IntentSubcommands::Rollback { intent_id, force, keep_backup } => {
+            rhema_action::cli::IntentSubcommands::Rollback {
+                intent_id: intent_id.clone(),
+                force: *force,
+                keep_backup: *keep_backup,
+            }
+        }
+        IntentSubcommands::List { active, completed, failed, action_type, safety_level } => {
+            let action_type = action_type.as_ref().and_then(|at| ActionType::from_str(at).ok());
+            let safety_level = safety_level.as_ref().and_then(|sl| SafetyLevel::from_str(sl).ok());
+            
+            rhema_action::cli::IntentSubcommands::List {
+                active: *active,
+                completed: *completed,
+                failed: *failed,
+                action_type,
+                safety_level,
+            }
+        }
+        IntentSubcommands::Status { intent_id, detailed, validation } => {
+            rhema_action::cli::IntentSubcommands::Status {
+                intent_id: intent_id.clone(),
+                detailed: *detailed,
+                validation: *validation,
+            }
+        }
+        IntentSubcommands::Validate { intent_file, preview, safety, validation } => {
+            rhema_action::cli::IntentSubcommands::Validate {
+                intent_file: intent_file.clone(),
+                preview: *preview,
+                safety: *safety,
+                validation: *validation,
+            }
+        }
+        IntentSubcommands::History { days, detailed, action_type, safety_level } => {
+            let action_type = action_type.as_ref().and_then(|at| ActionType::from_str(at).ok());
+            let safety_level = safety_level.as_ref().and_then(|sl| SafetyLevel::from_str(sl).ok());
+            
+            rhema_action::cli::IntentSubcommands::History {
+                days: *days,
+                detailed: *detailed,
+                action_type,
+                safety_level,
+            }
+        }
+        IntentSubcommands::SafetyCheck { intent_file, all, detailed, export } => {
+            rhema_action::cli::IntentSubcommands::SafetyCheck {
+                intent_file: intent_file.clone(),
+                all: *all,
+                detailed: *detailed,
+                export: export.clone(),
+            }
+        }
+        IntentSubcommands::Approve { intent_id, comment, auto_execute } => {
+            rhema_action::cli::IntentSubcommands::Approve {
+                intent_id: intent_id.clone(),
+                comment: comment.clone(),
+                auto_execute: *auto_execute,
+            }
+        }
+        IntentSubcommands::Reject { intent_id, reason } => {
+            rhema_action::cli::IntentSubcommands::Reject {
+                intent_id: intent_id.clone(),
+                reason: reason.clone(),
+            }
+        }
+    };
+    
+    // Execute the action command
+    ActionCli::handle_intent_command(action_cmd).await
+        .map_err(|e| RhemaError::ActionProtocol(format!("Action Protocol error: {}", e)))
 }
 
 fn main() -> RhemaResult<()> {
@@ -517,7 +695,15 @@ fn main() -> RhemaResult<()> {
         Commands::Stats => stats::run(&rhema),
         Commands::Todo { subcommand } => todo::run(&rhema, &subcommand),
         Commands::Insight { subcommand } => insight::run(&rhema, &subcommand),
+        // Commands::Knowledge { subcommand } => {
+        //     let runtime = tokio::runtime::Runtime::new().unwrap();
+        //     runtime.block_on(knowledge::KnowledgeCommand::handle(&rhema, subcommand))
+        // }
         Commands::Pattern { subcommand } => pattern::run(&rhema, &subcommand),
+        Commands::Coordination { subcommand } => {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(run_coordination_command(&subcommand))
+        }
         Commands::Decision { subcommand } => decision::run(&rhema, &subcommand),
         Commands::Dependencies {
             lock_file,
@@ -526,7 +712,10 @@ fn main() -> RhemaResult<()> {
             conflicts,
             impact,
             format,
-        } => dependencies::run(&rhema, lock_file, compare, visualize, conflicts, impact, &format),
+        } => {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(dependencies::run(&rhema, impact, false, false, false, false, false, false, &format, None))
+        }
         Commands::Impact { file } => impact::run(&rhema, &file),
         Commands::SyncKnowledge => sync::run(&rhema),
         Commands::Git { subcommand } => git::run(&rhema, &subcommand),
@@ -623,6 +812,10 @@ fn main() -> RhemaResult<()> {
         Commands::ContextRules { subcommand } => context_rules::run(&rhema, &subcommand),
         Commands::Workflow { subcommand } => workflow::run(&rhema, &subcommand),
         Commands::Template { subcommand } => template::run(&rhema, &subcommand),
+        Commands::Locomo { subcommand } => {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(rhema_cli::locomo::run_locomo_command(&rhema, &subcommand))
+        },
         Commands::Interactive {
             config,
             no_auto_complete,
@@ -635,5 +828,26 @@ fn main() -> RhemaResult<()> {
             no_syntax_highlighting,
             no_context_aware,
         ),
+        Commands::Enhanced {
+            config,
+            no_auto_complete,
+            no_syntax_highlighting,
+            no_context_aware,
+        } => interactive_enhanced::run_enhanced_interactive_with_config(
+            rhema,
+            config.as_deref(),
+            no_auto_complete,
+            no_syntax_highlighting,
+            no_context_aware,
+        ),
+        // Commands::Locomo { subcommand } => {
+        //     let runtime = tokio::runtime::Runtime::new().unwrap();
+        //     runtime.block_on(locomo::run_locomo_command(&rhema, &subcommand))
+        // }
+        Commands::Intent { subcommand } => {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(run_intent_command(&subcommand))
+        }
+
     }
 }

@@ -15,7 +15,7 @@
  */
 
 use crate::{
-    DecisionEntry, DecisionStatus, Decisions, Knowledge, KnowledgeEntry, PatternEntry,
+    Conventions, DecisionEntry, DecisionStatus, Decisions, Knowledge, KnowledgeEntry, PatternEntry,
     PatternUsage, Patterns, Priority, RhemaError, RhemaResult, TodoEntry, TodoStatus, Todos,
 };
 use chrono::Utc;
@@ -125,6 +125,21 @@ pub fn get_or_create_decisions_file(scope_path: &Path) -> RhemaResult<PathBuf> {
     }
 
     Ok(decisions_file)
+}
+
+/// Get or create a conventions file
+pub fn get_or_create_conventions_file(scope_path: &Path) -> RhemaResult<PathBuf> {
+    let conventions_file = scope_path.join("conventions.yaml");
+
+    if !conventions_file.exists() {
+        let empty_conventions = Conventions {
+            conventions: Vec::new(),
+            custom: HashMap::new(),
+        };
+        write_yaml_file(&conventions_file, &empty_conventions)?;
+    }
+
+    Ok(conventions_file)
 }
 
 /// Add a new todo entry

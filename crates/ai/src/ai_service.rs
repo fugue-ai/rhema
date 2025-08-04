@@ -27,9 +27,16 @@ use uuid::Uuid;
 use std::path::PathBuf;
 
 // Import lock file context types
-use crate::agent::lock_context::*;
+
 use crate::agent::lock_context_integration::LockFileAIIntegration;
+use crate::agent::state::{AgentManager, AgentState, PersistenceConfig};
+use crate::agent::advanced_conflict_prevention::{
+    AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig, AdvancedResolutionStrategy,
+    ConflictPredictionModel, ConsensusConfig, CoordinationSession, AdvancedConflictStats,
+};
 use crate::context_injection::{EnhancedContextInjector, TaskType, LockFileContextRequirement};
+use crate::coordination_integration::{CoordinationIntegration, CoordinationConfig};
+use crate::agent::real_time_coordination::{AgentInfo, AgentMessage, MessageType, MessagePriority};
 
 // Re-export types from lock_context to avoid duplication
 pub use crate::agent::lock_context::{
@@ -38,7 +45,7 @@ pub use crate::agent::lock_context::{
     ConflictAnalysis, LockFileAIContext
 };
 
-/// AI Service configuration with lock file awareness
+/// AI Service configuration with lock file awareness and agent state management
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AIServiceConfig {
     pub api_key: String,
@@ -57,6 +64,17 @@ pub struct AIServiceConfig {
     pub auto_validate_lock_file: bool,
     pub conflict_prevention_enabled: bool,
     pub dependency_version_consistency: bool,
+    // Agent state management configuration
+    pub enable_agent_state_management: bool,
+    pub max_concurrent_agents: usize,
+    pub max_block_time_seconds: u64,
+    pub agent_persistence_config: Option<PersistenceConfig>,
+    // Coordination integration configuration
+    pub enable_coordination_integration: bool,
+    pub coordination_config: Option<CoordinationConfig>,
+    // Advanced conflict prevention configuration
+    pub enable_advanced_conflict_prevention: bool,
+    pub advanced_conflict_prevention_config: Option<AdvancedConflictPreventionConfig>,
 }
 
 /// AI Request structure with lock file context
@@ -231,6 +249,12 @@ pub struct AIService {
     context_injector: Option<Arc<EnhancedContextInjector>>,
     lock_file_cache: Arc<RwLock<Option<LockFileAIContext>>>,
     dependency_version_cache: Arc<RwLock<HashMap<String, String>>>,
+    // Agent state management
+    agent_manager: Option<Arc<RwLock<AgentManager>>>,
+    // Coordination integration
+    coordination_integration: Option<Arc<CoordinationIntegration>>,
+    // Advanced conflict prevention
+    advanced_conflict_prevention: Option<Arc<AdvancedConflictPreventionSystem>>,
 }
 
 impl AIService {
@@ -276,6 +300,63 @@ impl AIService {
         let lock_file_cache = Arc::new(RwLock::new(None));
         let dependency_version_cache = Arc::new(RwLock::new(HashMap::new()));
 
+        // Initialize agent state management
+        let agent_manager = if config.enable_agent_state_management {
+            let max_block_time = std::time::Duration::from_secs(config.max_block_time_seconds);
+            let manager = AgentManager::new(
+                config.max_concurrent_agents,
+                max_block_time,
+                config.agent_persistence_config.clone(),
+            );
+            
+            // Load existing state if available
+            let mut manager = manager;
+            if let Err(e) = manager.load_state().await {
+                tracing::warn!("Failed to load agent state: {}", e);
+            }
+            
+            Some(Arc::new(RwLock::new(manager)))
+        } else {
+            None
+        };
+
+        // Initialize coordination integration
+        let coordination_integration = if config.enable_coordination_integration {
+            let rhema_coordination = crate::agent::real_time_coordination::RealTimeCoordinationSystem::new();
+            match CoordinationIntegration::new(rhema_coordination, config.coordination_config.clone()).await {
+                Ok(integration) => {
+                    tracing::info!("✅ Coordination integration initialized successfully");
+                    Some(Arc::new(integration))
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to initialize coordination integration: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        // Initialize advanced conflict prevention
+        let advanced_conflict_prevention = if config.enable_advanced_conflict_prevention {
+            let rhema_coordination = crate::agent::real_time_coordination::RealTimeCoordinationSystem::new();
+            let conflict_config = config.advanced_conflict_prevention_config.clone()
+                .unwrap_or_else(AdvancedConflictPreventionConfig::default);
+            
+            match AdvancedConflictPreventionSystem::new(Arc::new(rhema_coordination), conflict_config).await {
+                Ok(system) => {
+                    tracing::info!("✅ Advanced conflict prevention system initialized successfully");
+                    Some(Arc::new(system))
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to initialize advanced conflict prevention system: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
         Ok(Self {
             config,
             _cache: cache,
@@ -286,6 +367,9 @@ impl AIService {
             context_injector,
             lock_file_cache,
             dependency_version_cache,
+            agent_manager,
+            coordination_integration,
+            advanced_conflict_prevention,
         })
     }
 
@@ -347,7 +431,7 @@ impl AIService {
     }
 
     /// Validate lock file before processing AI request
-    async fn validate_lock_file_before_processing(&self, request: &AIRequest) -> RhemaResult<LockFileValidationResult> {
+    async fn validate_lock_file_before_processing(&self, _request: &AIRequest) -> RhemaResult<LockFileValidationResult> {
         if let Some(integration) = &self.lock_file_integration {
             match integration.get_comprehensive_context() {
                 Ok(context) => {
@@ -472,7 +556,7 @@ impl AIService {
     }
 
     /// Analyze conflicts for the request
-    async fn analyze_conflicts(&self, request: &AIRequest) -> RhemaResult<ConflictAnalysisResult> {
+    async fn analyze_conflicts(&self, _request: &AIRequest) -> RhemaResult<ConflictAnalysisResult> {
         if let Some(integration) = &self.lock_file_integration {
             match integration.get_conflict_analysis() {
                 Ok(conflict_analysis) => {
@@ -869,7 +953,7 @@ impl AIService {
 
     /// Validate lock file consistency
     pub async fn validate_lock_file_consistency(&self) -> RhemaResult<DependencyConsistencyResult> {
-        if let Some(integration) = &self.lock_file_integration {
+        if let Some(_integration) = &self.lock_file_integration {
             self.check_dependency_consistency(&AIRequest {
                 id: Uuid::new_v4().to_string(),
                 prompt: "".to_string(),
@@ -940,6 +1024,306 @@ impl AIService {
 
         Ok(suggestions)
     }
+
+    // Agent State Management Methods
+
+    /// Register an agent with the AI service
+    pub async fn register_agent(&self, agent_id: String) -> RhemaResult<()> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let mut manager = agent_manager.write().await;
+            manager.agent_join(agent_id).await
+        } else {
+            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+        }
+    }
+
+    /// Unregister an agent from the AI service
+    pub async fn unregister_agent(&self, agent_id: String) -> RhemaResult<()> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let mut manager = agent_manager.write().await;
+            manager.agent_leave(agent_id).await
+        } else {
+            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+        }
+    }
+
+    /// Update agent state
+    pub async fn update_agent_state(&self, agent_id: &str, new_state: AgentState) -> RhemaResult<()> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let mut manager = agent_manager.write().await;
+            manager.set_agent_state(agent_id, new_state).await
+        } else {
+            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+        }
+    }
+
+    /// Update agent heartbeat
+    pub async fn update_agent_heartbeat(&self, agent_id: &str) -> RhemaResult<()> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let mut manager = agent_manager.write().await;
+            manager.update_heartbeat(agent_id).await
+        } else {
+            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+        }
+    }
+
+    /// Get agent state
+    pub async fn get_agent_state(&self, agent_id: &str) -> Option<AgentState> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let manager = agent_manager.read().await;
+            manager.get_agent_state(agent_id)
+        } else {
+            None
+        }
+    }
+
+    /// Get agent metadata
+    pub async fn get_agent_metadata(&self, agent_id: &str) -> Option<crate::agent::state::AgentMetadata> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let manager = agent_manager.read().await;
+            manager.get_agent_metadata(agent_id).cloned()
+        } else {
+            None
+        }
+    }
+
+    /// Get all agent states
+    pub async fn get_all_agent_states(&self) -> HashMap<String, AgentState> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let manager = agent_manager.read().await;
+            manager.agents().clone()
+        } else {
+            HashMap::new()
+        }
+    }
+
+    /// Get agent statistics
+    pub async fn get_agent_statistics(&self) -> crate::agent::state::AgentStatistics {
+        if let Some(agent_manager) = &self.agent_manager {
+            let manager = agent_manager.read().await;
+            manager.get_statistics()
+        } else {
+            crate::agent::state::AgentStatistics::default()
+        }
+    }
+
+    /// Get agent health statistics
+    pub async fn get_agent_health_statistics(&self) -> crate::agent::state::HealthStatistics {
+        if let Some(agent_manager) = &self.agent_manager {
+            let manager = agent_manager.read().await;
+            manager.get_health_statistics()
+        } else {
+            crate::agent::state::HealthStatistics::default()
+        }
+    }
+
+    /// Check agent health
+    pub async fn check_agent_health(&self) -> RhemaResult<()> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let mut manager = agent_manager.write().await;
+            manager.check_agent_health().await
+        } else {
+            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+        }
+    }
+
+    /// Validate agent state consistency
+    pub async fn validate_agent_state(&self) -> RhemaResult<()> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let manager = agent_manager.read().await;
+            manager.validate_state().await
+        } else {
+            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+        }
+    }
+
+    /// Persist agent state
+    pub async fn persist_agent_state(&self) -> RhemaResult<()> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let manager = agent_manager.read().await;
+            manager.persist_state().await
+        } else {
+            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+        }
+    }
+
+    /// Start agent monitoring
+    pub async fn start_agent_monitoring(&self) -> RhemaResult<()> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let mut manager = agent_manager.write().await;
+            manager.start_monitoring().await
+        } else {
+            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+        }
+    }
+
+    /// Get agent state history
+    pub async fn get_agent_history(&self, agent_id: &str, limit: usize) -> Vec<crate::agent::state::StateTransition> {
+        if let Some(agent_manager) = &self.agent_manager {
+            let manager = agent_manager.read().await;
+            manager.get_agent_history(agent_id, limit).into_iter().cloned().collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    // Coordination Integration Methods
+
+    /// Check if coordination integration is enabled
+    pub fn has_coordination_integration(&self) -> bool {
+        self.coordination_integration.is_some()
+    }
+
+    /// Register an agent with coordination integration
+    pub async fn register_agent_with_coordination(&self, agent_info: AgentInfo) -> RhemaResult<()> {
+        if let Some(coordination) = &self.coordination_integration {
+            coordination.register_rhema_agent(&agent_info).await
+        } else {
+            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+        }
+    }
+
+    /// Send a message with coordination integration
+    pub async fn send_message_with_coordination(&self, message: AgentMessage) -> RhemaResult<()> {
+        if let Some(coordination) = &self.coordination_integration {
+            coordination.bridge_rhema_message(&message).await
+        } else {
+            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+        }
+    }
+
+    /// Create a coordination session
+    pub async fn create_session(&self, topic: String, participants: Vec<String>) -> RhemaResult<String> {
+        if let Some(coordination) = &self.coordination_integration {
+            coordination.create_session(topic, participants).await
+        } else {
+            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+        }
+    }
+
+    /// Join a coordination session
+    pub async fn join_session(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
+        if let Some(coordination) = &self.coordination_integration {
+            coordination.join_session(session_id, agent_id).await
+        } else {
+            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+        }
+    }
+
+    /// Send a session message
+    pub async fn send_session_message(&self, session_id: &str, message: AgentMessage) -> RhemaResult<()> {
+        if let Some(coordination) = &self.coordination_integration {
+            coordination.send_session_message(session_id, message).await
+        } else {
+            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+        }
+    }
+
+    /// Get coordination integration statistics
+    pub async fn get_coordination_stats(&self) -> Option<crate::coordination_integration::IntegrationStats> {
+        if let Some(coordination) = &self.coordination_integration {
+            Some(coordination.get_integration_stats().await)
+        } else {
+            None
+        }
+    }
+
+    /// Get Syneidesis connection status
+    pub async fn get_syneidesis_status(&self) -> Option<crate::grpc::coordination_client::ConnectionStatus> {
+        if let Some(coordination) = &self.coordination_integration {
+            coordination.get_syneidesis_status().await
+        } else {
+            None
+        }
+    }
+
+    /// Start coordination health monitoring
+    pub async fn start_coordination_health_monitoring(&self) -> RhemaResult<()> {
+        if let Some(coordination) = &self.coordination_integration {
+            coordination.start_health_monitoring().await
+        } else {
+            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+        }
+    }
+
+    /// Shutdown coordination integration
+    pub async fn shutdown_coordination(&self) -> RhemaResult<()> {
+        if let Some(coordination) = &self.coordination_integration {
+            coordination.shutdown().await
+        } else {
+            Ok(())
+        }
+    }
+
+    // Advanced Conflict Prevention Methods
+
+    /// Check if advanced conflict prevention is enabled
+    pub fn has_advanced_conflict_prevention(&self) -> bool {
+        self.advanced_conflict_prevention.is_some()
+    }
+
+    /// Get advanced conflict prevention statistics
+    pub async fn get_advanced_conflict_stats(&self) -> Option<AdvancedConflictStats> {
+        if let Some(system) = &self.advanced_conflict_prevention {
+            Some(system.get_stats().await)
+        } else {
+            None
+        }
+    }
+
+    /// Add a prediction model to the advanced conflict prevention system
+    pub async fn add_conflict_prediction_model(&self, model: ConflictPredictionModel) -> RhemaResult<()> {
+        if let Some(system) = &self.advanced_conflict_prevention {
+            system.add_prediction_model(model).await
+        } else {
+            Err(RhemaError::ConfigError("Advanced conflict prevention not enabled".to_string()))
+        }
+    }
+
+    /// Add a consensus configuration to the advanced conflict prevention system
+    pub async fn add_consensus_config(&self, config: ConsensusConfig) -> RhemaResult<()> {
+        if let Some(system) = &self.advanced_conflict_prevention {
+            system.add_consensus_config(config).await
+        } else {
+            Err(RhemaError::ConfigError("Advanced conflict prevention not enabled".to_string()))
+        }
+    }
+
+    /// Get active coordination sessions from the advanced conflict prevention system
+    pub async fn get_active_conflict_sessions(&self) -> Option<Vec<CoordinationSession>> {
+        if let Some(system) = &self.advanced_conflict_prevention {
+            Some(system.get_active_sessions().await)
+        } else {
+            None
+        }
+    }
+
+    /// Get prediction models from the advanced conflict prevention system
+    pub async fn get_conflict_prediction_models(&self) -> Option<Vec<ConflictPredictionModel>> {
+        if let Some(system) = &self.advanced_conflict_prevention {
+            Some(system.get_prediction_models().await)
+        } else {
+            None
+        }
+    }
+
+    /// Create a coordination session for conflict resolution
+    pub async fn create_conflict_resolution_session(&self, topic: String) -> RhemaResult<String> {
+        if let Some(system) = &self.advanced_conflict_prevention {
+            system.create_coordination_session(topic).await
+        } else {
+            Err(RhemaError::ConfigError("Advanced conflict prevention not enabled".to_string()))
+        }
+    }
+
+    /// Add a participant to a conflict resolution session
+    pub async fn add_session_participant(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
+        if let Some(system) = &self.advanced_conflict_prevention {
+            system.add_session_participant(session_id, agent_id).await
+        } else {
+            Err(RhemaError::ConfigError("Advanced conflict prevention not enabled".to_string()))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -964,6 +1348,14 @@ mod tests {
             auto_validate_lock_file: true,
             conflict_prevention_enabled: true,
             dependency_version_consistency: true,
+            enable_agent_state_management: true,
+            max_concurrent_agents: 10,
+            max_block_time_seconds: 300,
+            agent_persistence_config: None,
+            enable_coordination_integration: false,
+            coordination_config: None,
+            enable_advanced_conflict_prevention: false,
+            advanced_conflict_prevention_config: None,
         };
 
         let service = AIService::new(config).await;
@@ -988,6 +1380,14 @@ mod tests {
             auto_validate_lock_file: false,
             conflict_prevention_enabled: false,
             dependency_version_consistency: false,
+            enable_agent_state_management: false,
+            max_concurrent_agents: 5,
+            max_block_time_seconds: 300,
+            agent_persistence_config: None,
+            enable_coordination_integration: false,
+            coordination_config: None,
+            enable_advanced_conflict_prevention: false,
+            advanced_conflict_prevention_config: None,
         };
 
         let service = AIService::new(config).await.unwrap();

@@ -20,54 +20,54 @@ import { RhemaSettings } from './settings';
 import { RhemaErrorHandler } from './errorHandler';
 
 export class RhemaDocumentation {
-    private logger: RhemaLogger;
-    private settings: RhemaSettings;
-    private errorHandler: RhemaErrorHandler;
+  private logger: RhemaLogger;
+  private settings: RhemaSettings;
+  private errorHandler: RhemaErrorHandler;
 
-    constructor() {
-        this.logger = new RhemaLogger();
-        this.settings = new RhemaSettings();
-        this.errorHandler = new RhemaErrorHandler(this.logger);
-    }
+  constructor() {
+    this.logger = new RhemaLogger();
+    this.settings = new RhemaSettings();
+    this.errorHandler = new RhemaErrorHandler(this.logger);
+  }
 
-    async initialize(context: vscode.ExtensionContext): Promise<void> {
-        try {
-            this.logger.info('Initializing Rhema documentation...');
-            this.logger.info('Rhema documentation initialized successfully');
-        } catch (error) {
-            this.errorHandler.handleError('Failed to initialize Rhema documentation', error);
-        }
+  async initialize(context: vscode.ExtensionContext): Promise<void> {
+    try {
+      this.logger.info('Initializing Rhema documentation...');
+      this.logger.info('Rhema documentation initialized successfully');
+    } catch (error) {
+      this.errorHandler.handleError('Failed to initialize Rhema documentation', error);
     }
+  }
 
-    async showDocumentation(topic?: string): Promise<void> {
-        try {
-            let url = 'https://github.com/fugue-ai/rhema/wiki';
-            if (topic) {
-                url += `/${encodeURIComponent(topic)}`;
-            }
-            await vscode.env.openExternal(vscode.Uri.parse(url));
-        } catch (error) {
-            this.errorHandler.handleError('Failed to open documentation', error);
-        }
+  async showDocumentation(topic?: string): Promise<void> {
+    try {
+      let url = 'https://github.com/fugue-ai/rhema/wiki';
+      if (topic) {
+        url += `/${encodeURIComponent(topic)}`;
+      }
+      await vscode.env.openExternal(vscode.Uri.parse(url));
+    } catch (error) {
+      this.errorHandler.handleError('Failed to open documentation', error);
     }
+  }
 
-    async showApiDocs(): Promise<void> {
-        await this.showDocumentation('API');
-    }
+  async showApiDocs(): Promise<void> {
+    await this.showDocumentation('API');
+  }
 
-    async showGettingStarted(): Promise<void> {
-        await this.showDocumentation('Getting-Started');
-    }
+  async showGettingStarted(): Promise<void> {
+    await this.showDocumentation('Getting-Started');
+  }
 
-    async showTroubleshooting(): Promise<void> {
-        await this.showDocumentation('Troubleshooting');
-    }
+  async showTroubleshooting(): Promise<void> {
+    await this.showDocumentation('Troubleshooting');
+  }
 
-    async dispose(): Promise<void> {
-        // Cleanup if needed
-    }
+  async dispose(): Promise<void> {
+    // Cleanup if needed
+  }
 
-    async deactivate(): Promise<void> {
-        await this.dispose();
-    }
-} 
+  async deactivate(): Promise<void> {
+    await this.dispose();
+  }
+}

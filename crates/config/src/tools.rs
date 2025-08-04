@@ -15,7 +15,7 @@
  */
 
 use super::global::GlobalConfig;
-use crate::config::{SafetyValidator, SafetyViolation};
+
 use crate::{Config, CURRENT_CONFIG_VERSION};
 use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;

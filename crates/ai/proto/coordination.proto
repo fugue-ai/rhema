@@ -1,0 +1,349 @@
+syntax = "proto3";
+
+package rhema.coordination.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// Agent status enumeration
+enum AgentStatus {
+  AGENT_STATUS_UNSPECIFIED = 0;
+  AGENT_STATUS_IDLE = 1;
+  AGENT_STATUS_BUSY = 2;
+  AGENT_STATUS_WORKING = 3;
+  AGENT_STATUS_BLOCKED = 4;
+  AGENT_STATUS_COLLABORATING = 5;
+  AGENT_STATUS_OFFLINE = 6;
+}
+
+// Message types for agent communication
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_TASK_ASSIGNMENT = 1;
+  MESSAGE_TYPE_TASK_COMPLETION = 2;
+  MESSAGE_TYPE_TASK_BLOCKED = 3;
+  MESSAGE_TYPE_RESOURCE_REQUEST = 4;
+  MESSAGE_TYPE_RESOURCE_RELEASE = 5;
+  MESSAGE_TYPE_CONFLICT_NOTIFICATION = 6;
+  MESSAGE_TYPE_COORDINATION_REQUEST = 7;
+  MESSAGE_TYPE_STATUS_UPDATE = 8;
+  MESSAGE_TYPE_KNOWLEDGE_SHARE = 9;
+  MESSAGE_TYPE_DECISION_REQUEST = 10;
+  MESSAGE_TYPE_DECISION_RESPONSE = 11;
+  MESSAGE_TYPE_CUSTOM = 12;
+}
+
+// Message priority levels
+enum MessagePriority {
+  MESSAGE_PRIORITY_UNSPECIFIED = 0;
+  MESSAGE_PRIORITY_LOW = 1;
+  MESSAGE_PRIORITY_NORMAL = 2;
+  MESSAGE_PRIORITY_HIGH = 3;
+  MESSAGE_PRIORITY_CRITICAL = 4;
+  MESSAGE_PRIORITY_EMERGENCY = 5;
+}
+
+// Session status enumeration
+enum SessionStatus {
+  SESSION_STATUS_UNSPECIFIED = 0;
+  SESSION_STATUS_ACTIVE = 1;
+  SESSION_STATUS_PAUSED = 2;
+  SESSION_STATUS_COMPLETED = 3;
+  SESSION_STATUS_CANCELLED = 4;
+}
+
+// Agent performance metrics
+message AgentPerformanceMetrics {
+  uint32 tasks_completed = 1;
+  uint32 tasks_failed = 2;
+  double avg_completion_time_seconds = 3;
+  double success_rate = 4;
+  double collaboration_score = 5;
+  double avg_response_time_ms = 6;
+}
+
+// Agent information
+message AgentInfo {
+  string id = 1;
+  string name = 2;
+  string agent_type = 3;
+  AgentStatus status = 4;
+  optional string current_task_id = 5;
+  string assigned_scope = 6;
+  repeated string capabilities = 7;
+  google.protobuf.Timestamp last_heartbeat = 8;
+  bool is_online = 9;
+  AgentPerformanceMetrics performance_metrics = 10;
+}
+
+// Agent message
+message AgentMessage {
+  string id = 1;
+  MessageType message_type = 2;
+  MessagePriority priority = 3;
+  string sender_id = 4;
+  repeated string recipient_ids = 5;
+  string content = 6;
+  optional google.protobuf.Any payload = 7;
+  google.protobuf.Timestamp timestamp = 8;
+  bool requires_ack = 9;
+  optional google.protobuf.Timestamp expires_at = 10;
+  map<string, string> metadata = 11;
+}
+
+// Resource information
+message ResourceInfo {
+  string id = 1;
+  string name = 2;
+  string resource_type = 3;
+  optional string owner_id = 4;
+  bool is_locked = 5;
+  optional google.protobuf.Timestamp locked_at = 6;
+  optional google.protobuf.Timestamp lock_timeout = 7;
+  map<string, string> metadata = 8;
+}
+
+// Session decision
+message SessionDecision {
+  string id = 1;
+  string topic = 2;
+  string description = 3;
+  repeated string options = 4;
+  optional string selected_option = 5;
+  map<string, string> votes = 6;
+  google.protobuf.Timestamp timestamp = 7;
+  string decision_maker = 8;
+}
+
+// Coordination session
+message CoordinationSession {
+  string id = 1;
+  string topic = 2;
+  repeated string participants = 3;
+  SessionStatus status = 4;
+  google.protobuf.Timestamp started_at = 5;
+  optional google.protobuf.Timestamp ended_at = 6;
+  repeated AgentMessage messages = 7;
+  repeated SessionDecision decisions = 8;
+}
+
+// Coordination statistics
+message CoordinationStats {
+  uint32 total_messages = 1;
+  uint32 messages_delivered = 2;
+  uint32 messages_failed = 3;
+  uint32 active_agents = 4;
+  uint32 active_sessions = 5;
+  double avg_response_time_ms = 6;
+  double coordination_efficiency = 7;
+}
+
+// Register agent request
+message RegisterAgentRequest {
+  AgentInfo agent_info = 1;
+}
+
+// Register agent response
+message RegisterAgentResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Unregister agent request
+message UnregisterAgentRequest {
+  string agent_id = 1;
+}
+
+// Unregister agent response
+message UnregisterAgentResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Send message request
+message SendMessageRequest {
+  AgentMessage message = 1;
+}
+
+// Send message response
+message SendMessageResponse {
+  bool success = 1;
+  string message_id = 2;
+  string error_message = 3;
+}
+
+// Get message stream request
+message GetMessageStreamRequest {
+  string agent_id = 1;
+}
+
+// Create session request
+message CreateSessionRequest {
+  string topic = 1;
+  repeated string participants = 2;
+}
+
+// Create session response
+message CreateSessionResponse {
+  bool success = 1;
+  string session_id = 2;
+  string error_message = 3;
+}
+
+// Join session request
+message JoinSessionRequest {
+  string session_id = 1;
+  string agent_id = 2;
+}
+
+// Join session response
+message JoinSessionResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// Leave session request
+message LeaveSessionRequest {
+  string session_id = 1;
+  string agent_id = 2;
+}
+
+// Leave session response
+message LeaveSessionResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// Send session message request
+message SendSessionMessageRequest {
+  string session_id = 1;
+  AgentMessage message = 2;
+}
+
+// Send session message response
+message SendSessionMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// Request resource request
+message RequestResourceRequest {
+  string resource_id = 1;
+  string agent_id = 2;
+  optional uint32 timeout_seconds = 3;
+}
+
+// Request resource response
+message RequestResourceResponse {
+  bool success = 1;
+  bool resource_acquired = 2;
+  string error_message = 3;
+}
+
+// Release resource request
+message ReleaseResourceRequest {
+  string resource_id = 1;
+  string agent_id = 2;
+}
+
+// Release resource response
+message ReleaseResourceResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// Update agent status request
+message UpdateAgentStatusRequest {
+  string agent_id = 1;
+  AgentStatus status = 2;
+}
+
+// Update agent status response
+message UpdateAgentStatusResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// Get agent info request
+message GetAgentInfoRequest {
+  string agent_id = 1;
+}
+
+// Get agent info response
+message GetAgentInfoResponse {
+  bool success = 1;
+  optional AgentInfo agent_info = 2;
+  string error_message = 3;
+}
+
+// Get all agents request
+message GetAllAgentsRequest {}
+
+// Get all agents response
+message GetAllAgentsResponse {
+  repeated AgentInfo agents = 1;
+}
+
+// Get stats request
+message GetStatsRequest {}
+
+// Get stats response
+message GetStatsResponse {
+  CoordinationStats stats = 1;
+}
+
+// Get message history request
+message GetMessageHistoryRequest {
+  uint32 limit = 1;
+  optional string agent_id = 2;
+}
+
+// Get message history response
+message GetMessageHistoryResponse {
+  repeated AgentMessage messages = 1;
+}
+
+// Heartbeat request
+message HeartbeatRequest {
+  string agent_id = 1;
+  AgentStatus status = 2;
+  optional string current_task_id = 3;
+}
+
+// Heartbeat response
+message HeartbeatResponse {
+  bool success = 1;
+  repeated AgentMessage pending_messages = 2;
+}
+
+// Real-time coordination service
+service RealTimeCoordinationService {
+  // Agent lifecycle management
+  rpc RegisterAgent(RegisterAgentRequest) returns (RegisterAgentResponse);
+  rpc UnregisterAgent(UnregisterAgentRequest) returns (UnregisterAgentResponse);
+  rpc UpdateAgentStatus(UpdateAgentStatusRequest) returns (UpdateAgentStatusResponse);
+  rpc GetAgentInfo(GetAgentInfoRequest) returns (GetAgentInfoResponse);
+  rpc GetAllAgents(GetAllAgentsRequest) returns (GetAllAgentsResponse);
+  
+  // Message handling
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc GetMessageStream(GetMessageStreamRequest) returns (stream AgentMessage);
+  rpc GetMessageHistory(GetMessageHistoryRequest) returns (GetMessageHistoryResponse);
+  
+  // Session management
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc JoinSession(JoinSessionRequest) returns (JoinSessionResponse);
+  rpc LeaveSession(LeaveSessionRequest) returns (LeaveSessionResponse);
+  rpc SendSessionMessage(SendSessionMessageRequest) returns (SendSessionMessageResponse);
+  
+  // Resource management
+  rpc RequestResource(RequestResourceRequest) returns (RequestResourceResponse);
+  rpc ReleaseResource(ReleaseResourceRequest) returns (ReleaseResourceResponse);
+  
+  // System monitoring
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  
+  // Bidirectional streaming for real-time updates
+  rpc StreamUpdates(stream AgentMessage) returns (stream AgentMessage);
+} 

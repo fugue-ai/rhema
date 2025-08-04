@@ -1,0 +1,81 @@
+[package]
+name = "rhema-dependency"
+version = "0.1.0"
+edition = "2021"
+authors = ["Cory Parent <cory.parent@gmail.com>"]
+license = "Apache-2.0"
+repository = "https://github.com/fugue-ai/rhema"
+homepage = "https://github.com/fugue-ai/rhema"
+documentation = "https://docs.rs/rhema-dependency"
+readme = "README.md"
+keywords = ["dependency", "management", "impact-analysis", "health-monitoring", "validation"]
+categories = ["development-tools", "configuration"]
+
+[dependencies]
+# Core dependencies
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Graph and dependency analysis
+petgraph = "0.6"
+
+# Async runtime
+tokio = { workspace = true, features = ["full"] }
+
+# HTTP client for API calls
+reqwest = { version = "0.11", features = ["json"] }
+
+# Database for dependency storage
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "postgres", "mysql", "chrono"] }
+
+# Metrics and monitoring
+prometheus = "0.13"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+config = "0.13"
+
+# Validation
+validator = { version = "0.16", features = ["derive"] }
+
+# Utilities
+colored = "2.0"
+indicatif = "0.17"
+walkdir = "2.4"
+regex = "1.10"
+lazy_static = "1.4"
+semver = { version = "1.0", features = ["serde"] }
+
+# WebSocket for real-time updates
+tokio-tungstenite = "0.20"
+futures-util = "0.3"
+num_cpus = "1.0"
+
+# Time utilities
+time = "0.3"
+
+# Hash and crypto
+sha2 = "0.10"
+hmac = "0.12"
+
+# Random number generation
+rand = "0.8"
+
+# JSON schema validation
+jsonschema = "0.17"
+
+# Graph visualization
+dot = "0.1"
+
+# Async trait support
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.8" 

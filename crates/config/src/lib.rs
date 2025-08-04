@@ -7,11 +7,15 @@ pub mod migration;
 pub mod repository;
 pub mod scope;
 pub mod security;
+#[cfg(test)]
 pub mod test_config;
 pub mod tools;
 pub mod types;
 pub mod validation;
 pub mod validator;
+pub mod schema_validator;
+pub mod comprehensive_validator;
+pub mod validation_rules;
 
 // Re-export core types
 pub use rhema_core::{RhemaError, RhemaResult};
@@ -27,7 +31,7 @@ pub use types::{
 };
 
 // Re-export specific types from modules
-pub use backup::RestoredConfig;
+pub use backup::{BackupManager, BackupFormat, BackupSchedule, BackupFrequency, RestoredConfig};
 pub use global::GlobalConfig;
 pub use lock::{
     AlertThresholds, CacheConfig, CacheEvictionPolicy, CacheType, ConflictResolutionConfig,
@@ -35,17 +39,28 @@ pub use lock::{
     MetricsFormat, MonitoringConfig, NetworkConfig, NotificationChannel, OptimizationConfig,
     OptimizationLevel, ParallelConfig, PerformanceConfig, ResolutionConfig, ResolutionStrategy,
     UpdateFrequency, UpdateNotificationConfig, UpdatePoliciesConfig, UpdateRollbackConfig,
-    UpdateSchedulingConfig, ValidationConfig, ValidationLevel, ValidationRulesConfig,
-    ValidationSeverity, VersionConstraintConfig,
+    UpdateSchedulingConfig, ValidationConfig, ValidationSeverity, VersionConstraintConfig,
 };
 pub use repository::RepositoryConfig;
 pub use scope::ScopeConfig;
-pub use security::SecurityConfig;
+pub use security::{SecurityManager, EncryptionSettings, AccessControlSettings, AuditSettings, ComplianceSettings, AccessDecision, ComplianceReport, ComplianceStatus};
+pub use migration::{MigrationManager, Migration, MigrationStep, MigrationStepType, MigrationCondition, MigrationConditionOperator};
 pub use tools::{
     ConfigBackupTool, ConfigDocumentationTool, ConfigEditor, ConfigMigrator, ConfigValidator,
     ToolsConfig,
 };
-pub use validation::{ValidationReport, ValidationResult, ValidationRule};
+pub use validation::{ValidationManager, ValidationReport, ValidationResult};
+pub use schema_validator::{SchemaValidator, SchemaType, SchemaValidationResult, SchemaValidationIssue, SchemaValidationStatistics};
+pub use comprehensive_validator::{
+    ComprehensiveValidator, ComprehensiveValidationResult, ComprehensiveValidationIssue,
+    ComprehensiveValidationReport, ComprehensiveValidationSummary, ComprehensiveValidationStatistics,
+    ValidationLevel, ValidationCategory,
+};
+pub use validation_rules::{
+    ValidationRulesConfig, ValidationRule, RuleType, RuleCondition, ConditionOperator,
+    RuleAction, ActionType, RuleSet, GlobalValidationSettings, SchemaOverride,
+    CustomValidatorConfig, ValidationRulesManager, RuleEvaluationResult, ValidationRulesStatistics,
+};
 
 // Error type conversions
 impl From<ConfigError> for RhemaError {

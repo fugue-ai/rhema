@@ -19,8 +19,11 @@ rhema-git = { path = "../git" }
 rhema-ai = { path = "../ai" }
 rhema-mcp = { path = "../mcp" }
 rhema-config = { path = "../config" }
-rhema-monitoring = { path = "../monitoring" }
+rhema-knowledge = { path = "../knowledge" }
+rhema-locomo = { path = "../locomo" }  # LOCOMO integration for performance monitoring and analytics
+# rhema-monitoring = { path = "../monitoring" }
 rhema-integrations = { path = "../integrations" }
+rhema-action = { path = "../action" }
 # rhema = { path = "../rhema" }  # Removed to avoid cyclic dependency
 
 clap = { workspace = true }
@@ -47,6 +50,7 @@ toml = { workspace = true }
 lazy_static = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
 dialoguer = { workspace = true }
 console = { workspace = true }
 tempfile = { workspace = true }
@@ -56,7 +60,7 @@ futures = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 openai = { workspace = true }
 anthropic = { workspace = true }
-nix = { workspace = true }
+nix = { workspace = true, features = ["fs"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }

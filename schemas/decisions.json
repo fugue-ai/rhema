@@ -17,7 +17,7 @@
               "type": "string",
               "pattern": "^ADR-\\d{3}$"
             },
-            "title": {"type": "string"},
+            "title": { "type": "string" },
             "date": {
               "type": "string",
               "format": "date"
@@ -26,7 +26,7 @@
               "type": "string",
               "enum": ["proposed", "accepted", "deprecated", "superseded"]
             },
-            "context": {"type": "string"},
+            "context": { "type": "string" },
             "options_considered": {
               "type": "object",
               "patternProperties": {
@@ -35,24 +35,24 @@
                   "properties": {
                     "pros": {
                       "type": "array",
-                      "items": {"type": "string"}
+                      "items": { "type": "string" }
                     },
                     "cons": {
                       "type": "array",
-                      "items": {"type": "string"}
+                      "items": { "type": "string" }
                     },
-                    "example": {"type": "string"}
+                    "example": { "type": "string" }
                   }
                 }
               }
             },
-            "decision": {"type": "string"},
+            "decision": { "type": "string" },
             "implementation": {
               "oneOf": [
-                {"type": "string"},
+                { "type": "string" },
                 {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
                 {
                   "type": "object",
@@ -62,24 +62,24 @@
                       "additionalProperties": {
                         "type": "object",
                         "properties": {
-                          "purpose": {"type": "string"},
+                          "purpose": { "type": "string" },
                           "examples": {
                             "type": "array",
-                            "items": {"type": "string"}
+                            "items": { "type": "string" }
                           },
-                          "ttl": {"type": "string"},
-                          "size_limit": {"type": "string"},
-                          "eviction": {"type": "string"}
+                          "ttl": { "type": "string" },
+                          "size_limit": { "type": "string" },
+                          "eviction": { "type": "string" }
                         }
                       }
                     },
                     "invalidation": {
                       "type": "object",
                       "properties": {
-                        "strategy": {"type": "string"},
+                        "strategy": { "type": "string" },
                         "triggers": {
                           "type": "array",
-                          "items": {"type": "string"}
+                          "items": { "type": "string" }
                         }
                       }
                     }
@@ -92,25 +92,25 @@
               "properties": {
                 "positive": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
                 "negative": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
                 "mitigations": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 }
               }
             },
             "monitoring": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "tags": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             }
           }
         }
@@ -118,4 +118,4 @@
     }
   },
   "additionalProperties": true
-} 
+}

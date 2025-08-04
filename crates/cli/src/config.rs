@@ -286,7 +286,10 @@ pub fn run(_rhema: &Rhema, subcommand: &ConfigSubcommands) -> RhemaResult<()> {
             config_type,
             path,
             fix,
-        } => validate_config(&mut config_manager, config_type, path.as_deref(), *fix),
+        } => {
+            let runtime = tokio::runtime::Runtime::new()?;
+            runtime.block_on(validate_config(&mut config_manager, config_type, path.as_deref(), *fix))
+        },
         ConfigSubcommands::Backup {
             config_type,
             path,
@@ -485,7 +488,7 @@ fn edit_config(
     Ok(())
 }
 
-fn validate_config(
+async fn validate_config(
     config_manager: &mut ConfigManager,
     config_type: &str,
     path: Option<&str>,
@@ -497,7 +500,8 @@ fn validate_config(
         "global" => {
             let result = config_manager
                 .validation()
-                .validate_config(config_manager.global_config().clone(), "global")?;
+                .validate_config(config_manager.global_config().clone(), "global")
+                .await?;
             display_validation_report(
                 &rhema_config::validation::ValidationReport {
                     overall_valid: result.valid,
@@ -544,7 +548,8 @@ fn validate_config(
             let config_clone = config.clone();
             let result = config_manager
                 .validation()
-                .validate_config(config_clone, repo_path)?;
+                .validate_config(config_clone, repo_path)
+                .await?;
             display_validation_report(
                 &rhema_config::validation::ValidationReport {
                     overall_valid: result.valid,

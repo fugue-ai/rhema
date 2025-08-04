@@ -17,75 +17,75 @@
 import * as vscode from 'vscode';
 
 export enum LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARN = 2,
-    ERROR = 3
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
 }
 
 export class RhemaLogger {
-    private outputChannel: vscode.OutputChannel;
-    private logLevel: LogLevel;
+  private outputChannel: vscode.OutputChannel;
+  private logLevel: LogLevel;
 
-    constructor() {
-        this.outputChannel = vscode.window.createOutputChannel('RHEMA');
-        this.logLevel = LogLevel.INFO;
+  constructor() {
+    this.outputChannel = vscode.window.createOutputChannel('RHEMA');
+    this.logLevel = LogLevel.INFO;
+  }
+
+  setLogLevel(level: LogLevel): void {
+    this.logLevel = level;
+  }
+
+  debug(message: string, ...args: any[]): void {
+    if (this.logLevel <= LogLevel.DEBUG) {
+      this.log('DEBUG', message, ...args);
     }
+  }
 
-    setLogLevel(level: LogLevel): void {
-        this.logLevel = level;
+  info(message: string, ...args: any[]): void {
+    if (this.logLevel <= LogLevel.INFO) {
+      this.log('INFO', message, ...args);
     }
+  }
 
-    debug(message: string, ...args: any[]): void {
-        if (this.logLevel <= LogLevel.DEBUG) {
-            this.log('DEBUG', message, ...args);
+  warn(message: string, ...args: any[]): void {
+    if (this.logLevel <= LogLevel.WARN) {
+      this.log('WARN', message, ...args);
+    }
+  }
+
+  error(message: string, ...args: any[]): void {
+    if (this.logLevel <= LogLevel.ERROR) {
+      this.log('ERROR', message, ...args);
+    }
+  }
+
+  private log(level: string, message: string, ...args: any[]): void {
+    const timestamp = new Date().toISOString();
+    const formattedMessage = `[${timestamp}] [${level}] ${message}`;
+
+    this.outputChannel.appendLine(formattedMessage);
+
+    if (args.length > 0) {
+      args.forEach((arg) => {
+        if (typeof arg === 'object') {
+          this.outputChannel.appendLine(JSON.stringify(arg, null, 2));
+        } else {
+          this.outputChannel.appendLine(String(arg));
         }
+      });
     }
+  }
 
-    info(message: string, ...args: any[]): void {
-        if (this.logLevel <= LogLevel.INFO) {
-            this.log('INFO', message, ...args);
-        }
-    }
+  showOutput(): void {
+    this.outputChannel.show();
+  }
 
-    warn(message: string, ...args: any[]): void {
-        if (this.logLevel <= LogLevel.WARN) {
-            this.log('WARN', message, ...args);
-        }
-    }
+  getOutputChannel(): vscode.OutputChannel {
+    return this.outputChannel;
+  }
 
-    error(message: string, ...args: any[]): void {
-        if (this.logLevel <= LogLevel.ERROR) {
-            this.log('ERROR', message, ...args);
-        }
-    }
-
-    private log(level: string, message: string, ...args: any[]): void {
-        const timestamp = new Date().toISOString();
-        const formattedMessage = `[${timestamp}] [${level}] ${message}`;
-        
-        this.outputChannel.appendLine(formattedMessage);
-        
-        if (args.length > 0) {
-            args.forEach(arg => {
-                if (typeof arg === 'object') {
-                    this.outputChannel.appendLine(JSON.stringify(arg, null, 2));
-                } else {
-                    this.outputChannel.appendLine(String(arg));
-                }
-            });
-        }
-    }
-
-    showOutput(): void {
-        this.outputChannel.show();
-    }
-
-    getOutputChannel(): vscode.OutputChannel {
-        return this.outputChannel;
-    }
-
-    dispose(): void {
-        this.outputChannel.dispose();
-    }
-} 
+  dispose(): void {
+    this.outputChannel.dispose();
+  }
+}

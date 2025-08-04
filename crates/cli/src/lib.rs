@@ -4,6 +4,7 @@ pub mod bootstrap_context;
 pub mod commands;
 pub mod config;
 pub mod context_rules;
+pub mod coordination;
 pub mod daemon;
 pub mod decision;
 pub mod dependencies;
@@ -17,9 +18,12 @@ pub mod insight;
 pub mod integrations;
 pub mod interactive;
 pub mod interactive_advanced;
+pub mod interactive_enhanced;
 pub mod interactive_builder;
 pub mod interactive_parser;
+// pub mod knowledge;  // Temporarily disabled due to compilation issues
 pub mod lock;
+pub mod locomo;  // LOCOMO integration for performance monitoring and analytics
 pub mod migrate;
 pub mod pattern;
 pub mod performance;
@@ -44,9 +48,9 @@ pub use rhema_core::{
     file_ops, schema::*, scope, JsonSchema, RhemaError, RhemaResult, SchemaMigratable, Validatable,
 };
 pub use rhema_mcp::*;
-pub use rhema_monitoring::{
-    PerformanceConfig, PerformanceMonitor, PerformanceReport, ReportPeriod, UsageData, UxData,
-};
+// pub use rhema_monitoring::{
+//     PerformanceConfig, PerformanceMonitor, PerformanceReport, ReportPeriod, UsageData, UxData,
+// };
 pub use rhema_query::repo_analysis::RepoAnalysis;
 
 // Define Rhema struct for CLI use

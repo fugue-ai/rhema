@@ -587,7 +587,11 @@ impl AdvancedInteractiveSession {
     }
 
     fn handle_dependencies(&mut self) -> RhemaResult<()> {
-        crate::dependencies::run(&self.rhema, false, false, false, false, false, "text")
+        let runtime = tokio::runtime::Runtime::new()?;
+        runtime.block_on(crate::dependencies::run(
+            &self.rhema,
+            false, false, false, false, false, false, false, "text", None
+        ))
     }
 
     fn handle_impact(&mut self, args: &[&str]) -> RhemaResult<()> {
@@ -1073,11 +1077,13 @@ impl AdvancedInteractiveSession {
         }
     }
 
-    fn visualize_dependencies(&self) {
-        match crate::dependencies::run(&self.rhema, false, false, true, false, false, "text") {
+    fn visualize_dependencies(&self) -> RhemaResult<()> {
+        let runtime = tokio::runtime::Runtime::new()?;
+        match runtime.block_on(crate::dependencies::run(&self.rhema, false, false, true, false, false, false, false, "text", None)) {
             Ok(_) => println!("{}", "Dependencies visualization complete".green()),
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
+        Ok(())
     }
 
     fn visualize_stats(&self) {
@@ -1378,7 +1384,11 @@ impl AdvancedInteractiveSession {
         &mut self,
         _parser: &mut InteractiveCommandParser,
     ) -> RhemaResult<()> {
-        crate::dependencies::run(&self.rhema, false, false, false, false, false, "text")
+        let runtime = tokio::runtime::Runtime::new()?;
+        runtime.block_on(crate::dependencies::run(
+            &self.rhema,
+            false, false, false, false, false, false, false, "text", None
+        ))
     }
 
     fn handle_impact_enhanced(&mut self, parser: &mut InteractiveCommandParser) -> RhemaResult<()> {

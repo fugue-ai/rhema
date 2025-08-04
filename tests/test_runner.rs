@@ -472,6 +472,135 @@ impl TestRunner {
         Ok(suite_result)
     }
 
+    /// Run coordination integration tests
+    pub fn run_coordination_integration_tests(&self) -> Result<TestResult, Box<dyn std::error::Error>> {
+        if !self.config.should_run_coordination_integration_tests() {
+            return Ok(TestResult::Skipped);
+        }
+
+        println!("🧪 Running Coordination Integration Tests...");
+        let start_time = Instant::now();
+        let mut passed = 0;
+        let mut failed = 0;
+        let mut skipped = 0;
+
+        // Run coordination integration tests
+        let coordination_tests = vec![
+            "test_coordination_agent_register",
+            "test_coordination_agent_list",
+            "test_coordination_agent_send_message",
+            "test_coordination_session_create",
+            "test_coordination_session_list",
+            "test_coordination_system_stats",
+            "test_coordination_system_health",
+        ];
+
+        for test_name in coordination_tests {
+            match self.run_single_test("coordination_integration", test_name) {
+                TestResult::Passed => passed += 1,
+                TestResult::Failed => failed += 1,
+                TestResult::Skipped => skipped += 1,
+                _ => {}
+            }
+        }
+
+        let duration = start_time.elapsed();
+        println!("✅ Coordination Integration Tests completed in {:?}", duration);
+        println!("   Passed: {}, Failed: {}, Skipped: {}", passed, failed, skipped);
+
+        if failed > 0 {
+            Ok(TestResult::Failed)
+        } else {
+            Ok(TestResult::Passed)
+        }
+    }
+
+    /// Run coordination performance benchmarks
+    pub fn run_coordination_benchmarks(&self) -> Result<TestResult, Box<dyn std::error::Error>> {
+        if !self.config.should_run_coordination_benchmarks() {
+            return Ok(TestResult::Skipped);
+        }
+
+        println!("⚡ Running Coordination Performance Benchmarks...");
+        let start_time = Instant::now();
+        let mut passed = 0;
+        let mut failed = 0;
+        let mut skipped = 0;
+
+        // Run coordination performance benchmarks
+        let coordination_benchmarks = vec![
+            "benchmark_agent_registration",
+            "benchmark_agent_listing",
+            "benchmark_agent_message_sending",
+            "benchmark_session_creation",
+            "benchmark_session_listing",
+            "benchmark_system_stats",
+            "benchmark_health_check",
+        ];
+
+        for benchmark_name in coordination_benchmarks {
+            match self.run_single_benchmark("coordination_performance", benchmark_name) {
+                TestResult::Passed => passed += 1,
+                TestResult::Failed => failed += 1,
+                TestResult::Skipped => skipped += 1,
+                _ => {}
+            }
+        }
+
+        let duration = start_time.elapsed();
+        println!("✅ Coordination Performance Benchmarks completed in {:?}", duration);
+        println!("   Passed: {}, Failed: {}, Skipped: {}", passed, failed, skipped);
+
+        if failed > 0 {
+            Ok(TestResult::Failed)
+        } else {
+            Ok(TestResult::Passed)
+        }
+    }
+
+    /// Run coordination security tests
+    pub fn run_coordination_security_tests(&self) -> Result<TestResult, Box<dyn std::error::Error>> {
+        if !self.config.should_run_coordination_security_tests() {
+            return Ok(TestResult::Skipped);
+        }
+
+        println!("🔒 Running Coordination Security Tests...");
+        let start_time = Instant::now();
+        let mut passed = 0;
+        let mut failed = 0;
+        let mut skipped = 0;
+
+        // Run coordination security tests
+        let coordination_security_tests = vec![
+            "test_coordination_sql_injection_agent_name",
+            "test_coordination_xss_agent_name",
+            "test_coordination_path_traversal_agent_name",
+            "test_coordination_command_injection_agent_name",
+            "test_coordination_malicious_message_payload",
+            "test_coordination_unauthorized_agent_access",
+            "test_coordination_session_hijacking_attempt",
+        ];
+
+        for test_name in coordination_security_tests {
+            match self.run_single_test("coordination_security", test_name) {
+                TestResult::Passed => passed += 1,
+                TestResult::Failed => failed += 1,
+                TestResult::Skipped => skipped += 1,
+                _ => {}
+            }
+        }
+
+        let duration = start_time.elapsed();
+        println!("✅ Coordination Security Tests completed in {:?}", duration);
+        println!("   Passed: {}, Failed: {}, Skipped: {}", passed, failed, skipped);
+
+        if failed > 0 {
+            Ok(TestResult::Failed)
+        } else {
+            Ok(TestResult::Passed)
+        }
+    }
+
     /// Run a test module
     fn run_test_module(
         &self,

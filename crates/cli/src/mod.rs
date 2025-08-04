@@ -45,6 +45,7 @@ pub mod bootstrap_context;
 pub mod daemon;
 pub mod interactive;
 pub mod interactive_advanced;
+pub mod interactive_enhanced;
 pub mod interactive_parser;
 pub mod interactive_builder;
 pub mod batch;
@@ -55,6 +56,7 @@ pub mod context_rules;
 pub mod workflow;
 pub mod template;
 pub mod commands;
+pub mod locomo;
 
 /// Common arguments for commands that need a scope
 #[derive(Args)]

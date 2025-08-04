@@ -1,0 +1,99 @@
+prompts:
+  - id: "code-review-1"
+    name: "Code Review Request"
+    description: "Request a code review for a pull request."
+    template: |
+      Please review the following code changes:
+      {{CONTEXT}}
+      Let me know if there are any issues or improvements.
+    injection: TemplateVariable
+    usage_analytics:
+      total_uses: 15
+      successful_uses: 13
+      last_used: "2025-01-15T10:30:00Z"
+      feedback_history:
+        - timestamp: "2025-01-15T10:30:00Z"
+          successful: true
+          feedback: "Great for security-focused reviews"
+        - timestamp: "2025-01-14T14:20:00Z"
+          successful: true
+          feedback: "Very helpful for catching bugs"
+    version:
+      current: "1.2.0"
+      created_at: "2025-01-01T00:00:00Z"
+      updated_at: "2025-01-15T10:30:00Z"
+      history:
+        - version: "1.0.0"
+          template: |
+            Please review this code:
+            {{CONTEXT}}
+          description: "Initial version"
+          timestamp: "2025-01-01T00:00:00Z"
+          author: null
+          changes: ["Initial creation"]
+        - version: "1.1.0"
+          template: |
+            Please review the following code changes:
+            {{CONTEXT}}
+            Let me know if there are any issues.
+          description: "Added more specific instructions"
+          timestamp: "2025-01-10T14:30:00Z"
+          author: "alice@example.com"
+          changes: ["Added specific instructions", "Improved clarity"]
+        - version: "1.2.0"
+          template: |
+            Please review the following code changes:
+            {{CONTEXT}}
+            Let me know if there are any issues or improvements.
+          description: "Added improvements section"
+          timestamp: "2025-01-15T10:30:00Z"
+          author: "bob@example.com"
+          changes: ["Added improvements section", "Enhanced feedback request"]
+    tags:
+      - code
+      - review
+      - pull-request
+
+  - id: "bug-report-1"
+    name: "Bug Report Template"
+    description: "Template for reporting a new bug."
+    template: |
+      Bug Report:
+      Title: 
+      Steps to Reproduce:
+      Expected Result:
+      Actual Result:
+      Additional Context:
+    injection: Prepend
+    usage_analytics:
+      total_uses: 8
+      successful_uses: 6
+      last_used: "2025-01-12T09:15:00Z"
+      feedback_history:
+        - timestamp: "2025-01-12T09:15:00Z"
+          successful: true
+          feedback: "Clear and comprehensive template"
+        - timestamp: "2025-01-10T16:45:00Z"
+          successful: false
+          feedback: "Could use more specific fields for our use case"
+    version:
+      current: "1.0.0"
+      created_at: "2025-01-05T00:00:00Z"
+      updated_at: "2025-01-05T00:00:00Z"
+      history:
+        - version: "1.0.0"
+          template: |
+            Bug Report:
+            Title: 
+            Steps to Reproduce:
+            Expected Result:
+            Actual Result:
+            Additional Context:
+          description: "Initial version"
+          timestamp: "2025-01-05T00:00:00Z"
+          author: null
+          changes: ["Initial creation"]
+    tags:
+      - bug
+      - report
+      - issue 

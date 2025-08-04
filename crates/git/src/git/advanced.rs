@@ -15,4 +15,4 @@
  */
 
 // Re-export all advanced Git integration modules
-pub use super::mod::*; 
+// This module provides advanced Git functionality 

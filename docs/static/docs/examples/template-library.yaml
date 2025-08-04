@@ -1,0 +1,167 @@
+name: "Security Templates Library"
+description: "Collection of security-focused prompt templates for code reviews and vulnerability assessment"
+owner: "security-team@example.com"
+version: "1.0.0"
+created_at: "2025-01-01T00:00:00Z"
+updated_at: "2025-01-15T10:30:00Z"
+tags:
+  - security
+  - code-review
+  - vulnerability-assessment
+  - best-practices
+access_control:
+  public: true
+  allowed_teams: null
+  allowed_users: null
+  read_only: false
+templates:
+  - id: "security-code-review-1"
+    name: "Security Code Review"
+    description: "Comprehensive security-focused code review template"
+    template: |
+      SECURITY CODE REVIEW
+      
+      Please perform a thorough security review of the following code:
+      
+      {{CONTEXT}}
+      
+      Focus areas:
+      - Input validation and sanitization
+      - Authentication and authorization
+      - Data encryption and protection
+      - SQL injection vulnerabilities
+      - Cross-site scripting (XSS)
+      - Cross-site request forgery (CSRF)
+      - Insecure direct object references
+      - Security misconfigurations
+      - Sensitive data exposure
+      
+      Please provide:
+      1. Security vulnerabilities found (if any)
+      2. Risk assessment for each issue
+      3. Recommended fixes
+      4. Security best practices to follow
+    metadata:
+      author: "security-team@example.com"
+      version: "1.0.0"
+      created_at: "2025-01-01T00:00:00Z"
+      updated_at: "2025-01-15T10:30:00Z"
+      category: "security"
+      complexity: "Advanced"
+      language: "general"
+      dependencies: null
+      examples:
+        - "Use for reviewing authentication code"
+        - "Use for reviewing database access code"
+        - "Use for reviewing API endpoints"
+    tags:
+      - security
+      - code-review
+      - vulnerability-assessment
+    usage_stats:
+      total_downloads: 45
+      total_uses: 32
+      average_rating: 4.8
+      rating_count: 12
+      last_downloaded: "2025-01-15T10:30:00Z"
+      last_used: "2025-01-14T16:45:00Z"
+
+  - id: "vulnerability-assessment-1"
+    name: "Vulnerability Assessment"
+    description: "Template for assessing potential vulnerabilities in code"
+    template: |
+      VULNERABILITY ASSESSMENT
+      
+      Assess the following code for potential security vulnerabilities:
+      
+      {{CONTEXT}}
+      
+      Assessment criteria:
+      - Common vulnerability patterns
+      - OWASP Top 10 risks
+      - Language-specific security issues
+      - Framework-specific vulnerabilities
+      - Third-party dependency risks
+      
+      Provide:
+      1. Identified vulnerabilities
+      2. Severity levels (Critical, High, Medium, Low)
+      3. Exploitation scenarios
+      4. Mitigation strategies
+      5. Security recommendations
+    metadata:
+      author: "security-team@example.com"
+      version: "1.0.0"
+      created_at: "2025-01-05T00:00:00Z"
+      updated_at: "2025-01-12T14:20:00Z"
+      category: "security"
+      complexity: "Expert"
+      language: "general"
+      dependencies: null
+      examples:
+        - "Use for new feature security assessment"
+        - "Use for third-party library evaluation"
+        - "Use for security audit preparation"
+    tags:
+      - security
+      - vulnerability-assessment
+      - owasp
+    usage_stats:
+      total_downloads: 28
+      total_uses: 18
+      average_rating: 4.6
+      rating_count: 8
+      last_downloaded: "2025-01-12T14:20:00Z"
+      last_used: "2025-01-11T09:15:00Z"
+
+  - id: "authentication-review-1"
+    name: "Authentication Review"
+    description: "Specialized template for reviewing authentication and authorization code"
+    template: |
+      AUTHENTICATION & AUTHORIZATION REVIEW
+      
+      Review the following authentication and authorization implementation:
+      
+      {{CONTEXT}}
+      
+      Review focus:
+      - Password policies and storage
+      - Session management
+      - Multi-factor authentication
+      - Role-based access control (RBAC)
+      - API authentication
+      - Token management
+      - Privilege escalation prevention
+      
+      Evaluate:
+      1. Authentication mechanisms
+      2. Authorization controls
+      3. Session security
+      4. Password security
+      5. Access control implementation
+      6. Security best practices compliance
+    metadata:
+      author: "security-team@example.com"
+      version: "1.0.0"
+      created_at: "2025-01-10T00:00:00Z"
+      updated_at: "2025-01-13T11:30:00Z"
+      category: "security"
+      complexity: "Advanced"
+      language: "general"
+      dependencies: null
+      examples:
+        - "Use for login system review"
+        - "Use for API authentication review"
+        - "Use for user management system review"
+    tags:
+      - security
+      - authentication
+      - authorization
+      - session-management
+    usage_stats:
+      total_downloads: 35
+      total_uses: 25
+      average_rating: 4.9
+      rating_count: 10
+      last_downloaded: "2025-01-13T11:30:00Z"
+      last_used: "2025-01-12T15:20:00Z" 

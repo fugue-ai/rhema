@@ -38,12 +38,12 @@
               "properties": {
                 "includes": {
                   "type": "array",
-                  "items": {"type": "string"},
+                  "items": { "type": "string" },
                   "description": "File patterns included in this scope"
                 },
                 "excludes": {
                   "type": "array",
-                  "items": {"type": "string"},
+                  "items": { "type": "string" },
                   "description": "File patterns excluded from this scope"
                 }
               }
@@ -57,19 +57,19 @@
                 },
                 "children": {
                   "type": "array",
-                  "items": {"type": "string"},
+                  "items": { "type": "string" },
                   "description": "Paths to child scopes"
                 },
                 "peers": {
                   "type": "array",
-                  "items": {"type": "string"},
+                  "items": { "type": "string" },
                   "description": "Paths to peer scopes this scope collaborates with"
                 }
               }
             },
             "responsibilities": {
               "type": "array",
-              "items": {"type": "string"},
+              "items": { "type": "string" },
               "description": "List of responsibilities this scope handles"
             },
             "tech": {
@@ -77,15 +77,145 @@
               "properties": {
                 "primary_languages": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
                 "frameworks": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
                 "databases": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
+                }
+              }
+            },
+            "locomo_metrics": {
+              "type": "object",
+              "description": "LOCOMO performance metrics for this scope",
+              "properties": {
+                "context_retrieval": {
+                  "type": "object",
+                  "properties": {
+                    "average_latency_ms": {
+                      "type": "number",
+                      "description": "Average context retrieval latency in milliseconds"
+                    },
+                    "success_rate": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Context retrieval success rate"
+                    },
+                    "relevance_score": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Context relevance score"
+                    },
+                    "coverage_score": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Context coverage score"
+                    }
+                  }
+                },
+                "context_compression": {
+                  "type": "object",
+                  "properties": {
+                    "compression_ratio": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Context compression ratio"
+                    },
+                    "quality_preservation": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Quality preservation during compression"
+                    },
+                    "compression_speed_ms": {
+                      "type": "number",
+                      "description": "Compression speed in milliseconds"
+                    }
+                  }
+                },
+                "ai_optimization": {
+                  "type": "object",
+                  "properties": {
+                    "token_reduction_percentage": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Token reduction percentage"
+                    },
+                    "quality_improvement": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Quality improvement score"
+                    },
+                    "optimization_speed_ms": {
+                      "type": "number",
+                      "description": "Optimization speed in milliseconds"
+                    }
+                  }
+                },
+                "quality_assessment": {
+                  "type": "object",
+                  "properties": {
+                    "overall_quality_score": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Overall quality score"
+                    },
+                    "relevance_score": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Relevance score"
+                    },
+                    "completeness_score": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Completeness score"
+                    },
+                    "accuracy_score": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Accuracy score"
+                    }
+                  }
+                },
+                "validation_metrics": {
+                  "type": "object",
+                  "properties": {
+                    "total_validations": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Total number of validations"
+                    },
+                    "passed_validations": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Number of passed validations"
+                    },
+                    "failed_validations": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Number of failed validations"
+                    },
+                    "success_rate": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Validation success rate"
+                    }
+                  }
                 }
               }
             }
@@ -96,12 +226,12 @@
           "properties": {
             "focus_areas": {
               "type": "array",
-              "items": {"type": "string"},
+              "items": { "type": "string" },
               "description": "Areas AI agents should focus on in this scope"
             },
             "recommended_analysis": {
               "type": "array",
-              "items": {"type": "string"},
+              "items": { "type": "string" },
               "description": "Types of analysis recommended for this scope"
             }
           }
@@ -110,4 +240,4 @@
     }
   },
   "additionalProperties": true
-} 
+}

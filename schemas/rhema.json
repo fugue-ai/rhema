@@ -4,7 +4,7 @@
   "$id": "https://rhema.dev/schemas/v1/",
   "title": "Rhema Schema Collection",
   "description": "JSON Schema definitions for Rhema Protocol YAML files",
-  
+
   "$defs": {
     "rhema_scope": {
       "$ref": "./scope.json"
@@ -26,6 +26,9 @@
     },
     "lock": {
       "$ref": "./lock.json"
+    },
+    "action": {
+      "$ref": "./action.json"
     }
   }
-} 
+}

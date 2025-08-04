@@ -1,0 +1,579 @@
+*rhema.txt*    Rhema Vim Plugin Documentation
+
+==============================================================================
+CONTENTS                                                    *rhema-contents*
+
+1. Introduction                                    |rhema-introduction|
+2. Installation                                    |rhema-installation|
+3. Configuration                                   |rhema-configuration|
+4. Commands                                        |rhema-commands|
+5. Key Mappings                                    |rhema-mappings|
+6. File Type Support                               |rhema-filetype|
+7. Completion                                      |rhema-completion|
+8. UI Features                                     |rhema-ui|
+9. Troubleshooting                                 |rhema-troubleshooting|
+10. Examples                                       |rhema-examples|
+
+==============================================================================
+INTRODUCTION                                                *rhema-introduction*
+
+The Rhema Vim Plugin provides comprehensive integration with the Rhema
+Git-Based Agent Context Protocol system. It offers syntax highlighting,
+completion, validation, and interactive commands for managing Rhema files
+and contexts.
+
+Features:
+- Syntax highlighting for Rhema YAML files
+- Context-aware completion
+- Interactive command execution
+- File validation and error highlighting
+- Sidebar for project exploration
+- Git integration
+- Performance monitoring
+- Caching system
+
+==============================================================================
+INSTALLATION                                              *rhema-installation*
+
+Manual Installation:
+1. Copy the plugin files to your Vim runtime directory:
+   >
+   cp -r editor-plugins/vim/* ~/.vim/
+   <
+
+2. Add to your .vimrc:
+   >
+   " Enable Rhema plugin
+   let g:rhema_enabled = 1
+   <
+
+Plugin Manager Installation:
+
+Using vim-plug:
+   >
+   Plug 'your-repo/rhema', { 'rtp': 'editor-plugins/vim' }
+   <
+
+Using Vundle:
+   >
+   Plugin 'your-repo/rhema'
+   <
+
+Using Pathogen:
+   >
+   git clone https://github.com/your-repo/rhema.git ~/.vim/bundle/rhema
+   <
+
+Requirements:
+- Vim 8.0+ or Neovim
+- Rhema CLI executable in PATH
+- Unix-like system (Linux, macOS)
+
+==============================================================================
+CONFIGURATION                                           *rhema-configuration*
+
+Global Variables:
+
+*g:rhema_enabled*
+    Enable/disable the plugin (default: 1)
+
+*g:rhema_executable*
+    Path to Rhema CLI executable (default: 'rhema')
+
+*g:rhema_auto_validate*
+    Auto-validate files on save (default: 1)
+
+*g:rhema_show_notifications*
+    Show notification messages (default: 1)
+
+*g:rhema_intellisense*
+    Enable IntelliSense features (default: 1)
+
+*g:rhema_debug_mode*
+    Enable debug logging (default: 0)
+
+*g:rhema_performance_profiling*
+    Enable performance profiling (default: 0)
+
+*g:rhema_context_exploration*
+    Enable context exploration features (default: 1)
+
+*g:rhema_git_integration*
+    Enable Git integration (default: 1)
+
+*g:rhema_auto_sync*
+    Auto-sync with Git (default: 0)
+
+*g:rhema_theme*
+    UI theme (default: 'auto')
+
+*g:rhema_language*
+    Language for messages (default: 'en')
+
+*g:rhema_timeout*
+    Command timeout in seconds (default: 30)
+
+*g:rhema_cache_enabled*
+    Enable caching (default: 1)
+
+*g:rhema_cache_ttl*
+    Cache TTL in seconds (default: 300)
+
+*g:rhema_no_mappings*
+    Disable key mappings (default: 0)
+
+*g:rhema_auto_format*
+    Auto-format files on save (default: 0)
+
+*g:rhema_show_status*
+    Show status in statusline (default: 0)
+
+Example configuration:
+   >
+   " Rhema plugin configuration
+   let g:rhema_enabled = 1
+   let g:rhema_executable = 'rhema'
+   let g:rhema_auto_validate = 1
+   let g:rhema_show_notifications = 1
+   let g:rhema_intellisense = 1
+   let g:rhema_debug_mode = 0
+   let g:rhema_performance_profiling = 0
+   let g:rhema_context_exploration = 1
+   let g:rhema_git_integration = 1
+   let g:rhema_auto_sync = 0
+   let g:rhema_theme = 'auto'
+   let g:rhema_language = 'en'
+   let g:rhema_timeout = 30
+   let g:rhema_cache_enabled = 1
+   let g:rhema_cache_ttl = 300
+   let g:rhema_no_mappings = 0
+   let g:rhema_auto_format = 0
+   let g:rhema_show_status = 0
+   <
+
+==============================================================================
+COMMANDS                                                    *rhema-commands*
+
+Ex Commands:
+
+:RhemaInitialize
+    Initialize a new Rhema scope
+
+:RhemaShowContext
+    Show current Rhema context
+
+:RhemaExecuteQuery
+    Execute a CQL query
+
+:RhemaSearchContext
+    Search in Rhema context
+
+:RhemaValidateFiles
+    Validate Rhema files
+
+:RhemaShowScopes
+    Show available scopes
+
+:RhemaShowTree
+    Show scope tree
+
+:RhemaManageTodos
+    Manage todos (add/list/complete/update/delete)
+
+:RhemaManageInsights
+    Manage insights (record/list/update/delete)
+
+:RhemaManagePatterns
+    Manage patterns (add/list/update/delete)
+
+:RhemaManageDecisions
+    Manage decisions (record/list/update/delete)
+
+:RhemaShowDependencies
+    Show dependencies
+
+:RhemaShowImpact
+    Show impact analysis
+
+:RhemaSyncKnowledge
+    Sync knowledge
+
+:RhemaGitIntegration
+    Git integration
+
+:RhemaShowStats
+    Show statistics
+
+:RhemaCheckHealth
+    Check health
+
+:RhemaDebugContext
+    Debug context
+
+:RhemaProfilePerformance
+    Profile performance
+
+:RhemaRefactorContext
+    Refactor context
+
+:RhemaGenerateCode
+    Generate code
+
+:RhemaShowDocumentation
+    Show documentation
+
+:RhemaConfigureSettings
+    Configure settings
+
+:RhemaShowSidebar
+    Show sidebar
+
+:RhemaStatus
+    Show plugin status
+
+:RhemaCacheClear
+    Clear cache
+
+:RhemaCacheStats
+    Show cache statistics
+
+Function Calls:
+
+rhema#init()
+    Initialize the plugin
+
+rhema#cleanup()
+    Clean up plugin resources
+
+rhema#status()
+    Get plugin status
+
+rhema#commands#init_scope()
+    Initialize scope
+
+rhema#commands#show_context()
+    Show context
+
+rhema#commands#execute_query()
+    Execute query
+
+rhema#commands#search_context()
+    Search context
+
+rhema#commands#validate_files()
+    Validate files
+
+rhema#commands#manage_todos()
+    Manage todos
+
+rhema#commands#manage_insights()
+    Manage insights
+
+rhema#commands#manage_patterns()
+    Manage patterns
+
+rhema#commands#manage_decisions()
+    Manage decisions
+
+rhema#ui#show_sidebar()
+    Show sidebar
+
+rhema#ui#show_output(output, title)
+    Show output in buffer
+
+rhema#validation#validate_file([file])
+    Validate file
+
+rhema#context#get_current()
+    Get current context
+
+rhema#cache#clear()
+    Clear cache
+
+rhema#cache#stats()
+    Get cache statistics
+
+==============================================================================
+KEY MAPPINGS                                              *rhema-mappings*
+
+Global Mappings (with leader key):
+
+<leader>gi    RhemaInitialize
+<leader>gc    RhemaShowContext
+<leader>gq    RhemaExecuteQuery
+<leader>gs    RhemaSearchContext
+<leader>gv    RhemaValidateFiles
+<leader>gp    RhemaShowScopes
+<leader>gt    RhemaShowTree
+<leader>gt    RhemaManageTodos
+<leader>gi    RhemaManageInsights
+<leader>gp    RhemaManagePatterns
+<leader>gd    RhemaManageDecisions
+<leader>gd    RhemaShowDependencies
+<leader>gi    RhemaShowImpact
+<leader>gk    RhemaSyncKnowledge
+<leader>gg    RhemaGitIntegration
+<leader>gs    RhemaShowStats
+<leader>gh    RhemaCheckHealth
+<leader>gb    RhemaDebugContext
+<leader>gf    RhemaProfilePerformance
+<leader>gr    RhemaRefactorContext
+<leader>gc    RhemaGenerateCode
+<leader>gh    RhemaShowDocumentation
+<leader>gc    RhemaConfigureSettings
+
+Buffer-local Mappings (in Rhema files):
+
+<leader>v     Validate current file
+<leader>c     Show current context
+<leader>s     Search in current file
+<leader>f     Format current file
+<leader>i     Show file statistics
+<leader>n     Next related file
+<leader>p     Previous related file
+<leader>tt    Insert todo template
+<leader>ti    Insert insight template
+<leader>tp    Insert pattern template
+<leader>td    Insert decision template
+
+Output Buffer Mappings:
+
+q             Close buffer
+<CR>          Open selected item
+/             Search in output
+n             Next search result
+N             Previous search result
+y             Copy current line
+Y             Copy all output
+r             Refresh output
+?             Show help
+
+Sidebar Mappings:
+
+q             Close sidebar
+<CR>          Open selected file
+r             Refresh sidebar
+?             Show help
+
+==============================================================================
+FILE TYPE SUPPORT                                        *rhema-filetype*
+
+The plugin automatically detects and provides support for the following
+file types:
+
+- *.rhema.yml
+- rhema.yml
+- scope.yaml
+- knowledge.yaml
+- todos.yaml
+- decisions.yaml
+- patterns.yaml
+- conventions.yaml
+
+Features for Rhema files:
+- Syntax highlighting
+- Auto-indentation
+- Completion
+- Validation
+- Error highlighting
+- Quick navigation
+- Template insertion
+
+==============================================================================
+COMPLETION                                                *rhema-completion*
+
+The plugin provides context-aware completion for Rhema files:
+
+Omni-completion (Ctrl-X Ctrl-O):
+- Keywords
+- Commands
+- File paths
+- Values based on key context
+
+Command-line completion:
+- Rhema commands
+- File names
+- Options
+
+Template completion:
+- Todo templates
+- Insight templates
+- Pattern templates
+- Decision templates
+
+Completion is automatically enabled for Rhema file types.
+
+==============================================================================
+UI FEATURES                                                 *rhema-ui*
+
+Output Buffers:
+- Dedicated buffers for command output
+- Syntax highlighting
+- Search functionality
+- Copy/paste support
+- Navigation between items
+
+Sidebar:
+- Project context overview
+- File navigation
+- Quick access to scopes
+- Recent items
+
+Interactive Prompts:
+- Command-line prompts for options
+- Confirmation dialogs
+- Selection menus
+- Progress indicators
+
+Status Messages:
+- Success messages
+- Error messages
+- Warning messages
+- Info messages
+
+==============================================================================
+TROUBLESHOOTING                                    *rhema-troubleshooting*
+
+Common Issues:
+
+1. "Rhema executable not found"
+   Solution: Ensure rhema CLI is installed and in PATH
+
+2. "Command failed"
+   Solution: Check rhema CLI installation and permissions
+
+3. "No completion"
+   Solution: Ensure filetype is set to 'rhema'
+
+4. "No syntax highlighting"
+   Solution: Check if syntax is enabled and filetype is correct
+
+5. "Plugin not loading"
+   Solution: Check Vim version (8.0+) and plugin installation
+
+Debug Mode:
+Enable debug mode to see detailed logs:
+   >
+   let g:rhema_debug_mode = 1
+   <
+
+Performance Issues:
+- Disable performance profiling if not needed
+- Clear cache if memory usage is high
+- Check timeout settings
+
+==============================================================================
+EXAMPLES                                                   *rhema-examples*
+
+Basic Usage:
+
+1. Initialize a new scope:
+   >
+   :RhemaInitialize
+   <
+
+2. Show current context:
+   >
+   :RhemaShowContext
+   <
+
+3. Execute a query:
+   >
+   :RhemaExecuteQuery
+   <
+
+4. Validate files:
+   >
+   :RhemaValidateFiles
+   <
+
+5. Manage todos:
+   >
+   :RhemaManageTodos
+   <
+
+Advanced Usage:
+
+1. Show sidebar:
+   >
+   :RhemaShowSidebar
+   <
+
+2. Check plugin status:
+   >
+   :RhemaStatus
+   <
+
+3. Clear cache:
+   >
+   :RhemaCacheClear
+   <
+
+4. Profile performance:
+   >
+   :RhemaProfilePerformance
+   <
+
+5. Debug context:
+   >
+   :RhemaDebugContext
+   <
+
+File Editing:
+
+1. Open a Rhema file:
+   >
+   :edit scope.yaml
+   <
+
+2. Use completion:
+   - Press Ctrl-X Ctrl-O for omni-completion
+   - Type ':' and use command-line completion
+
+3. Insert templates:
+   - <leader>tt for todo template
+   - <leader>ti for insight template
+   - <leader>tp for pattern template
+   - <leader>td for decision template
+
+4. Validate current file:
+   >
+   <leader>v
+   <
+
+Configuration Examples:
+
+Minimal configuration:
+   >
+   let g:rhema_enabled = 1
+   <
+
+Full configuration:
+   >
+   " Rhema plugin configuration
+   let g:rhema_enabled = 1
+   let g:rhema_executable = 'rhema'
+   let g:rhema_auto_validate = 1
+   let g:rhema_show_notifications = 1
+   let g:rhema_intellisense = 1
+   let g:rhema_debug_mode = 0
+   let g:rhema_performance_profiling = 0
+   let g:rhema_context_exploration = 1
+   let g:rhema_git_integration = 1
+   let g:rhema_auto_sync = 0
+   let g:rhema_theme = 'auto'
+   let g:rhema_language = 'en'
+   let g:rhema_timeout = 30
+   let g:rhema_cache_enabled = 1
+   let g:rhema_cache_ttl = 300
+   let g:rhema_no_mappings = 0
+   let g:rhema_auto_format = 0
+   let g:rhema_show_status = 0
+   <
+
+==============================================================================
+
+For more information, visit: https://github.com/your-repo/rhema
+
+Copyright 2025 Cory Parent
+Licensed under the Apache License, Version 2.0 

@@ -1,0 +1,289 @@
+# Rhema Validation Rules Configuration Example
+# This file demonstrates how to define custom validation rules for Rhema configurations
+
+# Global validation settings
+global_settings:
+  strict_mode: false
+  auto_fix: true
+  fail_fast: false
+  max_issues: 100
+  cache_enabled: true
+  cache_ttl: 300
+  parallel_validation: true
+  max_parallel: 4
+
+# Individual validation rules
+rules:
+  # Rule 1: Required fields validation
+  - id: "required-fields"
+    name: "Required Fields Check"
+    description: "Ensure all required fields are present in Rhema configuration"
+    rule_type: "Schema"
+    severity: "Error"
+    enabled: true
+    conditions:
+      - field: "rhema.version"
+        operator: "Exists"
+        value: true
+        case_sensitive: null
+      - field: "rhema.scope.type"
+        operator: "Exists"
+        value: true
+        case_sensitive: null
+      - field: "rhema.scope.name"
+        operator: "IsNotEmpty"
+        value: ""
+        case_sensitive: null
+    actions:
+      - action_type: "Error"
+        parameters: {}
+        enabled: true
+    metadata:
+      category: "schema"
+      priority: "high"
+
+  # Rule 2: Version compatibility check
+  - id: "version-compatibility"
+    name: "Version Compatibility Check"
+    description: "Check if Rhema version is compatible"
+    rule_type: "Schema"
+    severity: "Warning"
+    enabled: true
+    conditions:
+      - field: "rhema.version"
+        operator: "StartsWith"
+        value: "1."
+        case_sensitive: true
+    actions:
+      - action_type: "Warn"
+        parameters:
+          message: "Consider upgrading to the latest version"
+        enabled: true
+    metadata:
+      category: "compatibility"
+      priority: "medium"
+
+  # Rule 3: Scope type validation
+  - id: "scope-type-validation"
+    name: "Scope Type Validation"
+    description: "Validate scope type is one of the allowed values"
+    rule_type: "Business"
+    severity: "Error"
+    enabled: true
+    conditions:
+      - field: "rhema.scope.type"
+        operator: "In"
+        value: ["repository", "service", "application", "library", "component"]
+        case_sensitive: true
+    actions:
+      - action_type: "Error"
+        parameters: {}
+        enabled: true
+    metadata:
+      category: "business"
+      priority: "high"
+
+  # Rule 4: Security check for sensitive information
+  - id: "sensitive-info-check"
+    name: "Sensitive Information Check"
+    description: "Check for exposed sensitive information in configuration"
+    rule_type: "Security"
+    severity: "Warning"
+    enabled: true
+    conditions:
+      - field: "password"
+        operator: "Exists"
+        value: true
+        case_sensitive: null
+      - field: "secret"
+        operator: "Exists"
+        value: true
+        case_sensitive: null
+      - field: "token"
+        operator: "Exists"
+        value: true
+        case_sensitive: null
+    actions:
+      - action_type: "Warn"
+        parameters:
+          message: "Sensitive information should be stored in environment variables"
+        enabled: true
+      - action_type: "Transform"
+        parameters:
+          suggestion: "Use ${ENV_VAR_NAME} format"
+        enabled: true
+    metadata:
+      category: "security"
+      priority: "high"
+
+  # Rule 5: Performance check for large arrays
+  - id: "large-array-check"
+    name: "Large Array Performance Check"
+    description: "Warn about large arrays that might impact performance"
+    rule_type: "Performance"
+    severity: "Warning"
+    enabled: true
+    conditions:
+      - field: "knowledge"
+        operator: "GreaterThan"
+        value: 1000
+        case_sensitive: null
+    actions:
+      - action_type: "Warn"
+        parameters:
+          message: "Large knowledge array detected - consider pagination or splitting"
+        enabled: true
+    metadata:
+      category: "performance"
+      priority: "medium"
+
+  # Rule 6: Dependency validation
+  - id: "dependency-validation"
+    name: "Dependency Validation"
+    description: "Validate dependency structure and requirements"
+    rule_type: "Business"
+    severity: "Error"
+    enabled: true
+    conditions:
+      - field: "dependencies"
+        operator: "Exists"
+        value: true
+        case_sensitive: null
+    actions:
+      - action_type: "Log"
+        parameters:
+          message: "Validating dependencies"
+        enabled: true
+    metadata:
+      category: "business"
+      priority: "medium"
+
+  # Rule 7: Naming convention check
+  - id: "naming-convention"
+    name: "Naming Convention Check"
+    description: "Check if names follow proper naming conventions"
+    rule_type: "Format"
+    severity: "Warning"
+    enabled: true
+    conditions:
+      - field: "rhema.scope.name"
+        operator: "Regex"
+        value: "^[a-z0-9-]+$"
+        case_sensitive: true
+    actions:
+      - action_type: "Warn"
+        parameters:
+          message: "Scope name should use lowercase letters, numbers, and hyphens only"
+        enabled: true
+    metadata:
+      category: "format"
+      priority: "low"
+
+  # Rule 8: Circular dependency check
+  - id: "circular-dependency-check"
+    name: "Circular Dependency Check"
+    description: "Check for circular dependencies in todos"
+    rule_type: "Business"
+    severity: "Error"
+    enabled: true
+    conditions:
+      - field: "todos"
+        operator: "Exists"
+        value: true
+        case_sensitive: null
+    actions:
+      - action_type: "Error"
+        parameters:
+          message: "Circular dependencies detected in todos"
+        enabled: true
+    metadata:
+      category: "business"
+      priority: "high"
+
+# Rule sets for grouping related rules
+rule_sets:
+  schema_validation:
+    name: "Schema Validation Rules"
+    description: "Core schema validation rules"
+    rules: ["required-fields", "version-compatibility", "scope-type-validation"]
+    enabled: true
+    priority: 1
+
+  security_rules:
+    name: "Security Rules"
+    description: "Security-related validation rules"
+    rules: ["sensitive-info-check"]
+    enabled: true
+    priority: 2
+
+  performance_rules:
+    name: "Performance Rules"
+    description: "Performance optimization rules"
+    rules: ["large-array-check"]
+    enabled: true
+    priority: 3
+
+  business_rules:
+    name: "Business Rules"
+    description: "Business logic validation rules"
+    rules: ["dependency-validation", "circular-dependency-check"]
+    enabled: true
+    priority: 4
+
+  format_rules:
+    name: "Format Rules"
+    description: "Format and naming convention rules"
+    rules: ["naming-convention"]
+    enabled: true
+    priority: 5
+
+# Schema overrides for customizing schema validation
+schema_overrides:
+  rhema:
+    schema_path: "./schemas/rhema.json"
+    overrides:
+      additional_properties: false
+      strict_validation: true
+    additional_properties: false
+    strict_validation: true
+
+  scope:
+    schema_path: "./schemas/scope.json"
+    overrides:
+      additional_properties: true
+    additional_properties: true
+    strict_validation: false
+
+# Custom validators for domain-specific validation
+custom_validators:
+  git_integration:
+    name: "Git Integration Validator"
+    description: "Validates Git-related configuration"
+    validator_type: "git"
+    parameters:
+      check_hooks: true
+      validate_branches: true
+      check_remotes: false
+    enabled: true
+    priority: 1
+
+  path_validator:
+    name: "Path Validator"
+    description: "Validates file and directory paths"
+    validator_type: "path"
+    parameters:
+      check_existence: true
+      validate_permissions: true
+      allowed_extensions: [".yaml", ".yml", ".json"]
+    enabled: true
+    priority: 2
+
+  environment_validator:
+    name: "Environment Validator"
+    description: "Validates environment-specific configuration"
+    validator_type: "environment"
+    parameters:
+      allowed_environments: ["development", "staging", "production"]
+      check_secrets: true
+    enabled: true
+    priority: 3 

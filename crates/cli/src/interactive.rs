@@ -738,7 +738,11 @@ impl InteractiveSession {
     }
 
     fn handle_dependencies(&mut self) -> RhemaResult<()> {
-        crate::dependencies::run(&self.rhema, false, false, false, false, false, "text")
+        let runtime = tokio::runtime::Runtime::new()?;
+        runtime.block_on(crate::dependencies::run(
+            &self.rhema,
+            false, false, false, false, false, false, false, "text", None
+        ))
     }
 
     fn handle_impact(&mut self, args: &[&str]) -> RhemaResult<()> {
@@ -959,10 +963,14 @@ impl InteractiveSession {
                 watch_dirs: ".rhema".to_string(),
                 log_level: "info".to_string(),
                 foreground: false,
+                pid_file: std::path::PathBuf::from("/tmp/rhema-mcp.pid"),
+                log_file: None,
+                work_dir: None,
             }
         } else if args.contains(&"stop") {
             crate::daemon::DaemonSubcommand::Stop {
                 pid_file: std::path::PathBuf::from("/tmp/rhema-mcp.pid"),
+                force: false,
             }
         } else if args.contains(&"restart") {
             crate::daemon::DaemonSubcommand::Restart {
@@ -972,6 +980,7 @@ impl InteractiveSession {
                     .and_then(|i| args.get(i + 1))
                     .map(|s| std::path::PathBuf::from(s)),
                 pid_file: std::path::PathBuf::from("/tmp/rhema-mcp.pid"),
+                force: false,
             }
         } else if args.contains(&"status") {
             crate::daemon::DaemonSubcommand::Status {
@@ -1115,7 +1124,11 @@ impl InteractiveSession {
                 self.visualize_scopes();
             }
             "dependencies" => {
-                self.visualize_dependencies();
+                let runtime = tokio::runtime::Runtime::new()?;
+                match runtime.block_on(crate::dependencies::run(&self.rhema, false, false, false, false, false, false, false, "text", None)) {
+                    Ok(_) => println!("{}", "Dependencies visualization complete".green()),
+                    Err(e) => eprintln!("{}", e.to_string().red()),
+                }
             }
             "stats" => {
                 self.visualize_stats();
@@ -1191,11 +1204,13 @@ impl InteractiveSession {
         }
     }
 
-    fn visualize_dependencies(&self) {
-                    match crate::dependencies::run(&self.rhema, false, false, false, false, false, "text") {
+    fn visualize_dependencies(&self) -> RhemaResult<()> {
+        let runtime = tokio::runtime::Runtime::new()?;
+        match runtime.block_on(crate::dependencies::run(&self.rhema, false, false, false, false, false, false, false, "text", None)) {
             Ok(_) => println!("{}", "Dependencies visualization complete".green()),
             Err(e) => eprintln!("{}", e.to_string().red()),
         }
+        Ok(())
     }
 
     fn visualize_stats(&self) {

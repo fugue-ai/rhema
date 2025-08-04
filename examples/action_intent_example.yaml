@@ -1,0 +1,74 @@
+rhema:
+  version: "1.0.0"
+  intent:
+    id: "intent-001"
+    action_type: "refactor"
+    description: "Extract authentication logic into separate module"
+    scope: 
+      - "src/auth/"
+      - "src/middleware/"
+      - "src/utils/auth.js"
+    safety_level: "medium"
+    
+    context_refs:
+      - file: "architecture.rhema.yaml"
+        section: "auth_patterns"
+      - file: "knowledge.rhema.yaml"
+        section: "security_best_practices"
+      - file: "src/auth/index.js"
+        lines: [1, 50]
+    
+    transformation:
+      tools: 
+        - "jscodeshift"
+        - "prettier"
+        - "eslint"
+      validation:
+        - "typescript"
+        - "jest"
+        - "lint"
+      rollback_strategy: "git_revert"
+      timeout: 300
+      
+    safety_checks:
+      pre_execution:
+        - "syntax_validation"
+        - "type_checking"
+        - "test_coverage"
+      post_execution:
+        - "build_validation"
+        - "test_execution"
+        - "lint_checking"
+      timeout: 600
+    
+    approval_workflow:
+      required: true
+      approvers:
+        - "senior_dev"
+        - "security_team"
+      auto_approve_for:
+        - "low_risk"
+        - "test_only"
+      timeout: 3600
+      notification_channels:
+        - "email"
+        - "slack"
+    
+    metadata:
+      priority: "high"
+      estimated_effort: "2-3 hours"
+      risk_assessment: "medium"
+      impact_analysis: "affects authentication flow"
+    
+    created_at: "2025-01-15T10:30:00Z"
+    created_by: "developer@example.com"
+    
+    tags:
+      - "refactoring"
+      - "authentication"
+      - "security"
+      - "javascript"
+    
+    priority: "high"
+    estimated_effort: "2-3 hours"
+    dependencies: [] 

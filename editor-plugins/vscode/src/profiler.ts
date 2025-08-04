@@ -20,76 +20,76 @@ import { RhemaSettings } from './settings';
 import { RhemaErrorHandler } from './errorHandler';
 
 export class RhemaProfiler {
-    private logger: RhemaLogger;
-    private settings: RhemaSettings;
-    private errorHandler: RhemaErrorHandler;
-    private profileOutputChannel: vscode.OutputChannel;
-    private activeProfiles: Map<string, number> = new Map();
+  private logger: RhemaLogger;
+  private settings: RhemaSettings;
+  private errorHandler: RhemaErrorHandler;
+  private profileOutputChannel: vscode.OutputChannel;
+  private activeProfiles: Map<string, number> = new Map();
 
-    constructor() {
-        this.logger = new RhemaLogger();
-        this.settings = new RhemaSettings();
-        this.errorHandler = new RhemaErrorHandler(this.logger);
-        this.profileOutputChannel = vscode.window.createOutputChannel('Rhema Profiler');
+  constructor() {
+    this.logger = new RhemaLogger();
+    this.settings = new RhemaSettings();
+    this.errorHandler = new RhemaErrorHandler(this.logger);
+    this.profileOutputChannel = vscode.window.createOutputChannel('Rhema Profiler');
+  }
+
+  async initialize(context: vscode.ExtensionContext): Promise<void> {
+    try {
+      this.logger.info('Initializing Rhema profiler...');
+      this.logger.info('Rhema profiler initialized successfully');
+    } catch (error) {
+      this.errorHandler.handleError('Failed to initialize Rhema profiler', error);
+    }
+  }
+
+  startProfile(name: string): void {
+    const startTime = Date.now();
+    this.activeProfiles.set(name, startTime);
+    this.profileOutputChannel.appendLine(`[PROFILE START] ${name}`);
+  }
+
+  endProfile(name: string): number {
+    const startTime = this.activeProfiles.get(name);
+    if (!startTime) {
+      this.logger.warn(`Profile '${name}' was not started`);
+      return 0;
     }
 
-    async initialize(context: vscode.ExtensionContext): Promise<void> {
-        try {
-            this.logger.info('Initializing Rhema profiler...');
-            this.logger.info('Rhema profiler initialized successfully');
-        } catch (error) {
-            this.errorHandler.handleError('Failed to initialize Rhema profiler', error);
-        }
-    }
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    this.activeProfiles.delete(name);
 
-    startProfile(name: string): void {
-        const startTime = Date.now();
-        this.activeProfiles.set(name, startTime);
-        this.profileOutputChannel.appendLine(`[PROFILE START] ${name}`);
-    }
+    this.profileOutputChannel.appendLine(`[PROFILE END] ${name}: ${duration}ms`);
+    return duration;
+  }
 
-    endProfile(name: string): number {
-        const startTime = this.activeProfiles.get(name);
-        if (!startTime) {
-            this.logger.warn(`Profile '${name}' was not started`);
-            return 0;
-        }
-
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-        this.activeProfiles.delete(name);
-        
-        this.profileOutputChannel.appendLine(`[PROFILE END] ${name}: ${duration}ms`);
-        return duration;
+  async profileOperation<T>(name: string, operation: () => Promise<T>): Promise<T> {
+    this.startProfile(name);
+    try {
+      const result = await operation();
+      this.endProfile(name);
+      return result;
+    } catch (error) {
+      this.endProfile(name);
+      throw error;
     }
+  }
 
-    async profileOperation<T>(name: string, operation: () => Promise<T>): Promise<T> {
-        this.startProfile(name);
-        try {
-            const result = await operation();
-            this.endProfile(name);
-            return result;
-        } catch (error) {
-            this.endProfile(name);
-            throw error;
-        }
-    }
+  showProfileOutput(): void {
+    this.profileOutputChannel.show();
+  }
 
-    showProfileOutput(): void {
-        this.profileOutputChannel.show();
-    }
+  clearProfiles(): void {
+    this.activeProfiles.clear();
+    this.profileOutputChannel.clear();
+  }
 
-    clearProfiles(): void {
-        this.activeProfiles.clear();
-        this.profileOutputChannel.clear();
-    }
+  async dispose(): Promise<void> {
+    this.activeProfiles.clear();
+    this.profileOutputChannel.dispose();
+  }
 
-    async dispose(): Promise<void> {
-        this.activeProfiles.clear();
-        this.profileOutputChannel.dispose();
-    }
-
-    async deactivate(): Promise<void> {
-        await this.dispose();
-    }
-} 
+  async deactivate(): Promise<void> {
+    await this.dispose();
+  }
+}

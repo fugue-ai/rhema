@@ -6,6 +6,7 @@ pub mod helpers;
 pub mod generators;
 pub mod enhanced_fixtures;
 pub mod enhanced_mocks;
+pub mod coordination_fixtures;
 
 use std::path::PathBuf;
 use tempfile::TempDir;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::config::{SafetyValidator, SafetyViolation};
+
 use crate::{Config, ConfigAuditLog, ConfigHealth, ConfigStats, CURRENT_CONFIG_VERSION};
 use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
@@ -896,6 +896,18 @@ impl RepositoryConfig {
             config.save(repo_path)?;
             Ok(config)
         }
+    }
+
+    /// Load repository configuration from JSON string
+    pub fn load_from_json(json: &str) -> RhemaResult<Self> {
+        let config: Self = serde_json::from_str(json).map_err(|e| {
+            rhema_core::RhemaError::InvalidJson {
+                message: e.to_string(),
+            }
+        })?;
+
+        config.validate_config()?;
+        Ok(config)
     }
 
     /// Save repository configuration to file

@@ -15,8 +15,7 @@
  */
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
+
 
 /// Configuration environment types
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -60,7 +59,7 @@ pub struct ConfigHealth {
 }
 
 /// Configuration health status
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ConfigHealthStatus {
     Healthy,
     Warning,
@@ -89,22 +88,22 @@ impl ConfigStats {
 }
 
 /// Configuration error types
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone)]
 pub enum ConfigError {
     #[error("IO error: {0}")]
-    IoError(std::io::Error),
+    IoError(String),
 
     #[error("Serialization error: {0}")]
-    SerializationError(serde_json::Error),
+    SerializationError(String),
 
     #[error("YAML error: {0}")]
-    YamlError(serde_yaml::Error),
+    YamlError(String),
 
     #[error("TOML error: {0}")]
-    TomlError(toml::de::Error),
+    TomlError(String),
 
     #[error("Bincode error: {0}")]
-    BincodeError(bincode::Error),
+    BincodeError(String),
 
     #[error("Version mismatch: expected {expected}, found {found}")]
     VersionMismatch { expected: String, found: String },
@@ -117,6 +116,9 @@ pub enum ConfigError {
 
     #[error("Backup failed: {0}")]
     BackupFailed(String),
+
+    #[error("Validation error: {0}")]
+    ValidationError(String),
 }
 
 /// Configuration change types
@@ -138,7 +140,7 @@ pub struct ConfigChange {
 }
 
 /// Configuration issue severity
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
 pub enum ConfigIssueSeverity {
     Critical,
     Error,

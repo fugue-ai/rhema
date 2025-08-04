@@ -10,10 +10,16 @@ pub struct TestConfig {
     pub run_slow_tests: bool,
     /// Whether to run integration tests
     pub run_integration_tests: bool,
+    /// Whether to run coordination integration tests
+    pub run_coordination_integration_tests: bool,
     /// Whether to run performance tests
     pub run_performance_tests: bool,
+    /// Whether to run coordination benchmarks
+    pub run_coordination_benchmarks: bool,
     /// Whether to run security tests
     pub run_security_tests: bool,
+    /// Whether to run coordination security tests
+    pub run_coordination_security: bool,
     /// Test data directory
     pub test_data_dir: PathBuf,
     /// Maximum test timeout in seconds
@@ -37,8 +43,11 @@ impl Default for TestConfig {
         Self {
             run_slow_tests: env::var("RHEMA_RUN_SLOW_TESTS").is_ok(),
             run_integration_tests: env::var("RHEMA_RUN_INTEGRATION_TESTS").is_ok(),
+            run_coordination_integration_tests: env::var("RHEMA_RUN_COORDINATION_INTEGRATION_TESTS").is_ok(),
             run_performance_tests: env::var("RHEMA_RUN_PERFORMANCE_TESTS").is_ok(),
+            run_coordination_benchmarks: env::var("RHEMA_RUN_COORDINATION_BENCHMARKS").is_ok(),
             run_security_tests: env::var("RHEMA_RUN_SECURITY_TESTS").is_ok(),
+            run_coordination_security: env::var("RHEMA_RUN_COORDINATION_SECURITY").is_ok(),
             test_data_dir: PathBuf::from("tests/data"),
             max_test_timeout: env::var("RHEMA_TEST_TIMEOUT")
                 .unwrap_or_else(|_| "300".to_string())
@@ -101,6 +110,21 @@ impl TestConfig {
     /// Check if load tests should be run
     pub fn should_run_load_tests(&self) -> bool {
         self.run_load_tests
+    }
+
+    /// Check if coordination integration tests should be run
+    pub fn should_run_coordination_integration_tests(&self) -> bool {
+        self.run_integration_tests && self.run_coordination_integration_tests
+    }
+
+    /// Check if coordination performance benchmarks should be run
+    pub fn should_run_coordination_benchmarks(&self) -> bool {
+        self.run_performance_tests && self.run_coordination_benchmarks
+    }
+
+    /// Check if coordination security tests should be run
+    pub fn should_run_coordination_security_tests(&self) -> bool {
+        self.run_security_tests && self.run_coordination_security
     }
 
     /// Get test data directory

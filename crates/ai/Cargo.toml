@@ -22,9 +22,18 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 reqwest = { workspace = true }
 async-trait = { workspace = true }
-tokio = { workspace = true, features = ["sync", "time"] }
+tokio = { workspace = true, features = ["full"] }
 cached = { workspace = true }
 sha2 = "0.10"
+clap = { workspace = true }
+dashmap = "5.5"
+
+# gRPC dependencies
+tonic = "0.10"
+prost = "0.12"
+
+[build-dependencies]
+tonic-build = "0.10"
 
 [dev-dependencies]
 tempfile = { workspace = true }

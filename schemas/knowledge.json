@@ -12,10 +12,10 @@
         "^[a-zA-Z][a-zA-Z0-9_]*$": {
           "type": "object",
           "properties": {
-            "description": {"type": "string"},
+            "description": { "type": "string" },
             "key_files": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "interfaces": {
               "type": "object",
@@ -27,15 +27,15 @@
                     "items": {
                       "type": "object",
                       "properties": {
-                        "path": {"type": "string"},
-                        "method": {"type": "string"},
-                        "purpose": {"type": "string"}
+                        "path": { "type": "string" },
+                        "method": { "type": "string" },
+                        "purpose": { "type": "string" }
                       }
                     }
                   },
                   "consumers": {
                     "type": "array",
-                    "items": {"type": "string"}
+                    "items": { "type": "string" }
                   }
                 }
               }
@@ -45,11 +45,11 @@
               "properties": {
                 "internal": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
                 "external": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 }
               }
             },
@@ -59,14 +59,14 @@
                 "type": "object",
                 "required": ["issue", "severity"],
                 "properties": {
-                  "issue": {"type": "string"},
+                  "issue": { "type": "string" },
                   "severity": {
                     "type": "string",
                     "enum": ["low", "medium", "high", "critical"]
                   },
-                  "impact": {"type": "string"},
-                  "workaround": {"type": "string"},
-                  "tracked_in": {"type": "string"},
+                  "impact": { "type": "string" },
+                  "workaround": { "type": "string" },
+                  "tracked_in": { "type": "string" },
                   "discovered": {
                     "type": "string",
                     "format": "date"
@@ -103,12 +103,12 @@
                   "type": "string",
                   "enum": ["low", "medium", "high"]
                 },
-                "description": {"type": "string"},
+                "description": { "type": "string" },
                 "examples": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": { "type": "string" }
                 },
-                "conventions": {"type": "string"}
+                "conventions": { "type": "string" }
               }
             }
           }
@@ -116,19 +116,19 @@
         "data_flow": {
           "type": "object",
           "properties": {
-            "primary": {"type": "string"},
+            "primary": { "type": "string" },
             "exceptions": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": { "type": "string" }
             },
             "bottlenecks": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "location": {"type": "string"},
-                  "impact": {"type": "string"},
-                  "mitigation": {"type": "string"}
+                  "location": { "type": "string" },
+                  "impact": { "type": "string" },
+                  "mitigation": { "type": "string" }
                 }
               }
             }
@@ -145,10 +145,10 @@
             "type": "object",
             "required": ["finding", "confidence"],
             "properties": {
-              "finding": {"type": "string"},
-              "impact": {"type": "string"},
-              "solution": {"type": "string"},
-              "insight": {"type": "string"},
+              "finding": { "type": "string" },
+              "impact": { "type": "string" },
+              "solution": { "type": "string" },
+              "insight": { "type": "string" },
               "confidence": {
                 "type": "string",
                 "enum": ["low", "medium", "high"]
@@ -159,15 +159,15 @@
               },
               "evidence": {
                 "type": "array",
-                "items": {"type": "string"}
+                "items": { "type": "string" }
               },
               "applicability": {
                 "type": "array",
-                "items": {"type": "string"}
+                "items": { "type": "string" }
               },
               "related_files": {
                 "type": "array",
-                "items": {"type": "string"}
+                "items": { "type": "string" }
               }
             }
           }
@@ -176,4 +176,4 @@
     }
   },
   "additionalProperties": true
-} 
+}

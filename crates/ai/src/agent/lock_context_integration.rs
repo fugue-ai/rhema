@@ -15,9 +15,8 @@
  */
 
 use crate::agent::lock_context::*;
-use crate::context_injection::{EnhancedContextInjector, LockFileContextRequirement, TaskType};
+use crate::context_injection::{EnhancedContextInjector, LockFileContextRequirement};
 use rhema_core::{RhemaResult, PromptPattern, PromptInjectionMethod};
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// Integration example for using lock file context with AI agents

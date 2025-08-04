@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use crate::search::{SearchEngine, SearchOptions, SearchType, SearchFilter};
 
 /// Provenance information for query execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -237,6 +238,9 @@ pub enum TransformationType {
 /// CQL query structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CqlQuery {
+    /// Query string
+    pub query: String,
+    
     /// Target file or path
     pub target: String,
 
@@ -266,6 +270,17 @@ pub struct Condition {
     pub operator: Operator,
     pub value: ConditionValue,
     pub logical_op: LogicalOperator,
+}
+
+impl Condition {
+    pub fn new(field: &str, operator: Operator, value: ConditionValue) -> Self {
+        Self {
+            field: field.to_string(),
+            operator,
+            value,
+            logical_op: LogicalOperator::And,
+        }
+    }
 }
 
 /// Supported comparison operators
@@ -321,7 +336,7 @@ pub enum OrderDirection {
 }
 
 /// Query result with enhanced metadata and provenance
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryResult {
     pub scope: String,
     pub file: String,
@@ -463,6 +478,7 @@ pub fn parse_cql_query(query: &str) -> Result<CqlQuery, RhemaError> {
     };
 
     Ok(CqlQuery {
+        query: query.to_string(),
         target: file,
         yaml_path,
         conditions,
@@ -1294,50 +1310,112 @@ pub fn search_context(
     Ok(results)
 }
 
-/// Enhanced search with regex support
+/// Enhanced regex search with advanced features
 pub fn search_context_regex(
     repo_root: &Path,
     pattern: &str,
     file_filter: Option<&str>,
 ) -> Result<Vec<QueryResult>, RhemaError> {
-    let regex = Regex::new(pattern)
-        .map_err(|_| RhemaError::InvalidQuery(format!("Invalid regex pattern: {}", pattern)))?;
-
+    let start_time = std::time::Instant::now();
+    
+    // Create search engine with optimized configuration
+    let mut search_engine = SearchEngine::new();
+    
+    // Discover scopes
     let scopes = rhema_core::scope::discover_scopes(repo_root)?;
-    let mut results = Vec::new();
+    
+    // Build search index
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to create runtime: {}", e)))?;
+    
+    runtime.block_on(async {
+        search_engine.build_index(repo_root, &scopes).await
+    })?;
 
-    for scope in &scopes {
-        for (filename, file_path) in &scope.files {
-            // Apply file filter if specified
-            if let Some(filter) = file_filter {
-                if !filename.contains(filter) {
-                    continue;
-                }
-            }
-
-            let content = std::fs::read_to_string(file_path).map_err(|e| RhemaError::IoError(e))?;
-
-            // Regex search
-            if regex.is_match(&content) {
-                let yaml_data: Value =
-                    serde_yaml::from_str(&content).map_err(|e| RhemaError::InvalidYaml {
-                        file: file_path.display().to_string(),
-                        message: e.to_string(),
-                    })?;
-
-                let scope_rel_path = scope.relative_path(repo_root)?;
-                results.push(QueryResult {
-                    scope: scope_rel_path,
-                    file: filename.clone(),
-                    data: yaml_data,
-                    path: "".to_string(),
-                    field_provenance: HashMap::new(),
-                    query_provenance: None,
-                    metadata: HashMap::new(),
-                });
-            }
-        }
+    // Create search options with filters
+    let mut filters = Vec::new();
+    if let Some(filter) = file_filter {
+        filters.push(SearchFilter::Path(filter.to_string()));
     }
+
+    let search_options = SearchOptions {
+        search_type: SearchType::Regex,
+        limit: Some(100), // Increased limit for better coverage
+        filters,
+        semantic_weight: None,
+        keyword_weight: None,
+        min_similarity: None,
+        case_sensitive: false,
+        fuzzy_matching: false,
+        fuzzy_distance: None,
+        search_fields: Vec::new(),
+        field_boosts: HashMap::new(),
+    };
+
+    // Perform regex search
+    let search_results = runtime.block_on(async {
+        search_engine.regex_search(pattern, Some(search_options)).await
+    })?;
+
+    // Convert search results to query results
+    let mut results = Vec::new();
+    for search_result in search_results {
+        // Parse YAML content if possible
+        let yaml_data = if search_result.path.ends_with(".yaml") || search_result.path.ends_with(".yml") {
+            serde_yaml::from_str(&search_result.content).unwrap_or_else(|_| {
+                serde_yaml::Value::String(search_result.content.clone())
+            })
+        } else {
+            serde_yaml::Value::String(search_result.content.clone())
+        };
+
+        // Extract scope from result ID
+        let scope_name = search_result.id.split(':').next().unwrap_or("unknown");
+        
+        let mut metadata = HashMap::new();
+        metadata.insert("search_score".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(search_result.score)));
+        metadata.insert("search_type".to_string(), serde_yaml::Value::String("regex".to_string()));
+        metadata.insert("match_count".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(search_result.match_positions.len())));
+        metadata.insert("file_size".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(search_result.file_size)));
+        metadata.insert("doc_type".to_string(), serde_yaml::Value::String(format!("{:?}", search_result.doc_type)));
+        
+        if let Some(explanation) = search_result.relevance_explanation {
+            metadata.insert("relevance_explanation".to_string(), serde_yaml::Value::String(explanation));
+        }
+
+        // Add highlights as metadata
+        if !search_result.highlights.is_empty() {
+            metadata.insert("highlights".to_string(), serde_yaml::Value::Sequence(
+                search_result.highlights.into_iter()
+                    .map(|h| serde_yaml::Value::String(h))
+                    .collect()
+            ));
+        }
+
+        results.push(QueryResult {
+            scope: scope_name.to_string(),
+            file: search_result.path,
+            data: yaml_data,
+            path: "".to_string(),
+            field_provenance: HashMap::new(),
+            query_provenance: None,
+            metadata,
+        });
+    }
+
+    // Sort by search score (highest first)
+    results.sort_by(|a, b| {
+        let score_a = a.metadata.get("search_score")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        let score_b = b.metadata.get("search_score")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let search_time = start_time.elapsed();
+    tracing::debug!("Regex search completed in {:?} with {} results", search_time, results.len());
 
     Ok(results)
 }

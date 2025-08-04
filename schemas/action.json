@@ -1,0 +1,319 @@
+{
+  "$comment": "Copyright 2025 Cory Parent - Licensed under the Apache License, Version 2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhema.dev/schemas/v1/action.json",
+  "title": "Action Protocol Schema",
+  "description": "JSON Schema for Rhema Action Protocol intent files",
+  "type": "object",
+  "properties": {
+    "rhema": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Rhema protocol version"
+        },
+        "intent": {
+          "$ref": "#/definitions/action_intent"
+        }
+      },
+      "required": ["version", "intent"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["rhema"],
+  "additionalProperties": false,
+  "$defs": {
+    "action_intent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier for the intent"
+        },
+        "action_type": {
+          "$ref": "#/definitions/action_type",
+          "description": "Type of action to perform"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable description of the action"
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "description": "Files and directories affected by this action"
+        },
+        "safety_level": {
+          "$ref": "#/definitions/safety_level",
+          "description": "Safety level for this action"
+        },
+        "context_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/context_reference"
+          },
+          "description": "References to context files"
+        },
+        "transformation": {
+          "$ref": "#/definitions/transformation_config",
+          "description": "Transformation configuration"
+        },
+        "safety_checks": {
+          "$ref": "#/definitions/safety_checks",
+          "description": "Safety checks configuration"
+        },
+        "approval_workflow": {
+          "$ref": "#/definitions/approval_workflow",
+          "description": "Approval workflow configuration"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "User who created the intent"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for categorization"
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority level"
+        },
+        "estimated_effort": {
+          "type": "string",
+          "description": "Estimated effort required"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Dependencies on other intents"
+        }
+      },
+      "required": [
+        "id",
+        "action_type",
+        "description",
+        "scope",
+        "safety_level",
+        "transformation",
+        "safety_checks",
+        "approval_workflow"
+      ],
+      "additionalProperties": false
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "refactor",
+        "feature",
+        "bug_fix",
+        "documentation",
+        "test",
+        "configuration",
+        "dependency",
+        "security",
+        "performance",
+        "cleanup",
+        "migration"
+      ],
+      "description": "Type of action to perform"
+    },
+    "safety_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Safety level for the action"
+    },
+    "context_reference": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File containing the context"
+        },
+        "section": {
+          "type": "string",
+          "description": "Section within the file"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Specific line numbers (start, end)"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Context tags"
+        }
+      },
+      "required": ["file"],
+      "additionalProperties": false
+    },
+    "transformation_config": {
+      "type": "object",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "jscodeshift",
+              "comby",
+              "ast-grep",
+              "prettier",
+              "eslint",
+              "typescript",
+              "jest",
+              "mocha",
+              "pytest",
+              "cargo",
+              "npm"
+            ]
+          },
+          "minItems": 1,
+          "description": "Tools to use for transformation"
+        },
+        "validation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Validation tools to run"
+        },
+        "rollback_strategy": {
+          "type": "string",
+          "default": "git_revert",
+          "description": "Rollback strategy"
+        },
+        "tool_config": {
+          "type": "object",
+          "description": "Tool-specific configuration"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 300,
+          "description": "Transformation timeout in seconds"
+        }
+      },
+      "required": ["tools"],
+      "additionalProperties": false
+    },
+    "safety_checks": {
+      "type": "object",
+      "properties": {
+        "pre_execution": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "syntax_validation",
+              "type_checking",
+              "test_coverage",
+              "security_scanning",
+              "performance_check",
+              "dependency_check"
+            ]
+          },
+          "description": "Pre-execution safety checks"
+        },
+        "post_execution": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "build_validation",
+              "test_execution",
+              "lint_checking",
+              "security_verification",
+              "performance_verification",
+              "compliance_checking"
+            ]
+          },
+          "description": "Post-execution safety checks"
+        },
+        "custom_rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Custom safety rules"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 600,
+          "description": "Safety check timeout in seconds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "approval_workflow": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether approval is required"
+        },
+        "approvers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required approvers"
+        },
+        "auto_approve_for": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["low_risk", "test_only", "documentation", "cleanup"]
+          },
+          "description": "Auto-approve conditions"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 3600,
+          "description": "Approval timeout in seconds"
+        },
+        "notification_channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Approval notification channels"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

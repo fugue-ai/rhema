@@ -2,18 +2,19 @@
   "name": "rhema-language-server",
   "version": "0.1.0",
   "description": "Language Server Protocol implementation for Rhema (Git-Based Agent Context Protocol)",
-  "main": "dist/server.js",
+  "main": "target/node/language-server/server.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "test:unit": "jest --testPathPattern=unit",
+    "test:benchmarks": "jest --testNamePattern=benchmark",
+    "test:unit": "jest --testPathPattern=__tests__",
     "test:integration": "jest --testPathPattern=integration",
-    "test:e2e": "jest --testPathPattern=e2e",
+    "test:jest": "jest",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "package": "npm run build && npm pack",
-    "start": "node dist/server.js"
+    "start": "node target/node/language-server/server.js"
   },
   "keywords": [
     "rhema",
@@ -65,11 +66,11 @@
     "ts-jest": "^29.1.1"
   },
   "bin": {
-    "rhema-language-server": "./dist/cli.js"
+    "rhema-language-server": "./target/node/language-server/cli.js"
   },
   "files": [
-    "dist/**/*",
+    "target/node/language-server/**/*",
     "README.md",
     "LICENSE"
   ]
-} 
+}

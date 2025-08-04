@@ -885,3 +885,189 @@ fn test_command_concurrent_execution() -> Result<(), Box<dyn std::error::Error>>
     
     Ok(())
 } 
+
+/// Test search functionality
+#[test]
+fn test_search_functionality() -> RhemaResult<()> {
+    let temp_dir = tempfile::tempdir()?;
+    let temp_path = temp_dir.path();
+
+    // Initialize git repository
+    let _repo = git2::Repository::init(temp_path)?;
+
+    // Create Rhema instance
+    let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
+
+    // Create test scope with searchable content
+    let scope_path = temp_path.join("test-service");
+    std::fs::create_dir_all(&scope_path)?;
+
+    // Create knowledge file with searchable content
+    let knowledge_content = r#"
+name: Test Service
+version: 1.0.0
+description: A test service for search functionality
+keywords:
+  - test
+  - search
+  - service
+  - api
+"#;
+    std::fs::write(scope_path.join("knowledge.yaml"), knowledge_content)?;
+
+    // Create todos file
+    let todos_content = r#"
+todos:
+  - id: todo-001
+    title: Implement search feature
+    description: Add full-text search capabilities
+    status: pending
+    priority: high
+    assignee: developer
+    created_at: 2024-01-01T00:00:00Z
+    due_date: 2024-02-01T00:00:00Z
+    tags:
+      - search
+      - feature
+      - high-priority
+"#;
+    std::fs::write(scope_path.join("todos.yaml"), todos_content)?;
+
+    // Test basic search
+    let results = rhema.search_regex("search", None)?;
+    assert!(!results.is_empty(), "Search should find results for 'search'");
+
+    // Test search with file filter
+    let results = rhema.search_regex("service", Some("*.yaml"))?;
+    assert!(!results.is_empty(), "Search with file filter should find results");
+
+    // Test search for specific terms
+    let results = rhema.search_regex("implement", None)?;
+    assert!(!results.is_empty(), "Search should find 'implement' in todos");
+
+    // Test search for version information
+    let results = rhema.search_regex(r"\d+\.\d+\.\d+", None)?;
+    assert!(!results.is_empty(), "Search should find version numbers");
+
+    Ok(())
+}
+
+/// Test advanced search features
+#[test]
+fn test_advanced_search_features() -> RhemaResult<()> {
+    let temp_dir = tempfile::tempdir()?;
+    let temp_path = temp_dir.path();
+
+    // Initialize git repository
+    let _repo = git2::Repository::init(temp_path)?;
+
+    // Create Rhema instance
+    let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
+
+    // Create multiple test scopes
+    for i in 1..=3 {
+        let scope_path = temp_path.join(format!("service-{}", i));
+        std::fs::create_dir_all(&scope_path)?;
+
+        // Create knowledge file
+        let knowledge_content = format!(
+            r#"
+name: Service {}
+version: {}.0.0
+description: Test service number {}
+keywords:
+  - service
+  - test
+  - number-{}
+"#,
+            i, i, i, i
+        );
+        std::fs::write(scope_path.join("knowledge.yaml"), knowledge_content)?;
+
+        // Create todos file
+        let todos_content = format!(
+            r#"
+todos:
+  - id: todo-{:03}
+    title: Task for service {}
+    status: pending
+    priority: high
+"#,
+            i, i
+        );
+        std::fs::write(scope_path.join("todos.yaml"), todos_content)?;
+    }
+
+    // Test search across multiple scopes
+    let results = rhema.search_regex("service", None)?;
+    assert!(results.len() >= 3, "Search should find results across multiple scopes");
+
+    // Test search with specific scope filtering (by file pattern)
+    let results = rhema.search_regex("task", Some("todos.yaml"))?;
+    assert!(!results.is_empty(), "Search should find tasks in todos files");
+
+    // Test search for version patterns
+    let results = rhema.search_regex(r"version: \d+\.\d+\.\d+", None)?;
+    assert!(results.len() >= 3, "Search should find version information in all services");
+
+    // Test search for priority information
+    let results = rhema.search_regex("priority: high", None)?;
+    assert!(!results.is_empty(), "Search should find high priority items");
+
+    Ok(())
+}
+
+/// Test search performance
+#[test]
+fn test_search_performance() -> RhemaResult<()> {
+    let temp_dir = tempfile::tempdir()?;
+    let temp_path = temp_dir.path();
+
+    // Initialize git repository
+    let _repo = git2::Repository::init(temp_path)?;
+
+    // Create Rhema instance
+    let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
+
+    // Create multiple test files for performance testing
+    for i in 1..=10 {
+        let scope_path = temp_path.join(format!("large-service-{}", i));
+        std::fs::create_dir_all(&scope_path)?;
+
+        // Create a large knowledge file
+        let mut knowledge_content = format!(
+            r#"
+name: Large Service {}
+version: {}.0.0
+description: A large test service for performance testing
+"#,
+            i, i
+        );
+
+        // Add many keywords for search testing
+        for j in 1..=50 {
+            knowledge_content.push_str(&format!("keyword-{}: value-{}\n", j, j));
+        }
+
+        std::fs::write(scope_path.join("knowledge.yaml"), knowledge_content)?;
+    }
+
+    // Test search performance
+    let start = std::time::Instant::now();
+    let results = rhema.search_regex("keyword", None)?;
+    let duration = start.elapsed();
+
+    // Search should complete within reasonable time (500ms for this dataset)
+    assert!(duration.as_millis() < 500, "Search should complete quickly");
+    assert!(!results.is_empty(), "Search should find results");
+
+    // Test search with specific pattern
+    let start = std::time::Instant::now();
+    let results = rhema.search_regex(r"keyword-\d+", None)?;
+    let duration = start.elapsed();
+
+    assert!(duration.as_millis() < 500, "Regex search should complete quickly");
+    assert!(!results.is_empty(), "Regex search should find results");
+
+    Ok(())
+} 

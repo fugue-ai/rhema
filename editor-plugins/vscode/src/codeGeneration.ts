@@ -20,27 +20,27 @@ import { RhemaSettings } from './settings';
 import { RhemaErrorHandler } from './errorHandler';
 
 export class RhemaCodeGeneration {
-    private logger: RhemaLogger;
-    private settings: RhemaSettings;
-    private errorHandler: RhemaErrorHandler;
+  private logger: RhemaLogger;
+  private settings: RhemaSettings;
+  private errorHandler: RhemaErrorHandler;
 
-    constructor() {
-        this.logger = new RhemaLogger();
-        this.settings = new RhemaSettings();
-        this.errorHandler = new RhemaErrorHandler(this.logger);
+  constructor() {
+    this.logger = new RhemaLogger();
+    this.settings = new RhemaSettings();
+    this.errorHandler = new RhemaErrorHandler(this.logger);
+  }
+
+  async initialize(context: vscode.ExtensionContext): Promise<void> {
+    try {
+      this.logger.info('Initializing Rhema code generation...');
+      this.logger.info('Rhema code generation initialized successfully');
+    } catch (error) {
+      this.errorHandler.handleError('Failed to initialize Rhema code generation', error);
     }
+  }
 
-    async initialize(context: vscode.ExtensionContext): Promise<void> {
-        try {
-            this.logger.info('Initializing Rhema code generation...');
-            this.logger.info('Rhema code generation initialized successfully');
-        } catch (error) {
-            this.errorHandler.handleError('Failed to initialize Rhema code generation', error);
-        }
-    }
-
-    async generateScopeTemplate(scopeName: string): Promise<string> {
-        return `scope:
+  async generateScopeTemplate(scopeName: string): Promise<string> {
+    return `scope:
   name: ${scopeName}
   description: Generated scope template
   version: "1.0.0"
@@ -57,10 +57,10 @@ export class RhemaCodeGeneration {
     recursive: true
   settings: {}
 `;
-    }
+  }
 
-    async generateContextTemplate(): Promise<string> {
-        return `context:
+  async generateContextTemplate(): Promise<string> {
+    return `context:
   files:
     - "src/**/*.ts"
     - "src/**/*.js"
@@ -78,10 +78,10 @@ export class RhemaCodeGeneration {
   includeHidden: false
   recursive: true
 `;
-    }
+  }
 
-    async generateTodoTemplate(): Promise<string> {
-        return `todos:
+  async generateTodoTemplate(): Promise<string> {
+    return `todos:
   - id: "todo-001"
     title: "Sample Todo"
     description: "This is a sample todo item"
@@ -92,10 +92,10 @@ export class RhemaCodeGeneration {
     tags: ["sample"]
     related: []
 `;
-    }
+  }
 
-    async generateInsightTemplate(): Promise<string> {
-        return `insights:
+  async generateInsightTemplate(): Promise<string> {
+    return `insights:
   - id: "insight-001"
     title: "Sample Insight"
     description: "This is a sample insight"
@@ -105,10 +105,10 @@ export class RhemaCodeGeneration {
     tags: ["sample"]
     related: []
 `;
-    }
+  }
 
-    async generatePatternTemplate(): Promise<string> {
-        return `patterns:
+  async generatePatternTemplate(): Promise<string> {
+    return `patterns:
   - id: "pattern-001"
     name: "Sample Pattern"
     description: "This is a sample pattern"
@@ -117,10 +117,10 @@ export class RhemaCodeGeneration {
     examples: []
     tags: ["sample"]
 `;
-    }
+  }
 
-    async generateDecisionTemplate(): Promise<string> {
-        return `decisions:
+  async generateDecisionTemplate(): Promise<string> {
+    return `decisions:
   - id: "decision-001"
     title: "Sample Decision"
     description: "This is a sample decision"
@@ -131,32 +131,32 @@ export class RhemaCodeGeneration {
     date: "${new Date().toISOString()}"
     reviewDate: ""
 `;
+  }
+
+  async insertTemplate(template: string): Promise<void> {
+    try {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage('No active editor');
+        return;
+      }
+
+      await editor.edit((editBuilder) => {
+        const position = editor.selection.active;
+        editBuilder.insert(position, template);
+      });
+
+      vscode.window.showInformationMessage('Template inserted successfully');
+    } catch (error) {
+      this.errorHandler.handleError('Failed to insert template', error);
     }
+  }
 
-    async insertTemplate(template: string): Promise<void> {
-        try {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                vscode.window.showErrorMessage('No active editor');
-                return;
-            }
+  async dispose(): Promise<void> {
+    // Cleanup if needed
+  }
 
-            await editor.edit(editBuilder => {
-                const position = editor.selection.active;
-                editBuilder.insert(position, template);
-            });
-
-            vscode.window.showInformationMessage('Template inserted successfully');
-        } catch (error) {
-            this.errorHandler.handleError('Failed to insert template', error);
-        }
-    }
-
-    async dispose(): Promise<void> {
-        // Cleanup if needed
-    }
-
-    async deactivate(): Promise<void> {
-        await this.dispose();
-    }
-} 
+  async deactivate(): Promise<void> {
+    await this.dispose();
+  }
+}

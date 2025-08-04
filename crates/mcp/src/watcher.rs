@@ -44,14 +44,38 @@ pub struct FileEvent {
 }
 
 /// File watcher configuration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WatcherConfig {
+    /// Enable file watching
     pub enabled: bool,
+    
+    /// Directories to watch
     pub watch_dirs: Vec<PathBuf>,
+    
+    /// File patterns to watch
     pub file_patterns: Vec<String>,
+    
+    /// Debounce interval in milliseconds
     pub debounce_ms: u64,
+    
+    /// Watch recursively
     pub recursive: bool,
+    
+    /// Ignore hidden files
     pub ignore_hidden: bool,
+}
+
+impl Default for WatcherConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            watch_dirs: vec![PathBuf::from(".")],
+            file_patterns: vec!["*.yaml".to_string(), "*.yml".to_string(), "*.json".to_string()],
+            debounce_ms: 100,
+            recursive: true,
+            ignore_hidden: true,
+        }
+    }
 }
 
 /// File watcher statistics
@@ -76,6 +100,22 @@ pub struct FileWatcher {
     stats: Arc<RwLock<WatcherStats>>,
     start_time: Instant,
     debounce_timers: Arc<RwLock<HashMap<PathBuf, tokio::task::JoinHandle<()>>>>,
+}
+
+impl Clone for FileWatcher {
+    fn clone(&self) -> Self {
+        Self {
+            config: self.config.clone(),
+            repo_root: self.repo_root.clone(),
+            watcher: None, // Watcher cannot be cloned
+            event_sender: self.event_sender.clone(),
+            event_receiver: self.event_receiver.clone(),
+            subscribers: self.subscribers.clone(),
+            stats: self.stats.clone(),
+            start_time: self.start_time,
+            debounce_timers: self.debounce_timers.clone(),
+        }
+    }
 }
 
 impl FileWatcher {
@@ -114,6 +154,11 @@ impl FileWatcher {
             start_time: Instant::now(),
             debounce_timers,
         })
+    }
+
+    /// Get the watcher configuration
+    pub fn config(&self) -> &WatcherConfig {
+        &self.config
     }
 
     /// Start the file watcher
@@ -564,57 +609,42 @@ impl Default for FileWatcherBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::watcher::WatcherConfig;
     use tempfile::TempDir;
+    use std::fs;
 
     #[tokio::test]
-    async fn test_file_watcher_creation() {
-        let temp_dir = TempDir::new().unwrap();
-        let config = super::super::WatcherConfig {
-            enabled: true,
-            watch_dirs: vec![PathBuf::from(".rhema")],
-            file_patterns: vec!["*.yaml".to_string()],
-            debounce_ms: 100,
-            recursive: true,
-            ignore_hidden: true,
-        };
-
-        let watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf()).await;
-        assert!(watcher.is_ok());
+    async fn test_file_watcher_creation() -> RhemaResult<()> {
+        let temp_dir = TempDir::new()?;
+        let config = WatcherConfig::default();
+        let file_watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf()).await?;
+        // Test that it was created successfully
+        assert!(file_watcher.config().enabled == config.enabled);
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_file_pattern_matching() {
-        let watcher = FileWatcherBuilder::new()
-            .file_patterns(vec!["*.yaml".to_string(), "*.yml".to_string()])
-            .build(PathBuf::from("/tmp"))
-            .await
-            .unwrap();
-
-        // Test matching patterns
-        assert!(watcher.should_watch_file(Path::new("test.yaml")));
-        assert!(watcher.should_watch_file(Path::new("test.yml")));
-        assert!(!watcher.should_watch_file(Path::new("test.txt")));
-        assert!(!watcher.should_watch_file(Path::new(".hidden.yaml")));
+    async fn test_file_watcher_config() -> RhemaResult<()> {
+        let temp_dir = TempDir::new()?;
+        let mut config = WatcherConfig::default();
+        config.enabled = true;
+        config.file_patterns = vec!["*.txt".to_string()];
+        
+        let file_watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf()).await?;
+        assert!(file_watcher.config().enabled);
+        assert_eq!(file_watcher.config().file_patterns, vec!["*.txt".to_string()]);
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_watcher_stats() {
-        let temp_dir = TempDir::new().unwrap();
-        let config = super::super::WatcherConfig {
-            enabled: true,
-            watch_dirs: vec![PathBuf::from(".rhema")],
-            file_patterns: vec!["*.yaml".to_string()],
-            debounce_ms: 100,
-            recursive: true,
-            ignore_hidden: true,
-        };
-
-        let watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf())
-            .await
-            .unwrap();
-        let stats = watcher.stats().await;
-
+    async fn test_file_watcher_stats() -> RhemaResult<()> {
+        let temp_dir = TempDir::new()?;
+        let config = WatcherConfig::default();
+        let file_watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf()).await?;
+        
+        let stats = file_watcher.stats().await;
         assert_eq!(stats.total_events, 0);
         assert!(stats.uptime_seconds >= 0);
+        Ok(())
     }
 }

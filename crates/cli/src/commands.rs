@@ -637,3 +637,369 @@ pub enum PromptSubcommands {
         id: String,
     },
 }
+
+#[derive(Subcommand)]
+pub enum IntentSubcommands {
+    /// Plan an action
+    Plan {
+        /// Action description
+        #[arg(value_name = "DESCRIPTION")]
+        description: String,
+        
+        /// Action type
+        #[arg(long, value_enum, default_value = "refactor")]
+        action_type: String,
+        
+        /// Safety level
+        #[arg(long, value_enum, default_value = "medium")]
+        safety_level: String,
+        
+        /// Scope (files/directories)
+        #[arg(long, value_name = "SCOPE")]
+        scope: Vec<String>,
+        
+        /// Output file for intent
+        #[arg(long, value_name = "FILE")]
+        output_file: Option<String>,
+    },
+    
+    /// Preview action changes
+    Preview {
+        /// Intent file path
+        #[arg(value_name = "INTENT_FILE")]
+        intent_file: String,
+        
+        /// Show detailed preview
+        #[arg(long)]
+        detailed: bool,
+        
+        /// Show safety analysis
+        #[arg(long)]
+        safety: bool,
+    },
+    
+    /// Execute action
+    Execute {
+        /// Intent file path
+        #[arg(value_name = "INTENT_FILE")]
+        intent_file: String,
+        
+        /// Require human approval
+        #[arg(long)]
+        require_approval: bool,
+        
+        /// Skip validation
+        #[arg(long)]
+        skip_validation: bool,
+        
+        /// Dry run (don't make changes)
+        #[arg(long)]
+        dry_run: bool,
+    },
+    
+    /// Rollback action
+    Rollback {
+        /// Intent ID
+        #[arg(value_name = "INTENT_ID")]
+        intent_id: String,
+        
+        /// Force rollback
+        #[arg(long)]
+        force: bool,
+        
+        /// Keep backup
+        #[arg(long)]
+        keep_backup: bool,
+    },
+    
+    /// List active intents
+    List {
+        /// Show only active intents
+        #[arg(long)]
+        active: bool,
+        
+        /// Show completed intents
+        #[arg(long)]
+        completed: bool,
+        
+        /// Show failed intents
+        #[arg(long)]
+        failed: bool,
+        
+        /// Filter by action type
+        #[arg(long, value_name = "TYPE")]
+        action_type: Option<String>,
+        
+        /// Filter by safety level
+        #[arg(long, value_name = "LEVEL")]
+        safety_level: Option<String>,
+    },
+    
+    /// Check intent status
+    Status {
+        /// Intent ID
+        #[arg(value_name = "INTENT_ID")]
+        intent_id: String,
+        
+        /// Show detailed status
+        #[arg(long)]
+        detailed: bool,
+        
+        /// Show validation results
+        #[arg(long)]
+        validation: bool,
+    },
+    
+    /// Validate intent file
+    Validate {
+        /// Intent file path
+        #[arg(value_name = "INTENT_FILE")]
+        intent_file: String,
+        
+        /// Show preview of changes
+        #[arg(long)]
+        preview: bool,
+        
+        /// Show safety analysis
+        #[arg(long)]
+        safety: bool,
+        
+        /// Show validation results
+        #[arg(long)]
+        validation: bool,
+    },
+    
+    /// Show action history
+    History {
+        /// Number of days to look back
+        #[arg(long, default_value = "7")]
+        days: u32,
+        
+        /// Show detailed history
+        #[arg(long)]
+        detailed: bool,
+        
+        /// Filter by action type
+        #[arg(long, value_name = "TYPE")]
+        action_type: Option<String>,
+        
+        /// Filter by safety level
+        #[arg(long, value_name = "LEVEL")]
+        safety_level: Option<String>,
+    },
+    
+    /// Run safety checks
+    SafetyCheck {
+        /// Intent file path
+        #[arg(value_name = "INTENT_FILE")]
+        intent_file: String,
+        
+        /// Run all safety checks
+        #[arg(long)]
+        all: bool,
+        
+        /// Show detailed results
+        #[arg(long)]
+        detailed: bool,
+        
+        /// Export results to file
+        #[arg(long, value_name = "FILE")]
+        export: Option<String>,
+    },
+    
+    /// Approve pending action
+    Approve {
+        /// Intent ID
+        #[arg(value_name = "INTENT_ID")]
+        intent_id: String,
+        
+        /// Approval comment
+        #[arg(long, value_name = "COMMENT")]
+        comment: Option<String>,
+        
+        /// Auto-execute after approval
+        #[arg(long)]
+        auto_execute: bool,
+    },
+    
+    /// Reject pending action
+    Reject {
+        /// Intent ID
+        #[arg(value_name = "INTENT_ID")]
+        intent_id: String,
+        
+        /// Rejection reason
+        #[arg(long, value_name = "REASON")]
+        reason: String,
+    },
+}
+
+/// Syneidesis integration commands
+#[derive(Subcommand)]
+pub enum SyneidesisSubcommands {
+    /// Enable Syneidesis integration
+    Enable {
+        /// Run local coordination server
+        #[arg(long)]
+        local_server: bool,
+        
+        /// Remote server address
+        #[arg(long, value_name = "ADDRESS")]
+        server_address: Option<String>,
+        
+        /// Auto-register agents
+        #[arg(long)]
+        auto_register: bool,
+        
+        /// Sync messages
+        #[arg(long)]
+        sync_messages: bool,
+        
+        /// Sync tasks
+        #[arg(long)]
+        sync_tasks: bool,
+        
+        /// Enable health monitoring
+        #[arg(long)]
+        health_monitoring: bool,
+    },
+    
+    /// Disable Syneidesis integration
+    Disable,
+    
+    /// Show Syneidesis status
+    Status {
+        /// Show detailed status
+        #[arg(long)]
+        detailed: bool,
+        
+        /// Show integration statistics
+        #[arg(long)]
+        stats: bool,
+    },
+    
+    /// Configure Syneidesis integration
+    Config {
+        /// Configuration file path
+        #[arg(value_name = "CONFIG_FILE")]
+        config_file: String,
+        
+        /// Validate configuration
+        #[arg(long)]
+        validate: bool,
+        
+        /// Show current configuration
+        #[arg(long)]
+        show: bool,
+    },
+    
+    /// Test Syneidesis connection
+    Test {
+        /// Test local server
+        #[arg(long)]
+        local: bool,
+        
+        /// Test remote server
+        #[arg(long, value_name = "ADDRESS")]
+        remote: Option<String>,
+        
+        /// Run comprehensive tests
+        #[arg(long)]
+        comprehensive: bool,
+    },
+    
+    /// Start Syneidesis health monitoring
+    Monitor {
+        /// Monitoring interval (seconds)
+        #[arg(long, default_value = "30")]
+        interval: u64,
+        
+        /// Show metrics
+        #[arg(long)]
+        metrics: bool,
+        
+        /// Export metrics to file
+        #[arg(long, value_name = "FILE")]
+        export: Option<String>,
+    },
+    
+    /// Register agent with Syneidesis
+    RegisterAgent {
+        /// Agent ID
+        #[arg(value_name = "AGENT_ID")]
+        agent_id: String,
+        
+        /// Agent name
+        #[arg(long, value_name = "NAME")]
+        name: String,
+        
+        /// Agent type
+        #[arg(long, value_name = "TYPE")]
+        agent_type: String,
+        
+        /// Agent capabilities (comma-separated)
+        #[arg(long, value_name = "CAPABILITIES")]
+        capabilities: Option<String>,
+        
+        /// Agent scope
+        #[arg(long, value_name = "SCOPE")]
+        scope: Option<String>,
+    },
+    
+    /// Send message through Syneidesis
+    SendMessage {
+        /// Message content
+        #[arg(value_name = "CONTENT")]
+        content: String,
+        
+        /// Recipient agent IDs (comma-separated)
+        #[arg(long, value_name = "RECIPIENTS")]
+        recipients: Option<String>,
+        
+        /// Message priority
+        #[arg(long, value_enum, default_value = "normal")]
+        priority: rhema_core::Priority,
+        
+        /// Message type
+        #[arg(long, value_name = "TYPE")]
+        message_type: Option<String>,
+        
+        /// Message payload (JSON)
+        #[arg(long, value_name = "PAYLOAD")]
+        payload: Option<String>,
+    },
+    
+    /// Create coordination session
+    CreateSession {
+        /// Session topic
+        #[arg(value_name = "TOPIC")]
+        topic: String,
+        
+        /// Participant agent IDs (comma-separated)
+        #[arg(long, value_name = "PARTICIPANTS")]
+        participants: String,
+        
+        /// Session description
+        #[arg(long, value_name = "DESCRIPTION")]
+        description: Option<String>,
+    },
+    
+    /// Show Syneidesis logs
+    Logs {
+        /// Number of log entries to show
+        #[arg(long, default_value = "50")]
+        lines: usize,
+        
+        /// Follow logs in real-time
+        #[arg(long)]
+        follow: bool,
+        
+        /// Filter by log level
+        #[arg(long)]
+        level: Option<String>,
+        
+        /// Filter by agent ID
+        #[arg(long, value_name = "AGENT_ID")]
+        agent_id: Option<String>,
+    },
+}

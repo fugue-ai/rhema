@@ -31,6 +31,12 @@ pub enum RhemaError {
     #[error("Scope not found: {0}")]
     ScopeNotFound(String),
 
+    #[error("Not found: {0}")]
+    NotFound(String),
+
+    #[error("Validation failed: {0}")]
+    Validation(String),
+
     #[error("Invalid query syntax: {0}")]
     InvalidQuery(String),
 
@@ -51,6 +57,9 @@ pub enum RhemaError {
 
     #[error("JSON parsing error: {0}")]
     JsonError(#[from] serde_json::Error),
+
+    #[error("Invalid JSON: {message}")]
+    InvalidJson { message: String },
 
     #[error("Parse error: {0}")]
     ParseError(String),
@@ -118,6 +127,9 @@ pub enum RhemaError {
     #[error("Cache error: {0}")]
     CacheError(String),
 
+    #[error("Knowledge error: {0}")]
+    KnowledgeError(String),
+
     #[error("MCP error: {0}")]
     McpError(String),
 
@@ -165,6 +177,21 @@ pub enum RhemaError {
 
     #[error("Safety violation: {0}")]
     SafetyViolation(String),
+
+    #[error("Constraint error: {0}")]
+    ConstraintError(String),
+
+    #[error("Task scoring error: {0}")]
+    TaskScoringError(String),
+
+    #[error("Conflict prevention error: {0}")]
+    ConflictPreventionError(String),
+
+    #[error("System error: {0}")]
+    SystemError(String),
+
+    #[error("Action Protocol error: {0}")]
+    ActionProtocol(String),
 }
 
 /// Result type for Rhema operations
@@ -220,9 +247,22 @@ impl From<prometheus::Error> for RhemaError {
 
 impl From<rustyline::error::ReadlineError> for RhemaError {
     fn from(err: rustyline::error::ReadlineError) -> Self {
-        RhemaError::IoError(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            err.to_string(),
-        ))
+        RhemaError::InvalidInput(format!("Readline error: {}", err))
     }
 }
+
+impl From<std::path::StripPrefixError> for RhemaError {
+    fn from(err: std::path::StripPrefixError) -> Self {
+        RhemaError::InvalidInput(format!("Path strip prefix error: {}", err))
+    }
+}
+
+impl From<walkdir::Error> for RhemaError {
+    fn from(err: walkdir::Error) -> Self {
+        RhemaError::IoError(err.into_io_error().unwrap_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "Walkdir error")
+        }))
+    }
+}
+
+

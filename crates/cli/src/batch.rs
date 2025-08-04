@@ -27,7 +27,7 @@ use std::path::Path;
 use walkdir::WalkDir;
 // use chrono::Utc;
 // use uuid::Uuid;
-use clap::Subcommand;
+use clap::{Args, Subcommand};
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
 

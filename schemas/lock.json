@@ -5,7 +5,14 @@
   "title": "Rhema Lock File Schema",
   "description": "JSON Schema for Rhema lock file system - provides deterministic dependency resolution and reproducible builds",
   "type": "object",
-  "required": ["lockfile_version", "generated_at", "generated_by", "checksum", "scopes", "metadata"],
+  "required": [
+    "lockfile_version",
+    "generated_at",
+    "generated_by",
+    "checksum",
+    "scopes",
+    "metadata"
+  ],
   "properties": {
     "lockfile_version": {
       "type": "string",
@@ -82,7 +89,14 @@
     },
     "locked_dependency": {
       "type": "object",
-      "required": ["version", "path", "resolved_at", "checksum", "dependency_type", "is_transitive"],
+      "required": [
+        "version",
+        "path",
+        "resolved_at",
+        "checksum",
+        "dependency_type",
+        "is_transitive"
+      ],
       "properties": {
         "version": {
           "type": "string",
@@ -130,7 +144,14 @@
     },
     "lock_metadata": {
       "type": "object",
-      "required": ["total_scopes", "total_dependencies", "circular_dependencies", "validation_status", "resolution_strategy", "conflict_resolution"],
+      "required": [
+        "total_scopes",
+        "total_dependencies",
+        "circular_dependencies",
+        "validation_status",
+        "resolution_strategy",
+        "conflict_resolution"
+      ],
       "properties": {
         "total_scopes": {
           "type": "integer",
@@ -363,4 +384,4 @@
       }
     }
   ]
-} 
+}

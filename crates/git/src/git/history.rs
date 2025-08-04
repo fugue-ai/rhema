@@ -259,6 +259,18 @@ pub enum VersionType {
     Custom(String),
 }
 
+impl std::fmt::Display for VersionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VersionType::Major => write!(f, "major"),
+            VersionType::Minor => write!(f, "minor"),
+            VersionType::Patch => write!(f, "patch"),
+            VersionType::PreRelease => write!(f, "prerelease"),
+            VersionType::Custom(s) => write!(f, "{}", s),
+        }
+    }
+}
+
 /// Context snapshot
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextSnapshot {
@@ -847,7 +859,7 @@ pub enum ValidationStatus {
 }
 
 /// Validation severity
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ValidationSeverity {
     Info,
     Warning,

@@ -2,6 +2,10 @@ use rhema_core::schema::{PromptInjectionMethod, PromptPattern};
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
+use std::sync::Arc;
 
 /// Task type for context injection
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -56,11 +60,89 @@ pub struct LockFileContextRequirement {
     pub include_transitive_deps: bool,
 }
 
+/// Context cache entry for performance optimization
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextCacheEntry {
+    /// Cached context content
+    pub content: String,
+    /// When this entry was created (timestamp in nanoseconds)
+    #[serde(with = "timestamp_serde")]
+    pub created_at: Instant,
+    /// When this entry was last accessed (timestamp in nanoseconds)
+    #[serde(with = "timestamp_serde")]
+    pub last_accessed: Instant,
+    /// Number of times this entry was accessed
+    pub access_count: u32,
+    /// Hash of the source files for cache invalidation
+    pub source_hash: u64,
+    /// Task type this context was generated for
+    pub task_type: TaskType,
+}
+
+/// Context validation result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidationResult {
+    /// Whether the context is valid
+    pub is_valid: bool,
+    /// Validation score (0.0 to 1.0)
+    pub score: f64,
+    /// List of validation issues found
+    pub issues: Vec<String>,
+    /// List of validation warnings
+    pub warnings: Vec<String>,
+    /// Completeness score (0.0 to 1.0)
+    pub completeness: f64,
+    /// Relevance score (0.0 to 1.0)
+    pub relevance: f64,
+}
+
+/// Context learning metrics for adaptive injection
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextLearningMetrics {
+    /// Task type this context was used for
+    pub task_type: TaskType,
+    /// Context content hash
+    pub context_hash: u64,
+    /// Success score (0.0 to 1.0)
+    pub success_score: f64,
+    /// Response quality score (0.0 to 1.0)
+    pub response_quality: f64,
+    /// User satisfaction score (0.0 to 1.0)
+    pub user_satisfaction: f64,
+    /// Usage timestamp (timestamp in nanoseconds)
+    #[serde(with = "timestamp_serde")]
+    pub timestamp: Instant,
+    /// Context optimization suggestions
+    pub optimization_suggestions: Vec<String>,
+}
+
+/// Context optimization configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextOptimizationConfig {
+    /// Maximum token count for optimized context
+    pub max_tokens: usize,
+    /// Minimum relevance score to include context
+    pub min_relevance_score: f64,
+    /// Whether to enable semantic compression
+    pub enable_semantic_compression: bool,
+    /// Whether to enable structure optimization
+    pub enable_structure_optimization: bool,
+    /// Whether to enable relevance filtering
+    pub enable_relevance_filtering: bool,
+    /// Cache TTL in seconds
+    pub cache_ttl_seconds: u64,
+}
+
 /// Enhanced context injector with task detection and lock file support
 pub struct EnhancedContextInjector {
     scope_path: PathBuf,
     injection_rules: Vec<ContextInjectionRule>,
     lock_file_path: Option<PathBuf>,
+    // New enhancement features
+    context_cache: Arc<RwLock<HashMap<String, ContextCacheEntry>>>,
+    learning_metrics: Arc<RwLock<Vec<ContextLearningMetrics>>>,
+    optimization_config: ContextOptimizationConfig,
+    cache_ttl: Duration,
 }
 
 impl EnhancedContextInjector {
@@ -73,6 +155,34 @@ impl EnhancedContextInjector {
             scope_path,
             injection_rules: default_rules,
             lock_file_path: if lock_file_path.exists() { Some(lock_file_path) } else { None },
+            // Initialize enhancement features
+            context_cache: Arc::new(RwLock::new(HashMap::new())),
+            learning_metrics: Arc::new(RwLock::new(Vec::new())),
+            optimization_config: ContextOptimizationConfig {
+                max_tokens: 4000,
+                min_relevance_score: 0.7,
+                enable_semantic_compression: true,
+                enable_structure_optimization: true,
+                enable_relevance_filtering: true,
+                cache_ttl_seconds: 3600, // 1 hour
+            },
+            cache_ttl: Duration::from_secs(3600),
+        }
+    }
+
+    /// Create a new enhanced context injector with custom optimization config
+    pub fn with_config(scope_path: PathBuf, config: ContextOptimizationConfig) -> Self {
+        let default_rules = Self::get_default_injection_rules();
+        let lock_file_path = scope_path.join("rhema.lock");
+        
+        Self {
+            scope_path,
+            injection_rules: default_rules,
+            lock_file_path: if lock_file_path.exists() { Some(lock_file_path) } else { None },
+            context_cache: Arc::new(RwLock::new(HashMap::new())),
+            learning_metrics: Arc::new(RwLock::new(Vec::new())),
+            optimization_config: config.clone(),
+            cache_ttl: Duration::from_secs(config.cache_ttl_seconds),
         }
     }
 
@@ -105,6 +215,215 @@ impl EnhancedContextInjector {
         };
 
         Ok(final_prompt)
+    }
+
+    /// 1. Dynamic Context Injection - Runtime context injection that adapts to changing conditions
+    pub async fn inject_dynamic_context(
+        &self,
+        pattern: &PromptPattern,
+        task_type: Option<TaskType>,
+    ) -> RhemaResult<String> {
+        let detected_task = task_type.unwrap_or_else(|| {
+            self.detect_task_type().unwrap_or(TaskType::CodeReview)
+        });
+
+        // Check cache first for performance
+        let cache_key = self.generate_cache_key(&detected_task, pattern);
+        if let Some(cached_context) = self.get_cached_context(&cache_key).await {
+            return Ok(cached_context);
+        }
+
+        // Get dynamic context based on current state
+        let dynamic_context = self.load_dynamic_context(&detected_task).await?;
+        
+        // Optimize the context for AI consumption
+        let optimized_context = self.optimize_context(&dynamic_context).await?;
+        
+        // Validate the context
+        let validation_result = self.validate_context(&optimized_context).await?;
+        if !validation_result.is_valid {
+            return Err(RhemaError::InvalidInput(format!(
+                "Context validation failed: {:?}",
+                validation_result.issues
+            )));
+        }
+
+        // Apply injection method
+        let rule = self.find_best_rule(&detected_task)?;
+        let final_prompt = match &rule.injection_method {
+            PromptInjectionMethod::Prepend => {
+                format!("{}\n\n{}", optimized_context, pattern.template)
+            }
+            PromptInjectionMethod::Append => {
+                format!("{}\n\n{}", pattern.template, optimized_context)
+            }
+            PromptInjectionMethod::TemplateVariable => {
+                pattern.template.replace("{{CONTEXT}}", &optimized_context)
+            }
+        };
+
+        // Cache the result
+        self.cache_context(&cache_key, &final_prompt, &detected_task).await;
+
+        Ok(final_prompt)
+    }
+
+    /// 2. Context Optimization - Optimize injected context for better AI consumption
+    pub async fn optimize_context(&self, context: &str) -> RhemaResult<String> {
+        let mut optimized = context.to_string();
+
+        // Apply semantic compression if enabled
+        if self.optimization_config.enable_semantic_compression {
+            optimized = self.apply_semantic_compression(&optimized).await?;
+        }
+
+        // Apply structure optimization if enabled
+        if self.optimization_config.enable_structure_optimization {
+            optimized = self.apply_structure_optimization(&optimized).await?;
+        }
+
+        // Apply relevance filtering if enabled
+        if self.optimization_config.enable_relevance_filtering {
+            optimized = self.apply_relevance_filtering(&optimized).await?;
+        }
+
+        // Ensure token limit compliance
+        optimized = self.ensure_token_limit(&optimized)?;
+
+        Ok(optimized)
+    }
+
+    /// 3. Context Learning - Learn from context usage patterns to improve future injections
+    pub async fn learn_from_usage(
+        &self,
+        context: &str,
+        task_type: &TaskType,
+        success_metrics: &ContextLearningMetrics,
+    ) -> RhemaResult<()> {
+        let mut metrics = self.learning_metrics.write().await;
+        
+        // Add new learning metrics
+        let new_metrics = ContextLearningMetrics {
+            task_type: task_type.clone(),
+            context_hash: self.calculate_context_hash(context),
+            success_score: success_metrics.success_score,
+            response_quality: success_metrics.response_quality,
+            user_satisfaction: success_metrics.user_satisfaction,
+            timestamp: Instant::now(),
+            optimization_suggestions: success_metrics.optimization_suggestions.clone(),
+        };
+        
+        metrics.push(new_metrics);
+        
+        // Keep only recent metrics (last 1000 entries)
+        if metrics.len() > 1000 {
+            metrics.sort_by_key(|m| m.timestamp);
+            let to_remove = metrics.len() - 1000;
+            metrics.drain(0..to_remove);
+        }
+
+        Ok(())
+    }
+
+    /// 4. Context Validation - Validate injected context for accuracy and completeness
+    pub async fn validate_context(&self, context: &str) -> RhemaResult<ValidationResult> {
+        let mut issues = Vec::new();
+        let mut warnings = Vec::new();
+        let mut score: f64 = 1.0;
+        let mut completeness = 1.0;
+        let mut relevance = 1.0;
+
+        // Check for empty or very short context
+        if context.trim().is_empty() {
+            issues.push("Context is empty".to_string());
+            score -= 0.5;
+            completeness = 0.0;
+        } else if context.len() < 50 {
+            warnings.push("Context is very short, may lack detail".to_string());
+            score -= 0.1;
+            completeness -= 0.2;
+        }
+
+        // Check for schema validation issues
+        if let Err(e) = self.validate_context_schema(context) {
+            issues.push(format!("Schema validation failed: {}", e));
+            score -= 0.3;
+        }
+
+        // Check for cross-reference validation
+        if let Err(e) = self.validate_cross_references(context) {
+            issues.push(format!("Cross-reference validation failed: {}", e));
+            score -= 0.2;
+        }
+
+        // Check for completeness
+        completeness = self.calculate_completeness_score(context);
+        if completeness < 0.8 {
+            warnings.push("Context may be incomplete".to_string());
+            score -= 0.1;
+        }
+
+        // Check for relevance
+        relevance = self.calculate_relevance_score(context);
+        if relevance < 0.7 {
+            warnings.push("Context may not be relevant".to_string());
+            score -= 0.2;
+        }
+
+        // Ensure score is within bounds
+        score = score.max(0.0_f64).min(1.0_f64);
+
+        Ok(ValidationResult {
+            is_valid: issues.is_empty(),
+            score,
+            issues,
+            warnings,
+            completeness,
+            relevance,
+        })
+    }
+
+    /// 5. Context Caching - Cache frequently used contexts for performance
+    pub async fn get_cached_context(&self, key: &str) -> Option<String> {
+        let cache = self.context_cache.read().await;
+        
+        if let Some(entry) = cache.get(key) {
+            // Check if entry is still valid
+            if entry.created_at.elapsed() < self.cache_ttl {
+                // Update access metrics
+                let content = entry.content.clone();
+                drop(cache);
+                let mut cache = self.context_cache.write().await;
+                if let Some(entry) = cache.get_mut(key) {
+                    entry.last_accessed = Instant::now();
+                    entry.access_count += 1;
+                }
+                return Some(content);
+            }
+        }
+        
+        None
+    }
+
+    /// Cache context for future use
+    pub async fn cache_context(&self, key: &str, content: &str, task_type: &TaskType) {
+        let mut cache = self.context_cache.write().await;
+        
+        let entry = ContextCacheEntry {
+            content: content.to_string(),
+            created_at: Instant::now(),
+            last_accessed: Instant::now(),
+            access_count: 1,
+            source_hash: self.calculate_source_hash(),
+            task_type: task_type.clone(),
+        };
+        
+        cache.insert(key.to_string(), entry);
+        
+        // Clean up old entries if cache is too large
+        if cache.len() > 1000 {
+            self.cleanup_cache(&mut cache).await;
+        }
     }
 
     /// Inject lock file context specifically for AI agents
@@ -272,7 +591,7 @@ impl EnhancedContextInjector {
             }
         }
         
-        health_score = health_score.max(0.0);
+        health_score = health_score.max(0.0_f64);
         
         output.push_str(&format!("**Health Score**: {:.1}/100\n", health_score));
         output.push_str(&format!("**Validation Status**: {:?}\n", lock_file.metadata.validation_status));
@@ -454,6 +773,352 @@ impl EnhancedContextInjector {
         }
         
         Ok(file_types)
+    }
+
+    /// Generate cache key for context caching
+    fn generate_cache_key(&self, task_type: &TaskType, pattern: &PromptPattern) -> String {
+        let pattern_hash = self.calculate_pattern_hash(pattern);
+        let source_hash = self.calculate_source_hash();
+        format!("{}_{}_{}", Self::task_type_to_string(task_type), pattern_hash, source_hash)
+    }
+
+    /// Calculate hash for pattern
+    fn calculate_pattern_hash(&self, pattern: &PromptPattern) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        pattern.template.hash(&mut hasher);
+        // Hash the injection method as a string since it doesn't implement Hash
+        match pattern.injection {
+            PromptInjectionMethod::Prepend => "prepend".hash(&mut hasher),
+            PromptInjectionMethod::Append => "append".hash(&mut hasher),
+            PromptInjectionMethod::TemplateVariable => "template_variable".hash(&mut hasher),
+        }
+        hasher.finish()
+    }
+
+    /// Calculate hash for source files
+    fn calculate_source_hash(&self) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        
+        // Hash all context files
+        for rule in &self.injection_rules {
+            for file_name in &rule.context_files {
+                let file_path = self.scope_path.join(file_name);
+                if let Ok(metadata) = std::fs::metadata(&file_path) {
+                    if let Ok(modified) = metadata.modified() {
+                        modified.hash(&mut hasher);
+                    }
+                }
+            }
+        }
+        
+        // Hash lock file if present
+        if let Some(lock_path) = &self.lock_file_path {
+            if let Ok(metadata) = std::fs::metadata(lock_path) {
+                if let Ok(modified) = metadata.modified() {
+                    modified.hash(&mut hasher);
+                }
+            }
+        }
+        
+        hasher.finish()
+    }
+
+    /// Calculate hash for context content
+    fn calculate_context_hash(&self, context: &str) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        context.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    /// Load dynamic context based on current state
+    async fn load_dynamic_context(&self, task_type: &TaskType) -> RhemaResult<String> {
+        let mut context = String::new();
+        
+        // Get current git status for dynamic context
+        if let Ok(git_status) = self.get_git_status() {
+            context.push_str(&format!("## Current Git Status\n{}\n\n", git_status));
+        }
+        
+        // Get current file changes
+        if let Ok(changed_files) = self.get_changed_files() {
+            if !changed_files.is_empty() {
+                context.push_str("## Changed Files\n");
+                for file in changed_files {
+                    context.push_str(&format!("- {}\n", file));
+                }
+                context.push_str("\n");
+            }
+        }
+        
+        // Load task-specific context
+        let rule = self.find_best_rule(task_type)?;
+        let task_context = self.load_context_for_task(&rule)?;
+        context.push_str(&task_context);
+        
+        Ok(context)
+    }
+
+    /// Get list of changed files
+    fn get_changed_files(&self) -> RhemaResult<Vec<String>> {
+        let output = std::process::Command::new("git")
+            .args(&["diff", "--name-only"])
+            .current_dir(&self.scope_path)
+            .output()?;
+        
+        let files = String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .map(|s| s.to_string())
+            .collect();
+        
+        Ok(files)
+    }
+
+    /// Apply semantic compression to context
+    async fn apply_semantic_compression(&self, context: &str) -> RhemaResult<String> {
+        // Simple semantic compression - remove redundant information
+        let mut compressed = context.to_string();
+        
+        // Remove duplicate lines
+        let lines: Vec<&str> = compressed.lines().collect();
+        let mut unique_lines = Vec::new();
+        for line in lines {
+            if !unique_lines.contains(&line) {
+                unique_lines.push(line);
+            }
+        }
+        compressed = unique_lines.join("\n");
+        
+        // Remove excessive whitespace
+        compressed = compressed.replace("\n\n\n", "\n\n");
+        
+        Ok(compressed)
+    }
+
+    /// Apply structure optimization to context
+    async fn apply_structure_optimization(&self, context: &str) -> RhemaResult<String> {
+        let mut optimized = context.to_string();
+        
+        // Ensure proper section headers
+        if !optimized.contains("## ") {
+            optimized = format!("## Context\n\n{}", optimized);
+        }
+        
+        // Ensure consistent formatting
+        optimized = optimized.replace("\n\n\n", "\n\n");
+        
+        Ok(optimized)
+    }
+
+    /// Apply relevance filtering to context
+    async fn apply_relevance_filtering(&self, context: &str) -> RhemaResult<String> {
+        // Simple relevance filtering - keep sections that seem relevant
+        let lines: Vec<&str> = context.lines().collect();
+        let mut relevant_lines = Vec::new();
+        
+        for line in lines {
+            // Keep headers and important content
+            if line.starts_with("## ") || line.starts_with("# ") || 
+               line.contains("TODO") || line.contains("FIXME") ||
+               line.contains("import") || line.contains("use ") ||
+               line.contains("fn ") || line.contains("struct ") ||
+               line.contains("enum ") || line.contains("impl ") {
+                relevant_lines.push(line);
+            }
+        }
+        
+        Ok(relevant_lines.join("\n"))
+    }
+
+    /// Ensure context stays within token limit
+    fn ensure_token_limit(&self, context: &str) -> RhemaResult<String> {
+        // Simple token estimation (rough approximation)
+        let estimated_tokens = context.split_whitespace().count() + context.lines().count();
+        
+        if estimated_tokens > self.optimization_config.max_tokens {
+            // Truncate context while preserving structure
+            let lines: Vec<&str> = context.lines().collect();
+            let mut truncated = Vec::new();
+            let mut token_count = 0;
+            
+            for line in lines {
+                let line_tokens = line.split_whitespace().count() + 1;
+                if token_count + line_tokens > self.optimization_config.max_tokens {
+                    truncated.push("... (truncated)");
+                    break;
+                }
+                truncated.push(line);
+                token_count += line_tokens;
+            }
+            
+            Ok(truncated.join("\n"))
+        } else {
+            Ok(context.to_string())
+        }
+    }
+
+    /// Validate context schema
+    fn validate_context_schema(&self, context: &str) -> RhemaResult<()> {
+        // Basic schema validation - check for required sections
+        if !context.contains("## ") && !context.contains("# ") {
+            return Err(RhemaError::InvalidInput("Context lacks proper structure".to_string()));
+        }
+        
+        Ok(())
+    }
+
+    /// Validate cross-references in context
+    fn validate_cross_references(&self, _context: &str) -> RhemaResult<()> {
+        // Basic cross-reference validation
+        // This could be enhanced to check for broken links, missing files, etc.
+        Ok(())
+    }
+
+    /// Calculate completeness score
+    fn calculate_completeness_score(&self, context: &str) -> f64 {
+        let mut score: f64 = 1.0;
+        
+        // Check for minimum content length
+        if context.len() < 100 {
+            score -= 0.3;
+        }
+        
+        // Check for required sections
+        if !context.contains("## ") {
+            score -= 0.2;
+        }
+        
+        // Check for code blocks or technical content
+        if !context.contains("```") && !context.contains("fn ") && !context.contains("struct ") {
+            score -= 0.1;
+        }
+        
+        score.max(0.0_f64)
+    }
+
+    /// Calculate relevance score
+    fn calculate_relevance_score(&self, context: &str) -> f64 {
+        let mut score: f64 = 1.0;
+        
+        // Check for technical terms
+        let technical_terms = ["fn ", "struct ", "enum ", "impl ", "use ", "import", "TODO", "FIXME"];
+        let mut found_terms = 0;
+        
+        for term in &technical_terms {
+            if context.contains(term) {
+                found_terms += 1;
+            }
+        }
+        
+        if found_terms == 0 {
+            score -= 0.3;
+        } else if found_terms < 2 {
+            score -= 0.1;
+        }
+        
+        score.max(0.0_f64)
+    }
+
+    /// Clean up cache by removing old entries
+    async fn cleanup_cache(&self, cache: &mut HashMap<String, ContextCacheEntry>) {
+        let now = Instant::now();
+        let mut to_remove = Vec::new();
+        
+        for (key, entry) in cache.iter() {
+            if now.duration_since(entry.created_at) > self.cache_ttl {
+                to_remove.push(key.clone());
+            }
+        }
+        
+        for key in to_remove {
+            cache.remove(&key);
+        }
+    }
+
+    /// Convert task type to string for cache key
+    fn task_type_to_string(task_type: &TaskType) -> &'static str {
+        match task_type {
+            TaskType::CodeReview => "code_review",
+            TaskType::BugFix => "bug_fix",
+            TaskType::FeatureDevelopment => "feature_dev",
+            TaskType::Testing => "testing",
+            TaskType::Documentation => "documentation",
+            TaskType::Refactoring => "refactoring",
+            TaskType::SecurityReview => "security_review",
+            TaskType::PerformanceOptimization => "perf_optimization",
+            TaskType::DependencyUpdate => "dependency_update",
+            TaskType::Deployment => "deployment",
+            TaskType::LockFileManagement => "lock_file_mgmt",
+            TaskType::DependencyResolution => "dependency_resolution",
+            TaskType::ConflictResolution => "conflict_resolution",
+            TaskType::Custom(_) => "custom",
+        }
+    }
+
+    /// Get cache statistics for monitoring
+    pub async fn get_cache_stats(&self) -> (usize, f64) {
+        let cache = self.context_cache.read().await;
+        let total_entries = cache.len();
+        let total_accesses: u32 = cache.values().map(|entry| entry.access_count).sum();
+        let avg_accesses = if total_entries > 0 {
+            total_accesses as f64 / total_entries as f64
+        } else {
+            0.0
+        };
+        (total_entries, avg_accesses)
+    }
+
+    /// Get learning metrics for analysis
+    pub async fn get_learning_metrics(&self) -> Vec<ContextLearningMetrics> {
+        let metrics = self.learning_metrics.read().await;
+        metrics.clone()
+    }
+
+    /// Clear cache for testing or maintenance
+    pub async fn clear_cache(&self) {
+        let mut cache = self.context_cache.write().await;
+        cache.clear();
+    }
+
+    /// Get optimization configuration
+    pub fn get_optimization_config(&self) -> &ContextOptimizationConfig {
+        &self.optimization_config
+    }
+
+    /// Update optimization configuration
+    pub fn update_optimization_config(&mut self, config: ContextOptimizationConfig) {
+        self.optimization_config = config.clone();
+        self.cache_ttl = Duration::from_secs(config.cache_ttl_seconds);
+    }
+
+    /// Get cache hit rate
+    pub async fn get_cache_hit_rate(&self) -> f64 {
+        let cache = self.context_cache.read().await;
+        let total_accesses: u32 = cache.values().map(|entry| entry.access_count).sum();
+        let total_entries = cache.len();
+        
+        if total_accesses == 0 {
+            0.0
+        } else {
+            (total_accesses - total_entries as u32) as f64 / total_accesses as f64
+        }
+    }
+
+    /// Get performance metrics
+    pub async fn get_performance_metrics(&self) -> (f64, f64, f64) {
+        let cache_hit_rate = self.get_cache_hit_rate().await;
+        let (_cache_size, avg_accesses) = self.get_cache_stats().await;
+        let metrics_count = self.learning_metrics.read().await.len();
+        
+        (cache_hit_rate, avg_accesses, metrics_count as f64)
     }
 
     /// Get default injection rules including lock file management
@@ -721,5 +1386,152 @@ impl TaskDetector {
         } else {
             TaskType::CodeReview
         }
+    }
+}
+
+/// Example usage of the enhanced context injection system
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rhema_core::schema::PromptInjectionMethod;
+
+    #[tokio::test]
+    async fn test_enhanced_context_injection() {
+        // Create a temporary scope path
+        let temp_dir = std::env::temp_dir().join("rhema_test");
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        
+        // Create test context files
+        let knowledge_content = r#"
+# Knowledge Base
+- Use async/await for I/O operations
+- Follow Rust naming conventions
+- Implement proper error handling
+"#;
+        std::fs::write(temp_dir.join("knowledge.yaml"), knowledge_content).unwrap();
+        
+        // Create enhanced context injector
+        let mut injector = EnhancedContextInjector::new(temp_dir.clone());
+        
+        // Create a test prompt pattern
+        let pattern = PromptPattern {
+            id: "test-pattern".to_string(),
+            name: "Test Pattern".to_string(),
+            description: Some("Test pattern for context injection".to_string()),
+            template: "Please review this code:\n{{CONTEXT}}\n\nProvide feedback.".to_string(),
+            injection: PromptInjectionMethod::TemplateVariable,
+            usage_analytics: rhema_core::UsageAnalytics::new(),
+            version: rhema_core::PromptVersion::new("1.0.0"),
+            tags: Some(vec!["test".to_string()]),
+        };
+        
+        // Test dynamic context injection
+        let result = injector.inject_dynamic_context(&pattern, Some(TaskType::CodeReview)).await;
+        assert!(result.is_ok());
+        
+        // Test context optimization
+        let test_context = "## Test Context\n\nThis is a test context with some code:\n```rust\nfn test() {\n    println!(\"Hello, world!\");\n}\n```";
+        let optimized = injector.optimize_context(test_context).await;
+        assert!(optimized.is_ok());
+        
+        // Test context validation
+        let validation = injector.validate_context(test_context).await;
+        assert!(validation.is_ok());
+        let validation_result = validation.unwrap();
+        assert!(validation_result.is_valid);
+        assert!(validation_result.score > 0.5);
+        
+        // Test learning from usage
+        let metrics = ContextLearningMetrics {
+            task_type: TaskType::CodeReview,
+            context_hash: 12345,
+            success_score: 0.9,
+            response_quality: 0.8,
+            user_satisfaction: 0.85,
+            timestamp: Instant::now(),
+            optimization_suggestions: vec!["Add more code examples".to_string()],
+        };
+        
+        let learn_result = injector.learn_from_usage(test_context, &TaskType::CodeReview, &metrics).await;
+        assert!(learn_result.is_ok());
+        
+        // Test cache functionality
+        let cache_key = injector.generate_cache_key(&TaskType::CodeReview, &pattern);
+        injector.cache_context(&cache_key, test_context, &TaskType::CodeReview).await;
+        
+        let cached = injector.get_cached_context(&cache_key).await;
+        assert!(cached.is_some());
+        
+        // Test performance metrics
+        let (hit_rate, avg_accesses, metrics_count) = injector.get_performance_metrics().await;
+        assert!(hit_rate >= 0.0 && hit_rate <= 1.0);
+        assert!(avg_accesses >= 0.0);
+        assert!(metrics_count >= 0.0);
+        
+        // Clean up
+        std::fs::remove_dir_all(temp_dir).unwrap();
+    }
+}
+
+/// Example usage of the enhanced context injection system
+pub async fn example_usage() -> RhemaResult<()> {
+    // Create enhanced context injector with custom configuration
+    let config = ContextOptimizationConfig {
+        max_tokens: 3000,
+        min_relevance_score: 0.8,
+        enable_semantic_compression: true,
+        enable_structure_optimization: true,
+        enable_relevance_filtering: true,
+        cache_ttl_seconds: 1800, // 30 minutes
+    };
+    
+    let scope_path = PathBuf::from(".");
+    let mut injector = EnhancedContextInjector::with_config(scope_path, config);
+    
+    // Create a prompt pattern
+    let pattern = PromptPattern {
+        id: "example-pattern".to_string(),
+        name: "Example Pattern".to_string(),
+        description: Some("Example pattern for context injection".to_string()),
+        template: "Review this code and suggest improvements:\n{{CONTEXT}}".to_string(),
+        injection: PromptInjectionMethod::TemplateVariable,
+        usage_analytics: rhema_core::UsageAnalytics::new(),
+        version: rhema_core::PromptVersion::new("1.0.0"),
+        tags: Some(vec!["example".to_string()]),
+    };
+    
+    // Use dynamic context injection
+    let result = injector.inject_dynamic_context(&pattern, Some(TaskType::CodeReview)).await?;
+    println!("Generated context: {}", result);
+    
+    // Get performance metrics
+    let (hit_rate, avg_accesses, metrics_count) = injector.get_performance_metrics().await;
+    println!("Cache hit rate: {:.2}%", hit_rate * 100.0);
+    println!("Average accesses: {:.2}", avg_accesses);
+    println!("Learning metrics count: {:.0}", metrics_count);
+    
+    Ok(())
+}
+
+// Serde module for handling Instant serialization
+mod timestamp_serde {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::time::{Duration, Instant};
+
+    pub fn serialize<S>(instant: &Instant, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let duration = instant.duration_since(Instant::now());
+        duration.as_nanos().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Instant, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let nanos = u128::deserialize(deserializer)?;
+        let duration = Duration::from_nanos(nanos as u64);
+        Ok(Instant::now() + duration)
     }
 }

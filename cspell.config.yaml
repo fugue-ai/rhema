@@ -1,0 +1,22 @@
+version: "0.2"
+ignorePaths: []
+dictionaryDefinitions: []
+dictionaries: []
+words:
+  - actix
+  - beforeunload
+  - checkpointing
+  - chrono
+  - cpus
+  - dashmap
+  - LOCOMO
+  - minmax
+  - onclick
+  - Segoe
+  - serde
+  - Syneidesis
+  - Tahoma
+  - thiserror
+  - Verdana
+ignoreWords: []
+import: []

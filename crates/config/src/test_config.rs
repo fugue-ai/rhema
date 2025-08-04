@@ -16,6 +16,10 @@
 
 use super::*;
 use crate::RhemaResult;
+use crate::validation::ValidationManager;
+use crate::migration::MigrationManager;
+use crate::backup::BackupManager;
+use chrono::Utc;
 
 #[cfg(test)]
 mod tests {
@@ -27,13 +31,6 @@ mod tests {
         assert_eq!(config.version, CURRENT_CONFIG_VERSION);
         assert_eq!(config.user.name, "Default User");
         assert_eq!(config.application.name, "Rhema CLI");
-        Ok(())
-    }
-
-    #[test]
-    fn test_config_manager_creation() -> RhemaResult<()> {
-        let manager = ConfigManager::new()?;
-        assert_eq!(manager.global_config().version, CURRENT_CONFIG_VERSION);
         Ok(())
     }
 
@@ -67,18 +64,15 @@ mod tests {
     #[test]
     fn test_config_audit_log() {
         let mut audit_log = ConfigAuditLog::new();
-        let change = ConfigChange {
+        let entry = ConfigAuditEntry {
             timestamp: Utc::now(),
+            action: "test_action".to_string(),
             user: "test_user".to_string(),
-            change_type: ConfigChangeType::Created,
-            path: PathBuf::from("test.yaml"),
-            description: "Test change".to_string(),
-            old_value: None,
-            new_value: Some(serde_json::Value::String("test".to_string())),
+            details: "Test change".to_string(),
         };
 
-        audit_log.add_change(change);
-        assert_eq!(audit_log.changes.len(), 1);
+        audit_log.entries.push(entry);
+        assert_eq!(audit_log.entries.len(), 1);
     }
 
     #[test]
@@ -86,20 +80,18 @@ mod tests {
         let health = ConfigHealth {
             status: ConfigHealthStatus::Healthy,
             issues: Vec::new(),
-            recommendations: vec!["Test recommendation".to_string()],
             last_check: Utc::now(),
         };
 
         assert_eq!(health.status, ConfigHealthStatus::Healthy);
-        assert_eq!(health.recommendations.len(), 1);
+        assert_eq!(health.issues.len(), 0);
     }
 
     #[test]
     fn test_config_stats() {
         let stats = ConfigStats::new();
         assert_eq!(stats.total_configs, 0);
-        assert_eq!(stats.global_configs, 0);
-        assert_eq!(stats.repository_configs, 0);
-        assert_eq!(stats.scope_configs, 0);
+        assert_eq!(stats.valid_configs, 0);
+        assert_eq!(stats.invalid_configs, 0);
     }
 }

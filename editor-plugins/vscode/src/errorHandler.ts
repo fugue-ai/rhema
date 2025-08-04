@@ -15,78 +15,86 @@
  */
 
 import * as vscode from 'vscode';
-import { RhemaLogger } from './logger';
+import type { RhemaLogger } from './logger';
 
 export class RhemaErrorHandler {
-    private logger: RhemaLogger;
+  private logger: RhemaLogger;
 
-    constructor(logger: RhemaLogger) {
-        this.logger = logger;
+  constructor(logger: RhemaLogger) {
+    this.logger = logger;
+  }
+
+  handleError(message: string, error: any, showNotification: boolean = true): void {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const fullMessage = `${message}: ${errorMessage}`;
+
+    // Log the error
+    this.logger.error(fullMessage, error);
+
+    // Show notification if enabled
+    if (showNotification) {
+      vscode.window.showErrorMessage(fullMessage);
     }
+  }
 
-    handleError(message: string, error: any, showNotification: boolean = true): void {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const fullMessage = `${message}: ${errorMessage}`;
+  handleWarning(message: string, error?: any, showNotification: boolean = true): void {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const fullMessage = error ? `${message}: ${errorMessage}` : message;
 
-        // Log the error
-        this.logger.error(fullMessage, error);
+    // Log the warning
+    this.logger.warn(fullMessage, error);
 
-        // Show notification if enabled
-        if (showNotification) {
-            vscode.window.showErrorMessage(fullMessage);
-        }
+    // Show notification if enabled
+    if (showNotification) {
+      vscode.window.showWarningMessage(fullMessage);
     }
+  }
 
-    handleWarning(message: string, error?: any, showNotification: boolean = true): void {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const fullMessage = error ? `${message}: ${errorMessage}` : message;
+  handleInfo(message: string, showNotification: boolean = false): void {
+    // Log the info
+    this.logger.info(message);
 
-        // Log the warning
-        this.logger.warn(fullMessage, error);
-
-        // Show notification if enabled
-        if (showNotification) {
-            vscode.window.showWarningMessage(fullMessage);
-        }
+    // Show notification if enabled
+    if (showNotification) {
+      vscode.window.showInformationMessage(message);
     }
+  }
 
-    handleInfo(message: string, showNotification: boolean = false): void {
-        // Log the info
-        this.logger.info(message);
+  async handleAsyncError(
+    message: string,
+    error: any,
+    showNotification: boolean = true
+  ): Promise<void> {
+    this.handleError(message, error, showNotification);
+  }
 
-        // Show notification if enabled
-        if (showNotification) {
-            vscode.window.showInformationMessage(message);
-        }
-    }
+  async handleAsyncWarning(
+    message: string,
+    error?: any,
+    showNotification: boolean = true
+  ): Promise<void> {
+    this.handleWarning(message, error, showNotification);
+  }
 
-    async handleAsyncError(message: string, error: any, showNotification: boolean = true): Promise<void> {
-        this.handleError(message, error, showNotification);
-    }
+  async handleAsyncInfo(message: string, showNotification: boolean = false): Promise<void> {
+    this.handleInfo(message, showNotification);
+  }
 
-    async handleAsyncWarning(message: string, error?: any, showNotification: boolean = true): Promise<void> {
-        this.handleWarning(message, error, showNotification);
-    }
+  createErrorHandler(showNotification: boolean = true) {
+    return (message: string, error: any) => {
+      this.handleError(message, error, showNotification);
+    };
+  }
 
-    async handleAsyncInfo(message: string, showNotification: boolean = false): Promise<void> {
-        this.handleInfo(message, showNotification);
-    }
+  createWarningHandler(showNotification: boolean = true) {
+    return (message: string, error?: any) => {
+      this.handleWarning(message, error, showNotification);
+    };
+  }
 
-    createErrorHandler(showNotification: boolean = true) {
-        return (message: string, error: any) => {
-            this.handleError(message, error, showNotification);
-        };
-    }
-
-    createWarningHandler(showNotification: boolean = true) {
-        return (message: string, error?: any) => {
-            this.handleWarning(message, error, showNotification);
-        };
-    }
-
-    createInfoHandler(showNotification: boolean = false) {
-        return (message: string) => {
-            this.handleInfo(message, showNotification);
-        };
-    }
-} 
+  createInfoHandler(showNotification: boolean = false) {
+    return (message: string) => {
+      this.handleInfo(message, showNotification);
+    };
+  }
+}

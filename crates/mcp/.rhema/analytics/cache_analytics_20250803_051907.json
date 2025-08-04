@@ -1,0 +1,13 @@
+[
+  {
+    "timestamp": "2025-08-03T05:19:07.609903Z",
+    "hit_rate": 1.0,
+    "memory_usage": 120.0,
+    "response_time_ms": 0.0,
+    "throughput_rps": 964.0877319836105,
+    "error_rate": 0.0,
+    "partition_count": 0,
+    "coherency_conflicts": 0,
+    "prefetch_hits": 0
+  }
+]

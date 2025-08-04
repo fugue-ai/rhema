@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-use crate::config::{SafetyValidator, SafetyViolation};
-use crate::{Config, ConfigChange, ConfigChangeType, ConfigError, CURRENT_CONFIG_VERSION};
+use crate::{Config, ConfigChange, ConfigChangeType, ConfigError, ConfigIssue, ConfigIssueSeverity, ValidationResult};
 use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use semver::Version;
@@ -327,6 +326,213 @@ impl MigrationManager {
         })
     }
 
+    /// Migrate configuration to a specific version
+    pub async fn migrate_version<T: Config>(
+        &self,
+        config: &T,
+        target_version: &str,
+    ) -> RhemaResult<MigrationReport> {
+        let start_time = std::time::Instant::now();
+        let mut migrations_applied = Vec::new();
+        let mut migrations_failed = Vec::new();
+        let migrations_skipped = Vec::new();
+
+        let current_version = config.version();
+        let from_version = Version::parse(current_version)
+            .map_err(|e| ConfigError::MigrationFailed(format!("Invalid current version: {}", e)))?;
+        let to_version = Version::parse(target_version)
+            .map_err(|e| ConfigError::MigrationFailed(format!("Invalid target version: {}", e)))?;
+
+        // Get applicable migrations
+        let applicable_migrations = self.get_applicable_migrations(&from_version, &to_version);
+
+        if applicable_migrations.is_empty() {
+            return Ok(MigrationReport {
+                migrations_applied,
+                migrations_skipped: vec!["No migrations needed".to_string()],
+                migrations_failed,
+                summary: MigrationSummary {
+                    total_migrations: 0,
+                    successful_migrations: 0,
+                    failed_migrations: 0,
+                    skipped_migrations: 1,
+                    total_changes: 0,
+                },
+                timestamp: chrono::Utc::now(),
+                duration_ms: start_time.elapsed().as_millis() as u64,
+            });
+        }
+
+        // Create backup if enabled
+        if self.backup_before_migration {
+            // Here we would create a backup before migration
+            // For now, we'll just log that backup would be created
+            tracing::info!("Backup would be created before migration");
+        }
+
+        // Apply migrations in order
+        for migration in &applicable_migrations {
+            match self.apply_migration(config, migration, "version_migration") {
+                Ok(record) => {
+                    migrations_applied.push(record);
+                }
+                Err(e) => {
+                    let failed_record = MigrationRecord {
+                        migration_name: migration.name.clone(),
+                        from_version: migration.from_version.clone(),
+                        to_version: migration.to_version.clone(),
+                        timestamp: chrono::Utc::now(),
+                        success: false,
+                        error_message: Some(e.to_string()),
+                        changes: Vec::new(),
+                    };
+                    migrations_failed.push(failed_record);
+                    
+                    // If migration is required, stop here
+                    if migration.required {
+                        return Err(ConfigError::MigrationFailed(format!(
+                            "Required migration '{}' failed: {}",
+                            migration.name, e
+                        )).into());
+                    }
+                }
+            }
+        }
+
+        let duration = start_time.elapsed();
+        Ok(MigrationReport {
+            migrations_applied: migrations_applied.clone(),
+            migrations_skipped: migrations_skipped.clone(),
+            migrations_failed: migrations_failed.clone(),
+            summary: MigrationSummary {
+                total_migrations: applicable_migrations.len(),
+                successful_migrations: migrations_applied.len(),
+                failed_migrations: migrations_failed.len(),
+                skipped_migrations: migrations_skipped.len(),
+                total_changes: migrations_applied.iter().map(|r| r.changes.len()).sum(),
+            },
+            timestamp: chrono::Utc::now(),
+            duration_ms: duration.as_millis() as u64,
+        })
+    }
+
+    /// Rollback a migration
+    pub async fn rollback_migration<T: Config>(
+        &self,
+        config: &T,
+        migration_record: &MigrationRecord,
+    ) -> RhemaResult<MigrationReport> {
+        let start_time = std::time::Instant::now();
+        let mut rollback_changes = Vec::new();
+
+        // Find the migration that was applied
+        let migration = self
+            .migrations
+            .iter()
+            .find(|m| m.name == migration_record.migration_name)
+            .ok_or_else(|| {
+                ConfigError::MigrationFailed(format!(
+                    "Migration '{}' not found for rollback",
+                    migration_record.migration_name
+                ))
+            })?;
+
+        // Apply rollback steps in reverse order
+        for step in migration.rollback_steps.iter().rev() {
+            match self.apply_rollback_step(config, step, "rollback") {
+                Ok(changes) => {
+                    rollback_changes.extend(changes);
+                }
+                Err(e) => {
+                    return Err(ConfigError::MigrationFailed(format!(
+                        "Rollback step failed: {}",
+                        e
+                    )).into());
+                }
+            }
+        }
+
+        let duration = start_time.elapsed();
+        Ok(MigrationReport {
+            migrations_applied: vec![MigrationRecord {
+                migration_name: format!("rollback_{}", migration_record.migration_name),
+                from_version: migration_record.to_version.clone(),
+                to_version: migration_record.from_version.clone(),
+                timestamp: chrono::Utc::now(),
+                success: true,
+                error_message: None,
+                changes: rollback_changes.clone(),
+            }],
+            migrations_skipped: Vec::new(),
+            migrations_failed: Vec::new(),
+            summary: MigrationSummary {
+                total_migrations: 1,
+                successful_migrations: 1,
+                failed_migrations: 0,
+                skipped_migrations: 0,
+                total_changes: rollback_changes.len(),
+            },
+            timestamp: chrono::Utc::now(),
+            duration_ms: duration.as_millis() as u64,
+        })
+    }
+
+    /// Validate migration results
+    pub async fn validate_migration_results<T: Config>(
+        &self,
+        config: &T,
+        migration_report: &MigrationReport,
+    ) -> RhemaResult<ValidationResult> {
+        let start_time = std::time::Instant::now();
+        let mut issues = Vec::new();
+
+        // Validate that the configuration is still valid after migration
+        if let Err(e) = config.validate_config() {
+            issues.push(ConfigIssue {
+                severity: ConfigIssueSeverity::Error,
+                message: format!("Configuration validation failed after migration: {}", e),
+                location: None,
+                suggestion: Some("Review migration changes and fix validation issues".to_string()),
+            });
+        }
+
+        // Check for any failed migrations
+        if !migration_report.migrations_failed.is_empty() {
+            issues.push(ConfigIssue {
+                severity: ConfigIssueSeverity::Warning,
+                message: format!(
+                    "{} migrations failed during the process",
+                    migration_report.migrations_failed.len()
+                ),
+                location: None,
+                suggestion: Some("Review failed migrations and consider rollback".to_string()),
+            });
+        }
+
+        // Validate that all required fields are present
+        let config_json = serde_json::to_value(config)
+            .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
+        
+        let missing_fields = self.check_required_fields(&config_json)?;
+        for field in missing_fields {
+            issues.push(ConfigIssue {
+                severity: ConfigIssueSeverity::Error,
+                message: format!("Required field missing after migration: {}", field),
+                location: None,
+                suggestion: Some("Add the missing required field".to_string()),
+            });
+        }
+
+        let duration = start_time.elapsed();
+        Ok(ValidationResult {
+            valid: issues.is_empty(),
+            issues,
+            warnings: Vec::new(),
+            timestamp: chrono::Utc::now(),
+            duration_ms: duration.as_millis() as u64,
+        })
+    }
+
     /// Get applicable migrations for version range
     fn get_applicable_migrations(
         &self,
@@ -365,7 +571,7 @@ impl MigrationManager {
     ) -> RhemaResult<MigrationRecord> {
         let mut changes = Vec::new();
         let mut config_value =
-            serde_json::to_value(config).map_err(|e| ConfigError::SerializationError(e))?;
+            serde_json::to_value(config).map_err(|e| ConfigError::SerializationError(e.to_string()))?;
 
         for step in &migration.steps {
             if let Some(condition) = &step.condition {
@@ -420,7 +626,7 @@ impl MigrationManager {
         &self,
         config: &mut serde_json::Value,
         step: &MigrationStep,
-        context: &str,
+        _context: &str,
     ) -> RhemaResult<Vec<ConfigChange>> {
         let mut changes = Vec::new();
 
@@ -462,7 +668,7 @@ impl MigrationManager {
 
                     for (i, part) in path_parts.iter().enumerate() {
                         if i == path_parts.len() - 1 {
-                            if let Some(old_value) = current.get(part) {
+                            if let Some(_old_value) = current.get(part) {
                                 changes.push(ConfigChange {
                                     timestamp: Utc::now(),
                                     user: "system".to_string(),
@@ -577,6 +783,136 @@ impl MigrationManager {
         }
 
         Ok(current.clone())
+    }
+
+    /// Apply rollback step
+    fn apply_rollback_step<T: Config>(
+        &self,
+        _config: &T,
+        step: &MigrationStep,
+        _context: &str,
+    ) -> RhemaResult<Vec<ConfigChange>> {
+        let mut changes = Vec::new();
+
+        match &step.step_type {
+            MigrationStepType::AddField => {
+                // Rollback: Remove the field
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Deleted,
+                    description: format!("Rollback: Removed field {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::RemoveField => {
+                // Rollback: Add the field back
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Created,
+                    description: format!("Rollback: Restored field {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::RenameField => {
+                // Rollback: Rename back to original
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Updated,
+                    description: format!("Rollback: Renamed field back {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::ChangeFieldType => {
+                // Rollback: Change type back
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Updated,
+                    description: format!("Rollback: Changed field type back {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::UpdateFieldValue => {
+                // Rollback: Restore original value
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Updated,
+                    description: format!("Rollback: Restored field value {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::AddSection => {
+                // Rollback: Remove the section
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Deleted,
+                    description: format!("Rollback: Removed section {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::RemoveSection => {
+                // Rollback: Add the section back
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Created,
+                    description: format!("Rollback: Restored section {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::RenameSection => {
+                // Rollback: Rename section back
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Updated,
+                    description: format!("Rollback: Renamed section back {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::TransformData => {
+                // Rollback: Transform data back
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Updated,
+                    description: format!("Rollback: Transformed data back {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::ExecuteScript => {
+                // Rollback: Execute rollback script
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Updated,
+                    description: format!("Rollback: Executed rollback script {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+            MigrationStepType::Custom => {
+                // Rollback: Execute custom rollback
+                changes.push(ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: ConfigChangeType::Updated,
+                    description: format!("Rollback: Executed custom rollback {}", step.description),
+                    user: "system".to_string(),
+                });
+            }
+        }
+
+        Ok(changes)
+    }
+
+    /// Check for required fields in configuration
+    fn check_required_fields(&self, config: &serde_json::Value) -> RhemaResult<Vec<String>> {
+        let mut missing_fields = Vec::new();
+        
+        // Define required fields for different configuration types
+        let required_fields = vec!["version", "name"];
+        
+        for field in required_fields {
+            if !config.get(field).is_some() {
+                missing_fields.push(field.to_string());
+            }
+        }
+        
+        Ok(missing_fields)
     }
 
     /// Add custom migration
