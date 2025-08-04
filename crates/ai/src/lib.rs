@@ -23,6 +23,7 @@ pub mod persistence;
 pub mod distributed;
 pub mod advanced_features;
 pub mod production_config;
+pub mod production_integration;
 
 // Re-export main components for easy access
 pub use agent::coordination::SyncCoordinator;
@@ -51,6 +52,7 @@ pub use persistence::{PersistenceManager, PersistenceConfig, StorageStats};
 pub use distributed::{DistributedManager, DistributedConfig, NodeInfo, ServiceInfo};
 pub use advanced_features::{AdvancedFeaturesManager, AdvancedFeaturesConfig, PerformanceMetric, PerformanceAlert};
 pub use production_config::{ProductionAIService, ProductionConfig, ServiceHealth, ServiceStats};
+pub use production_integration::{ProductionIntegration, ProductionConfig as IntegrationProductionConfig};
 
 // Error type conversions
 impl From<agent::coordination::SyncError> for rhema_core::RhemaError {
@@ -80,6 +82,25 @@ impl From<agent::real_time_coordination::CoordinationError> for rhema_core::Rhem
 impl From<agent::conflict_prevention::ConflictPreventionError> for rhema_core::RhemaError {
     fn from(err: agent::conflict_prevention::ConflictPreventionError) -> Self {
         rhema_core::RhemaError::ConflictPreventionError(err.to_string())
+    }
+}
+
+impl From<agent::patterns::PatternError> for rhema_core::RhemaError {
+    fn from(err: agent::patterns::PatternError) -> Self {
+        match err {
+            agent::patterns::PatternError::ValidationError(msg) => rhema_core::RhemaError::ValidationError(msg),
+            agent::patterns::PatternError::ExecutionError(msg) => rhema_core::RhemaError::SystemError(msg),
+            agent::patterns::PatternError::ResourceNotAvailable(msg) => rhema_core::RhemaError::SystemError(msg),
+            agent::patterns::PatternError::AgentNotAvailable(msg) => rhema_core::RhemaError::AgentError(msg),
+            agent::patterns::PatternError::PatternTimeout(msg) => rhema_core::RhemaError::PerformanceError(msg),
+            agent::patterns::PatternError::RollbackError(msg) => rhema_core::RhemaError::SystemError(msg),
+            agent::patterns::PatternError::InvalidState(msg) => rhema_core::RhemaError::ValidationError(msg),
+            agent::patterns::PatternError::ConfigurationError(msg) => rhema_core::RhemaError::ConfigError(msg),
+            agent::patterns::PatternError::CommunicationError(msg) => rhema_core::RhemaError::NetworkError(msg),
+            agent::patterns::PatternError::ConstraintViolation(msg) => rhema_core::RhemaError::ConstraintError(msg),
+            agent::patterns::PatternError::TemplateNotFound(msg) => rhema_core::RhemaError::NotFound(msg),
+            agent::patterns::PatternError::PatternNotFound(msg) => rhema_core::RhemaError::NotFound(msg),
+        }
     }
 }
 

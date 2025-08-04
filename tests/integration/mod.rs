@@ -1,1 +1,13 @@
-pub mod coordination_tests; 
+pub mod batch_operations_tests;
+pub mod cache_integration_test;
+pub mod command_tests;
+pub mod context_bootstrapping_tests;
+pub mod coordination_integration_test;
+pub mod coordination_tests;
+pub mod integration_tests;
+pub mod lock_file_ai_integration_test;
+pub mod pattern_enhancement_tests;
+pub mod pattern_execution_tests;
+pub mod pattern_integration_tests;
+pub mod rag_cache_integration_test;
+pub mod search_integration_tests; 

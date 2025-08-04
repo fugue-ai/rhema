@@ -2,6 +2,7 @@
 
 use std::env;
 use std::path::PathBuf;
+use env_logger;
 
 /// Test configuration
 #[derive(Debug, Clone)]

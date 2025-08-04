@@ -53,6 +53,7 @@ interface ScopeDependency {
     created: Date;
     modified: Date;
     bidirectional: boolean;
+    strength: number;
   };
 }
 
@@ -254,15 +255,17 @@ export class CrossScopeService {
         for (const depName of scopeInfo.dependencies) {
           const targetScope = this.findScopeByName(depName);
           if (targetScope) {
+            const strength = this.calculateDependencyStrength(scopeInfo, targetScope);
             const dependency: ScopeDependency = {
               source: scopeId,
               target: targetScope.id,
               type: this.determineDependencyType(scopeInfo, targetScope),
-              strength: this.calculateDependencyStrength(scopeInfo, targetScope),
+              strength: strength,
               metadata: {
                 created: new Date(),
                 modified: new Date(),
-                bidirectional: false
+                bidirectional: false,
+                strength: strength
               }
             };
 
@@ -375,7 +378,8 @@ export class CrossScopeService {
         metadata: {
           created: new Date(),
           modified: new Date(),
-          bidirectional: false
+          bidirectional: false,
+          strength: 0.8
         }
       };
 

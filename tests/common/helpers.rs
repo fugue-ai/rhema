@@ -4,6 +4,8 @@ use rhema::RhemaResult;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
+use rand::Rng;
+use rand::thread_rng;
 
 /// Helper functions for test setup and teardown
 #[allow(dead_code)]
@@ -291,7 +293,6 @@ dependencies: null
 
     /// Generate random test data
     pub fn generate_random_data(size: usize) -> String {
-        use rand::Rng;
         let mut rng = rand::thread_rng();
 
         let mut data = Vec::new();

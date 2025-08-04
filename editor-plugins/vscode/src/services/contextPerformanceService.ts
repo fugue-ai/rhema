@@ -265,8 +265,7 @@ export class ContextPerformanceService {
         // Update progress in the task
         activeTask.task.metadata = {
           ...activeTask.task.metadata,
-          progress: progress.progress,
-          status: progress.status
+          estimatedTime: progress.progress
         };
       }
 

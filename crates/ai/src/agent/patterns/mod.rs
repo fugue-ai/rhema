@@ -20,6 +20,7 @@ pub mod orchestration;
 pub mod validation;
 pub mod recovery;
 pub mod monitoring;
+pub mod composition;
 
 use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
@@ -44,6 +45,12 @@ pub use monitoring::{
 
 // Re-export validation types
 pub use validation::PatternValidationEngine;
+
+// Re-export composition types
+pub use composition::{
+    PatternCompositionEngine, PatternTemplate, TemplateParameter, CompositionRule,
+    ComposedPattern, CompositionStatistics, PatternDependencyGraph
+};
 
 /// Coordination pattern trait that defines the interface for all patterns
 #[async_trait::async_trait]
@@ -324,6 +331,7 @@ pub enum PatternPhase {
 /// Pattern status
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PatternStatus {
+    Idle,
     Pending,
     Running,
     Paused,
@@ -362,6 +370,10 @@ pub struct PatternResult {
     pub error_message: Option<String>,
     /// Completion time
     pub completed_at: DateTime<Utc>,
+    /// Pattern metadata
+    pub metadata: HashMap<String, serde_json::Value>,
+    /// Execution time in milliseconds
+    pub execution_time_ms: u64,
 }
 
 /// Pattern performance metrics
@@ -414,6 +426,8 @@ pub struct ValidationResult {
 /// Pattern metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PatternMetadata {
+    /// Pattern ID
+    pub id: String,
     /// Pattern name
     pub name: String,
     /// Pattern description
@@ -422,10 +436,22 @@ pub struct PatternMetadata {
     pub version: String,
     /// Pattern category
     pub category: PatternCategory,
+    /// Pattern author
+    pub author: String,
+    /// Created timestamp
+    pub created_at: DateTime<Utc>,
+    /// Modified timestamp
+    pub modified_at: DateTime<Utc>,
+    /// Pattern tags
+    pub tags: Vec<String>,
     /// Required capabilities
     pub required_capabilities: Vec<String>,
     /// Required resources
     pub required_resources: Vec<String>,
+    /// Pattern constraints
+    pub constraints: Vec<String>,
+    /// Pattern dependencies
+    pub dependencies: Vec<String>,
     /// Pattern complexity (1-10)
     pub complexity: u8,
     /// Estimated execution time (seconds)
@@ -484,6 +510,12 @@ pub enum PatternError {
 
     #[error("Constraint violation: {0}")]
     ConstraintViolation(String),
+
+    #[error("Template not found: {0}")]
+    TemplateNotFound(String),
+
+    #[error("Pattern not found: {0}")]
+    PatternNotFound(String),
 }
 
 /// Pattern registry for managing available patterns
@@ -1152,6 +1184,7 @@ impl std::fmt::Display for PatternPhase {
 impl std::fmt::Display for PatternStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            PatternStatus::Idle => write!(f, "idle"),
             PatternStatus::Pending => write!(f, "pending"),
             PatternStatus::Running => write!(f, "running"),
             PatternStatus::Paused => write!(f, "paused"),

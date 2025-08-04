@@ -143,4 +143,9 @@ export class RhemaSettings {
   async reload(): Promise<void> {
     await this.loadSettings();
   }
+
+  getConfiguration<T>(key: string, defaultValue: T): T {
+    const config = vscode.workspace.getConfiguration('rhema');
+    return config.get(key, defaultValue);
+  }
 }

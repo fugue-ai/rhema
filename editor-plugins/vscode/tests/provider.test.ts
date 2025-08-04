@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { RhemaProvider } from '../src/providers/rhemaProvider';
 
-suite('Rhema Provider Tests', () => {
+describe('Rhema Provider Tests', () => {
   let provider: RhemaProvider;
   let testDocument: vscode.TextDocument;
 
-  setup(async () => {
+  beforeEach(async () => {
     provider = new RhemaProvider();
 
     // Create a test Rhema document
@@ -114,7 +113,7 @@ references:
     });
   });
 
-  teardown(async () => {
+  afterEach(async () => {
     await provider.dispose();
   });
 
@@ -127,7 +126,7 @@ references:
     await provider.initialize(mockContext);
 
     // Verify provider is initialized
-    assert.ok(provider, 'Provider should be initialized');
+    expect(provider).toBeTruthy();
   });
 
   test('Definition Provider - Find Definition in Document', async () => {
@@ -138,9 +137,9 @@ references:
       {} as vscode.CancellationToken
     );
 
-    assert.ok(definition, 'Should find definition');
+    expect(definition).toBeTruthy();
     if (definition && 'uri' in definition) {
-      assert.strictEqual(definition.uri, testDocument.uri, 'Definition should be in same document');
+      expect(definition.uri).toBe(testDocument.uri);
     }
   });
 
@@ -152,7 +151,7 @@ references:
       {} as vscode.CancellationToken
     );
 
-    assert.strictEqual(definition, undefined, 'Should return undefined for unknown symbol');
+    expect(definition).toBeUndefined();
   });
 
   test('Reference Provider - Find References in Document', async () => {
@@ -165,11 +164,8 @@ references:
       {} as vscode.CancellationToken
     );
 
-    assert.ok(references.length > 0, 'Should find references');
-    assert.ok(
-      references.some((ref) => ref.uri === testDocument.uri),
-      'Should find reference in current document'
-    );
+    expect(references.length).toBeGreaterThan(0);
+    expect(references.some((ref) => ref.uri === testDocument.uri)).toBeTruthy();
   });
 
   test('Document Symbol Provider - Extract Symbols', async () => {

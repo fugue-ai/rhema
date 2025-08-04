@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
 use tempfile::TempDir;
+use rand::Rng;
+use rand::thread_rng;
 
 /// Sample agent data for testing
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -347,17 +349,17 @@ pub struct CoordinationTestHelpers;
 impl CoordinationTestHelpers {
     /// Generate random agent ID
     pub fn random_agent_id() -> String {
-        format!("agent-{:06}", rand::random::<u32>() % 1000000)
+        format!("agent-{:06}", rand::thread_rng().gen_range(0..1000000))
     }
     
     /// Generate random session ID
     pub fn random_session_id() -> String {
-        format!("session-{:06}", rand::random::<u32>() % 1000000)
+        format!("session-{:06}", rand::thread_rng().gen_range(0..1000000))
     }
     
     /// Generate random message ID
     pub fn random_message_id() -> String {
-        format!("msg-{:06}", rand::random::<u32>() % 1000000)
+        format!("msg-{:06}", rand::thread_rng().gen_range(0..1000000))
     }
     
     /// Generate random agent name
@@ -366,8 +368,8 @@ impl CoordinationTestHelpers {
             "AlphaAgent", "BetaAgent", "GammaAgent", "DeltaAgent", "EpsilonAgent",
             "ZetaAgent", "EtaAgent", "ThetaAgent", "IotaAgent", "KappaAgent",
         ];
-        let name = names[rand::random::<usize>() % names.len()];
-        format!("{}-{}", name, rand::random::<u32>() % 1000)
+        let name = names[rand::thread_rng().gen_range(0..names.len())];
+        format!("{}-{}", name, rand::thread_rng().gen_range(0..1000))
     }
     
     /// Generate random agent type
@@ -376,7 +378,7 @@ impl CoordinationTestHelpers {
             "CodeReviewAgent", "TestAgent", "DocumentationAgent", "SecurityAgent",
             "PerformanceAgent", "DeploymentAgent", "MonitoringAgent", "BackupAgent",
         ];
-        types[rand::random::<usize>() % types.len()].to_string()
+        types[rand::thread_rng().gen_range(0..types.len())].to_string()
     }
     
     /// Generate random scope
@@ -385,7 +387,7 @@ impl CoordinationTestHelpers {
             "backend", "frontend", "testing", "documentation", "security",
             "performance", "deployment", "monitoring", "infrastructure",
         ];
-        scopes[rand::random::<usize>() % scopes.len()].to_string()
+        scopes[rand::thread_rng().gen_range(0..scopes.len())].to_string()
     }
     
     /// Generate random capabilities
@@ -396,11 +398,11 @@ impl CoordinationTestHelpers {
             "static-analysis", "dynamic-analysis", "api-testing", "ui-testing",
         ];
         
-        let num_capabilities = rand::random::<usize>() % 4 + 1; // 1-4 capabilities
+        let num_capabilities = rand::thread_rng().gen_range(1..5); // 1-4 capabilities
         let mut capabilities = Vec::new();
         
         for _ in 0..num_capabilities {
-            let capability = all_capabilities[rand::random::<usize>() % all_capabilities.len()].to_string();
+            let capability = all_capabilities[rand::thread_rng().gen_range(0..all_capabilities.len())].to_string();
             if !capabilities.contains(&capability) {
                 capabilities.push(capability);
             }
@@ -422,8 +424,8 @@ impl CoordinationTestHelpers {
             "Monitoring alert: {}",
         ];
         
-        let template = templates[rand::random::<usize>() % templates.len()];
-        let random_value = rand::random::<u32>() % 100;
+        let template = templates[rand::thread_rng().gen_range(0..templates.len())];
+        let random_value = rand::thread_rng().gen_range(0..100);
         
         template.replace("{}", &random_value.to_string())
     }
@@ -434,24 +436,25 @@ impl CoordinationTestHelpers {
             serde_json::json!({
                 "status": "completed",
                 "timestamp": chrono::Utc::now().to_rfc3339(),
-                "duration": rand::random::<u64>() % 1000
+                "duration": rand::thread_rng().gen_range(0..1000)
             }),
             serde_json::json!({
                 "result": "success",
                 "metrics": {
-                    "accuracy": rand::random::<f64>() % 100.0,
-                    "performance": rand::random::<f64>() % 100.0
+                    "accuracy": rand::thread_rng().gen_range(0.0..100.0),
+                    "performance": rand::thread_rng().gen_range(0.0..100.0)
                 }
             }),
             serde_json::json!({
-                "data": {
-                    "processed": rand::random::<u32>() % 1000,
-                    "errors": rand::random::<u32>() % 10
+                "summary": "processed",
+                "stats": {
+                    "processed": rand::thread_rng().gen_range(0..1000),
+                    "errors": rand::thread_rng().gen_range(0..10)
                 }
             }),
         ];
         
-        payload_types[rand::random::<usize>() % payload_types.len()].clone()
+        payload_types[rand::thread_rng().gen_range(0..payload_types.len())].clone()
     }
     
     /// Create test agent data
@@ -470,7 +473,7 @@ impl CoordinationTestHelpers {
     pub fn create_test_session(topic: Option<String>, participants: Option<Vec<String>>) -> SampleSession {
         SampleSession {
             id: Self::random_session_id(),
-            topic: topic.unwrap_or_else(|| format!("Test Session {}", rand::random::<u32>())),
+            topic: topic.unwrap_or_else(|| format!("Test Session {}", rand::thread_rng().gen_range(0..1000000))),
             participants: participants.unwrap_or_else(|| vec![Self::random_agent_id()]),
             status: "Active".to_string(),
             created_at: chrono::Utc::now().to_rfc3339(),

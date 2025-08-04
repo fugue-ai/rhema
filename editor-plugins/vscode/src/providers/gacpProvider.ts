@@ -546,7 +546,7 @@ export class RhemaProvider
             new vscode.Position(position.line, document.lineAt(position.line).text.length)
           );
 
-          return new vscode.SelectionRange(wordRange, [new vscode.SelectionRange(lineRange)]);
+          return new vscode.SelectionRange(wordRange, new vscode.SelectionRange(lineRange));
         }
         return new vscode.SelectionRange(new vscode.Range(position, position));
       });

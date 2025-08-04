@@ -192,6 +192,15 @@ pub enum RhemaError {
 
     #[error("Action Protocol error: {0}")]
     ActionProtocol(String),
+
+    #[error("Service unavailable: {0}")]
+    ServiceUnavailable(String),
+
+    #[error("Template not found: {0}")]
+    TemplateNotFound(String),
+
+    #[error("Pattern not found: {0}")]
+    PatternNotFound(String),
 }
 
 /// Result type for Rhema operations
@@ -264,5 +273,7 @@ impl From<walkdir::Error> for RhemaError {
         }))
     }
 }
+
+
 
 

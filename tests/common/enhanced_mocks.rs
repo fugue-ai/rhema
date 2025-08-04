@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use mockall::{automock, predicate::*};
 use serde_yaml::Value;
 use rhema::{Rhema, RhemaResult};
@@ -236,128 +237,108 @@ pub struct MockFactory {
 impl MockFactory {
     /// Create a new mock factory
     pub fn new() -> Self {
-        Self {
-            file_system: Arc::new(MockFileSystemMock::new()),
-            git: Arc::new(MockGitMock::new()),
-            yaml: Arc::new(MockYamlMock::new()),
-            query: Arc::new(MockQueryMock::new()),
-            search: Arc::new(MockSearchMock::new()),
-            validation: Arc::new(MockValidationMock::new()),
-            performance: Arc::new(MockPerformanceMock::new()),
-            security: Arc::new(MockSecurityMock::new()),
-            network: Arc::new(MockNetworkMock::new()),
-            config: Arc::new(MockConfigMock::new()),
-            logging: Arc::new(MockLoggingMock::new()),
-            cache: Arc::new(MockCacheMock::new()),
-            database: Arc::new(MockDatabaseMock::new()),
-            encryption: Arc::new(MockEncryptionMock::new()),
-            notification: Arc::new(MockNotificationMock::new()),
-            backup: Arc::new(MockBackupMock::new()),
-            sync: Arc::new(MockSyncMock::new()),
-            plugin: Arc::new(MockPluginMock::new()),
-            analytics: Arc::new(MockAnalyticsMock::new()),
-            testing: Arc::new(MockTestingMock::new()),
-        }
+        // TODO: Implement proper mock creation when mockall is properly configured
+        unimplemented!("MockFactory::new() is not yet implemented - mockall configuration needed")
     }
 
     /// Get file system mock
     pub fn file_system(&self) -> Arc<MockFileSystemMock> {
-        Arc::clone(&self.file_system)
+        unimplemented!("MockFactory::file_system() is not yet implemented")
     }
 
     /// Get git mock
     pub fn git(&self) -> Arc<MockGitMock> {
-        Arc::clone(&self.git)
+        unimplemented!("MockFactory::git() is not yet implemented")
     }
 
     /// Get yaml mock
     pub fn yaml(&self) -> Arc<MockYamlMock> {
-        Arc::clone(&self.yaml)
+        unimplemented!("MockFactory::yaml() is not yet implemented")
     }
 
     /// Get query mock
     pub fn query(&self) -> Arc<MockQueryMock> {
-        Arc::clone(&self.query)
+        unimplemented!("MockFactory::query() is not yet implemented")
     }
 
     /// Get search mock
     pub fn search(&self) -> Arc<MockSearchMock> {
-        Arc::clone(&self.search)
+        unimplemented!("MockFactory::search() is not yet implemented")
     }
 
     /// Get validation mock
     pub fn validation(&self) -> Arc<MockValidationMock> {
-        Arc::clone(&self.validation)
+        unimplemented!("MockFactory::validation() is not yet implemented")
     }
 
     /// Get performance mock
     pub fn performance(&self) -> Arc<MockPerformanceMock> {
-        Arc::clone(&self.performance)
+        unimplemented!("MockFactory::performance() is not yet implemented")
     }
 
     /// Get security mock
     pub fn security(&self) -> Arc<MockSecurityMock> {
-        Arc::clone(&self.security)
+        unimplemented!("MockFactory::security() is not yet implemented")
     }
 
     /// Get network mock
     pub fn network(&self) -> Arc<MockNetworkMock> {
-        Arc::clone(&self.network)
+        unimplemented!("MockFactory::network() is not yet implemented")
     }
 
     /// Get config mock
     pub fn config(&self) -> Arc<MockConfigMock> {
-        Arc::clone(&self.config)
+        unimplemented!("MockFactory::config() is not yet implemented")
     }
 
     /// Get logging mock
     pub fn logging(&self) -> Arc<MockLoggingMock> {
-        Arc::clone(&self.logging)
+        unimplemented!("MockFactory::logging() is not yet implemented")
     }
 
     /// Get cache mock
     pub fn cache(&self) -> Arc<MockCacheMock> {
-        Arc::clone(&self.cache)
+        unimplemented!("MockFactory::cache() is not yet implemented")
     }
 
     /// Get database mock
     pub fn database(&self) -> Arc<MockDatabaseMock> {
-        Arc::clone(&self.database)
+        unimplemented!("MockFactory::database() is not yet implemented")
     }
 
     /// Get encryption mock
     pub fn encryption(&self) -> Arc<MockEncryptionMock> {
-        Arc::clone(&self.encryption)
+        unimplemented!("MockFactory::encryption() is not yet implemented")
     }
 
     /// Get notification mock
     pub fn notification(&self) -> Arc<MockNotificationMock> {
-        Arc::clone(&self.notification)
+        unimplemented!("MockFactory::notification() is not yet implemented")
     }
 
     /// Get backup mock
     pub fn backup(&self) -> Arc<MockBackupMock> {
-        Arc::clone(&self.backup)
+        unimplemented!("MockFactory::backup() is not yet implemented")
     }
 
     /// Get sync mock
     pub fn sync(&self) -> Arc<MockSyncMock> {
-        Arc::clone(&self.sync)
+        unimplemented!("MockFactory::sync() is not yet implemented")
     }
 
     /// Get plugin mock
     pub fn plugin(&self) -> Arc<MockPluginMock> {
-        Arc::clone(&self.plugin)
+        unimplemented!("MockFactory::plugin() is not yet implemented")
     }
 
     /// Get analytics mock
     pub fn analytics(&self) -> Arc<MockAnalyticsMock> {
-        Arc::clone(&self.analytics)
+        unimplemented!("MockFactory::analytics() is not yet implemented")
     }
 
     /// Get testing mock
     pub fn testing(&self) -> Arc<MockTestingMock> {
-        Arc::clone(&self.testing)
+        unimplemented!("MockFactory::testing() is not yet implemented")
     }
 
     /// Setup default mock expectations

@@ -338,7 +338,7 @@ export class RhemaProvider {
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken
-  ): Promise<vscode.Definition | undefined> {
+  ): Promise<vscode.Definition | vscode.DefinitionLink[] | undefined> {
     try {
       const result = await this.gacpProvider.provideDefinition(document, position, token);
       return result || undefined;
@@ -365,7 +365,7 @@ export class RhemaProvider {
   async provideDocumentSymbols(
     document: vscode.TextDocument,
     token: vscode.CancellationToken
-  ): Promise<vscode.SymbolInformation[] | undefined> {
+  ): Promise<vscode.SymbolInformation[] | vscode.DocumentSymbol[] | undefined> {
     try {
       const result = await this.gacpProvider.provideDocumentSymbols(document, token);
       return result || undefined;
@@ -393,7 +393,7 @@ export class RhemaProvider {
     range: vscode.Range | vscode.Selection,
     context: vscode.CodeActionContext,
     token: vscode.CancellationToken
-  ): Promise<vscode.CodeAction[] | undefined> {
+  ): Promise<(vscode.CodeAction | vscode.Command)[] | undefined> {
     try {
       const result = await this.gacpProvider.provideCodeActions(document, range, context, token);
       return result || undefined;
@@ -419,7 +419,7 @@ export class RhemaProvider {
 
   async provideSelectionRanges(
     document: vscode.TextDocument,
-    positions: readonly vscode.Position[],
+    positions: vscode.Position[],
     token: vscode.CancellationToken
   ): Promise<vscode.SelectionRange[] | undefined> {
     try {

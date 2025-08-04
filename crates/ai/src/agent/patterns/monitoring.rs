@@ -892,6 +892,8 @@ mod tests {
             },
             error_message: None,
             completed_at: Utc::now(),
+            execution_time_ms: 10000,
+            metadata: HashMap::new(),
         };
         
         monitor.stop_monitoring("test_pattern", &result).await;
@@ -975,6 +977,8 @@ mod tests {
             },
             error_message: None,
             completed_at: Utc::now(),
+            execution_time_ms: 15000,
+            metadata: HashMap::new(),
         };
         
         monitor.stop_monitoring("test_pattern", &result).await;

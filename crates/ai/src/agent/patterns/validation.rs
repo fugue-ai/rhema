@@ -7,7 +7,7 @@ use super::{
     PatternContext, ValidationResult, PatternMetadata, PatternCategory,
     AgentInfo, AgentStatus, Constraint, ConstraintType, PatternState,
     PatternPhase, PatternStatus, PatternConfig, MemoryPool, CpuAllocator, NetworkResources,
-    AgentPerformanceMetrics
+    AgentPerformanceMetrics, ResourcePool
 };
 
 /// Pattern validation rule
@@ -886,12 +886,19 @@ mod tests {
     async fn test_agent_capability_validation() {
         let rule = AgentCapabilityRule;
         let metadata = PatternMetadata {
+            id: "test-pattern".to_string(),
             name: "Test Pattern".to_string(),
             description: "Test pattern".to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::TaskDistribution,
+            author: "Test Author".to_string(),
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+            tags: vec![],
             required_capabilities: vec!["test_capability".to_string()],
             required_resources: vec![],
+            constraints: vec![],
+            dependencies: vec![],
             complexity: 5,
             estimated_execution_time_seconds: 10,
         };
@@ -960,12 +967,19 @@ mod tests {
         let engine = PatternValidationEngine::new();
         
         let metadata = PatternMetadata {
+            id: "test-pattern".to_string(),
             name: "Test Pattern".to_string(),
             description: "Test pattern".to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::TaskDistribution,
+            author: "Test Author".to_string(),
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+            tags: vec![],
             required_capabilities: vec!["test_capability".to_string()],
             required_resources: vec!["memory".to_string(), "cpu".to_string()],
+            constraints: vec![],
+            dependencies: vec![],
             complexity: 5,
             estimated_execution_time_seconds: 10,
         };

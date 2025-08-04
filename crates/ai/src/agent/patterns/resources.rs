@@ -133,13 +133,15 @@ impl CoordinationPattern for ResourceManagementPattern {
             ("strategy".to_string(), json!(self.allocation_strategy.to_string())),
         ]);
 
-        Ok(PatternResult {
+        Ok(PatternResult { // TODO: Implement actual pattern execution logic
             pattern_id: "resource-management".to_string(),
             success: resource_state.status == ResourceManagementStatus::Completed,
             data: result_data,
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
+            execution_time_ms: 0, // TODO: Calculate actual execution time
+            metadata: HashMap::new(),
         })
     }
 
@@ -187,11 +189,13 @@ impl CoordinationPattern for ResourceManagementPattern {
         Ok(())
     }
 
-    fn metadata(&self) -> PatternMetadata {
-        PatternMetadata {
+    fn metadata(&self) -> PatternMetadata { // TODO: Implement actual metadata logic
+        PatternMetadata { // TODO: Implement actual metadata values
+            id: "resource-management".to_string(),
             name: "Resource Management Pattern".to_string(),
             description: "Coordinated resource allocation and management across multiple agents".to_string(),
             version: "1.0.0".to_string(),
+            author: "Rhema Team".to_string(),
             category: PatternCategory::ResourceManagement,
             required_capabilities: vec![
                 "resource-management".to_string(),
@@ -201,6 +205,11 @@ impl CoordinationPattern for ResourceManagementPattern {
             required_resources: vec!["resource-pool".to_string()],
             complexity: 6,
             estimated_execution_time_seconds: 300,
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+            tags: vec![],
+            constraints: vec![],
+            dependencies: vec![],
         }
     }
 }
@@ -709,13 +718,15 @@ impl CoordinationPattern for FileLockManagementPattern {
             ("deadlocks".to_string(), json!(lock_state.deadlocks.len())),
         ]);
 
-        Ok(PatternResult {
+        Ok(PatternResult { // TODO: Implement actual pattern execution logic
             pattern_id: "file-lock-management".to_string(),
             success: lock_state.status == LockManagementStatus::Completed,
             data: result_data,
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
+            execution_time_ms: 0, // TODO: Calculate actual execution time
+            metadata: HashMap::new(),
         })
     }
 
@@ -748,8 +759,9 @@ impl CoordinationPattern for FileLockManagementPattern {
         Ok(())
     }
 
-    fn metadata(&self) -> PatternMetadata {
-        PatternMetadata {
+    fn metadata(&self) -> PatternMetadata { // TODO: Implement actual metadata logic
+        PatternMetadata { // TODO: Implement actual metadata values
+            id: "file-lock-management".to_string(),
             name: "File Lock Management Pattern".to_string(),
             description: "Coordinated file locking with deadlock detection and resolution".to_string(),
             version: "1.0.0".to_string(),
@@ -762,6 +774,12 @@ impl CoordinationPattern for FileLockManagementPattern {
             required_resources: vec!["file-system".to_string()],
             complexity: 7,
             estimated_execution_time_seconds: 120,
+            author: "Rhema Team".to_string(),
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+            tags: vec![],
+            constraints: vec![],
+            dependencies: vec![],
         }
     }
 }

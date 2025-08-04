@@ -1,0 +1,15 @@
+// Test organization
+pub mod automation;
+pub mod common;
+pub mod config;
+pub mod daemon;
+pub mod git;
+pub mod integration;
+pub mod mcp;
+pub mod performance;
+pub mod runners;
+pub mod security;
+pub mod shell;
+pub mod tla;
+pub mod unit;
+pub mod validation; 

@@ -236,13 +236,15 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
             ("execution_strategy".to_string(), json!(self.execution_strategy.to_string())),
         ]);
 
-        Ok(PatternResult {
+        Ok(PatternResult { // TODO: Implement actual pattern execution logic
             pattern_id: "workflow-orchestration".to_string(),
             success: workflow_state.status == WorkflowStatus::Completed,
             data: result_data,
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
+            execution_time_ms: 0, // TODO: Calculate actual execution time
+            metadata: HashMap::new(),
         })
     }
 
@@ -296,8 +298,8 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
         Ok(())
     }
 
-    fn metadata(&self) -> PatternMetadata {
-        PatternMetadata {
+    fn metadata(&self) -> PatternMetadata { // TODO: Implement actual metadata logic
+        PatternMetadata { // TODO: Implement actual metadata values
             name: "Workflow Orchestration Pattern".to_string(),
             description: "Coordinated execution of multi-step workflows with dependency management".to_string(),
             version: "1.0.0".to_string(),
@@ -311,6 +313,13 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
             required_resources: vec!["workflow-engine".to_string()],
             complexity: 9,
             estimated_execution_time_seconds: 3600,
+            id: "workflow-orchestration".to_string(),
+            author: "Rhema Team".to_string(),
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+            tags: vec![],
+            constraints: vec![],
+            dependencies: vec![],
         }
     }
 }
@@ -765,13 +774,23 @@ impl CoordinationPattern for StateSynchronizationPattern {
             ("sync_strategy".to_string(), json!(self.sync_strategy.to_string())),
         ]);
 
-        Ok(PatternResult {
+        Ok(PatternResult { // TODO: Implement actual pattern execution logic
             pattern_id: "state-synchronization".to_string(),
             success: sync_state.status == StateSyncStatus::Completed,
             data: result_data,
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
+            execution_time_ms: 0, // TODO: Calculate actual execution time
+            metadata: HashMap::from([
+                ("id".to_string(), json!("state-synchronization")),
+                ("name".to_string(), json!("State Synchronization Pattern")),
+                ("description".to_string(), json!("Coordinated state synchronization across multiple agents with conflict resolution")),
+                ("version".to_string(), json!("1.0.0")),
+                ("category".to_string(), json!("state-synchronization")),
+                ("complexity".to_string(), json!(8)),
+                ("estimated_execution_time_seconds".to_string(), json!(600)),
+            ]),
         })
     }
 
@@ -810,6 +829,7 @@ impl CoordinationPattern for StateSynchronizationPattern {
             description: "Coordinated state synchronization across multiple agents with conflict resolution".to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::StateSynchronization,
+            id: "state-synchronization".to_string(),
             required_capabilities: vec![
                 "state-synchronization".to_string(),
                 "conflict-resolution".to_string(),
@@ -818,6 +838,12 @@ impl CoordinationPattern for StateSynchronizationPattern {
             required_resources: vec!["state-store".to_string()],
             complexity: 8,
             estimated_execution_time_seconds: 600,
+            author: "Rhema Team".to_string(),
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+            tags: vec![],
+            constraints: vec![],
+            dependencies: vec![],
         }
     }
 }

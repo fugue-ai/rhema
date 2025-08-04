@@ -105,8 +105,6 @@ export class RhemaValidator {
     const startTime = Date.now();
     const diagnostics: Diagnostic[] = [];
     const warnings: Diagnostic[] = [];
-    const info: Diagnostic[] = [];
-    const hints: Diagnostic[] = [];
 
     try {
       const context: ValidationContext = {
@@ -147,31 +145,43 @@ export class RhemaValidator {
       // 5. Style and best practice validation
       const styleErrors = this.performStyleValidation(document, context);
       const bestPracticeErrors = this.performBestPracticeValidation(document, context);
+      
+      // Add style and best practice errors to diagnostics
+      diagnostics.push(...styleErrors);
+      diagnostics.push(...bestPracticeErrors);
 
       // Categorize diagnostics by severity
+      const categorizedDiagnostics: Diagnostic[] = [];
+      const categorizedWarnings: Diagnostic[] = [];
+      const categorizedInfo: Diagnostic[] = [];
+      const categorizedHints: Diagnostic[] = [];
+
       diagnostics.forEach((diagnostic) => {
         switch (diagnostic.severity) {
           case DiagnosticSeverity.Error:
-            diagnostics.push(diagnostic);
+            categorizedDiagnostics.push(diagnostic);
             break;
           case DiagnosticSeverity.Warning:
-            warnings.push(diagnostic);
+            categorizedWarnings.push(diagnostic);
             break;
           case DiagnosticSeverity.Information:
-            info.push(diagnostic);
+            categorizedInfo.push(diagnostic);
             break;
           case DiagnosticSeverity.Hint:
-            hints.push(diagnostic);
+            categorizedHints.push(diagnostic);
             break;
         }
       });
 
+      // Add warnings from performance validation
+      categorizedWarnings.push(...warnings);
+
       const result: ValidationResult = {
-        valid: diagnostics.length === 0,
-        diagnostics,
-        warnings,
-        info,
-        hints,
+        valid: categorizedDiagnostics.length === 0,
+        diagnostics: categorizedDiagnostics,
+        warnings: categorizedWarnings,
+        info: categorizedInfo,
+        hints: categorizedHints,
       };
 
       // Cache the result
@@ -273,7 +283,7 @@ export class RhemaValidator {
         source: 'rhema-schema',
         code: error.keyword,
       };
-    } catch (e) {
+    } catch {
       return null;
     }
   }

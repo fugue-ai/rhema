@@ -328,6 +328,30 @@ impl CoordinationIntegration {
         info!("✅ Coordination integration shutdown complete");
         Ok(())
     }
+
+    /// Send message with coordination integration
+    pub async fn send_message_with_coordination(&self, message: AgentMessage) -> RhemaResult<()> {
+        info!("Sending message with coordination integration: {:?}", message);
+        
+        // Send to Rhema coordination system
+        let mut rhema_coordination = self.rhema_coordination.write().await;
+        rhema_coordination.send_message(message.clone()).await?;
+        
+        // Bridge to Syneidesis if available
+        if let Some(client) = &self.syneidesis_client {
+            if let Err(e) = self.bridge_rhema_message(&message).await {
+                warn!("Failed to bridge message to Syneidesis: {}", e);
+            }
+        }
+        
+        // Update statistics
+        let mut stats = self.stats.write().await;
+        stats.rhema_messages += 1;
+        stats.bridge_messages_sent += 1;
+        
+        info!("✅ Message sent with coordination integration");
+        Ok(())
+    }
 }
 
 /// Statistics for the Coordination integration

@@ -1,6 +1,7 @@
 //! Test data generators for property-based testing
 
 use proptest::prelude::*;
+use proptest::strategy::Just;
 use serde_yaml::Value;
 use std::collections::HashMap;
 

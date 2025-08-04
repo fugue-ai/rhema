@@ -4,6 +4,8 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 use tests::common::{TestEnv, TestFixtures, helpers::TestHelpers};
+use rand::Rng;
+use rand::thread_rng;
 
 /// Benchmark coordination command execution
 fn benchmark_coordination_command(args: &[&str]) -> Result<Duration, Box<dyn std::error::Error>> {

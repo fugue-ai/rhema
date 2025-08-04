@@ -195,15 +195,15 @@ strip = true
 
 [[bin]]
 name = "test_daemon"
-path = "tests/test_daemon.rs"
+path = "tests/daemon/test_daemon.rs"
 
 [[bin]]
 name = "test_daemon_simple"
-path = "tests/test_daemon_simple.rs"
+path = "tests/daemon/test_daemon_simple.rs"
 
 [[example]]
 name = "core_unit_tests"
-path = "examples/core_unit_tests.rs"
+path = "examples/testing/core_unit_tests.rs"
 
 [[example]]
 name = "simple_coordination_example"

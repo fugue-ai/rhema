@@ -20,7 +20,7 @@ import { RhemaLogger } from '../logger';
 import { RhemaSettings } from '../settings';
 import { RhemaErrorHandler } from '../errorHandler';
 
-export class RhemaValidation implements vscode.DiagnosticCollection {
+export class RhemaValidation {
   private logger: RhemaLogger;
   private settings: RhemaSettings;
   private errorHandler: RhemaErrorHandler;
@@ -733,8 +733,14 @@ export class RhemaValidation implements vscode.DiagnosticCollection {
     return this.diagnosticCollection.get(uri);
   }
 
-  set(uri: vscode.Uri, diagnostics: readonly vscode.Diagnostic[] | undefined): void {
-    this.diagnosticCollection.set(uri, diagnostics);
+  set(uri: vscode.Uri, diagnostics: readonly vscode.Diagnostic[] | undefined): void;
+  set(entries: readonly [vscode.Uri, readonly vscode.Diagnostic[]][]): void;
+  set(uriOrEntries: vscode.Uri | readonly [vscode.Uri, readonly vscode.Diagnostic[]][], diagnostics?: readonly vscode.Diagnostic[] | undefined): void {
+    if (Array.isArray(uriOrEntries)) {
+      this.diagnosticCollection.set(uriOrEntries);
+    } else {
+      this.diagnosticCollection.set(uriOrEntries as vscode.Uri, diagnostics);
+    }
   }
 
   delete(uri: vscode.Uri): void {

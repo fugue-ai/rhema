@@ -374,9 +374,9 @@ A todo item represents a task or action item within the scope.
         const completion = this.createCompletionItem(
           suggestion.label,
           suggestion.kind || 'text',
-          suggestion.detail || '',
-          suggestion.insertText || suggestion.label
+          suggestion.detail || ''
         );
+        completion.insertText = suggestion.insertText || suggestion.label;
         completion.sortText = suggestion.sortText || suggestion.label;
         completion.filterText = suggestion.filterText || suggestion.label;
         completion.documentation = suggestion.documentation
@@ -518,9 +518,9 @@ A todo item represents a task or action item within the scope.
         const completion = this.createCompletionItem(
           pattern.name || pattern.id,
           'snippet',
-          `Pattern: ${pattern.description || ''}`,
-          `"${pattern.name || pattern.id}"`
+          `Pattern: ${pattern.description || ''}`
         );
+        completion.insertText = `"${pattern.name || pattern.id}"`;
         completions.push(completion);
       }
     }
@@ -537,9 +537,9 @@ A todo item represents a task or action item within the scope.
         const completion = this.createCompletionItem(
           decision.name || decision.id,
           'snippet',
-          `Decision: ${decision.description || ''}`,
-          `"${decision.name || decision.id}"`
+          `Decision: ${decision.description || ''}`
         );
+        completion.insertText = `"${decision.name || decision.id}"`;
         completions.push(completion);
       }
     }

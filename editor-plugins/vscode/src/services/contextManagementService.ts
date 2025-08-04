@@ -38,7 +38,10 @@ import {
   UserFeedback,
   ContextTask,
   ProgressInfo,
-  CacheMetrics
+  CacheMetrics,
+  TaskType,
+  TaskPriority,
+  ChangeType
 } from '../types/context';
 
 export class ContextManagementService {
@@ -285,9 +288,15 @@ export class ContextManagementService {
 
       // Process changes in background
       await this.performanceService.processInBackground({
-        type: 'context_update',
+        id: `context_update_${Date.now()}`,
+        type: TaskType.ContextUpdate,
         changes,
-        priority: 'medium'
+        priority: TaskPriority.Medium,
+        metadata: {
+          created: new Date(),
+          priority: TaskPriority.Medium,
+          estimatedTime: 1000
+        }
       });
 
       // Update cache
@@ -312,7 +321,7 @@ export class ContextManagementService {
       return await this.crossScopeService.analyzeScopeDependencies();
     } catch (error) {
       this.errorHandler.handleError('Failed to analyze scope dependencies', error);
-      return new Map();
+      return {};
     }
   }
 
@@ -362,7 +371,12 @@ export class ContextManagementService {
         hitRate: 0,
         missRate: 0,
         totalRequests: 0,
-        averageResponseTime: 0
+        averageResponseTime: 0,
+        metadata: {
+          timestamp: new Date(),
+          period: '1h',
+          source: 'error_fallback'
+        }
       };
     }
   }
@@ -410,7 +424,7 @@ export class ContextManagementService {
       // Update context incrementally
       const changes: FileChange[] = [{
         file: event.document.uri.fsPath,
-        type: 'modified',
+        type: ChangeType.Modified,
         timestamp: new Date()
       }];
 
@@ -428,7 +442,7 @@ export class ContextManagementService {
 
       const changes: FileChange[] = [{
         file: uri.fsPath,
-        type: 'created',
+        type: ChangeType.Created,
         timestamp: new Date()
       }];
 
@@ -446,7 +460,7 @@ export class ContextManagementService {
 
       const changes: FileChange[] = [{
         file: uri.fsPath,
-        type: 'deleted',
+        type: ChangeType.Deleted,
         timestamp: new Date()
       }];
 
@@ -487,7 +501,7 @@ export class ContextManagementService {
   }
 
   private isRhemaFile(documentOrUri: vscode.TextDocument | vscode.Uri): boolean {
-    const fileName = 'fsPath' in documentOrUri ? documentOrUri.fsPath : documentOrUri.fsPath;
+    const fileName = 'uri' in documentOrUri ? documentOrUri.uri.fsPath : documentOrUri.fsPath;
     return fileName.endsWith('.yml') || fileName.endsWith('.yaml');
   }
 

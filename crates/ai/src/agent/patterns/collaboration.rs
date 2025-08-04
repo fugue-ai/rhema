@@ -201,6 +201,8 @@ impl CoordinationPattern for CodeReviewWorkflow {
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
+            metadata: HashMap::new(),
+            execution_time_ms: 100,
         })
     }
 
@@ -257,10 +259,15 @@ impl CoordinationPattern for CodeReviewWorkflow {
 
     fn metadata(&self) -> PatternMetadata {
         PatternMetadata {
+            id: "code-review-workflow".to_string(),
             name: "Code Review Workflow".to_string(),
             description: "Multi-agent code review with security, performance, and style analysis".to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::Collaboration,
+            author: "CodeReviewWorkflow".to_string(),
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+            tags: vec!["code-review".to_string(), "collaboration".to_string()],
             required_capabilities: vec![
                 "code-review".to_string(),
                 "security-analysis".to_string(),
@@ -268,6 +275,8 @@ impl CoordinationPattern for CodeReviewWorkflow {
                 "style-analysis".to_string(),
             ],
             required_resources: vec!["file-access".to_string()],
+            constraints: Vec::new(),
+            dependencies: Vec::new(),
             complexity: 7,
             estimated_execution_time_seconds: 3600,
         }
@@ -528,6 +537,8 @@ impl CoordinationPattern for TestGenerationWorkflow {
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
+            metadata: HashMap::new(),
+            execution_time_ms: 100,
         })
     }
 
@@ -575,10 +586,15 @@ impl CoordinationPattern for TestGenerationWorkflow {
 
     fn metadata(&self) -> PatternMetadata {
         PatternMetadata {
+            id: "test-generation-workflow".to_string(),
             name: "Test Generation Workflow".to_string(),
             description: "Multi-agent test generation with strategy, unit, integration, and performance tests".to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::Collaboration,
+            author: "TestGenerationWorkflow".to_string(),
+            created_at: Utc::now(),
+            modified_at: Utc::now(),
+            tags: vec!["test-generation".to_string(), "collaboration".to_string()],
             required_capabilities: vec![
                 "test-generation".to_string(),
                 "test-strategy".to_string(),
@@ -587,6 +603,8 @@ impl CoordinationPattern for TestGenerationWorkflow {
                 "test-execution".to_string(),
             ],
             required_resources: vec!["file-access".to_string(), "test-environment".to_string()],
+            constraints: Vec::new(),
+            dependencies: Vec::new(),
             complexity: 8,
             estimated_execution_time_seconds: 1800,
         }

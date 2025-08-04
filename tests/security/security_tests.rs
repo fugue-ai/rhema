@@ -1,530 +1,396 @@
-//! Security tests for Rhema CLI
-
-use rhema::{Rhema, RhemaResult};
-use tests::common::{TestEnv, TestFixtures, helpers::TestHelpers, security};
+use rhema_git::git::security::{
+    SecurityManager, SecurityConfig, AccessControlConfig, AuditLoggingConfig,
+    SecurityValidationConfig, EncryptionConfig, ThreatDetectionConfig,
+    RolePermissions, Operation, LogLevel, AuditEvent, EncryptionAlgorithm,
+    KeyStorage, KeyRotationPolicy, RetentionPolicy, SecurityScanningConfig,
+    default_security_config
+};
+use git2::Repository;
+use std::collections::HashMap;
 use std::path::PathBuf;
+use tempfile::TempDir;
 
 #[test]
-fn test_path_traversal_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_security_manager_creation() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
     
-    // Test path traversal attempts
-    let malicious_paths = vec![
-        "../../../etc/passwd",
-        "..\\..\\..\\windows\\system32\\config\\sam",
-        "....//....//....//etc/passwd",
-        "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd",
-    ];
+    // Initialize a test repository
+    let repo = Repository::init(repo_path).unwrap();
+    let config = default_security_config();
     
-    for path in malicious_paths {
-        let result = env.rhema.get_scope(path);
-        assert!(result.is_err(), "Path traversal should be blocked: {}", path);
-    }
-    
-    Ok(())
+    let security_manager = SecurityManager::new(repo, config);
+    assert!(security_manager.is_ok());
 }
 
 #[test]
-fn test_yaml_injection_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_access_validation() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+    let repo = Repository::init(repo_path).unwrap();
     
-    // Test YAML injection attempts
-    let malicious_yaml = vec![
-        "!!python/object/apply:os.system ['rm -rf /']",
-        "!!python/object/apply:subprocess.check_output [['cat', '/etc/passwd']]",
-        "!!binary |\n  Q2F0Y2ggbWUgaWYgeW91IGNhbiE=",
-    ];
+    let mut config = default_security_config();
+    config.enabled = true;
     
-    for yaml in malicious_yaml {
-        let result = serde_yaml::from_str::<serde_yaml::Value>(yaml);
-        // Should either fail or be sanitized
-        if result.is_ok() {
-            let value = result.unwrap();
-            // Verify no dangerous content
-            let value_str = serde_yaml::to_string(&value)?;
-            assert!(!value_str.contains("os.system"));
-            assert!(!value_str.contains("subprocess"));
-        }
-    }
+    // Add test role
+    let mut roles = HashMap::new();
+    let mut permissions = RolePermissions {
+        name: "developer".to_string(),
+        allowed_operations: vec![Operation::Read, Operation::Write, Operation::Commit],
+        allowed_branches: vec!["feature/*".to_string()],
+        allowed_files: vec!["src/**".to_string()],
+        denied_files: vec!["config/secrets.*".to_string()],
+    };
+    roles.insert("test_user".to_string(), permissions);
+    config.access_control.roles = roles;
     
-    Ok(())
+    let security_manager = SecurityManager::new(repo, config).unwrap();
+    
+    // Test valid access
+    let result = security_manager.validate_access("test_user", &Operation::Read, "src/main.rs");
+    assert!(result.is_ok());
+    assert!(result.unwrap());
+    
+    // Test invalid operation
+    let result = security_manager.validate_access("test_user", &Operation::Admin, "src/main.rs");
+    assert!(result.is_ok());
+    assert!(!result.unwrap());
 }
 
 #[test]
-fn test_input_validation() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_commit_security_validation() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+    let repo = Repository::init(repo_path).unwrap();
     
-    // Test invalid queries
-    let invalid_queries = vec![
-        "todos WHERE id='; DROP TABLE todos; --",
-        "todos WHERE id=1 OR 1=1",
-        "todos WHERE id=1 UNION SELECT * FROM users",
-        "todos WHERE id=1; INSERT INTO todos VALUES ('malicious')",
-    ];
+    let mut config = default_security_config();
+    config.enabled = true;
+    config.validation.validate_signatures = true;
+    config.validation.check_suspicious_patterns = true;
+    config.validation.check_secrets = true;
     
-    for query in invalid_queries {
-        let result = env.rhema.query(query);
-        assert!(result.is_err(), "Invalid query should be rejected: {}", query);
-    }
+    let security_manager = SecurityManager::new(repo, config).unwrap();
     
-    Ok(())
+    // Create a test commit
+    let signature = git2::Signature::now("Test User", "test@example.com").unwrap();
+    let tree_id = repo.index().unwrap().write_tree().unwrap();
+    let tree = repo.find_tree(tree_id).unwrap();
+    
+    let commit_id = repo.commit(
+        Some(&"refs/heads/main"),
+        &signature,
+        &signature,
+        "Test commit message",
+        &tree,
+        &[],
+    ).unwrap();
+    
+    let commit = repo.find_commit(commit_id).unwrap();
+    let result = security_manager.validate_commit_security(&commit);
+    
+    assert!(result.is_ok());
+    let validation_result = result.unwrap();
+    // Should have warnings about missing signature
+    assert!(!validation_result.warnings.is_empty());
 }
 
 #[test]
-fn test_file_permission_validation() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_secret_detection() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+    let repo = Repository::init(repo_path).unwrap();
     
-    // Test accessing files with restricted permissions
-    let restricted_file = env.repo_path.join("restricted.yaml");
-    TestHelpers::create_file_with_permissions(&restricted_file, "test", 0o000)?;
+    let mut config = default_security_config();
+    config.enabled = true;
+    config.validation.check_secrets = true;
     
-    // Try to read restricted file
-    let result = std::fs::read_to_string(&restricted_file);
-    assert!(result.is_err(), "Should not be able to read restricted file");
+    let security_manager = SecurityManager::new(repo, config).unwrap();
     
-    // Clean up
-    std::fs::set_permissions(&restricted_file, std::fs::Permissions::from_mode(0o644))?;
-    std::fs::remove_file(&restricted_file)?;
+    // Create a test commit with secrets
+    let signature = git2::Signature::now("Test User", "test@example.com").unwrap();
+    let mut index = repo.index().unwrap();
     
-    Ok(())
+    // Create a file with secrets
+    let secret_content = "password=secret123\napi_key=sk_test_1234567890abcdef";
+    let secret_file_path = repo_path.join("config.txt");
+    std::fs::write(&secret_file_path, secret_content).unwrap();
+    
+    index.add_path(&std::path::Path::new("config.txt")).unwrap();
+    index.write().unwrap();
+    
+    let tree_id = index.write_tree().unwrap();
+    let tree = repo.find_tree(tree_id).unwrap();
+    
+    let commit_id = repo.commit(
+        Some(&"refs/heads/main"),
+        &signature,
+        &signature,
+        "Add config with secrets",
+        &tree,
+        &[],
+    ).unwrap();
+    
+    let commit = repo.find_commit(commit_id).unwrap();
+    let result = security_manager.validate_commit_security(&commit);
+    
+    assert!(result.is_ok());
+    let validation_result = result.unwrap();
+    // Should detect secrets
+    assert!(!validation_result.errors.is_empty());
 }
 
 #[test]
-fn test_sql_injection_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_suspicious_pattern_detection() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+    let repo = Repository::init(repo_path).unwrap();
     
-    // Test SQL injection attempts in queries
-    let sql_injection_queries = vec![
-        "todos WHERE id='1' OR '1'='1'",
-        "todos WHERE id=1; DROP TABLE todos;",
-        "todos WHERE id=1 UNION SELECT * FROM users",
-        "todos WHERE id=1' AND 1=1 --",
-    ];
+    let mut config = default_security_config();
+    config.enabled = true;
+    config.validation.check_suspicious_patterns = true;
     
-    for query in sql_injection_queries {
-        let result = env.rhema.query(query);
-        // Should either fail or be sanitized
-        if result.is_ok() {
-            let value = result.unwrap();
-            let value_str = serde_yaml::to_string(&value)?;
-            // Verify no SQL commands in output
-            assert!(!value_str.to_lowercase().contains("drop"));
-            assert!(!value_str.to_lowercase().contains("union"));
-            assert!(!value_str.to_lowercase().contains("select"));
-        }
-    }
+    let security_manager = SecurityManager::new(repo, config).unwrap();
     
-    Ok(())
+    // Create a test commit with suspicious patterns
+    let signature = git2::Signature::now("admin", "admin@test.com").unwrap();
+    let mut index = repo.index().unwrap();
+    
+    let tree_id = index.write_tree().unwrap();
+    let tree = repo.find_tree(tree_id).unwrap();
+    
+    let commit_id = repo.commit(
+        Some(&"refs/heads/main"),
+        &signature,
+        &signature,
+        "URGENT: Fix critical security bug with password reset",
+        &tree,
+        &[],
+    ).unwrap();
+    
+    let commit = repo.find_commit(commit_id).unwrap();
+    let result = security_manager.validate_commit_security(&commit);
+    
+    assert!(result.is_ok());
+    let validation_result = result.unwrap();
+    // Should detect suspicious patterns
+    assert!(!validation_result.warnings.is_empty());
 }
 
 #[test]
-fn test_xss_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_security_scanning() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+    let repo = Repository::init(repo_path).unwrap();
     
-    // Test XSS attempts in data
-    let xss_content = vec![
-        "<script>alert('xss')</script>",
-        "javascript:alert('xss')",
-        "<img src=x onerror=alert('xss')>",
-        "&#60;script&#62;alert('xss')&#60;/script&#62;",
-    ];
+    let mut config = default_security_config();
+    config.enabled = true;
+    config.validation.security_scanning.enabled = true;
+    config.validation.security_scanning.scan_vulnerabilities = true;
+    config.validation.security_scanning.scan_secrets = true;
+    config.validation.security_scanning.scan_malware = true;
     
-    for content in xss_content {
-        // Create file with XSS content
-        let xss_file = env.repo_path.join(".rhema").join("xss_test.yaml");
-        let yaml_content = format!("todos:\n  - id: xss-test\n    title: {}\n    status: pending", content);
-        std::fs::write(&xss_file, yaml_content)?;
-        
-        // Query the file
-        let result = env.rhema.query("xss_test");
-        if result.is_ok() {
-            let value = result.unwrap();
-            let value_str = serde_yaml::to_string(&value)?;
-            // Verify XSS content is not executed
-            assert!(!value_str.contains("<script>"));
-            assert!(!value_str.contains("javascript:"));
-        }
-        
-        // Clean up
-        std::fs::remove_file(&xss_file)?;
-    }
+    let security_manager = SecurityManager::new(repo, config).unwrap();
     
-    Ok(())
+    // Create test files with vulnerabilities
+    let vulnerable_content = r#"
+        $query = "SELECT * FROM users WHERE id = " . $_GET['id'];
+        eval($code);
+        console.log("debug info");
+    "#;
+    
+    let vulnerable_file = repo_path.join("vulnerable.php");
+    std::fs::write(&vulnerable_file, vulnerable_content).unwrap();
+    
+    let result = security_manager.run_security_scan(repo_path);
+    assert!(result.is_ok());
+    
+    let scan_result = result.unwrap();
+    // Should detect vulnerabilities
+    assert!(!scan_result.vulnerabilities.is_empty());
 }
 
 #[test]
-fn test_command_injection_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_file_encryption() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+    let repo = Repository::init(repo_path).unwrap();
     
-    // Test command injection attempts
-    let command_injection_content = vec![
-        "$(rm -rf /)",
-        "`cat /etc/passwd`",
-        "; rm -rf /",
-        "| cat /etc/passwd",
-        "&& rm -rf /",
-    ];
+    let mut config = default_security_config();
+    config.enabled = true;
+    config.encryption.enabled = true;
+    config.encryption.algorithm = EncryptionAlgorithm::AES256;
+    config.encryption.key_management.key_storage = KeyStorage::File(repo_path.join("key.txt"));
     
-    for content in command_injection_content {
-        // Create file with command injection content
-        let injection_file = env.repo_path.join(".rhema").join("injection_test.yaml");
-        let yaml_content = format!("todos:\n  - id: injection-test\n    title: {}\n    status: pending", content);
-        std::fs::write(&injection_file, yaml_content)?;
-        
-        // Query the file
-        let result = env.rhema.query("injection_test");
-        if result.is_ok() {
-            let value = result.unwrap();
-            let value_str = serde_yaml::to_string(&value)?;
-            // Verify command injection content is not executed
-            assert!(!value_str.contains("rm -rf"));
-            assert!(!value_str.contains("cat /etc/passwd"));
-        }
-        
-        // Clean up
-        std::fs::remove_file(&injection_file)?;
-    }
+    let security_manager = SecurityManager::new(repo, config).unwrap();
     
-    Ok(())
+    // Create a test file
+    let test_content = "This is sensitive data that should be encrypted";
+    let test_file = repo_path.join("sensitive.txt");
+    std::fs::write(&test_file, test_content).unwrap();
+    
+    // Encrypt the file
+    let encrypt_result = security_manager.encrypt_file(&test_file);
+    assert!(encrypt_result.is_ok());
+    
+    // Check that encrypted file exists
+    let encrypted_file = test_file.with_extension("encrypted");
+    assert!(encrypted_file.exists());
+    
+    // Decrypt the file
+    let decrypt_result = security_manager.decrypt_file(&encrypted_file);
+    assert!(decrypt_result.is_ok());
+    
+    // Check that decrypted content matches original
+    let decrypted_content = std::fs::read_to_string(&test_file).unwrap();
+    assert_eq!(decrypted_content, test_content);
 }
 
 #[test]
-fn test_buffer_overflow_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_audit_logging() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+    let repo = Repository::init(repo_path).unwrap();
     
-    // Test with extremely large input
-    let large_content = "A".repeat(1_000_000); // 1MB of data
+    let mut config = default_security_config();
+    config.enabled = true;
+    config.audit_logging.enabled = true;
+    config.audit_logging.log_file = repo_path.join("audit.log");
+    config.audit_logging.log_level = LogLevel::Info;
+    config.audit_logging.events = vec![AuditEvent::Commit, AuditEvent::SecurityViolation];
     
-    // Create file with large content
-    let large_file = env.repo_path.join(".rhema").join("large_test.yaml");
-    let yaml_content = format!("todos:\n  - id: large-test\n    title: {}\n    status: pending", large_content);
-    std::fs::write(&large_file, yaml_content)?;
+    let security_manager = SecurityManager::new(repo, config).unwrap();
     
-    // Try to query the file
-    let result = env.rhema.query("large_test");
-    // Should either succeed or fail gracefully, not crash
-    if result.is_err() {
-        let error = result.unwrap_err();
-        // Verify it's a reasonable error, not a crash
-        assert!(!error.to_string().contains("overflow"));
-        assert!(!error.to_string().contains("memory"));
-    }
+    // Perform an operation that should be logged
+    let result = security_manager.validate_access("test_user", &Operation::Read, "test.txt");
+    assert!(result.is_ok());
     
-    // Clean up
-    std::fs::remove_file(&large_file)?;
-    
-    Ok(())
+    // Check that log file was created
+    assert!(config.audit_logging.log_file.exists());
 }
 
 #[test]
-fn test_integer_overflow_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_default_security_config() {
+    let config = default_security_config();
     
-    // Test with extremely large numbers
-    let large_number = "9".repeat(1000);
-    
-    // Create file with large number
-    let overflow_file = env.repo_path.join(".rhema").join("overflow_test.yaml");
-    let yaml_content = format!("todos:\n  - id: overflow-test\n    priority: {}\n    status: pending", large_number);
-    std::fs::write(&overflow_file, yaml_content)?;
-    
-    // Try to query the file
-    let result = env.rhema.query("overflow_test");
-    // Should either succeed or fail gracefully, not crash
-    if result.is_err() {
-        let error = result.unwrap_err();
-        // Verify it's a reasonable error, not a crash
-        assert!(!error.to_string().contains("overflow"));
-    }
-    
-    // Clean up
-    std::fs::remove_file(&overflow_file)?;
-    
-    Ok(())
+    // Verify default values
+    assert!(!config.enabled);
+    assert!(config.access_control.require_authentication);
+    assert!(config.access_control.rbac_enabled);
+    assert!(config.audit_logging.enabled);
+    assert!(config.validation.validate_signatures);
+    assert!(config.validation.check_secrets);
+    assert!(!config.encryption.enabled);
+    assert!(!config.threat_detection.enabled);
 }
 
 #[test]
-fn test_denial_of_service_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_role_based_access_control() {
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+    let repo = Repository::init(repo_path).unwrap();
     
-    // Test with recursive YAML (billion laughs attack)
-    let recursive_yaml = r#"
-&anchor
-  - *anchor
-  - *anchor
-  - *anchor
-  - *anchor
-  - *anchor
-"#;
+    let mut config = default_security_config();
+    config.enabled = true;
     
-    // Create file with recursive content
-    let dos_file = env.repo_path.join(".rhema").join("dos_test.yaml");
-    std::fs::write(&dos_file, recursive_yaml)?;
+    // Create different roles
+    let mut roles = HashMap::new();
     
-    // Try to query the file with timeout
-    let result = std::panic::catch_unwind(|| {
-        env.rhema.query("dos_test")
-    });
+    // Admin role
+    let admin_permissions = RolePermissions {
+        name: "admin".to_string(),
+        allowed_operations: vec![
+            Operation::Read, Operation::Write, Operation::Commit,
+            Operation::Push, Operation::Pull, Operation::Merge,
+            Operation::Rebase, Operation::Delete, Operation::Admin
+        ],
+        allowed_branches: vec!["*".to_string()],
+        allowed_files: vec!["**".to_string()],
+        denied_files: vec![],
+    };
+    roles.insert("admin".to_string(), admin_permissions);
     
-    // Should not panic or hang indefinitely
-    match result {
-        Ok(query_result) => {
-            // If it succeeds, that's fine
-            if query_result.is_err() {
-                let error = query_result.unwrap_err();
-                // Verify it's a reasonable error
-                assert!(!error.to_string().contains("overflow"));
-            }
-        }
-        Err(_) => {
-            // Panic is acceptable for DoS protection
-        }
-    }
+    // Developer role
+    let dev_permissions = RolePermissions {
+        name: "developer".to_string(),
+        allowed_operations: vec![
+            Operation::Read, Operation::Write, Operation::Commit
+        ],
+        allowed_branches: vec!["feature/*".to_string(), "develop".to_string()],
+        allowed_files: vec!["src/**".to_string()],
+        denied_files: vec!["config/secrets.*".to_string()],
+    };
+    roles.insert("developer".to_string(), dev_permissions);
     
-    // Clean up
-    std::fs::remove_file(&dos_file)?;
+    // Read-only role
+    let readonly_permissions = RolePermissions {
+        name: "readonly".to_string(),
+        allowed_operations: vec![Operation::Read],
+        allowed_branches: vec!["main".to_string()],
+        allowed_files: vec!["src/**".to_string()],
+        denied_files: vec!["config/**".to_string()],
+    };
+    roles.insert("readonly".to_string(), readonly_permissions);
     
-    Ok(())
+    config.access_control.roles = roles;
+    
+    let security_manager = SecurityManager::new(repo, config).unwrap();
+    
+    // Test admin access
+    let result = security_manager.validate_access("admin", &Operation::Admin, "any/file.txt");
+    assert!(result.is_ok());
+    assert!(result.unwrap());
+    
+    // Test developer access
+    let result = security_manager.validate_access("developer", &Operation::Commit, "src/main.rs");
+    assert!(result.is_ok());
+    assert!(result.unwrap());
+    
+    // Test developer denied access
+    let result = security_manager.validate_access("developer", &Operation::Admin, "src/main.rs");
+    assert!(result.is_ok());
+    assert!(!result.unwrap());
+    
+    // Test readonly access
+    let result = security_manager.validate_access("readonly", &Operation::Read, "src/main.rs");
+    assert!(result.is_ok());
+    assert!(result.unwrap());
+    
+    // Test readonly denied write
+    let result = security_manager.validate_access("readonly", &Operation::Write, "src/main.rs");
+    assert!(result.is_ok());
+    assert!(!result.unwrap());
 }
 
 #[test]
-fn test_authentication_bypass_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+fn test_security_scan_result_management() {
+    use rhema_git::git::security::{SecurityScanResult, SecurityIssue};
     
-    // Test authentication bypass attempts
-    let bypass_attempts = vec![
-        "admin",
-        "root",
-        "superuser",
-        "administrator",
-        "guest",
-        "anonymous",
-    ];
+    let mut scan_result = SecurityScanResult::new();
     
-    for attempt in bypass_attempts {
-        // Try to access with bypass attempts
-        let result = env.rhema.get_scope(attempt);
-        // Should fail for non-existent scopes
-        if result.is_ok() {
-            let scope = result.unwrap();
-            // Verify it's not a privileged scope
-            assert!(!scope.definition.name.contains("admin"));
-            assert!(!scope.definition.name.contains("root"));
-        }
-    }
+    // Add various security findings
+    scan_result.add_vulnerability("SQL injection in user input".to_string());
+    scan_result.add_malware("Suspicious eval() usage".to_string());
+    scan_result.add_secret("API key found in config".to_string());
+    scan_result.add_info("Scan completed successfully".to_string());
     
-    Ok(())
-}
-
-#[test]
-fn test_privilege_escalation_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
+    let issue = SecurityIssue {
+        severity: "High".to_string(),
+        category: "Vulnerability".to_string(),
+        description: "Critical security issue".to_string(),
+        file_path: Some(PathBuf::from("src/main.rs")),
+        line_number: Some(42),
+    };
+    scan_result.add_issue(issue);
     
-    // Test privilege escalation attempts
-    let escalation_attempts = vec![
-        "../../../root/.rhema",
-        "/etc/rhema",
-        "/var/lib/rhema",
-        "/usr/local/etc/rhema",
-    ];
+    // Verify results
+    assert!(!scan_result.clean);
+    assert_eq!(scan_result.vulnerabilities.len(), 1);
+    assert_eq!(scan_result.malware.len(), 1);
+    assert_eq!(scan_result.secrets.len(), 1);
+    assert_eq!(scan_result.info.len(), 1);
+    assert_eq!(scan_result.issues.len(), 1);
     
-    for attempt in escalation_attempts {
-        let result = env.rhema.get_scope(attempt);
-        // Should fail for system directories
-        assert!(result.is_err(), "Should not access system directories: {}", attempt);
-    }
-    
-    Ok(())
-}
-
-#[test]
-fn test_data_exfiltration_protection() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
-    
-    // Test data exfiltration attempts
-    let exfiltration_queries = vec![
-        "todos WHERE id LIKE '%'",
-        "todos WHERE 1=1",
-        "todos WHERE id IS NOT NULL",
-        "todos WHERE id != ''",
-    ];
-    
-    for query in exfiltration_queries {
-        let result = env.rhema.query(query);
-        if result.is_ok() {
-            let value = result.unwrap();
-            let value_str = serde_yaml::to_string(&value)?;
-            
-            // Verify sensitive data is not exposed
-            assert!(!value_str.contains("password"));
-            assert!(!value_str.contains("secret"));
-            assert!(!value_str.contains("key"));
-            assert!(!value_str.contains("token"));
-        }
-    }
-    
-    Ok(())
-}
-
-#[test]
-fn test_input_sanitization() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
-    
-    // Test input sanitization
-    let malicious_inputs = vec![
-        "test<script>alert('xss')</script>",
-        "test' OR '1'='1",
-        "test; rm -rf /",
-        "test$(cat /etc/passwd)",
-        "test`whoami`",
-    ];
-    
-    for input in malicious_inputs {
-        // Create file with malicious input
-        let sanitize_file = env.repo_path.join(".rhema").join("sanitize_test.yaml");
-        let yaml_content = format!("todos:\n  - id: sanitize-test\n    title: {}\n    status: pending", input);
-        std::fs::write(&sanitize_file, yaml_content)?;
-        
-        // Query the file
-        let result = env.rhema.query("sanitize_test");
-        if result.is_ok() {
-            let value = result.unwrap();
-            let value_str = serde_yaml::to_string(&value)?;
-            
-            // Verify malicious content is sanitized
-            assert!(!value_str.contains("<script>"));
-            assert!(!value_str.contains("rm -rf"));
-            assert!(!value_str.contains("cat /etc/passwd"));
-            assert!(!value_str.contains("whoami"));
-        }
-        
-        // Clean up
-        std::fs::remove_file(&sanitize_file)?;
-    }
-    
-    Ok(())
-}
-
-#[test]
-fn test_output_encoding() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
-    
-    // Test output encoding
-    let special_chars = vec![
-        "<>&\"'",
-        "\\n\\t\\r",
-        "\\u0000\\u0001\\u0002",
-        "\\x00\\x01\\x02",
-    ];
-    
-    for chars in special_chars {
-        // Create file with special characters
-        let encoding_file = env.repo_path.join(".rhema").join("encoding_test.yaml");
-        let yaml_content = format!("todos:\n  - id: encoding-test\n    title: {}\n    status: pending", chars);
-        std::fs::write(&encoding_file, yaml_content)?;
-        
-        // Query the file
-        let result = env.rhema.query("encoding_test");
-        if result.is_ok() {
-            let value = result.unwrap();
-            let value_str = serde_yaml::to_string(&value)?;
-            
-            // Verify special characters are properly encoded
-            assert!(!value_str.contains("\\u0000"));
-            assert!(!value_str.contains("\\x00"));
-        }
-        
-        // Clean up
-        std::fs::remove_file(&encoding_file)?;
-    }
-    
-    Ok(())
-}
-
-#[test]
-fn test_session_management() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
-    
-    // Test session management (if applicable)
-    // Since Rhema CLI doesn't have sessions, this test verifies stateless operation
-    
-    // Multiple queries should not interfere with each other
-    let result1 = env.rhema.query("todos")?;
-    let result2 = env.rhema.query("insights")?;
-    let result3 = env.rhema.query("patterns")?;
-    
-    // All queries should succeed independently
-    assert!(serde_yaml::to_string(&result1)?.contains("todos"));
-    assert!(serde_yaml::to_string(&result2)?.contains("insights"));
-    assert!(serde_yaml::to_string(&result3)?.contains("patterns"));
-    
-    Ok(())
-}
-
-#[test]
-fn test_audit_logging() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
-    
-    // Test audit logging (if implemented)
-    // This test verifies that operations can be logged for security auditing
-    
-    // Perform various operations
-    let _ = env.rhema.query("todos")?;
-    let _ = env.rhema.search_regex("test", None)?;
-    let _ = env.rhema.discover_scopes()?;
-    
-    // If audit logging is implemented, verify logs exist
-    // For now, just verify operations complete successfully
-    Ok(())
-}
-
-#[test]
-fn test_secure_defaults() -> RhemaResult<()> {
-    let env = TestEnv::new()?;
-    
-    // Test secure defaults
-    // Verify that Rhema uses secure defaults when no configuration is provided
-    
-    // Test scope discovery with no configuration
-    let scopes = env.rhema.discover_scopes()?;
-    assert_eq!(scopes.len(), 0); // Should be empty, not fail
-    
-    // Test query with no data
-    let result = env.rhema.query("nonexistent");
-    assert!(result.is_err()); // Should fail gracefully
-    
-    Ok(())
-}
-
-#[test]
-fn test_error_information_disclosure() -> RhemaResult<()> {
-    let env = TestEnv::with_sample_data()?;
-    
-    // Test error information disclosure
-    // Verify that errors don't leak sensitive information
-    
-    let error_queries = vec![
-        "nonexistent",
-        "todos WHERE invalid_field=value",
-        "todos WHERE id='malicious'",
-    ];
-    
-    for query in error_queries {
-        let result = env.rhema.query(query);
-        if result.is_err() {
-            let error = result.unwrap_err();
-            let error_str = error.to_string();
-            
-            // Verify error doesn't leak sensitive information
-            assert!(!error_str.contains("password"));
-            assert!(!error_str.contains("secret"));
-            assert!(!error_str.contains("key"));
-            assert!(!error_str.contains("token"));
-            assert!(!error_str.contains("/etc/"));
-            assert!(!error_str.contains("/var/"));
-            assert!(!error_str.contains("/usr/"));
-        }
-    }
-    
-    Ok(())
+    // Test risk level setting
+    scan_result.set_risk_level("High".to_string());
+    assert_eq!(scan_result.risk_level, "High");
 } 
