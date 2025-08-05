@@ -47,6 +47,7 @@ Thumbs.db
 # Rhema specific
 rhema_cache/
 rhema_backup/
+**/.rhema/**/*.json
 
 # Test artifacts
 test_output/
