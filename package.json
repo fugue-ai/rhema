@@ -12,6 +12,7 @@
     "status:typescript": "./.github/scripts/build-typescript.sh status",
     "build:all": "pnpm run build:typescript && cargo build",
     "clean:all": "pnpm run clean:typescript && cargo clean",
+    "start:language-server": "npx nx run-many --target=start --projects=language-server",
     "test:typescript": "pnpm run test:vscode && pnpm run test:language-server",
     "test:vscode": "pnpm --filter rhema test",
     "test:language-server": "pnpm --filter rhema-language-server test",
@@ -27,7 +28,17 @@
     "rust:doc": "npx nx run-many --target=doc --projects=rhema-*",
     "rust:affected:build": "npx nx affected:build --base=main",
     "rust:affected:test": "npx nx affected:test --base=main",
-    "rust:affected:check": "npx nx affected:check --base=main"
+    "rust:affected:check": "npx nx affected:check --base=main",
+    "docs:dev": "npx nx dev --project=docs",
+    "docs:build": "npx nx build --project=docs",
+    "docs:preview": "npx nx preview --project=docs",
+    "docs:test": "npx nx test --project=docs",
+    "docs:check": "npx nx check --project=docs",
+    "docs:lint": "npx nx lint --project=docs",
+    "docs:format": "npx nx format --project=docs",
+    "docs:install": "pnpm --filter kitdocs-docs install",
+    "docs:clean": "pnpm --filter kitdocs-docs run clean",
+    "docs:help": "echo 'Available docs commands: docs:dev, docs:build, docs:preview, docs:test, docs:check, docs:lint, docs:format, docs:install, docs:clean'"
   },
   "devDependencies": {
     "nx": "^21.3.11",

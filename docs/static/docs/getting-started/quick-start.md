@@ -116,7 +116,7 @@ rhema init --scope-type service --scope-name user-service --description "User au
 
 - `component` - UI components, modules, widgets
 
-- `infrastructure` - Infrastructure, deployment, configuration
+- `docker` - Docker, deployment, configuration
 
 ### 2. Add Context
 

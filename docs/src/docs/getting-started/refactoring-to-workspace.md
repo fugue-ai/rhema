@@ -46,7 +46,7 @@ rhema/
 
 ```
 rhema (binary)
-└── rhema-cli
+└── rhema
     ├── rhema-core
     ├── rhema-query
     │   └── rhema-core
@@ -177,7 +177,7 @@ rhema (binary)
 
 **Dependencies**: rhema-core, reqwest
 
-### rhema-cli
+### rhema
 
 
 **Purpose**: Command line interface and interactive mode
@@ -195,7 +195,7 @@ rhema (binary)
 
 **Purpose**: Main executable
 
-**Dependencies**: rhema-cli
+**Dependencies**: rhema
 
 ## Migration Process
 
@@ -310,7 +310,7 @@ cargo test
 
 ```bash
 cargo build -p rhema-core
-cargo build -p rhema-cli
+cargo build -p rhema
 ```
 
 ### Run Binary

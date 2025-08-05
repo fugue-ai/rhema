@@ -1,0 +1,38 @@
+{
+  "name": "language-server",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+      "sourceRoot": "apps/editor-plugins/language-server/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm build",
+        "cwd": "apps/editor-plugins/language-server"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm test",
+        "cwd": "apps/editor-plugins/language-server"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm lint",
+        "cwd": "apps/editor-plugins/language-server"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm start",
+        "cwd": "apps/editor-plugins/language-server"
+      },
+      "dependsOn": ["build"]
+    }
+  },
+  "tags": ["type:lib", "scope:editor", "platform:language-server"]
+} 

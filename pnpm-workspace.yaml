@@ -5,10 +5,8 @@ packages:
   # Documentation site
   - 'docs'
   
-  # Editor plugins
-  - 'editor-plugins/vscode'
-  - 'editor-plugins/language-server'
-  - 'editor-plugins/intellij'
+  # Applications
+  - 'apps/*'
   
   # Examples and other Node.js projects
   - 'examples/*'

@@ -77,6 +77,9 @@ pub enum KnowledgeError {
     RedisError(#[from] redis::RedisError),
     #[error("Serde JSON error: {0}")]
     SerdeJsonError(#[from] serde_json::Error),
+    
+    #[error("Anyhow error: {0}")]
+    AnyhowError(#[from] anyhow::Error),
 }
 
 /// Result type for knowledge operations
@@ -391,6 +394,14 @@ impl Default for UnifiedEngineConfig {
                     collection_name: "rhema_knowledge".to_string(),
                     dimension: 384,
                     distance_metric: DistanceMetric::Cosine,
+                    timeout_seconds: 30,
+                    qdrant_url: None,
+                    qdrant_api_key: None,
+                    chroma_url: None,
+                    chroma_api_key: None,
+                    pinecone_api_key: None,
+                    pinecone_environment: None,
+                    pinecone_index_name: None,
                 },
                 semantic_search: SemanticSearchConfig::default(),
             },

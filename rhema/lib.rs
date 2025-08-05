@@ -38,6 +38,11 @@ pub use rhema_config::{config, GlobalConfig, RepositoryConfig};
 // Re-export CLI commands from the cli crate
 pub use rhema_cli::{
     interactive, interactive_advanced, interactive_parser, Rhema as CliRhema,
+    // Re-export all the modules that main.rs needs
+    init, scopes, show, query, search, validate, migrate, schema, health, stats,
+    todo, insight, pattern, coordination, decision, dependencies, impact, sync, git,
+    export_context, primer, generate_readme, bootstrap_context, daemon, performance,
+    config, prompt, context_rules, workflow, template,
 };
 
 // Re-export integrations from the integrations crate

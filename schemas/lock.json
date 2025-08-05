@@ -347,7 +347,7 @@
     {
       "lockfile_version": "1.0.0",
       "generated_at": "2025-01-15T10:30:00Z",
-      "generated_by": "rhema-cli v1.0.0",
+      "generated_by": "rhema v1.0.0",
       "checksum": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
       "scopes": {
         "crates/core": {

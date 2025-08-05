@@ -226,5 +226,5 @@ rustCrates.forEach(generateProjectJson);
 console.log('Done! You can now use nx commands like:');
 console.log('  npx nx build rhema');
 console.log('  npx nx test rhema-core');
-console.log('  npx nx run rhema-cli:run');
+  console.log('  npx nx run rhema:run');
 console.log('  npx nx affected:build'); 

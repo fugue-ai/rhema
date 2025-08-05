@@ -24,7 +24,7 @@ First, ensure you have the Rhema CLI installed:
 # From Cargo (recommended)
 
 
-cargo install rhema-cli
+cargo install rhema
 
 # Or build from source
 

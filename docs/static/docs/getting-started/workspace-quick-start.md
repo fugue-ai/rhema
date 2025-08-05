@@ -68,7 +68,7 @@ cargo run -p rhema
 | `rhema-config` | Configuration | `config/`, `safety/` |
 | `rhema-monitoring` | Performance | `performance`, `monitoring` |
 | `rhema-integrations` | External services | `integrations/` |
-| `rhema-cli` | Command line | `commands/`, `main.rs` |
+| `rhema` | Command line | `commands/`, `main.rs` |
 | `rhema` | Main binary | Thin wrapper around CLI |
 
 ## Common Tasks
@@ -79,7 +79,7 @@ cargo run -p rhema
 
 ```bash
 cargo build -p rhema-core
-cargo build -p rhema-cli
+cargo build -p rhema
 ```
 
 ### Run Tests for a Crate

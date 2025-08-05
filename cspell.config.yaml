@@ -5,16 +5,21 @@ dictionaries: []
 words:
   - actix
   - beforeunload
+  - catthehacker
   - checkpointing
   - chrono
   - cpus
   - dashmap
+  - hnsw
   - iconify
   - kitdocs
   - LOCOMO
   - mathjax
+  - metadatas
   - minmax
   - onclick
+  - Qdrant
+  - reqwest
   - Segoe
   - serde
   - shiki
@@ -24,5 +29,6 @@ words:
   - thiserror
   - unplugin
   - Verdana
+  - vite
 ignoreWords: []
 import: []

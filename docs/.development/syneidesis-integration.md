@@ -298,7 +298,7 @@ impl RhemaAgent {
 
 ### Syneidesis Configuration Schema
 
-The `schemas/syneidesis_config.json` provides comprehensive configuration:
+The `schemas/agent/syneidesis_config.json` provides comprehensive configuration:
 
 ```json
 {

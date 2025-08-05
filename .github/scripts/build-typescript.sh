@@ -46,7 +46,7 @@ create_target_dir() {
 # Build VSCode extension
 build_vscode() {
     log_info "Building VSCode extension..."
-    cd editor-plugins/vscode
+    cd apps/editor-plugins/vscode
     
     if [ -f "package.json" ]; then
         log_info "Installing VSCode extension dependencies..."
@@ -66,7 +66,7 @@ build_vscode() {
 # Build language server
 build_language_server() {
     log_info "Building language server..."
-    cd editor-plugins/language-server
+    cd apps/editor-plugins/language-server
     
     if [ -f "package.json" ]; then
         log_info "Installing language server dependencies..."

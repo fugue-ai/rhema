@@ -748,6 +748,14 @@ impl SemanticDiskCache {
                 collection_name: "rhema_disk_cache".to_string(),
                 dimension: config.vector_dimension,
                 distance_metric: config.distance_metric.clone(),
+                timeout_seconds: 30,
+                qdrant_url: None,
+                qdrant_api_key: None,
+                chroma_url: None,
+                chroma_api_key: None,
+                pinecone_api_key: None,
+                pinecone_environment: None,
+                pinecone_index_name: None,
             };
             Arc::new(crate::vector::MockVectorStore::new(
                 "cache_collection".to_string(),

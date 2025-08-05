@@ -36,22 +36,37 @@ To preview the production build locally:
 npm run preview
 ```
 
-### Alternative: Using the docs.sh script
+### Alternative: Using nx commands
 
-From the main Rhema project directory, you can use the convenience script:
+From the main Rhema project directory, you can use the nx commands:
 
 ```bash
 # Start development server
-./docs.sh dev
+pnpm run docs:dev
 
 # Build for production
-./docs.sh build
+pnpm run docs:build
 
 # Preview production build
-./docs.sh preview
+pnpm run docs:preview
 
 # Install dependencies
-./docs.sh install
+pnpm run docs:install
+
+# Run tests
+pnpm run docs:test
+
+# Check TypeScript
+pnpm run docs:check
+
+# Lint code
+pnpm run docs:lint
+
+# Format code
+pnpm run docs:format
+
+# Clean build artifacts
+pnpm run docs:clean
 ```
 
 ## 📁 Documentation Structure

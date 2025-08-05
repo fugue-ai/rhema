@@ -110,7 +110,7 @@ tech_stack:
   - docker
   build_tools: []
 directories:
-- editor-plugins
+- apps
 - vim
 - plugin
 - tests

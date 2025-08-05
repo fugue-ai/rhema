@@ -1,0 +1,86 @@
+{
+  "name": "rhema-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+      "sourceRoot": "apps/rhema/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo build",
+        "cwd": "crates/cli"
+      }
+    },
+    "build:release": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo build --release",
+        "cwd": "crates/cli"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo test",
+        "cwd": "crates/cli"
+      }
+    },
+    "check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo check",
+        "cwd": "crates/cli"
+      }
+    },
+    "clippy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo clippy",
+        "cwd": "crates/cli"
+      }
+    },
+    "fmt": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo fmt",
+        "cwd": "crates/cli"
+      }
+    },
+    "fmt:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo fmt --check",
+        "cwd": "crates/cli"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo clean",
+        "cwd": "crates/cli"
+      }
+    },
+    "run": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo run",
+        "cwd": "crates/cli"
+      }
+    },
+    "run:release": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo run --release",
+        "cwd": "crates/cli"
+      }
+    },
+    "doc": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo doc",
+        "cwd": "crates/cli"
+      }
+    }
+  },
+  "tags": ["type:app", "scope:rust", "scope:cli"]
+} 

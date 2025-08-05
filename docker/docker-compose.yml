@@ -1,0 +1,200 @@
+version: '3.8'
+
+services:
+  # Rhema Service
+  rhema:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: rhema-service
+    restart: unless-stopped
+    environment:
+      - RUST_LOG=info
+      - RHEMA_ENV=production
+      - RHEMA_DATA_DIR=/app/data
+      - RHEMA_CACHE_DIR=/app/cache
+      - RHEMA_LOG_DIR=/app/logs
+      - REDIS_URL=redis://redis:6379
+      - PROMETHEUS_URL=http://mimir:9009
+      - TEMPO_URL=http://tempo:3200
+    volumes:
+      - rhema_data:/app/data
+      - rhema_cache:/app/cache
+      - rhema_logs:/app/logs
+      - ../repos:/app/repos:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - mimir
+      - tempo
+    networks:
+      - rhema-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: rhema-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - rhema-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  # Mimir for metrics storage (Prometheus-compatible)
+  mimir:
+    image: grafana/mimir:2.10.0
+    container_name: rhema-mimir
+    restart: unless-stopped
+    command:
+      - '-config.file=/etc/mimir/mimir.yaml'
+    volumes:
+      - ./config/mimir.yaml:/etc/mimir/mimir.yaml:ro
+      - mimir_data:/data
+    ports:
+      - "9009:9009"  # Prometheus-compatible API
+      - "9095:9095"  # Mimir admin API
+    networks:
+      - rhema-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Grafana for monitoring dashboards
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: rhema-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mimir
+      - loki
+      - tempo
+    networks:
+      - rhema-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: rhema-loki
+    restart: unless-stopped
+    command:
+      - '-config.file=/etc/loki/local-config.yaml'
+    volumes:
+      - ./config/loki.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - rhema-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # Tempo for distributed tracing
+  tempo:
+    image: grafana/tempo:2.3.0
+    container_name: rhema-tempo
+    restart: unless-stopped
+    command:
+      - '-config.file=/etc/tempo/tempo.yaml'
+    volumes:
+      - ./config/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/tmp/tempo
+    ports:
+      - "3200:3200"   # Tempo API
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - rhema-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # Promtail for log collection (optional, for container logs)
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: rhema-promtail
+    restart: unless-stopped
+    command:
+      - '-config.file=/etc/promtail/config.yml'
+    volumes:
+      - ./config/promtail.yaml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    ports:
+      - "9080:9080"
+    depends_on:
+      - loki
+    networks:
+      - rhema-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.1'
+        reservations:
+          memory: 128M
+          cpus: '0.05'
+
+volumes:
+  rhema_data:
+  rhema_cache:
+  rhema_logs:
+  redis_data:
+  mimir_data:
+  grafana_data:
+  loki_data:
+  tempo_data:
+
+networks:
+  rhema-network:
+    driver: bridge 

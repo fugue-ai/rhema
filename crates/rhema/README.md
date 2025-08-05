@@ -223,7 +223,7 @@ rhema:
 ## Dependencies
 
 - **rhema-core**: Core data structures and operations
-- **rhema-cli**: Command line interface
+- **rhema**: Command line interface
 - **rhema-query**: Query engine and search
 - **rhema-git**: Git integration
 - **rhema-ai**: AI service integration

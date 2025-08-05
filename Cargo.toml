@@ -29,7 +29,7 @@ members = [
     "crates/config",
     "crates/monitoring",
     "crates/integrations",
-    "crates/cli",
+    "apps/rhema",
     "crates/action",
     "crates/dependency",
     "crates/locomo",
@@ -158,7 +158,7 @@ rhema-mcp = { path = "crates/mcp" }
 rhema-config = { path = "crates/config" }
 rhema-monitoring = { path = "crates/monitoring" }
 rhema-integrations = { path = "crates/integrations" }
-rhema-cli = { path = "crates/cli" }
+rhema-cli = { path = "apps/rhema" }
 rhema-action = { path = "crates/action" }
 rhema-locomo = { path = "crates/locomo" }
 # rhema-knowledge = { path = "crates/knowledge" }

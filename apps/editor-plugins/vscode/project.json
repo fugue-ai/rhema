@@ -1,0 +1,37 @@
+{
+  "name": "vscode-extension",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+      "sourceRoot": "apps/editor-plugins/vscode/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm build",
+        "cwd": "apps/editor-plugins/vscode"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm test",
+        "cwd": "apps/editor-plugins/vscode"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm lint",
+        "cwd": "apps/editor-plugins/vscode"
+      }
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm package",
+        "cwd": "apps/editor-plugins/vscode"
+      }
+    }
+  },
+  "tags": ["type:lib", "scope:editor", "platform:vscode"]
+} 

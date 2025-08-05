@@ -26,7 +26,7 @@ rhema-mcp = { path = "../mcp" }
 rhema-config = { path = "../config" }
 rhema-monitoring = { path = "../monitoring" }
 rhema-integrations = { path = "../integrations" }
-rhema-cli = { path = "../cli" }
+rhema_cli = { path = "../../apps/rhema" }
 
 # Core dependencies for remaining modules
 serde = { workspace = true, features = ["derive"] }

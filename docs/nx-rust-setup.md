@@ -12,7 +12,7 @@ Nx can now manage the following projects:
 
 ### Rust Crates (Applications)
 - `rhema` - Main CLI application
-- `rhema-cli` - CLI utilities
+- `rhema` - CLI utilities
 - `rhema-action` - Action handling
 
 ### Rust Crates (Libraries)
@@ -72,7 +72,7 @@ npx nx build rhema
 npx nx build rhema-core
 
 # Test a specific crate
-npx nx test rhema-cli
+npx nx test rhema
 
 # Check formatting
 npx nx fmt:check rhema-ai
@@ -82,7 +82,7 @@ npx nx clippy rhema-config
 
 # Run an application
 npx nx run rhema
-npx nx run rhema-cli
+npx nx run rhema
 ```
 
 ### Workspace-wide Operations
@@ -149,7 +149,7 @@ npx nx run-many --target=test --projects=rhema-*,docs
 
 Nx automatically handles dependencies between projects. For example:
 - Building `rhema` will first build all its dependencies (`rhema-core`, `rhema-git`, etc.)
-- Testing `rhema-cli` will ensure all dependencies are built first
+- Testing `rhema` will ensure all dependencies are built first
 
 ## Caching
 

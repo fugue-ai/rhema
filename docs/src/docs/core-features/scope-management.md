@@ -51,7 +51,7 @@ Rhema supports several predefined scope types:
 - **`app`**: Frontend applications and UIs
 - **`library`**: Reusable code libraries
 - **`component`**: Individual components or modules
-- **`infrastructure`**: Infrastructure and deployment configurations
+- **`docker`**: Docker and deployment configurations
 - **`documentation`**: Documentation projects
 - **`tool`**: Development tools and utilities
 
@@ -100,7 +100,7 @@ rhema tree
 ├── 📁 apps/
 │   ├── 🖥️ web-app (app)
 │   └── 📱 mobile-app (app)
-└── 📁 infrastructure/
+└── 📁 docker/
     └── 🏗️ deployment (infrastructure)
 ```
 

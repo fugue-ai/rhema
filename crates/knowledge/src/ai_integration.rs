@@ -247,9 +247,9 @@ impl AIIntegration {
         // Perform semantic search
         let search_results = self.search_engine.search_semantic(
             &request.query,
-            &query_embedding,
+            // &query_embedding,
             request.max_results,
-            request.similarity_threshold,
+            // request.similarity_threshold,
         ).await?;
 
         // Apply AI enhancements if enabled
@@ -258,12 +258,12 @@ impl AIIntegration {
         } else {
             search_results.into_iter().map(|result| {
                 AIKnowledgeResult {
-                    id: result.id,
+                    id: result.cache_key,
                     content: result.content,
                     relevance_score: result.relevance_score,
                     ai_enhanced_score: result.relevance_score,
-                    content_type: result.metadata.as_ref().map(|m| m.source_type.clone()).unwrap_or(ContentType::Unknown),
-                    metadata: result.metadata,
+                    content_type: result.metadata.source_type.clone(),
+                    metadata: Some(result.metadata),
                     ai_insights: vec![],
                     related_concepts: vec![],
                     confidence_level: 0.8,
@@ -320,7 +320,7 @@ impl AIIntegration {
     async fn apply_ai_enhancements(
         &self,
         request: &AIKnowledgeRequest,
-        search_results: &[crate::search::SearchResult],
+        search_results: &[crate::types::SemanticResult],
     ) -> KnowledgeResult<Vec<AIKnowledgeResult>> {
         let mut enhanced_results = Vec::new();
 
@@ -341,12 +341,12 @@ impl AIIntegration {
             let confidence_level = self.calculate_confidence_level(&ai_insights);
 
             enhanced_results.push(AIKnowledgeResult {
-                id: result.id.clone(),
+                id: result.cache_key.clone(),
                 content: result.content.clone(),
                 relevance_score: result.relevance_score,
                 ai_enhanced_score,
-                content_type: result.metadata.as_ref().map(|m| m.source_type.clone()).unwrap_or(ContentType::Unknown),
-                metadata: result.metadata.clone(),
+                content_type: result.metadata.source_type.clone(),
+                metadata: Some(result.metadata.clone()),
                 ai_insights,
                 related_concepts,
                 confidence_level,
@@ -636,7 +636,7 @@ impl AIIntegration {
 
     /// Assess content quality
     fn assess_content_quality(&self, content: &str) -> f32 {
-        let mut score = 0.5;
+        let mut score: f32 = 0.5;
 
         // Length bonus
         if content.len() > 100 {
@@ -670,7 +670,7 @@ impl AIIntegration {
         let content_lower = content.to_lowercase();
         
         let mut matches = 0;
-        for term in query_terms {
+        for term in &query_terms {
             if content_lower.contains(&term.to_lowercase()) {
                 matches += 1;
             }
@@ -685,7 +685,7 @@ impl AIIntegration {
 
     /// Assess content completeness
     fn assess_completeness(&self, content: &str) -> f32 {
-        let mut score = 0.5;
+        let mut score = 0.5_f32;
 
         // Check for conclusion or summary
         if content.contains("conclusion") || content.contains("summary") {

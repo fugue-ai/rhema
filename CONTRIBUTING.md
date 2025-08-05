@@ -92,7 +92,7 @@ npx nx affected --target=test   # Test only affected projects
 
 ## Docker Deployment
 
-For containerized deployment and development, see the [Infrastructure Directory](infra/README.md) which contains:
+For containerized deployment and development, see the [Docker Directory](docker/README.md) which contains:
 
 - **Dockerfile** - Main Rhema application container
 - **Dockerfile.mcp** - MCP daemon container  
@@ -100,7 +100,7 @@ For containerized deployment and development, see the [Infrastructure Directory]
 
 Quick start with Docker:
 ```bash
-cd infra
+cd docker
 docker-compose up -d
 ```
 

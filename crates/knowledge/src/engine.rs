@@ -53,7 +53,7 @@ pub enum EngineError {
     EmbeddingError(String),
     
     #[error("Vector store error: {0}")]
-    VectorStoreError(String),
+    VectorError(String),
     
     #[error("Synthesis error: {0}")]
     SynthesisError(String),

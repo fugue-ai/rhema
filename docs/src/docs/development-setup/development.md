@@ -31,11 +31,11 @@ crates/
 ### Documentation and Tools
 ```
 docs/                       # Documentation site
-editor-plugins/             # Editor integrations
+apps/editor-plugins/        # Editor integrations
 examples/                   # Usage examples
 tests/                      # Test suites
 schemas/                    # JSON schemas
-infra/                      # Infrastructure files
+docker/                     # Docker files
 ```
 
 ## 🚀 Quick Start
@@ -111,7 +111,7 @@ cargo test -- --nocapture
 cargo test test_name
 
 # Run tests in specific crate
-cargo test -p rhema-cli
+cargo test -p rhema
 
 # Run integration tests
 cargo test --test integration_tests
@@ -184,7 +184,7 @@ cargo build
 cargo build --release
 
 # Build specific crate
-cargo build -p rhema-cli
+cargo build -p rhema
 
 # Build with features
 cargo build --features "full"
@@ -374,7 +374,7 @@ cargo build --target x86_64-unknown-linux-gnu
 ### Docker Setup
 ```bash
 # Build development image
-docker build -f infra/Dockerfile.dev -t rhema-dev .
+docker build -f docker/Dockerfile.dev -t rhema-dev .
 
 # Run development container
 docker run -it --rm -v $(pwd):/app rhema-dev
@@ -386,10 +386,10 @@ docker run -it --rm -v $(pwd):/app rhema-dev cargo test
 ### Docker Compose
 ```bash
 # Start development environment
-docker-compose -f infra/docker-compose.yml up -d
+docker-compose -f docker/docker-compose.yml up -d
 
 # Run commands in container
-docker-compose -f infra/docker-compose.yml exec rhema cargo test
+docker-compose -f docker/docker-compose.yml exec rhema cargo test
 ```
 
 ## 🔍 Troubleshooting

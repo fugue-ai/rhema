@@ -409,6 +409,10 @@ impl EmbeddingManager {
         let model = self.get_model(model_name).await?;
         model.embed(text).await
     }
+
+    pub async fn generate_embedding(&self, text: &str) -> KnowledgeResult<Vec<f32>> {
+        self.embed(text, None).await
+    }
     
     pub async fn embed_batch(&self, texts: &[String], model_name: Option<&str>) -> KnowledgeResult<Vec<Vec<f32>>> {
         let model = self.get_model(model_name).await?;
