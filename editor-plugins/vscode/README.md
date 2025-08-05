@@ -123,8 +123,8 @@ For testing without a full backend:
 
 ## 📚 Documentation
 
-- [Developer Setup Guide](./DEVELOPER_SETUP.md) - Complete setup instructions
-- [Implementation Summary](./IMPLEMENTATION_SUMMARY.md) - Feature overview
+- [Developer Setup Guide](.developer/README.md) - Complete setup instructions
+- [Implementation Summary](./FEATURES.md) - Feature overview
 - [Server-Side TODOs](./SERVER_TODOS.md) - Backend requirements
 - [Implementation Tracking](./TODO.md) - Progress tracking
 

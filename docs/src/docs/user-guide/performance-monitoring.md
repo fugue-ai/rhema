@@ -11,28 +11,19 @@ The Rhema CLI includes a comprehensive performance monitoring system that helps 
 
 ```bash
 # Start performance monitoring
-
-
 rhema performance start
 
 # Check current system status
-
-
 rhema performance status
 
 # Generate a performance report
-
-
 rhema performance report
 
 # Stop monitoring
-
-
 rhema performance stop
 ```
 
 ### Demo
-
 
 Run the performance monitoring demo to see all features in action:
 

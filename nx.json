@@ -16,8 +16,24 @@
       "dependsOn": ["^build"],
       "inputs": ["default", "^default"]
     },
+    "build:release": {
+      "dependsOn": ["^build:release"],
+      "inputs": ["default", "^default"]
+    },
     "test": {
       "inputs": ["default", "^default", "{workspaceRoot}/jest.preset.js"]
+    },
+    "check": {
+      "inputs": ["default", "^default"]
+    },
+    "clippy": {
+      "inputs": ["default", "^default"]
+    },
+    "fmt": {
+      "inputs": ["default", "^default"]
+    },
+    "fmt:check": {
+      "inputs": ["default", "^default"]
     },
     "lint": {
       "inputs": ["default", "{workspaceRoot}/.eslintrc.json"]

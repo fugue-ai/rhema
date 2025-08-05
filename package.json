@@ -15,9 +15,22 @@
     "test:typescript": "pnpm run test:vscode && pnpm run test:language-server",
     "test:vscode": "pnpm --filter rhema test",
     "test:language-server": "pnpm --filter rhema-language-server test",
-    "install:all": "pnpm install"
+    "install:all": "pnpm install",
+    "rust:build": "npx nx run-many --target=build --projects=rhema-*",
+    "rust:build:release": "npx nx run-many --target=build:release --projects=rhema-*",
+    "rust:test": "npx nx run-many --target=test --projects=rhema-*",
+    "rust:check": "npx nx run-many --target=check --projects=rhema-*",
+    "rust:clippy": "npx nx run-many --target=clippy --projects=rhema-*",
+    "rust:fmt": "npx nx run-many --target=fmt --projects=rhema-*",
+    "rust:fmt:check": "npx nx run-many --target=fmt:check --projects=rhema-*",
+    "rust:clean": "npx nx run-many --target=clean --projects=rhema-*",
+    "rust:doc": "npx nx run-many --target=doc --projects=rhema-*",
+    "rust:affected:build": "npx nx affected:build --base=main",
+    "rust:affected:test": "npx nx affected:test --base=main",
+    "rust:affected:check": "npx nx affected:check --base=main"
   },
   "devDependencies": {
+    "nx": "^21.3.11",
     "typescript": "^5.3.0"
   },
   "engines": {
