@@ -16,6 +16,7 @@ If you're new to Rhema, start here:
 
 Comprehensive guides for using Rhema's features and capabilities.
 
+- **[Complete Getting Started Guide](user-guide/enhanced/getting-started-complete.md)** - Comprehensive beginner's guide with step-by-step examples
 - **[CLI Command Reference](user-guide/cli-command-reference.md)** - Complete command-line interface documentation
 - **[Configuration Management](user-guide/configuration-management.md)** - Managing Rhema configuration files
 - **[Batch Operations](user-guide/batch-operations.md)** - Performing operations on multiple items
@@ -57,6 +58,7 @@ Detailed documentation of Rhema's core functionality.
 
 Technical reference materials and specifications.
 
+- **[Complete API Reference](reference/enhanced/complete-api-reference.md)** - Comprehensive API documentation with examples and error codes
 - **[API Reference](reference/README.md)** - Complete API documentation and specifications
 - **[Global Config Reference](reference/global-config-reference.md)** - Complete configuration schema reference
 - **[Specification Schema Examples](reference/specification-schema-examples.md)** - Example schemas and specifications
@@ -94,6 +96,15 @@ Guides for developers contributing to Rhema.
 - **[Sublime Text](development-setup/editor-setup/sublime.md)** - Sublime Text integration setup
 - **[Cursor](development-setup/editor-setup/cursor.md)** - Cursor integration setup
 - **[CI/CD](development-setup/cicd/)** - Continuous integration and deployment guides
+
+### 🚨 Troubleshooting
+
+Help and support for common issues and problems.
+
+- **[Common Issues & Solutions](troubleshooting/common-issues.md)** - Comprehensive troubleshooting guide
+- **[Debugging Guide](troubleshooting/debugging-guide.md)** - Advanced debugging techniques
+- **[Recovery Procedures](troubleshooting/recovery-procedures.md)** - Data recovery and system repair
+- **[Performance Optimization](troubleshooting/performance-optimization.md)** - Performance tuning and optimization
 
 ### 🏗️ Architecture
 

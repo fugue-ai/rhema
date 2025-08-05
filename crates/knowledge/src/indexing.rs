@@ -19,16 +19,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
 use thiserror::Error;
 use tracing::{debug, error, info, instrument, warn};
-use chrono::{DateTime, Utc};
-use sha2::{Sha256, Digest};
-use tokio::fs;
+use sha2::Digest;
 
 use crate::types::{
-    ContentType, KnowledgeResult, CacheEntryMetadata, SemanticInfo,
-    CompressionAlgorithm, DistanceMetric, CacheTier, SearchResultMetadata,
+    ContentType, KnowledgeResult, SemanticInfo, SearchResultMetadata,
 };
 
 use super::{

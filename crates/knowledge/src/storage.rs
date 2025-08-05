@@ -22,12 +22,11 @@ use std::time::Instant;
 use thiserror::Error;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, instrument};
-use chrono::{DateTime, Utc};
-use tokio::fs;
+use chrono::Utc;
 
 use crate::types::{
-    AgentSessionContext, ContentType, KnowledgeResult, CacheEntryMetadata, SemanticInfo,
-    CompressionAlgorithm, DistanceMetric, CacheTier,
+    AgentSessionContext, ContentType, KnowledgeResult,
+    CompressionAlgorithm,
 };
 
 /// Error types for storage operations

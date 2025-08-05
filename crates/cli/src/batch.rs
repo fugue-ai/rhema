@@ -15,9 +15,7 @@
  */
 
 use crate::file_ops;
-use crate::{export_context, health, interactive_builder, migrate, query, search, stats, validate};
 use crate::{Rhema, RhemaResult};
-use rhema_core::schema::{Conventions, Decisions, Knowledge, Patterns, RhemaScope, Todos};
 // use crate::scope::find_nearest_scope;
 // use rhema_core::scope::Scope;
 use colored::*;
@@ -27,7 +25,7 @@ use std::path::Path;
 use walkdir::WalkDir;
 // use chrono::Utc;
 // use uuid::Uuid;
-use clap::{Args, Subcommand};
+use clap::Subcommand;
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
 
@@ -311,8 +309,8 @@ pub fn run_context_operations(
     input_file: &str,
     scope_filter: Option<&str>,
     dry_run: bool,
-    use_lock_file: bool,
-    update_lock: bool,
+    _use_lock_file: bool,
+    _update_lock: bool,
 ) -> RhemaResult<()> {
     println!("🔄 Executing batch context operations...");
     println!("{}", "─".repeat(80));
@@ -424,8 +422,8 @@ pub fn run_command_execution(
     scope_filter: Option<&str>,
     parallel: bool,
     _max_workers: usize,
-    use_lock_file: bool,
-    update_lock: bool,
+    _use_lock_file: bool,
+    _update_lock: bool,
 ) -> RhemaResult<()> {
     println!("⚡ Executing batch commands...");
     println!("{}", "─".repeat(80));
@@ -532,8 +530,8 @@ pub fn run_data_operations(
     output_path: &str,
     format: &str,
     scope_filter: Option<&str>,
-    use_lock_file: bool,
-    update_lock: bool,
+    _use_lock_file: bool,
+    _update_lock: bool,
 ) -> RhemaResult<()> {
     println!("📊 Executing batch data operations...");
     println!("{}", "─".repeat(80));
@@ -639,8 +637,8 @@ pub fn run_validation_operations(
     scope_filter: Option<&str>,
     output_file: Option<&str>,
     detailed: bool,
-    use_lock_file: bool,
-    update_lock: bool,
+    _use_lock_file: bool,
+    _update_lock: bool,
 ) -> RhemaResult<()> {
     println!("🔍 Executing batch validation operations...");
     println!("{}", "─".repeat(80));
@@ -733,8 +731,8 @@ pub fn run_reporting_operations(
     output_file: &str,
     format: &str,
     include_details: bool,
-    use_lock_file: bool,
-    update_lock: bool,
+    _use_lock_file: bool,
+    _update_lock: bool,
 ) -> RhemaResult<()> {
     println!("📈 Generating batch reports...");
     println!("{}", "─".repeat(80));

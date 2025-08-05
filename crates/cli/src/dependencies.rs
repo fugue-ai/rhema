@@ -133,7 +133,7 @@ pub async fn run(
     business: bool,
     validate: bool,
     health: bool,
-    report: bool,
+    _report: bool,
     critical_path: bool,
     recursive: bool,
     format: &str,
@@ -583,7 +583,7 @@ struct ImpactAnalysis {
 // Enhanced analysis functions
 async fn analyze_enhanced_impact(
     results: &mut EnhancedDependencyAnalysisResults,
-    recursive: bool,
+    _recursive: bool,
 ) -> RhemaResult<()> {
     println!("{}", "📊 Analyzing enhanced dependency impact...".blue());
 

@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -292,7 +292,7 @@ impl ApprovalWorkflow {
     }
     
     /// Send email notification
-    async fn send_email_notification(&self, request: &ApprovalRequest, intent: &ActionIntent) -> ActionResult<()> {
+    async fn send_email_notification(&self, request: &ApprovalRequest, _intent: &ActionIntent) -> ActionResult<()> {
         // TODO: Implement email notification
         info!("Email notification would be sent for request: {}", request.id);
         Ok(())

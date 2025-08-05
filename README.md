@@ -10,6 +10,82 @@ Rhema (/ˈreɪmə/ "RAY-muh") is a Git-native toolkit that captures, organizes, 
 
 The name Rhema comes from the Greek word ῥῆμα, meaning "utterance" or "that which is spoken." Just as rhema represents the ephemeral nature of spoken knowledge, Rhema captures the ephemeral nature of development knowledge—those crucial insights, decisions, and context that exist in conversations, code reviews, and AI interactions but are often lost when the moment passes. By transforming these transient "utterances" of development wisdom into persistent, structured records, Rhema ensures that valuable knowledge endures beyond the immediate conversation or development session.
 
+## 📖 Features
+
+### Core Functionality
+- **Context Management** - Intelligent context injection and management
+- **Interactive Mode** - Command-line interface with AI assistance
+- **Batch Operations** - Process multiple files and repositories
+- **Git Integration** - Seamless Git workflow integration
+- **Configuration Management** - Flexible configuration system
+- **Performance Monitoring** - Built-in performance tracking and optimization
+
+### Knowledge Management
+- **Todo Management** - Create, update, and track work items
+- **Decision Tracking** - Record and manage architectural decisions
+- **Pattern Documentation** - Document design patterns and best practices
+- **Insight Capture** - Capture and organize development insights
+
+### AI Integration
+- **Agent Coordination** - Manage and coordinate AI agents
+- **Context Injection** - Inject relevant context into AI conversations
+- **Workflow Automation** - Automate development workflows with AI assistance
+- **MCP Integration** - Model Context Protocol integration for AI tools
+
+### Advanced Features
+- **CQL Support** - Context Query Language for advanced knowledge discovery
+- **Full-Text Search** - Search across all knowledge artifacts
+- **Semantic Search** - AI-powered semantic search capabilities
+- **Repository Analysis** - Analyze repository structure and content
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/fugue-ai/rhema.git
+cd rhema
+
+# Install Rust (if not already installed)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Build and install Rhema
+cargo install --path .
+```
+
+### Basic Usage
+
+```bash
+# Initialize Rhema in your project
+rhema init
+
+# Start interactive mode
+rhema interactive
+
+# Run a specific command
+rhema query "find all TODO comments" # TODO: update with proper query that will always work in fugue-ai/rhema repo
+```
+
+For comprehensive CLI documentation and usage guides, see the [CLI Documentation](./crates/cli/README.md).
+
+## 📚 Documentation
+
+### Viewing Documentation
+
+- **Online**: Visit the [Rhema Documentation](https://fugue-ai.github.io/rhema/)
+- **Local Development**: Run `./docs.sh dev` to start a local development server
+- **GitHub**: Visit the [docs directory](./docs)
+
+### Documentation Structure
+
+- **Getting Started** - Essential guides for new users
+- **User Guide** - Comprehensive feature documentation
+- **Reference** - Technical reference materials
+- **Development Setup** - Guides for contributors
+- **Architecture** - Design decisions and proposals
+- **Examples** - Practical use cases and examples
+
 ## Core Values
 
 Rhema is built on fundamental principles that guide every aspect of its design and functionality. These values shape how we approach knowledge management, team collaboration, and AI integration.
@@ -46,210 +122,18 @@ Rhema preserves the full history of decisions, learnings, and patterns, allowing
 
 Rhema's powerful querying capabilities ensure that relevant context surfaces when and where it's needed. Whether through structured queries, full-text search, or AI-driven recommendations, knowledge flows to where it creates the most value.
 
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/rhema-ai/rhema.git
-cd rhema
-
-# Install Rust (if not already installed)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Build and install Rhema
-cargo install --path .
-```
-
-### Basic Usage
-
-```bash
-# Initialize Rhema in your project
-rhema init
-
-# Start interactive mode
-rhema interactive
-
-# Run a specific command
-rhema query "find all TODO comments"
-```
-
-## 📚 Documentation
-
-### Viewing Documentation
-
-- **Online**: Visit the [Rhema Documentation](https://fugue-ai.github.io/rhema/)
-- **Local Development**: Run `./docs.sh dev` to start a local development server
-
-### Documentation Structure
-
-- **Getting Started** - Essential guides for new users
-- **User Guide** - Comprehensive feature documentation
-- **Reference** - Technical reference materials
-- **Development Setup** - Guides for contributors
-- **Architecture** - Design decisions and proposals
-- **Examples** - Practical use cases and examples
-
-### Contributing to Documentation
-
-1. Start development server: `./docs.sh dev`
-2. Edit markdown files in `docs/src/docs/`
-3. View changes at `http://localhost:5173`
-4. Build for production: `./docs.sh build`
-
-**Note**: This project uses pnpm 10 for package management. Make sure you have pnpm 10 installed:
-```bash
-npm install -g pnpm@10.14.0
-```
-
-### Development Tools
-
-This project uses a modern development stack:
-
-- **pnpm 10** - Fast, disk space efficient package manager
-- **Nx** - Monorepo build system with intelligent caching
-- **Biome** - Fast linter and formatter for TypeScript/JavaScript
-- **Vitest** - Fast unit testing framework
-- **SvelteKit** - Full-stack web framework for documentation
-
-### Documentation Commands
-
-```bash
-./docs.sh dev      # Start development server
-./docs.sh build    # Build for production
-./docs.sh preview  # Preview production build
-./docs.sh install  # Install dependencies
-./docs.sh migrate  # Run migration script
-./docs.sh clean    # Clean build artifacts
-./docs.sh help     # Show all commands
-```
-
-### Nx Commands (Monorepo Management)
-
-```bash
-npx nx graph              # Visualize project dependencies
-npx nx show projects      # List all projects
-npx nx run docs:build     # Build specific project
-npx nx run-many --target=build  # Build all projects
-npx nx affected --target=test   # Test only affected projects
-```
-2. Start development server: `./scripts/docs.sh serve`
-3. Make your changes in the `docs/` directory
-4. Test locally and commit your changes
-
-For more details, see the [MkDocs Migration Guide](MKDOCS_MIGRATION.md).
-
 ## 🛠️ Development
 
-### Prerequisites
-
-- Rust 1.70 or later
-- Node.js 18.12+ (for documentation and tooling)
-- Git
-- pnpm 10.14.0+ (for package management)
-
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/rhema-ai/rhema.git
-cd rhema
-
-# Build the project
-cargo build --release
-
-# Run tests
-cargo test
-
-# Run integration tests
-RHEMA_RUN_INTEGRATION_TESTS=1 cargo test --test integration
-```
-
-### Development Setup
-
-See the [Development Setup Guide](docs/development-setup/development.md) for detailed instructions on setting up your development environment.
-
-### Development Workflow
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start documentation development server
-pnpm docs:dev
-
-# Run linting and formatting
-pnpm format          # Format all code
-pnpm lint:biome      # Lint all code
-pnpm check           # Run all checks
-
-# Run tests
-pnpm test            # Run all tests
-pnpm test:ui         # Run tests with UI
-pnpm test:coverage   # Run tests with coverage
-
-# Build projects
-pnpm build           # Build all projects
-pnpm docs:build      # Build documentation only
-
-# Nx monorepo commands
-npx nx graph         # View project dependencies
-npx nx affected --target=test  # Test affected projects
-```
-
-### Docker Deployment
-
-For containerized deployment and development, see the [Infrastructure Directory](infra/README.md) which contains:
-
-- **Dockerfile** - Main Rhema application container
-- **Dockerfile.mcp** - MCP daemon container  
-- **docker-compose.yml** - Complete development/production environment
-
-Quick start with Docker:
-```bash
-cd infra
-docker-compose up -d
-```
-
-## 📖 Features
-
-- **Context Management** - Intelligent context injection and management
-- **Interactive Mode** - Command-line interface with AI assistance
-- **Batch Operations** - Process multiple files and repositories
-- **Git Integration** - Seamless Git workflow integration
-- **Configuration Management** - Flexible configuration system
-- **Performance Monitoring** - Built-in performance tracking and optimization
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
-
-### Code Style
-
-- Follow Rust conventions
-- Use meaningful commit messages
-- Add documentation for new features
-- Include tests for new functionality
+For detailed development setup, workflow, and contribution guidelines, see our [Contributing Guide](CONTRIBUTING.md).
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License, Version 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
-- **Documentation**: [Rhema Documentation](https://rhema-ai.github.io/rhema/)
-- **Issues**: [GitHub Issues](https://github.com/rhema-ai/rhema/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/rhema-ai/rhema/discussions)
+- **Issues**: [GitHub Issues](https://github.com/fugue-ai/rhema/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fugue-ai/rhema/discussions)
 
 ## 🗺️ Roadmap
 
@@ -257,6 +141,6 @@ See our [Roadmap](ROADMAP.md) for upcoming features and improvements.
 
 ## 📊 Status
 
-[![CI](https://github.com/rhema-ai/rhema/workflows/CI/badge.svg)](https://github.com/rhema-ai/rhema/actions)
+[![CI](https://github.com/fugue-ai/rhema/workflows/CI/badge.svg)](https://github.com/fugue-ai/rhema/actions)
 [![Crates.io](https://img.shields.io/crates/v/rhema)](https://crates.io/crates/rhema)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) 

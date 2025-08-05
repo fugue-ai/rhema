@@ -24,6 +24,7 @@ pub mod storage;
 pub mod synthesis;
 pub mod types;
 pub mod vector;
+pub mod ai_integration;
 
 // Re-export main types for convenience
 // Cache module exports
@@ -87,6 +88,13 @@ pub use storage::{
     StorageManager, StorageConfig, StorageEntry, StorageMetadata,
     StorageOptimizationConfig, EncryptionAlgorithm, StorageOptimizationResult,
     StorageValidationResult, CompressionResult, DeduplicationResult, CleanupResult
+};
+
+// AI Integration module exports
+pub use ai_integration::{
+    AIIntegration, AIIntegrationConfig, AIKnowledgeRequest, AIKnowledgeResponse,
+    AIKnowledgeResult, AIEnhancement, AIEnhancementType, AIInsight, AIInsightType,
+    KnowledgeSuggestion, KnowledgeSuggestionType, SuggestionPriority, AIIntegrationMetrics
 };
 
 // Error type conversions

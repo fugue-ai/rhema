@@ -15,16 +15,11 @@
  */
 
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::RwLock;
 // use futures::stream::{self, Stream, StreamExt};
 // use tokio_stream::wrappers::ReceiverStream;
-use tonic::{Request, Response, Status};
-use uuid::Uuid;
 
-use crate::agent::real_time_coordination::{
-    AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType,
-    RealTimeCoordinationSystem,
-};
+use crate::agent::real_time_coordination::RealTimeCoordinationSystem;
 
 // Temporarily comment out the generated protobuf code until we fix the dependencies
 /*

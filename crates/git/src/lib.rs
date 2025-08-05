@@ -60,6 +60,6 @@ mod tests {
 
         // Test that the API functions exist and have the right signatures
         let _create_fn: fn(&Path) -> RhemaResult<AdvancedGitIntegration> = create_advanced_git_integration;
-        let _create_with_config_fn: fn(&Path, Option<serde_json::Value>) -> RhemaResult<AdvancedGitIntegration> = create_advanced_git_integration_with_config;
+        let _create_with_config_fn: fn(&Path, serde_json::Value) -> RhemaResult<AdvancedGitIntegration> = create_advanced_git_integration_with_config;
     }
 }

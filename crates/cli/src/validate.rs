@@ -21,11 +21,9 @@ use colored::*;
 use serde_yaml;
 use std::path::Path;
 use walkdir::WalkDir;
-use rhema_core::lock::LockFileOps;
 use rhema_core::schema::RhemaLock;
-use std::collections::HashMap;
 use sha2::{Digest, Sha256};
-use chrono::{Utc, Duration};
+use chrono::Utc;
 
 /// Find the scope file in the given directory, checking multiple possible locations
 fn find_scope_file(scope_path: &Path) -> Option<std::path::PathBuf> {

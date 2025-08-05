@@ -31,12 +31,12 @@ use std::path::PathBuf;
 use crate::agent::lock_context_integration::LockFileAIIntegration;
 use crate::agent::state::{AgentManager, AgentState, PersistenceConfig};
 use crate::agent::advanced_conflict_prevention::{
-    AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig, AdvancedResolutionStrategy,
+    AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig,
     ConflictPredictionModel, ConsensusConfig, CoordinationSession, AdvancedConflictStats,
 };
 use crate::context_injection::{EnhancedContextInjector, TaskType, LockFileContextRequirement};
 use crate::coordination_integration::{CoordinationIntegration, CoordinationConfig};
-use crate::agent::real_time_coordination::{AgentInfo, AgentMessage, MessageType, MessagePriority};
+use crate::agent::real_time_coordination::{AgentInfo, AgentMessage};
 
 // Re-export types from lock_context to avoid duplication
 pub use crate::agent::lock_context::{

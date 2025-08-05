@@ -921,7 +921,7 @@ impl AdvancedInteractiveSession {
                 self.visualize_scopes();
             }
             "dependencies" => {
-                self.visualize_dependencies();
+                let _ = self.visualize_dependencies();
             }
             "stats" => {
                 self.visualize_stats();
@@ -1869,7 +1869,7 @@ impl AdvancedInteractiveSession {
                 self.visualize_scopes();
             }
             "dependencies" => {
-                self.visualize_dependencies();
+                let _ = self.visualize_dependencies();
             }
             "stats" => {
                 self.visualize_stats();

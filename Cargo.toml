@@ -143,6 +143,9 @@ trycmd = "0.15"
 env_logger = "0.10"
 rand = "0.8"
 
+[dev-dependencies]
+rand = "0.8"
+
 
 
 [dependencies]

@@ -159,7 +159,7 @@ impl AgenticDevelopmentService {
         self.lock_context_provider.load_lock_file()?;
         
         // Start coordination system heartbeat monitoring
-        self.coordination_system.start_heartbeat_monitoring();
+        let _ = self.coordination_system.start_heartbeat_monitoring();
         
         Ok(())
     }

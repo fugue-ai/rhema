@@ -15,9 +15,8 @@
  */
 
 use crate::{Rhema, RhemaResult};
-use chrono::{Duration, Utc};
 use colored::*;
-use rhema_ai::advanced_features::{PerformanceMonitor, PerformanceMonitoringConfig, PerformanceThresholds, PerformanceMetric, PerformanceAlert, AlertSeverity};
+use rhema_ai::advanced_features::{PerformanceMonitor, PerformanceMonitoringConfig, PerformanceThresholds};
 use std::sync::Arc;
 use std::collections::HashMap;
 // use tokio::sync::RwLock;
@@ -147,11 +146,11 @@ impl PerformanceCommands {
         &self,
         user_id: &str,
         command_name: &str,
-        feature_name: &str,
+        _feature_name: &str,
         session_duration_seconds: u64,
         workflow_completed: bool,
-        usage_pattern: &str,
-        user_behavior: &str,
+        _usage_pattern: &str,
+        _user_behavior: &str,
     ) -> RhemaResult<()> {
         // For now, just print the usage data since we can't easily get a mutable reference
         println!("📊 Usage recorded: User {} used {} for {}s (completed: {})", 

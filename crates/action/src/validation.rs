@@ -17,10 +17,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 use crate::schema::ActionIntent;
-use crate::error::{ActionError, ActionResult};
+use crate::error::ActionResult;
 use crate::tools::{ToolRegistry, ToolResult};
 
 /// Result from validation
@@ -247,7 +247,7 @@ impl ValidationEngine {
         let mut validation_results = HashMap::new();
         let mut safety_results = HashMap::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         // Run all validation tools
         for validation_tool in &intent.transformation.validation {

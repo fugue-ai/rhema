@@ -1075,6 +1075,339 @@ impl AuthManager {
         
         Ok(was_present)
     }
+
+    /// Enhanced JWT token validation with proper signature verification
+    async fn verify_jwt_token_enhanced(&self, token: &str) -> RhemaResult<serde_json::Value> {
+        if let Some(decoding_key) = &self.jwt_decoding_key {
+            let token_data = decode::<JwtClaims>(
+                token,
+                decoding_key,
+                &Validation::default()
+            ).map_err(|e| {
+                error!("JWT token validation failed: {}", e);
+                RhemaError::AuthenticationError(format!("Invalid JWT token: {}", e))
+            })?;
+
+            // Check if token is expired
+            let now = chrono::Utc::now().timestamp();
+            if token_data.claims.exp < now {
+                return Err(RhemaError::AuthenticationError("JWT token has expired".to_string()));
+            }
+
+            // Check if token is issued in the future (clock skew protection)
+            if token_data.claims.iat > now + 300 { // 5 minutes clock skew tolerance
+                return Err(RhemaError::AuthenticationError("JWT token issued in the future".to_string()));
+            }
+
+            // Convert claims to JSON for return
+            let claims_json = serde_json::json!({
+                "sub": token_data.claims.sub,
+                "iat": token_data.claims.iat,
+                "exp": token_data.claims.exp,
+                "permissions": token_data.claims.permissions
+            });
+
+            Ok(claims_json)
+        } else {
+            Err(RhemaError::AuthenticationError("JWT secret not configured".to_string()))
+        }
+    }
+
+    /// Create a refresh token for JWT
+    pub async fn create_refresh_token(
+        &self,
+        user_id: &str,
+        ttl_hours: u64,
+    ) -> RhemaResult<String> {
+        if let Some(encoding_key) = &self.jwt_encoding_key {
+            let now = chrono::Utc::now();
+            let exp = now + chrono::Duration::hours(ttl_hours as i64);
+
+            let claims = JwtClaims {
+                sub: user_id.to_string(),
+                iat: now.timestamp(),
+                exp: exp.timestamp(),
+                permissions: vec!["refresh".to_string()],
+            };
+
+            let header = Header::default();
+            encode(&header, &claims, encoding_key).map_err(|e| {
+                error!("Failed to create refresh token: {}", e);
+                RhemaError::AuthenticationError(format!("Failed to create refresh token: {}", e))
+            })
+        } else {
+            Err(RhemaError::AuthenticationError("JWT secret not configured".to_string()))
+        }
+    }
+
+    /// Refresh an access token using a refresh token
+    pub async fn refresh_access_token(
+        &self,
+        refresh_token: &str,
+        access_token_ttl_hours: u64,
+    ) -> RhemaResult<String> {
+        // Verify the refresh token
+        let claims = self.verify_jwt_token_enhanced(refresh_token).await?;
+        
+        // Check if it's actually a refresh token
+        let permissions = claims["permissions"].as_array()
+            .ok_or_else(|| RhemaError::AuthenticationError("Invalid token permissions".to_string()))?;
+        
+        if !permissions.iter().any(|p| p.as_str() == Some("refresh")) {
+            return Err(RhemaError::AuthenticationError("Token is not a refresh token".to_string()));
+        }
+
+        // Extract user ID from refresh token
+        let user_id = claims["sub"].as_str()
+            .ok_or_else(|| RhemaError::AuthenticationError("Invalid token subject".to_string()))?;
+
+        // Create new access token
+        self.create_jwt_token(user_id, vec!["read".to_string(), "write".to_string()], access_token_ttl_hours).await
+    }
+
+    /// Enhanced API key validation with additional security checks
+    async fn validate_api_key_enhanced(&self, api_key: &str) -> RhemaResult<AuthToken> {
+        let api_keys = self.api_keys.read().await;
+        
+        if let Some(token) = api_keys.get(api_key) {
+            // Check if token is expired
+            if let Some(expires_at) = token.expires_at {
+                if expires_at < chrono::Utc::now() {
+                    return Err(RhemaError::AuthenticationError("API key has expired".to_string()));
+                }
+            }
+
+            // Check if token is revoked
+            if token.metadata.get("revoked").and_then(|v| v.as_bool()).unwrap_or(false) {
+                return Err(RhemaError::AuthenticationError("API key has been revoked".to_string()));
+            }
+
+            // Check usage limits
+            if let Some(max_usage) = token.metadata.get("max_usage").and_then(|v| v.as_u64()) {
+                if token.usage_count >= max_usage {
+                    return Err(RhemaError::AuthenticationError("API key usage limit exceeded".to_string()));
+                }
+            }
+
+            Ok(token.clone())
+        } else {
+            Err(RhemaError::AuthenticationError("Invalid API key".to_string()))
+        }
+    }
+
+    /// Create API key with enhanced security features
+    pub async fn create_enhanced_api_key(
+        &self,
+        user_id: &str,
+        permissions: Vec<String>,
+        ttl_hours: Option<u64>,
+        max_usage: Option<u64>,
+        description: Option<String>,
+    ) -> RhemaResult<String> {
+        // Validate inputs
+        if !self.validate_user_id(user_id) {
+            return Err(RhemaError::ValidationError("Invalid user ID format".to_string()));
+        }
+
+        if !self.validate_permissions(&permissions) {
+            return Err(RhemaError::ValidationError("Invalid permissions".to_string()));
+        }
+
+        // Generate secure API key
+        let api_key = self.generate_secure_api_key();
+
+        // Calculate expiration
+        let expires_at = ttl_hours.map(|hours| {
+            chrono::Utc::now() + chrono::Duration::hours(hours as i64)
+        });
+
+        // Create token with enhanced metadata
+        let mut metadata = HashMap::new();
+        if let Some(max_usage) = max_usage {
+            metadata.insert("max_usage".to_string(), serde_json::Value::Number(max_usage.into()));
+        }
+        if let Some(ref desc) = description {
+            metadata.insert("description".to_string(), serde_json::Value::String(desc.clone()));
+        }
+        metadata.insert("created_by".to_string(), serde_json::Value::String(user_id.to_string()));
+        metadata.insert("key_type".to_string(), serde_json::Value::String("enhanced".to_string()));
+
+        let token = AuthToken {
+            id: Uuid::new_v4().to_string(),
+            token_type: TokenType::ApiKey,
+            user_id: Some(user_id.to_string()),
+            permissions,
+            created_at: chrono::Utc::now(),
+            expires_at,
+            metadata,
+            last_used: None,
+            usage_count: 0,
+        };
+
+        // Store token
+        let mut api_keys = self.api_keys.write().await;
+        api_keys.insert(api_key.clone(), token);
+
+        // Log the creation
+        let mut details = HashMap::new();
+        details.insert("key_type".to_string(), serde_json::Value::String("enhanced".to_string()));
+        if let Some(max_usage) = max_usage {
+            details.insert("max_usage".to_string(), serde_json::Value::Number(max_usage.into()));
+        }
+        if let Some(ref desc) = description {
+            details.insert("description".to_string(), serde_json::Value::String(desc.clone()));
+        }
+        
+        self.audit_logger.log(
+            crate::auth::AuditEventType::TokenManagement,
+            "create_enhanced_api_key",
+            crate::auth::AuditResult::Success,
+            Some(user_id.to_string()),
+            None,
+            None,
+            None,
+            None,
+            details,
+        ).await;
+
+        Ok(api_key)
+    }
+
+    /// Generate a cryptographically secure API key
+    fn generate_secure_api_key(&self) -> String {
+        use rand::{thread_rng, RngCore};
+        use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+        
+        let mut bytes = [0u8; 32];
+        thread_rng().fill_bytes(&mut bytes);
+        
+        // Format: rhema_<base64>_<timestamp>
+        let base64_part = URL_SAFE_NO_PAD.encode(bytes);
+        let timestamp = chrono::Utc::now().timestamp();
+        
+        format!("rhema_{}_{}", base64_part, timestamp)
+    }
+
+    /// Enhanced session management with security features
+    pub async fn create_secure_session(
+        &self,
+        user_id: &str,
+        permissions: Vec<String>,
+        client_info: Option<ClientInfo>,
+        session_ttl_hours: u64,
+    ) -> RhemaResult<String> {
+        let session_id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now();
+        let expires_at = now + chrono::Duration::hours(session_ttl_hours as i64);
+
+        let client_info_clone = client_info.clone();
+        let session = Session {
+            id: session_id.clone(),
+            user_id: user_id.to_string(),
+            created_at: now,
+            last_activity: now,
+            expires_at,
+            client_info: client_info.unwrap_or_else(|| ClientInfo {
+                ip_address: None,
+                user_agent: None,
+                client_type: ClientType::Http,
+                fingerprint: None,
+            }),
+            permissions,
+            metadata: HashMap::new(),
+        };
+
+        let mut sessions = self.active_sessions.write().await;
+        sessions.insert(session_id.clone(), session);
+
+        // Log session creation
+        self.audit_logger.log(
+            crate::auth::AuditEventType::Authentication,
+            "create_secure_session",
+            crate::auth::AuditResult::Success,
+            Some(user_id.to_string()),
+            client_info_clone.as_ref().and_then(|c| c.ip_address.clone()),
+            client_info_clone.as_ref().and_then(|c| c.user_agent.clone()),
+            None,
+            Some(session_id.clone()),
+            HashMap::new(),
+        ).await;
+
+        Ok(session_id)
+    }
+
+    /// Validate session with enhanced security checks
+    pub async fn validate_session_enhanced(&self, session_id: &str, client_info: Option<ClientInfo>) -> RhemaResult<AuthResult> {
+        let sessions = self.active_sessions.read().await;
+        
+        if let Some(session) = sessions.get(session_id) {
+            // Check if session is expired
+            if session.expires_at < chrono::Utc::now() {
+                return Ok(AuthResult {
+                    authenticated: false,
+                    user_id: None,
+                    permissions: vec![],
+                    token_id: None,
+                    error: Some("Session has expired".to_string()),
+                    session_id: None,
+                });
+            }
+
+            // Check for suspicious activity (IP change, etc.)
+            if let Some(client_info) = client_info {
+                if let Some(stored_ip) = &session.client_info.ip_address {
+                    if let Some(current_ip) = &client_info.ip_address {
+                        if stored_ip != current_ip {
+                            // Log suspicious activity
+                            self.security_monitor.record_security_event(
+                                crate::auth::SecurityEventType::SuspiciousActivity,
+                                client_info.ip_address.clone(),
+                                Some(session.user_id.clone()),
+                                format!("IP address changed from {} to {}", stored_ip, current_ip),
+                                crate::auth::SecuritySeverity::Medium,
+                            ).await;
+
+                            // Optionally invalidate session for security
+                            if self.config.security.invalidate_session_on_ip_change {
+                                return Ok(AuthResult {
+                                    authenticated: false,
+                                    user_id: None,
+                                    permissions: vec![],
+                                    token_id: None,
+                                    error: Some("Session invalidated due to IP change".to_string()),
+                                    session_id: None,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Update last activity
+            let user_id = session.user_id.clone();
+            let permissions = session.permissions.clone();
+            drop(sessions);
+            self.update_session_activity(session_id).await?;
+
+            Ok(AuthResult {
+                authenticated: true,
+                user_id: Some(user_id),
+                permissions,
+                token_id: None,
+                error: None,
+                session_id: Some(session_id.to_string()),
+            })
+        } else {
+            Ok(AuthResult {
+                authenticated: false,
+                user_id: None,
+                permissions: vec![],
+                token_id: None,
+                error: Some("Invalid session".to_string()),
+                session_id: None,
+            })
+        }
+    }
 }
 
 impl SecurityMonitor {

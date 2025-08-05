@@ -10,12 +10,12 @@
     "build:docs": "./.github/scripts/build-typescript.sh docs",
     "clean:typescript": "./.github/scripts/build-typescript.sh clean",
     "status:typescript": "./.github/scripts/build-typescript.sh status",
-    "build:all": "npm run build:typescript && cargo build",
-    "clean:all": "npm run clean:typescript && cargo clean",
-    "test:typescript": "npm run test:vscode && npm run test:language-server",
-    "test:vscode": "cd editor-plugins/vscode && npm test",
-    "test:language-server": "cd editor-plugins/language-server && npm test",
-    "install:all": "npm install && cd editor-plugins/vscode && npm install && cd ../language-server && npm install && cd ../../docs && npm install"
+    "build:all": "pnpm run build:typescript && cargo build",
+    "clean:all": "pnpm run clean:typescript && cargo clean",
+    "test:typescript": "pnpm run test:vscode && pnpm run test:language-server",
+    "test:vscode": "pnpm --filter rhema test",
+    "test:language-server": "pnpm --filter rhema-language-server test",
+    "install:all": "pnpm install"
   },
   "devDependencies": {
     "typescript": "^5.3.0"
@@ -23,9 +23,5 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "workspaces": [
-    "editor-plugins/vscode",
-    "editor-plugins/language-server",
-    "docs"
-  ]
+  "packageManager": "pnpm@10.14.0"
 }

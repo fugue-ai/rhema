@@ -16,7 +16,7 @@
 
 use super::{PersistenceConfig, StoreStats, StorageBackend};
 use crate::agent::real_time_coordination::{
-    ConsensusState, ConsensusEntry, ConsensusMessage, ConsensusConfig, ConsensusAlgorithm
+    ConsensusState, ConsensusEntry, ConsensusConfig, ConsensusAlgorithm
 };
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::info;
 use chrono::{DateTime, Utc};
 
 /// Consensus store for persisting consensus state

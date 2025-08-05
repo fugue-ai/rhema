@@ -27,7 +27,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tokio::sync::oneshot;
 
 /// Git workflow types supported by Rhema
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

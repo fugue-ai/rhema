@@ -52,6 +52,7 @@ tracing-subscriber.workspace = true
 lazy_static.workspace = true
 semver.workspace = true
 rayon.workspace = true
+regex = "1.10"
 
 [dev-dependencies]
 tokio-test = "0.4"

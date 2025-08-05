@@ -6,8 +6,7 @@ use serde::{Deserialize, Serialize};
 use tokio::time::{Duration, Instant};
 
 use super::{
-    PatternContext, PatternResult, PatternError, PatternState, PatternPhase, PatternStatus,
-    AgentInfo, ResourcePool, PatternPerformanceMetrics, PatternStatistics
+    PatternContext, PatternResult, PatternError, PatternPhase, PatternPerformanceMetrics
 };
 
 /// Monitoring event types

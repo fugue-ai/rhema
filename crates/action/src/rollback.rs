@@ -177,7 +177,7 @@ impl RollbackManager {
     }
     
     /// Backup using Git
-    async fn backup_git(&self, intent: &ActionIntent, backup_path: &Path) -> ActionResult<Vec<String>> {
+    async fn backup_git(&self, intent: &ActionIntent, _backup_path: &Path) -> ActionResult<Vec<String>> {
         info!("Creating Git backup for intent: {}", intent.id);
         
         // TODO: Implement Git-based backup
@@ -276,7 +276,7 @@ impl RollbackManager {
     }
     
     /// Backup using archive
-    async fn backup_archive(&self, intent: &ActionIntent, backup_path: &Path) -> ActionResult<Vec<String>> {
+    async fn backup_archive(&self, intent: &ActionIntent, _backup_path: &Path) -> ActionResult<Vec<String>> {
         info!("Creating archive backup for intent: {}", intent.id);
         
         // TODO: Implement archive-based backup
@@ -287,7 +287,7 @@ impl RollbackManager {
     }
     
     /// Backup using snapshot
-    async fn backup_snapshot(&self, intent: &ActionIntent, backup_path: &Path) -> ActionResult<Vec<String>> {
+    async fn backup_snapshot(&self, intent: &ActionIntent, _backup_path: &Path) -> ActionResult<Vec<String>> {
         info!("Creating snapshot backup for intent: {}", intent.id);
         
         // TODO: Implement snapshot-based backup
@@ -361,7 +361,7 @@ impl RollbackManager {
         
         let start_time = std::time::Instant::now();
         let mut files_restored = Vec::new();
-        let mut errors = Vec::new();
+        let errors = Vec::new();
         
         match backup.backup_method {
             BackupMethod::Git => {

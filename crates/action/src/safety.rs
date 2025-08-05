@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 use crate::schema::{ActionIntent, SafetyLevel, ActionType};
 use crate::error::{ActionError, ActionResult};
 

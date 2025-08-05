@@ -16,7 +16,7 @@
 
 use crate::{RhemaError, RhemaResult};
 use rhema_mcp::{
-    AuthManager, CacheManager, ContextProvider, FileWatcher, McpConfig, McpDaemon,
+    McpConfig, McpDaemon,
     mcp::{AuthConfig, WatcherConfig, CacheConfig, LoggingConfig, RateLimitConfig, StartupConfig},
     DaemonStatistics,
 };
@@ -24,7 +24,6 @@ use clap::Args;
 use std::path::PathBuf;
 use std::process;
 use std::fs;
-use std::os::unix::process::CommandExt;
 use tokio::signal;
 use tokio::time::{sleep, Duration};
 use tracing::{error, info, warn};
@@ -815,7 +814,7 @@ async fn initialize_logging(config: &LoggingConfig, log_file: Option<&PathBuf>) 
 
     // Configure log file if specified
     if let Some(log_file) = log_file {
-        let file_appender = tracing_appender::rolling::RollingFileAppender::builder()
+        let _file_appender = tracing_appender::rolling::RollingFileAppender::builder()
             .rotation(tracing_appender::rolling::Rotation::DAILY)
             .filename_prefix("rhema-mcp")
             .filename_suffix("log")

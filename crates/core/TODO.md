@@ -61,8 +61,6 @@ The core crate provides fundamental functionality for Rhema including error hand
 ### Testing and Quality
 - [ ] **Add comprehensive unit tests** - Test all core functionality
 - [ ] **Implement integration tests** - Test integration with other components
-- [ ] **Add performance tests** - Test performance characteristics
-- [ ] **Implement stress tests** - Test under stress conditions
 - [ ] **Add error handling tests** - Test error scenarios
 
 ### Documentation
@@ -71,13 +69,6 @@ The core crate provides fundamental functionality for Rhema including error hand
 - [ ] **Add architecture documentation** - Document core architecture
 - [ ] **Create troubleshooting guide** - Guide for common issues
 - [ ] **Add best practices guide** - Best practices for core usage
-
-### Extensibility
-- [ ] **Add plugin system** - Support for plugins
-- [ ] **Implement extension points** - Extension points for customization
-- [ ] **Add configuration hooks** - Hooks for configuration changes
-- [ ] **Implement event system** - Event system for notifications
-- [ ] **Add callback system** - Callback system for custom behavior
 
 ## 🟢 Low Priority Tasks
 

@@ -17,10 +17,10 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tracing::{info, warn, error, instrument};
 use once_cell::sync::OnceCell;
-use crate::schema::{ActionIntent, ActionStatus, ActionExecutionResult, RollbackInfo};
+use crate::schema::{ActionIntent, ActionStatus, ActionExecutionResult};
 use crate::error::{ActionError, ActionResult};
 use crate::validation::ValidationEngine;
 use crate::rollback::RollbackManager;
@@ -227,7 +227,7 @@ impl ActionSafetyPipeline {
         let mut validation_results = HashMap::new();
         let mut safety_results = HashMap::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         // Run validation tools
         for validation_tool in &intent.transformation.validation {
@@ -281,7 +281,7 @@ impl ActionSafetyPipeline {
         info!("Committing changes for intent: {}", intent.id);
         
         // Create git commit with action metadata
-        let commit_message = format!(
+        let _commit_message = format!(
             "Action: {} - {}\n\nIntent ID: {}\nSafety Level: {:?}\nChanges: {}",
             intent.action_type,
             intent.description,

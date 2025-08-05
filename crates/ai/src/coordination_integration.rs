@@ -15,7 +15,7 @@
  */
 
 use crate::agent::real_time_coordination::{
-    AgentInfo, AgentMessage, AgentStatus, MessageType, MessagePriority,
+    AgentInfo, AgentMessage, AgentStatus,
     RealTimeCoordinationSystem
 };
 use crate::grpc::coordination_client::{SyneidesisCoordinationClient, SyneidesisConfig, ConnectionStatus};
@@ -334,7 +334,7 @@ impl CoordinationIntegration {
         info!("Sending message with coordination integration: {:?}", message);
         
         // Send to Rhema coordination system
-        let mut rhema_coordination = self.rhema_coordination.write().await;
+        let rhema_coordination = self.rhema_coordination.write().await;
         rhema_coordination.send_message(message.clone()).await?;
         
         // Bridge to Syneidesis if available

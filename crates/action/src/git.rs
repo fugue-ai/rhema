@@ -15,8 +15,8 @@
  */
 
 use std::path::Path;
-use tracing::{info, warn, error};
-use git2::{Repository, Commit, Signature, Error as GitError, BranchType, DiffOptions, DiffFormat, DiffDelta, DiffHunk};
+use tracing::info;
+use git2::{Repository, Signature, BranchType, DiffOptions, DiffFormat};
 
 use crate::schema::ActionIntent;
 use crate::error::{ActionError, ActionResult};
@@ -161,7 +161,7 @@ impl ActionGitIntegration {
                 ActionError::git("peel_to_commit", format!("Failed to peel to commit: {}", e))
             })?;
             
-            let branch = repo.branch(&branch_name, &commit, false).map_err(|e| {
+            let _branch = repo.branch(&branch_name, &commit, false).map_err(|e| {
                 ActionError::git("create_branch", format!("Failed to create branch: {}", e))
             })?;
             
@@ -381,7 +381,7 @@ impl ActionGitIntegration {
                 ActionError::git("get_tree", format!("Failed to get tree: {}", e))
             })?;
             
-            let mut diff = repo.diff_tree_to_workdir(Some(&head_tree), None).map_err(|e| {
+            let diff = repo.diff_tree_to_workdir(Some(&head_tree), None).map_err(|e| {
                 ActionError::git("create_diff", format!("Failed to create diff: {}", e))
             })?;
             

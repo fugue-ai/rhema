@@ -24,4 +24,7 @@ module.exports = {
       tsconfig: 'tsconfig.json',
     },
   },
+  moduleNameMapper: {
+    '^vscode$': '<rootDir>/tests/mock-vscode.ts',
+  },
 }; 

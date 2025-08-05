@@ -16,7 +16,6 @@
 
 use clap::Subcommand;
 use rhema_core::{DecisionStatus, PatternUsage, Priority, TodoStatus};
-use std::path::PathBuf;
 
 // Command enums for CLI
 #[derive(Subcommand)]

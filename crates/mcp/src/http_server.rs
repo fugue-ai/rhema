@@ -54,6 +54,15 @@ pub struct PerformanceMetrics {
     pub cache_misses: AtomicU64,
     pub active_connections: AtomicUsize,
     pub is_healthy: AtomicBool,
+    // Enhanced metrics
+    pub slow_requests: AtomicU64, // requests taking > 1 second
+    pub memory_usage: AtomicU64, // in bytes
+    pub cpu_usage: AtomicU64, // percentage * 100
+    pub request_size: AtomicU64, // total request size in bytes
+    pub response_size: AtomicU64, // total response size in bytes
+    pub concurrent_requests: AtomicUsize,
+    pub error_rate: AtomicU64, // error rate percentage * 100
+    pub throughput: AtomicU64, // requests per second * 100
 }
 
 impl PerformanceMetrics {
@@ -66,16 +75,50 @@ impl PerformanceMetrics {
             cache_misses: AtomicU64::new(0),
             active_connections: AtomicUsize::new(0),
             is_healthy: AtomicBool::new(true),
+            slow_requests: AtomicU64::new(0),
+            memory_usage: AtomicU64::new(0),
+            cpu_usage: AtomicU64::new(0),
+            request_size: AtomicU64::new(0),
+            response_size: AtomicU64::new(0),
+            concurrent_requests: AtomicUsize::new(0),
+            error_rate: AtomicU64::new(0),
+            throughput: AtomicU64::new(0),
         }
     }
 
-    pub fn record_request(&self, duration: Duration) {
+    pub fn record_request(&self, duration: Duration, request_size: usize, response_size: usize) {
         self.request_count.fetch_add(1, Ordering::Relaxed);
         self.total_response_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.request_size.fetch_add(request_size as u64, Ordering::Relaxed);
+        self.response_size.fetch_add(response_size as u64, Ordering::Relaxed);
+
+        // Track slow requests
+        if duration > Duration::from_secs(1) {
+            self.slow_requests.fetch_add(1, Ordering::Relaxed);
+        }
+
+        // Update error rate
+        let total_requests = self.request_count.load(Ordering::Relaxed);
+        let total_errors = self.error_count.load(Ordering::Relaxed);
+        if total_requests > 0 {
+            let error_rate = (total_errors * 100) / total_requests;
+            self.error_rate.store(error_rate, Ordering::Relaxed);
+        }
+
+        // Update throughput (requests per second)
+        self.update_throughput();
     }
 
     pub fn record_error(&self) {
         self.error_count.fetch_add(1, Ordering::Relaxed);
+        
+        // Update error rate
+        let total_requests = self.request_count.load(Ordering::Relaxed);
+        let total_errors = self.error_count.load(Ordering::Relaxed);
+        if total_requests > 0 {
+            let error_rate = (total_errors * 100) / total_requests;
+            self.error_rate.store(error_rate, Ordering::Relaxed);
+        }
     }
 
     pub fn record_cache_hit(&self) {
@@ -104,6 +147,46 @@ impl PerformanceMetrics {
         } else {
             hits as f64 / total as f64
         }
+    }
+
+    pub fn get_error_rate(&self) -> f64 {
+        self.error_rate.load(Ordering::Relaxed) as f64 / 100.0
+    }
+
+    pub fn get_throughput(&self) -> f64 {
+        self.throughput.load(Ordering::Relaxed) as f64 / 100.0
+    }
+
+    pub fn get_memory_usage_mb(&self) -> u64 {
+        self.memory_usage.load(Ordering::Relaxed) / (1024 * 1024)
+    }
+
+    pub fn get_cpu_usage_percent(&self) -> f64 {
+        self.cpu_usage.load(Ordering::Relaxed) as f64 / 100.0
+    }
+
+    fn update_throughput(&self) {
+        // This would typically be calculated over a time window
+        // For now, we'll use a simple approach
+        let total_requests = self.request_count.load(Ordering::Relaxed);
+        // Assuming 1 second window for simplicity
+        self.throughput.store(total_requests * 100, Ordering::Relaxed);
+    }
+
+    pub fn update_memory_usage(&self, bytes: u64) {
+        self.memory_usage.store(bytes, Ordering::Relaxed);
+    }
+
+    pub fn update_cpu_usage(&self, percentage: f64) {
+        self.cpu_usage.store((percentage * 100.0) as u64, Ordering::Relaxed);
+    }
+
+    pub fn increment_concurrent_requests(&self) {
+        self.concurrent_requests.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn decrement_concurrent_requests(&self) {
+        self.concurrent_requests.fetch_sub(1, Ordering::Relaxed);
     }
 }
 
@@ -653,7 +736,7 @@ impl HttpServer {
         let cache_key = server.generate_cache_key("GET", "/health", "");
         if let Some(cached_response) = server.get_cached_response(&cache_key) {
             let duration = start_time.elapsed();
-            server.metrics.record_request(duration);
+            server.metrics.record_request(duration, 0, 0);
             return (StatusCode::OK, Json(cached_response)).into_response();
         }
 
@@ -699,7 +782,7 @@ impl HttpServer {
         server.cache_response(cache_key, response_value.clone());
         
         let duration = start_time.elapsed();
-        server.metrics.record_request(duration);
+        server.metrics.record_request(duration, 0, 0);
         
         // Log performance metrics if response time is high
         if duration > Duration::from_millis(50) {
@@ -1009,7 +1092,7 @@ impl HttpServer {
         let cache_key = server.generate_cache_key("POST", "/search", &cache_params);
         if let Some(cached_response) = server.get_cached_response(&cache_key) {
             let duration = start_time.elapsed();
-            server.metrics.record_request(duration);
+            server.metrics.record_request(duration, 0, 0);
             return (StatusCode::OK, Json(cached_response)).into_response();
         }
 
@@ -1147,7 +1230,7 @@ impl HttpServer {
         server.cache_response(cache_key, response_value.clone());
         
         let total_duration = start_time.elapsed();
-        server.metrics.record_request(total_duration);
+        server.metrics.record_request(total_duration, 0, 0);
         
         // Log performance metrics if response time is high
         if total_duration > Duration::from_millis(50) {
@@ -1782,7 +1865,7 @@ impl HttpServer {
         };
 
         let duration = start_time.elapsed();
-        metrics.record_request(duration);
+        metrics.record_request(duration, 0, 0);
 
         (StatusCode::OK, Json(response)).into_response()
     }
@@ -2057,7 +2140,7 @@ impl HttpServer {
         match server.daemon.get_context_provider().validate_context_data().await {
             Ok(validation_result) => {
                 let duration = start_time.elapsed();
-                server.metrics.record_request(duration);
+                server.metrics.record_request(duration, 0, 0);
                 
                 (StatusCode::OK, Json(validation_result)).into_response()
             }
@@ -2095,7 +2178,7 @@ impl HttpServer {
         match server.daemon.get_context_provider().validate_scope_context(&scope_id).await {
             Ok(scope_result) => {
                 let duration = start_time.elapsed();
-                server.metrics.record_request(duration);
+                server.metrics.record_request(duration, 0, 0);
                 
                 (StatusCode::OK, Json(scope_result)).into_response()
             }
@@ -2132,7 +2215,7 @@ impl HttpServer {
         match server.daemon.get_context_provider().validate_cross_references().await {
             Ok(cross_ref_result) => {
                 let duration = start_time.elapsed();
-                server.metrics.record_request(duration);
+                server.metrics.record_request(duration, 0, 0);
                 
                 (StatusCode::OK, Json(cross_ref_result)).into_response()
             }
@@ -2169,7 +2252,7 @@ impl HttpServer {
         match server.daemon.get_context_provider().validate_consistency().await {
             Ok(consistency_result) => {
                 let duration = start_time.elapsed();
-                server.metrics.record_request(duration);
+                server.metrics.record_request(duration, 0, 0);
                 
                 (StatusCode::OK, Json(consistency_result)).into_response()
             }
@@ -2206,7 +2289,7 @@ impl HttpServer {
         match server.daemon.get_context_provider().validate_temporal_consistency().await {
             Ok(temporal_result) => {
                 let duration = start_time.elapsed();
-                server.metrics.record_request(duration);
+                server.metrics.record_request(duration, 0, 0);
                 
                 (StatusCode::OK, Json(temporal_result)).into_response()
             }
@@ -2243,7 +2326,7 @@ impl HttpServer {
         match server.daemon.get_context_provider().validate_scope_dependencies().await {
             Ok(dependency_result) => {
                 let duration = start_time.elapsed();
-                server.metrics.record_request(duration);
+                server.metrics.record_request(duration, 0, 0);
                 
                 (StatusCode::OK, Json(dependency_result)).into_response()
             }
@@ -2267,5 +2350,95 @@ impl Clone for HttpServer {
             response_cache: self.response_cache.clone(),
             rate_limit_cache: self.rate_limit_cache.clone(),
         }
+    }
+}
+
+/// Enhanced connection pool with performance monitoring
+#[derive(Debug)]
+pub struct EnhancedConnectionPool {
+    semaphore: Semaphore,
+    max_connections: usize,
+    active_connections: AtomicUsize,
+    total_connections: AtomicU64,
+    connection_wait_time: AtomicU64, // in nanoseconds
+    pool_stats: Arc<DashMap<String, u64>>,
+}
+
+impl EnhancedConnectionPool {
+    pub fn new(max_connections: usize) -> Self {
+        Self {
+            semaphore: Semaphore::new(max_connections),
+            max_connections,
+            active_connections: AtomicUsize::new(0),
+            total_connections: AtomicU64::new(0),
+            connection_wait_time: AtomicU64::new(0),
+            pool_stats: Arc::new(DashMap::new()),
+        }
+    }
+
+    pub async fn acquire(&self) -> Result<EnhancedConnectionGuard, RhemaError> {
+        let start_time = Instant::now();
+        
+        let permit = self.semaphore.acquire().await.map_err(|_| {
+            RhemaError::SystemError("Connection pool exhausted".to_string())
+        })?;
+
+        let wait_time = start_time.elapsed();
+        self.connection_wait_time.fetch_add(wait_time.as_nanos() as u64, Ordering::Relaxed);
+        self.active_connections.fetch_add(1, Ordering::Relaxed);
+        self.total_connections.fetch_add(1, Ordering::Relaxed);
+
+        // Update pool statistics
+        self.pool_stats.insert("wait_time_ns".to_string(), wait_time.as_nanos() as u64);
+        self.pool_stats.insert("active_connections".to_string(), self.active_connections.load(Ordering::Relaxed) as u64);
+
+        Ok(EnhancedConnectionGuard {
+            pool: self,
+            _permit: permit,
+        })
+    }
+
+    pub fn get_stats(&self) -> ConnectionPoolStats {
+        let total_connections = self.total_connections.load(Ordering::Relaxed);
+        let active_connections = self.active_connections.load(Ordering::Relaxed);
+        let total_wait_time = self.connection_wait_time.load(Ordering::Relaxed);
+        
+        let avg_wait_time = if total_connections > 0 {
+            Duration::from_nanos(total_wait_time / total_connections)
+        } else {
+            Duration::ZERO
+        };
+
+        ConnectionPoolStats {
+            max_connections: self.max_connections,
+            active_connections,
+            total_connections,
+            avg_wait_time,
+            utilization_rate: if self.max_connections > 0 {
+                active_connections as f64 / self.max_connections as f64
+            } else {
+                0.0
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConnectionPoolStats {
+    pub max_connections: usize,
+    pub active_connections: usize,
+    pub total_connections: u64,
+    pub avg_wait_time: Duration,
+    pub utilization_rate: f64,
+}
+
+pub struct EnhancedConnectionGuard<'a> {
+    pool: &'a EnhancedConnectionPool,
+    _permit: tokio::sync::SemaphorePermit<'a>,
+}
+
+impl<'a> Drop for EnhancedConnectionGuard<'a> {
+    fn drop(&mut self) {
+        self.pool.active_connections.fetch_sub(1, Ordering::Relaxed);
     }
 } 

@@ -23,11 +23,9 @@ pub mod monitoring;
 pub mod composition;
 
 use chrono::{DateTime, Utc};
-use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
-use uuid::Uuid;
 
 // Re-export recovery types
 pub use recovery::{

@@ -53,6 +53,8 @@ rand = "0.8"
 hex = "0.4"
 tower = "0.4"
 http = "0.2"
+# Performance dependencies
+num_cpus = "1.16"
 
 [dev-dependencies]
 tempfile = { workspace = true }

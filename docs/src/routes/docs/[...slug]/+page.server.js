@@ -9,11 +9,19 @@ export async function load({ params }) {
       throw error(404, 'Document not found');
     }
 
-    // Construct the file path
-    const filePath = join(process.cwd(), 'src', 'docs', `${slug}.md`);
-
-    // Try to read the markdown file
-    const markdown = readFileSync(filePath, 'utf-8');
+    // Construct the file path - handle both development and production paths
+    let filePath;
+    let markdown;
+    
+    // Try the current working directory first (for development)
+    filePath = join(process.cwd(), 'src', 'docs', `${slug}.md`);
+    try {
+      markdown = readFileSync(filePath, 'utf-8');
+    } catch {
+      // If that fails, try the docs directory relative to the project root
+      filePath = join(process.cwd(), 'docs', 'src', 'docs', `${slug}.md`);
+      markdown = readFileSync(filePath, 'utf-8');
+    }
 
     // Extract title from first heading
     const titleMatch = markdown.match(/^#\s+(.+)$/m);
@@ -34,7 +42,12 @@ export async function load({ params }) {
   }
 }
 
+/**
+ * @param {string} markdown
+ * @returns {Array<{id: string, text: string, level: number}>}
+ */
 function generateTOC(markdown) {
+  /** @type {Array<{id: string, text: string, level: number}>} */
   const toc = [];
   const lines = markdown.split('\n');
 
@@ -49,4 +62,4 @@ function generateTOC(markdown) {
   });
 
   return toc;
-}
+} 

@@ -2198,7 +2198,7 @@ impl CacheValidator {
     /// Validate checksums of cache entries
     async fn validate_checksums(&self, cache_manager: &UnifiedCacheManager) -> KnowledgeResult<Vec<ValidationResult>> {
         let mut results = Vec::new();
-        let mut failed_keys = Vec::new();
+        let failed_keys = Vec::new();
 
         if cache_manager.config.enable_memory_cache {
             let entries = cache_manager.memory_cache.entries.clone();

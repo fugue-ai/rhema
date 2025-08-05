@@ -15,7 +15,7 @@
  */
 
 use chrono::{DateTime, Utc};
-use git2::{Repository, Commit, Diff, DiffOptions, DiffFormat};
+use git2::{Repository, Commit};
 use regex::Regex;
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::Write;
-use semver::{Version, VersionReq};
+use semver::Version;
 
 /// Version management configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

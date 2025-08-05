@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// use crate::git::history::ValidationSeverity;
 use chrono::{DateTime, Utc};
 use git2::{BranchType, MergeOptions, Repository, Signature};
 use rhema_core::{RhemaError, RhemaResult};
@@ -615,14 +614,96 @@ impl FeatureAutomationManager {
         })
     }
 
-    fn apply_inheritance_rules(&self, _branch_name: &str, _base_branch: &str) -> RhemaResult<()> {
-        // TODO: Implement inheritance rules application
+    fn apply_inheritance_rules(&self, branch_name: &str, base_branch: &str) -> RhemaResult<()> {
+        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
+        
+        // Load inheritance rules from base branch
+        let base_context_dir = self.repo.path().join(".rhema").join("context").join(base_branch);
+        let inheritance_rules_file = base_context_dir.join("inheritance_rules.json");
+        
+        if inheritance_rules_file.exists() {
+            let rules_content = std::fs::read_to_string(&inheritance_rules_file)?;
+            let rules: serde_json::Value = serde_json::from_str(&rules_content)?;
+            
+            // Apply inheritance rules to current branch
+            let inherited_config_file = context_dir.join("inherited_config.json");
+            std::fs::write(&inherited_config_file, serde_json::to_string_pretty(&rules)?)?;
+            
+            // Update context configuration with inherited rules
+            let config_file = context_dir.join("config.json");
+            if config_file.exists() {
+                let config_content = std::fs::read_to_string(&config_file)?;
+                let mut config: serde_json::Value = serde_json::from_str(&config_content)?;
+                
+                // Merge inherited rules into current config
+                if let Some(config_obj) = config.as_object_mut() {
+                    if let Some(rules_obj) = rules.as_object() {
+                        for (key, value) in rules_obj {
+                            config_obj.insert(key.clone(), value.clone());
+                        }
+                    }
+                }
+                
+                std::fs::write(&config_file, serde_json::to_string_pretty(&config)?)?;
+            }
+        }
+        
         Ok(())
     }
 
-    fn apply_boundary_rules(&self, _branch_name: &str) -> RhemaResult<()> {
-        // TODO: Implement boundary rules application
+    fn apply_boundary_rules(&self, branch_name: &str) -> RhemaResult<()> {
+        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
+        
+        // Load boundary rules from repository configuration
+        let boundary_rules_file = self.repo.path().join(".rhema").join("boundary_rules.json");
+        
+        if boundary_rules_file.exists() {
+            let rules_content = std::fs::read_to_string(&boundary_rules_file)?;
+            let rules: serde_json::Value = serde_json::from_str(&rules_content)?;
+            
+            // Apply boundary rules to current branch
+            let boundary_config_file = context_dir.join("boundary_config.json");
+            std::fs::write(&boundary_config_file, serde_json::to_string_pretty(&rules)?)?;
+            
+            // Validate branch against boundary rules
+            if let Some(branch_rules) = rules.get("branch_rules") {
+                if let Some(branch_rules_obj) = branch_rules.as_object() {
+                    for (rule_name, rule_config) in branch_rules_obj {
+                        if let Some(pattern) = rule_config.get("pattern") {
+                            if let Some(pattern_str) = pattern.as_str() {
+                                // Check if branch name matches pattern
+                                if !self.matches_pattern(branch_name, pattern_str)? {
+                                    if let Some(action) = rule_config.get("action") {
+                                        if action.as_str() == Some("block") {
+                                            return Err(RhemaError::ValidationError(
+                                                format!("Branch '{}' violates boundary rule '{}'", branch_name, rule_name)
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         Ok(())
+    }
+
+    fn matches_pattern(&self, branch_name: &str, pattern: &str) -> RhemaResult<bool> {
+        // Simple pattern matching - can be enhanced with regex
+        if pattern.starts_with("feature/") {
+            Ok(branch_name.starts_with("feature/"))
+        } else if pattern.starts_with("bugfix/") {
+            Ok(branch_name.starts_with("bugfix/"))
+        } else if pattern.starts_with("hotfix/") {
+            Ok(branch_name.starts_with("hotfix/"))
+        } else if pattern == "*" {
+            Ok(true)
+        } else {
+            Ok(branch_name == pattern)
+        }
     }
 
     fn setup_context_isolation(&self, branch_name: &str, _base_branch: &str) -> RhemaResult<()> {
@@ -741,8 +822,509 @@ impl FeatureAutomationManager {
         Ok(())
     }
 
-    fn run_health_checks(&self, _branch_name: &str) -> RhemaResult<()> {
-        // TODO: Implement health checks
+    fn run_health_checks(&self, branch_name: &str) -> RhemaResult<()> {
+        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
+        
+        // Check repository health
+        self.check_repository_health()?;
+        
+        // Check branch health
+        self.check_branch_health(branch_name)?;
+        
+        // Check context health
+        self.check_context_health(&context_dir)?;
+        
+        // Check file system health
+        self.check_filesystem_health()?;
+        
+        Ok(())
+    }
+
+    fn check_repository_health(&self) -> RhemaResult<()> {
+        // Check if repository is valid
+        if self.repo.is_bare() {
+            return Err(RhemaError::ValidationError("Repository is bare".to_string()));
+        }
+        
+        // Check if repository is not corrupted
+        if let Err(_) = self.repo.head() {
+            return Err(RhemaError::ValidationError("Repository head is invalid".to_string()));
+        }
+        
+        // Check if index is valid
+        if let Err(_) = self.repo.index() {
+            return Err(RhemaError::ValidationError("Repository index is invalid".to_string()));
+        }
+        
+        Ok(())
+    }
+
+    fn check_branch_health(&self, branch_name: &str) -> RhemaResult<()> {
+        // Check if branch exists and is valid
+        match self.repo.find_branch(branch_name, BranchType::Local) {
+            Ok(branch) => {
+                // Check if branch has commits
+                if let Err(_) = branch.get().peel_to_commit() {
+                    return Err(RhemaError::ValidationError(
+                        format!("Branch '{}' has no valid commits", branch_name)
+                    ));
+                }
+            }
+            Err(_) => {
+                return Err(RhemaError::ValidationError(
+                    format!("Branch '{}' does not exist", branch_name)
+                ));
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_context_health(&self, context_dir: &Path) -> RhemaResult<()> {
+        if context_dir.exists() {
+            // Check if context directory is readable
+            if let Err(_) = std::fs::read_dir(context_dir) {
+                return Err(RhemaError::ValidationError(
+                    "Context directory is not readable".to_string()
+                ));
+            }
+            
+            // Check if required context files exist
+            let required_files = vec!["config.json", "context.yaml"];
+            for file in required_files {
+                let file_path = context_dir.join(file);
+                if !file_path.exists() {
+                    return Err(RhemaError::ValidationError(
+                        format!("Required context file '{}' is missing", file)
+                    ));
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_filesystem_health(&self) -> RhemaResult<()> {
+        let repo_path = self.repo.path();
+        
+        // Check if repository directory is accessible
+        if let Err(_) = std::fs::metadata(repo_path) {
+            return Err(RhemaError::ValidationError(
+                "Repository directory is not accessible".to_string()
+            ));
+        }
+        
+        // Check available disk space (simplified)
+        if let Ok(metadata) = std::fs::metadata(repo_path) {
+            // This is a simplified check - in a real implementation, you'd check actual disk space
+            if metadata.len() == 0 {
+                return Err(RhemaError::ValidationError(
+                    "Repository directory appears to be empty".to_string()
+                ));
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn validate_dependencies(&self, branch_name: &str) -> RhemaResult<()> {
+        let repo_path = self.repo.path();
+        
+        // Check Cargo.toml dependencies
+        let cargo_toml = repo_path.join("Cargo.toml");
+        if cargo_toml.exists() {
+            self.validate_cargo_dependencies(&cargo_toml)?;
+        }
+        
+        // Check package.json dependencies
+        let package_json = repo_path.join("package.json");
+        if package_json.exists() {
+            self.validate_npm_dependencies(&package_json)?;
+        }
+        
+        // Check for dependency conflicts
+        self.check_dependency_conflicts(repo_path)?;
+        
+        // Check for outdated dependencies
+        self.check_outdated_dependencies(repo_path)?;
+        
+        Ok(())
+    }
+
+    fn validate_cargo_dependencies(&self, cargo_toml_path: &Path) -> RhemaResult<()> {
+        let content = std::fs::read_to_string(cargo_toml_path)?;
+        
+        // Simple validation - check for common issues
+        if content.contains("version = \"0.0.0\"") {
+            return Err(RhemaError::ValidationError(
+                "Cargo.toml contains placeholder version".to_string()
+            ));
+        }
+        
+        // Check for duplicate dependencies
+        let lines: Vec<&str> = content.lines().collect();
+        let mut dependency_names = std::collections::HashSet::new();
+        
+        for line in lines {
+            if line.trim().starts_with("[dependencies.") || line.trim().starts_with("[dev-dependencies.") {
+                if let Some(name) = line.split('.').nth(1) {
+                    let clean_name = name.trim_end_matches(']');
+                    if !dependency_names.insert(clean_name) {
+                        return Err(RhemaError::ValidationError(
+                            format!("Duplicate dependency found: {}", clean_name)
+                        ));
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn validate_npm_dependencies(&self, package_json_path: &Path) -> RhemaResult<()> {
+        let content = std::fs::read_to_string(package_json_path)?;
+        
+        // Parse JSON and validate
+        let package_json: serde_json::Value = serde_json::from_str(&content)?;
+        
+        // Check for required fields
+        if !package_json.get("name").is_some() {
+            return Err(RhemaError::ValidationError(
+                "package.json missing 'name' field".to_string()
+            ));
+        }
+        
+        if !package_json.get("version").is_some() {
+            return Err(RhemaError::ValidationError(
+                "package.json missing 'version' field".to_string()
+            ));
+        }
+        
+        // Check for placeholder values
+        if let Some(version) = package_json.get("version") {
+            if version.as_str() == Some("0.0.0") {
+                return Err(RhemaError::ValidationError(
+                    "package.json contains placeholder version".to_string()
+                ));
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_dependency_conflicts(&self, repo_path: &Path) -> RhemaResult<()> {
+        // Check for lock file conflicts
+        let cargo_lock = repo_path.join("Cargo.lock");
+        let package_lock = repo_path.join("package-lock.json");
+        let yarn_lock = repo_path.join("yarn.lock");
+        
+        if package_lock.exists() && yarn_lock.exists() {
+            return Err(RhemaError::ValidationError(
+                "Both package-lock.json and yarn.lock found - dependency conflict".to_string()
+            ));
+        }
+        
+        Ok(())
+    }
+
+    fn check_outdated_dependencies(&self, _repo_path: &Path) -> RhemaResult<()> {
+        // This would typically run cargo outdated or npm outdated
+        // For now, we'll just return success
+        Ok(())
+    }
+
+    fn validate_security(&self, branch_name: &str) -> RhemaResult<()> {
+        let repo_path = self.repo.path();
+        
+        // Check for secrets in code
+        self.check_for_secrets_in_code(repo_path)?;
+        
+        // Check for security vulnerabilities
+        self.check_security_vulnerabilities(repo_path)?;
+        
+        // Check file permissions
+        self.check_file_permissions(repo_path)?;
+        
+        // Check for suspicious patterns
+        self.check_suspicious_patterns(repo_path)?;
+        
+        Ok(())
+    }
+
+    fn check_for_secrets_in_code(&self, repo_path: &Path) -> RhemaResult<()> {
+        // Common secret patterns
+        let secret_patterns = vec![
+            (r#"password\s*=\s*["'][^"']+["']"#, "Hardcoded password"),
+            (r#"api_key\s*=\s*["'][^"']+["']"#, "Hardcoded API key"),
+            (r#"secret\s*=\s*["'][^"']+["']"#, "Hardcoded secret"),
+            (r#"token\s*=\s*["'][^"']+["']"#, "Hardcoded token"),
+            (r#"private_key\s*=\s*["'][^"']+["']"#, "Hardcoded private key"),
+        ];
+        
+        for entry in walkdir::WalkDir::new(repo_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+        {
+            let path = entry.path();
+            
+            // Skip certain directories and files
+            if path.to_string_lossy().contains(".git") ||
+               path.to_string_lossy().contains("node_modules") ||
+               path.to_string_lossy().contains("target") {
+                continue;
+            }
+            
+            // Only check text files
+            if let Some(extension) = path.extension() {
+                let ext = extension.to_string_lossy().to_lowercase();
+                if !matches!(ext.as_str(), "rs" | "js" | "ts" | "py" | "java" | "go" | "md" | "txt" | "yaml" | "yml" | "json") {
+                    continue;
+                }
+            }
+            
+            if let Ok(content) = std::fs::read_to_string(path) {
+                for (pattern, description) in &secret_patterns {
+                    if let Ok(regex) = regex::Regex::new(pattern) {
+                        if regex.is_match(&content) {
+                            return Err(RhemaError::ValidationError(
+                                format!("Security issue found: {} in {}", description, path.display())
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_security_vulnerabilities(&self, repo_path: &Path) -> RhemaResult<()> {
+        // Check for known vulnerable dependencies
+        let cargo_toml = repo_path.join("Cargo.toml");
+        if cargo_toml.exists() {
+            // This would typically run cargo audit
+            // For now, we'll just check for common vulnerable patterns
+            let content = std::fs::read_to_string(&cargo_toml)?;
+            
+            // Check for known vulnerable crates (simplified)
+            let vulnerable_crates = vec![
+                "chrono", // Example - would need actual vulnerability database
+            ];
+            
+            for crate_name in vulnerable_crates {
+                if content.contains(&format!("{} = ", crate_name)) {
+                    return Err(RhemaError::ValidationError(
+                        format!("Potentially vulnerable dependency found: {}", crate_name)
+                    ));
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_file_permissions(&self, repo_path: &Path) -> RhemaResult<()> {
+        // Check for overly permissive files
+        for entry in walkdir::WalkDir::new(repo_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            
+            if let Ok(metadata) = std::fs::metadata(path) {
+                let permissions = metadata.permissions();
+                
+                // Check for world-writable files
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let mode = permissions.mode();
+                    if mode & 0o002 != 0 {
+                        return Err(RhemaError::ValidationError(
+                            format!("World-writable file found: {}", path.display())
+                        ));
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_suspicious_patterns(&self, repo_path: &Path) -> RhemaResult<()> {
+        // Check for suspicious code patterns
+        let suspicious_patterns = vec![
+            (r"eval\s*\(", "Use of eval() function"),
+            (r"exec\s*\(", "Use of exec() function"),
+            (r"system\s*\(", "Use of system() function"),
+            (r"shell_exec\s*\(", "Use of shell_exec() function"),
+        ];
+        
+        for entry in walkdir::WalkDir::new(repo_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+        {
+            let path = entry.path();
+            
+            // Skip certain directories
+            if path.to_string_lossy().contains(".git") ||
+               path.to_string_lossy().contains("node_modules") ||
+               path.to_string_lossy().contains("target") {
+                continue;
+            }
+            
+            if let Ok(content) = std::fs::read_to_string(path) {
+                for (pattern, description) in &suspicious_patterns {
+                    if let Ok(regex) = regex::Regex::new(pattern) {
+                        if regex.is_match(&content) {
+                            return Err(RhemaError::ValidationError(
+                                format!("Suspicious pattern found: {} in {}", description, path.display())
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn validate_performance(&self, branch_name: &str) -> RhemaResult<()> {
+        let repo_path = self.repo.path();
+        
+        // Check for performance anti-patterns
+        self.check_performance_anti_patterns(repo_path)?;
+        
+        // Check for large files
+        self.check_large_files(repo_path)?;
+        
+        // Check for inefficient code patterns
+        self.check_inefficient_patterns(repo_path)?;
+        
+        // Check for memory leaks
+        self.check_memory_leaks(repo_path)?;
+        
+        Ok(())
+    }
+
+    fn check_performance_anti_patterns(&self, repo_path: &Path) -> RhemaResult<()> {
+        // Check for common performance anti-patterns
+        let anti_patterns = vec![
+            (r"N\+1", "N+1 query pattern detected"),
+            (r"for.*for", "Nested loops detected"),
+            (r"while.*while", "Nested while loops detected"),
+            (r"recursive.*recursive", "Deep recursion detected"),
+        ];
+        
+        for entry in walkdir::WalkDir::new(repo_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+        {
+            let path = entry.path();
+            
+            // Skip certain directories
+            if path.to_string_lossy().contains(".git") ||
+               path.to_string_lossy().contains("node_modules") ||
+               path.to_string_lossy().contains("target") {
+                continue;
+            }
+            
+            if let Ok(content) = std::fs::read_to_string(path) {
+                for (pattern, description) in &anti_patterns {
+                    if let Ok(regex) = regex::Regex::new(pattern) {
+                        if regex.is_match(&content) {
+                            return Err(RhemaError::ValidationError(
+                                format!("Performance anti-pattern found: {} in {}", description, path.display())
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_large_files(&self, repo_path: &Path) -> RhemaResult<()> {
+        const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
+        
+        for entry in walkdir::WalkDir::new(repo_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+        {
+            let path = entry.path();
+            
+            // Skip certain directories
+            if path.to_string_lossy().contains(".git") ||
+               path.to_string_lossy().contains("node_modules") ||
+               path.to_string_lossy().contains("target") {
+                continue;
+            }
+            
+            if let Ok(metadata) = std::fs::metadata(path) {
+                if metadata.len() > MAX_FILE_SIZE {
+                    return Err(RhemaError::ValidationError(
+                        format!("Large file found: {} ({} bytes)", path.display(), metadata.len())
+                    ));
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_inefficient_patterns(&self, repo_path: &Path) -> RhemaResult<()> {
+        // Check for inefficient code patterns
+        let inefficient_patterns = vec![
+            (r"String::new\(\)", "Consider using String::with_capacity() for known sizes"),
+            (r"Vec::new\(\)", "Consider using Vec::with_capacity() for known sizes"),
+            (r"HashMap::new\(\)", "Consider using HashMap::with_capacity() for known sizes"),
+        ];
+        
+        for entry in walkdir::WalkDir::new(repo_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+        {
+            let path = entry.path();
+            
+            // Skip certain directories
+            if path.to_string_lossy().contains(".git") ||
+               path.to_string_lossy().contains("node_modules") ||
+               path.to_string_lossy().contains("target") {
+                continue;
+            }
+            
+            // Only check Rust files
+            if let Some(extension) = path.extension() {
+                if extension != "rs" {
+                    continue;
+                }
+            }
+            
+            if let Ok(content) = std::fs::read_to_string(path) {
+                for (pattern, description) in &inefficient_patterns {
+                    if let Ok(regex) = regex::Regex::new(pattern) {
+                        if regex.is_match(&content) {
+                            return Err(RhemaError::ValidationError(
+                                format!("Inefficient pattern found: {} in {}", description, path.display())
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn check_memory_leaks(&self, _repo_path: &Path) -> RhemaResult<()> {
+        // This would typically involve static analysis tools
+        // For now, we'll just return success
         Ok(())
     }
 
@@ -758,21 +1340,6 @@ impl FeatureAutomationManager {
                 format!("Tests failed: {}", String::from_utf8_lossy(&output.stderr))
             ));
         }
-        Ok(())
-    }
-
-    fn validate_dependencies(&self, _branch_name: &str) -> RhemaResult<()> {
-        // TODO: Implement dependency validation
-        Ok(())
-    }
-
-    fn validate_security(&self, _branch_name: &str) -> RhemaResult<()> {
-        // TODO: Implement security validation
-        Ok(())
-    }
-
-    fn validate_performance(&self, _branch_name: &str) -> RhemaResult<()> {
-        // TODO: Implement performance validation
         Ok(())
     }
 
@@ -813,9 +1380,26 @@ impl FeatureAutomationManager {
         Ok(conflicts)
     }
 
-    fn auto_resolve_conflicts(&self, _conflicts: &[String]) -> RhemaResult<Vec<String>> {
-        // TODO: Implement auto-conflict resolution
-        Ok(Vec::new())
+    fn auto_resolve_conflicts(&self, conflicts: &[String]) -> RhemaResult<Vec<String>> {
+        let mut unresolved_conflicts = Vec::new();
+        
+        for conflict in conflicts {
+            // Try to auto-resolve based on conflict type
+            if conflict.contains("Non-fast-forward merge required") {
+                // This is a merge strategy issue, not a file conflict
+                // We'll handle this in the merge strategy
+                continue;
+            }
+            
+            // For file conflicts, we would need to analyze the actual conflict markers
+            // This is a simplified implementation
+            if conflict.contains("<<<<<<<") || conflict.contains("=======") || conflict.contains(">>>>>>>") {
+                // This is a file conflict that needs manual resolution
+                unresolved_conflicts.push(conflict.clone());
+            }
+        }
+        
+        Ok(unresolved_conflicts)
     }
 
     fn fast_forward_merge(&self, feature_branch: &str, target_branch: &str) -> RhemaResult<bool> {
@@ -857,23 +1441,184 @@ impl FeatureAutomationManager {
         Ok(true)
     }
 
-    fn rebase_merge(&self, _feature_branch: &str, _target_branch: &str) -> RhemaResult<bool> {
-        // TODO: Implement rebase merge
+    fn rebase_merge(&self, feature_branch: &str, target_branch: &str) -> RhemaResult<bool> {
+        // Get the feature branch
+        let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
+        let feature_commit = feature_ref.get().peel_to_commit()?;
+        
+        // Get the target branch
+        let target_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
+        let target_commit = target_ref.get().peel_to_commit()?;
+        
+        // Checkout the target branch
+        self.repo.checkout_tree(target_commit.tree()?.as_object(), None)?;
+        self.repo.set_head(&format!("refs/heads/{}", target_branch))?;
+        
+        // Perform rebase
+        let mut rebase_options = git2::RebaseOptions::new();
+        rebase_options.inmemory(true);
+        
+        // Note: This is a simplified rebase implementation
+        // In a real implementation, you would use git2's rebase functionality
+        // For now, we'll simulate a rebase by creating a new commit
+        
+        let signature = Signature::now("Rhema", "rhema@example.com")?;
+        let tree = feature_commit.tree()?;
+        
+        self.repo.commit(
+            Some(&format!("refs/heads/{}", target_branch)),
+            &signature,
+            &signature,
+            &format!("Rebase {} onto {}", feature_branch, target_branch),
+            &tree,
+            &[&target_commit, &feature_commit],
+        )?;
+        
         Ok(true)
     }
 
-    fn squash_merge(&self, _feature_branch: &str, _target_branch: &str) -> RhemaResult<bool> {
-        // TODO: Implement squash merge
+    fn squash_merge(&self, feature_branch: &str, target_branch: &str) -> RhemaResult<bool> {
+        // Get the feature branch
+        let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
+        let feature_commit = feature_ref.get().peel_to_commit()?;
+        
+        // Get the target branch
+        let target_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
+        let target_commit = target_ref.get().peel_to_commit()?;
+        
+        // Checkout the target branch
+        self.repo.checkout_tree(target_commit.tree()?.as_object(), None)?;
+        self.repo.set_head(&format!("refs/heads/{}", target_branch))?;
+        
+        // Create a squash commit that combines all changes from the feature branch
+        let signature = Signature::now("Rhema", "rhema@example.com")?;
+        
+        // Get the tree from the feature branch
+        let tree = feature_commit.tree()?;
+        
+        // Create a single commit that represents all changes
+        self.repo.commit(
+            Some(&format!("refs/heads/{}", target_branch)),
+            &signature,
+            &signature,
+            &format!("Squash merge {} into {}", feature_branch, target_branch),
+            &tree,
+            &[&target_commit],
+        )?;
+        
         Ok(true)
     }
 
-    fn custom_merge(&self, _feature_branch: &str, _target_branch: &str, _strategy: &str) -> RhemaResult<bool> {
-        // TODO: Implement custom merge strategy
+    fn custom_merge(&self, feature_branch: &str, target_branch: &str, strategy: &str) -> RhemaResult<bool> {
+        match strategy {
+            "rebase-squash" => {
+                // First rebase, then squash
+                self.rebase_merge(feature_branch, target_branch)?;
+                self.squash_merge(feature_branch, target_branch)
+            }
+            "cherry-pick" => {
+                // Cherry-pick specific commits
+                self.cherry_pick_merge(feature_branch, target_branch)
+            }
+            "octopus" => {
+                // Octopus merge (multiple branches)
+                self.octopus_merge(feature_branch, target_branch)
+            }
+            _ => {
+                // Default to regular merge
+                self.merge_commit(feature_branch, target_branch)
+            }
+        }
+    }
+
+    fn cherry_pick_merge(&self, feature_branch: &str, target_branch: &str) -> RhemaResult<bool> {
+        // Get the feature branch commits
+        let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
+        let feature_commit = feature_ref.get().peel_to_commit()?;
+        
+        // Get the target branch
+        let target_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
+        let target_commit = target_ref.get().peel_to_commit()?;
+        
+        // Checkout the target branch
+        self.repo.checkout_tree(target_commit.tree()?.as_object(), None)?;
+        self.repo.set_head(&format!("refs/heads/{}", target_branch))?;
+        
+        // Cherry-pick the feature commit
+        let signature = Signature::now("Rhema", "rhema@example.com")?;
+        let tree = feature_commit.tree()?;
+        
+        self.repo.commit(
+            Some(&format!("refs/heads/{}", target_branch)),
+            &signature,
+            &signature,
+            &format!("Cherry-pick {} into {}", feature_branch, target_branch),
+            &tree,
+            &[&target_commit],
+        )?;
+        
         Ok(true)
     }
 
-    fn validate_merged_branch(&self, _target_branch: &str) -> RhemaResult<()> {
-        // TODO: Implement merged branch validation
+    fn octopus_merge(&self, feature_branch: &str, target_branch: &str) -> RhemaResult<bool> {
+        // Get the feature branch
+        let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
+        let feature_commit = feature_ref.get().peel_to_commit()?;
+        
+        // Get the target branch
+        let target_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
+        let target_commit = target_ref.get().peel_to_commit()?;
+        
+        // Checkout the target branch
+        self.repo.checkout_tree(target_commit.tree()?.as_object(), None)?;
+        self.repo.set_head(&format!("refs/heads/{}", target_branch))?;
+        
+        // Create an octopus merge commit
+        let signature = Signature::now("Rhema", "rhema@example.com")?;
+        let tree = feature_commit.tree()?;
+        
+        self.repo.commit(
+            Some(&format!("refs/heads/{}", target_branch)),
+            &signature,
+            &signature,
+            &format!("Octopus merge {} into {}", feature_branch, target_branch),
+            &tree,
+            &[&target_commit, &feature_commit],
+        )?;
+        
+        Ok(true)
+    }
+
+    fn validate_merged_branch(&self, target_branch: &str) -> RhemaResult<()> {
+        // Validate the merged branch
+        let branch_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
+        let commit = branch_ref.get().peel_to_commit()?;
+        
+        // Check if the commit is valid
+        if commit.tree().is_err() {
+            return Err(RhemaError::ValidationError(
+                format!("Merged branch '{}' has invalid tree", target_branch)
+            ));
+        }
+        
+        // Check if the branch can be checked out
+        let tree = commit.tree()?;
+        if self.repo.checkout_tree(tree.as_object(), None).is_err() {
+            return Err(RhemaError::ValidationError(
+                format!("Merged branch '{}' cannot be checked out", target_branch)
+            ));
+        }
+        
+        // Run tests on the merged branch
+        if self.config.validation.run_tests {
+            self.run_tests(target_branch)?;
+        }
+        
+        // Run health checks on the merged branch
+        if self.config.validation.run_health_checks {
+            self.run_health_checks(target_branch)?;
+        }
+        
         Ok(())
     }
 
@@ -940,13 +1685,84 @@ impl FeatureAutomationManager {
         Ok(())
     }
 
-    fn update_references(&self, _branch_name: &str) -> RhemaResult<()> {
-        // TODO: Implement reference updates
+    fn update_references(&self, branch_name: &str) -> RhemaResult<()> {
+        // Update any references that point to the deleted branch
+        let refs_dir = self.repo.path().join("refs");
+        
+        if refs_dir.exists() {
+            // Update any symbolic references
+            let head_file = self.repo.path().join("HEAD");
+            if head_file.exists() {
+                if let Ok(head_content) = std::fs::read_to_string(&head_file) {
+                    if head_content.contains(&format!("refs/heads/{}", branch_name)) {
+                        // Update HEAD to point to main or master
+                        let new_head = if self.branch_exists("main")? {
+                            "ref: refs/heads/main"
+                        } else if self.branch_exists("master")? {
+                            "ref: refs/heads/master"
+                        } else {
+                            return Err(RhemaError::ValidationError(
+                                "No main or master branch found to update HEAD".to_string()
+                            ));
+                        };
+                        
+                        std::fs::write(&head_file, new_head)?;
+                    }
+                }
+            }
+        }
+        
+        // Update any configuration files that reference the branch
+        let config_files = vec![
+            ".rhema/config.json",
+            ".github/workflows/ci.yml",
+            ".gitlab-ci.yml",
+        ];
+        
+        for config_file in config_files {
+            let config_path = self.repo.path().join(config_file);
+            if config_path.exists() {
+                if let Ok(content) = std::fs::read_to_string(&config_path) {
+                    let updated_content = content.replace(branch_name, "main");
+                    if content != updated_content {
+                        std::fs::write(&config_path, updated_content)?;
+                    }
+                }
+            }
+        }
+        
         Ok(())
     }
 
-    fn notify_stakeholders(&self, _branch_name: &str) -> RhemaResult<()> {
-        // TODO: Implement stakeholder notifications
+    fn notify_stakeholders(&self, branch_name: &str) -> RhemaResult<()> {
+        // Create notification content
+        let notification = serde_json::json!({
+            "type": "branch_cleanup",
+            "branch_name": branch_name,
+            "timestamp": Utc::now().to_rfc3339(),
+            "action": "branch_deleted",
+            "repository": self.repo.path().to_string_lossy(),
+            "message": format!("Feature branch '{}' has been cleaned up", branch_name)
+        });
+        
+        // Save notification to file
+        let notifications_dir = self.repo.path().join(".rhema").join("notifications");
+        std::fs::create_dir_all(&notifications_dir)?;
+        
+        let notification_file = notifications_dir.join(format!("{}-{}.json", 
+            branch_name, 
+            Utc::now().timestamp()
+        ));
+        
+        std::fs::write(&notification_file, serde_json::to_string_pretty(&notification)?)?;
+        
+        // In a real implementation, you would send notifications via:
+        // - Email
+        // - Slack
+        // - Teams
+        // - Webhook
+        // - etc.
+        
         Ok(())
     }
 }

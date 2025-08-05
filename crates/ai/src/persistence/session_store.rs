@@ -22,7 +22,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::info;
 use chrono::{DateTime, Utc};
 
 /// Session store for persisting coordination sessions

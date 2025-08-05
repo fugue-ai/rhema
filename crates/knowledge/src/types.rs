@@ -463,6 +463,17 @@ pub struct VectorStoreConfig {
     pub collection_name: String,
     pub dimension: usize,
     pub distance_metric: DistanceMetric,
+    pub timeout_seconds: u64,
+    // Qdrant specific configuration
+    pub qdrant_url: Option<String>,
+    pub qdrant_api_key: Option<String>,
+    // Chroma specific configuration
+    pub chroma_url: Option<String>,
+    pub chroma_api_key: Option<String>,
+    // Pinecone specific configuration
+    pub pinecone_api_key: Option<String>,
+    pub pinecone_environment: Option<String>,
+    pub pinecone_index_name: Option<String>,
 }
 
 /// Vector store types

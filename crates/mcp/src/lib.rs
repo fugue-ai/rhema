@@ -29,10 +29,10 @@ pub use mcp::{
     DaemonStatistics, RateLimitConfig, StartupConfig, AuthConfig, WatcherConfig, CacheConfig, LoggingConfig
 };
 
-pub use auth::{AuthManager, AuthResult, AuthToken, AuthStats};
+pub use auth::{AuthManager, AuthResult, AuthToken, AuthStats, ClientInfo, SecurityEventType, SecuritySeverity, AuditEventType, AuditResult};
 pub use cache::{CacheManager, CacheStatistics};
 pub use context::ContextProvider;
-pub use http_server::HttpServer;
+pub use http_server::{HttpServer, PerformanceMetrics, ConnectionPool, ConnectionGuard, StringCache, EnhancedConnectionPool, EnhancedConnectionGuard, ConnectionPoolStats};
 pub use official_sdk::{OfficialRhemaMcpServer, MCP_VERSION, SUPPORTED_VERSIONS};
 pub use sdk::{RhemaMcpServer, Resource, Tool, Prompt, PromptSegment, ToolResult, ContextProviderExt};
 pub use watcher::{FileWatcher, WatcherConfig as FileWatcherConfig};

@@ -18,16 +18,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Instant;
 use thiserror::Error;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, instrument, warn};
 use notify::{Watcher, RecursiveMode};
-use chrono::{DateTime, Utc};
 
 use crate::types::{
-    ContentType, KnowledgeResult, CacheEntryMetadata, SemanticInfo,
-    CompressionAlgorithm, DistanceMetric, CacheTier, AgentSessionContext,
+    ContentType, KnowledgeResult, AgentSessionContext,
     WorkflowContext, ContextSuggestion, SuggestionAction, Priority, WorkflowType,
 };
 

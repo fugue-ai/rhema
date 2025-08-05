@@ -6,8 +6,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::{
-    PatternContext, PatternResult, PatternError, PatternState, PatternPhase, PatternStatus,
-    AgentInfo, ResourcePool, ValidationResult
+    PatternContext, PatternError, PatternState, ValidationResult
 };
 
 /// Recovery strategy for pattern execution failures

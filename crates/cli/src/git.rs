@@ -18,8 +18,6 @@ use crate::{Rhema, RhemaError, RhemaResult};
 use clap::Subcommand;
 use rhema_git::*;
 use rhema_git::git_hooks::HookType;
-use rhema_git::ValidationStatus;
-use rhema_git::git::security;
 use std::path::PathBuf;
 
 // Stub type for missing git integration config
@@ -681,7 +679,7 @@ pub fn run(rhema: &Rhema, subcommand: &GitSubcommands) -> RhemaResult<()> {
 /// Run hook commands
 fn run_hooks(rhema: &Rhema, subcommand: &HookSubcommands) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     match subcommand {
         HookSubcommands::Install { hooks, force } => {
@@ -966,7 +964,7 @@ fn run_workflow(rhema: &Rhema, subcommand: &WorkflowSubcommands) -> RhemaResult<
 /// Run history commands
 fn run_history(rhema: &Rhema, subcommand: &HistorySubcommands) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     match subcommand {
         HistorySubcommands::Track { scope, limit } => {
@@ -1802,12 +1800,12 @@ fn run_advanced_branch_context(
     branch: Option<&str>,
 ) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     if init {
         println!("Initializing branch-aware context management...");
         let branch_name = branch.unwrap_or("main");
-        let mut branch_manager = git_integration.branches();
+        let branch_manager = git_integration.branches();
         let context = branch_manager?.initialize_branch_context(Some(branch_name.to_string()))?;
         println!("Branch context initialized for branch: {}", context.name);
     }
@@ -1949,7 +1947,7 @@ fn run_advanced_history(
     version_id: Option<&str>,
 ) -> RhemaResult<()> {
     let repo_path = rhema.repo_path();
-    let mut git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
+    let git_integration = rhema_git::create_advanced_git_integration(repo_path)?;
 
     if track {
         let scope_path = scope.unwrap_or(".");

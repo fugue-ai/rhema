@@ -1130,7 +1130,7 @@ echo "Rhema pre-rebase validation completed successfully"
 
         // Analyze execution patterns if ML engine is available
         if let Some(ml_engine) = &self.ml_engine {
-            if let Ok(mut engine) = ml_engine.lock() {
+            if let Ok(engine) = ml_engine.lock() {
                 // TODO: Implement ML analysis
                 messages.push("ML analysis completed".to_string());
             }

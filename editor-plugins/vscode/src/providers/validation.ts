@@ -522,7 +522,7 @@ export class RhemaValidation {
     }
 
     // Validate scope name uniqueness
-    if (parsed.scope && parsed.scope.name) {
+    if (parsed.scope?.name) {
       const scopeName = parsed.scope.name;
       if (typeof scopeName !== 'string' || scopeName.trim() === '') {
         const range = new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0));
@@ -537,7 +537,7 @@ export class RhemaValidation {
     }
 
     // Validate context files exist
-    if (parsed.context && parsed.context.files) {
+    if (parsed.context?.files) {
       if (!Array.isArray(parsed.context.files)) {
         const range = new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0));
         diagnostics.push(
@@ -648,7 +648,7 @@ export class RhemaValidation {
         .fsPath.split('/')
         .slice(0, -1)
         .join('/');
-      const fullPath = vscode.Uri.file(`${documentDir}/${filePath}`);
+      const _fullPath = vscode.Uri.file(`${documentDir}/${filePath}`);
 
       // Check if file exists in workspace
       if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
@@ -733,8 +733,6 @@ export class RhemaValidation {
     return this.diagnosticCollection.get(uri);
   }
 
-  set(uri: vscode.Uri, diagnostics: readonly vscode.Diagnostic[] | undefined): void;
-  set(entries: readonly [vscode.Uri, readonly vscode.Diagnostic[]][]): void;
   set(uriOrEntries: vscode.Uri | readonly [vscode.Uri, readonly vscode.Diagnostic[]][], diagnostics?: readonly vscode.Diagnostic[] | undefined): void {
     if (Array.isArray(uriOrEntries)) {
       this.diagnosticCollection.set(uriOrEntries);

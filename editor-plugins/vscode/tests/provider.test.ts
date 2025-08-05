@@ -16,6 +16,7 @@
 
 import * as vscode from 'vscode';
 import { RhemaProvider } from '../src/providers/rhemaProvider';
+import * as assert from 'assert';
 
 describe('Rhema Provider Tests', () => {
   let provider: RhemaProvider;
@@ -198,7 +199,11 @@ references:
 
   test('Code Actions Provider - Provide Actions', async () => {
     const range = new vscode.Range(0, 0, 10, 0);
-    const context = { diagnostics: [] } as vscode.CodeActionContext;
+    const context = { 
+      diagnostics: [], 
+      triggerKind: vscode.CodeActionTriggerKind.Invoke,
+      only: undefined
+    } as vscode.CodeActionContext;
     const actions = await provider.provideCodeActions(
       testDocument,
       range,
@@ -227,7 +232,11 @@ references:
       'Test diagnostic',
       vscode.DiagnosticSeverity.Error
     );
-    const context = { diagnostics: [diagnostic] } as vscode.CodeActionContext;
+    const context = { 
+      diagnostics: [diagnostic], 
+      triggerKind: vscode.CodeActionTriggerKind.Invoke,
+      only: undefined
+    } as vscode.CodeActionContext;
     const actions = await provider.provideCodeActions(
       testDocument,
       range,

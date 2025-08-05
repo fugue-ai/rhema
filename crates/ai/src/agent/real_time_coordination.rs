@@ -1678,7 +1678,7 @@ impl RealTimeCoordinationSystem {
     pub async fn select_agent_for_task(&self, task_requirements: Option<Vec<String>>) -> Option<String> {
         if let Some(load_balancer) = &self.load_balancer {
             let available_agents = self.get_available_agents().await;
-            let mut lb_guard = load_balancer.write().await;
+            let lb_guard = load_balancer.write().await;
             lb_guard.select_agent(&available_agents, task_requirements)
         } else {
             // Fallback to simple selection
@@ -1843,7 +1843,7 @@ impl RealTimeCoordinationSystem {
         // Start consensus if configured
         if let Some(consensus_config) = consensus_config {
             if let Some(consensus_manager) = &self.consensus_manager {
-                let mut manager = consensus_manager.write().await;
+                let manager = consensus_manager.write().await;
                 manager.start_consensus().await?;
             }
         }
@@ -1886,7 +1886,7 @@ impl RealTimeCoordinationSystem {
     /// Start consensus process
     pub async fn start_consensus(&self) -> RhemaResult<()> {
         if let Some(consensus_manager) = &self.consensus_manager {
-            let mut manager = consensus_manager.write().await;
+            let manager = consensus_manager.write().await;
             manager.start_consensus().await
         } else {
             Err(CoordinationError::PermissionDenied("Consensus manager not available".to_string()).into())
@@ -1906,7 +1906,7 @@ impl RealTimeCoordinationSystem {
     /// Handle consensus message
     pub async fn handle_consensus_message(&self, message: ConsensusMessage) -> RhemaResult<Option<ConsensusMessage>> {
         if let Some(consensus_manager) = &self.consensus_manager {
-            let mut manager = consensus_manager.write().await;
+            let manager = consensus_manager.write().await;
             manager.handle_message(message).await
         } else {
             Err(CoordinationError::PermissionDenied("Consensus manager not available".to_string()).into())

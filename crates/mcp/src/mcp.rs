@@ -157,6 +157,9 @@ pub struct SecurityConfig {
 
     /// Enable input sanitization
     pub input_sanitization: bool,
+
+    /// Invalidate session on IP address change
+    pub invalidate_session_on_ip_change: bool,
 }
 
 /// Rate limiting configuration
@@ -293,6 +296,7 @@ impl Default for SecurityConfig {
             token_encryption: true,
             secure_headers: true,
             input_sanitization: true,
+            invalidate_session_on_ip_change: true,
         }
     }
 }

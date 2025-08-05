@@ -22,19 +22,16 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::io::{Read, Write};
-use std::time::Instant;
 use regex::Regex;
 use base64::{Engine as _, engine::general_purpose};
-use aes_gcm::{Aes256Gcm, Key, Nonce, KeyInit};
+use aes_gcm::{Aes256Gcm, Key, KeyInit};
 use aes_gcm::aead::Aead;
 use chacha20poly1305::{ChaCha20Poly1305, Key as ChaChaKey, Nonce as ChaChaNonce, KeyInit as ChaChaKeyInit};
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use argon2::password_hash::SaltString;
-use sha2::{Sha256, Digest};
-use hmac::{Hmac, Mac};
-use rand::{Rng, RngCore};
+use sha2::Digest;
+use hmac::Mac;
+use rand::RngCore;
 use keyring::Keyring;
-use tracing::{info, warn, error, debug};
+use tracing::info;
 use walkdir::WalkDir;
 
 /// Security configuration for Git integration

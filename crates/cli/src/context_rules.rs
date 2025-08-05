@@ -1,7 +1,5 @@
-use crate::{Rhema, RhemaError, RhemaResult};
-use clap::Subcommand;
-use rhema_ai::context_injection::{ContextInjectionRule, EnhancedContextInjector, TaskType};
-use rhema_core::schema::{PromptInjectionMethod, PromptPattern, PromptVersion, UsageAnalytics};
+use crate::{Rhema, RhemaResult};
+use rhema_ai::context_injection::{EnhancedContextInjector, TaskType};
 use rhema_core::Priority;
 
 // ContextRulesSubcommands will be defined in this module

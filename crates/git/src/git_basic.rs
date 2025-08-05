@@ -16,7 +16,7 @@
 
 use rhema_core::{RhemaError, RhemaResult};
 use std::path::{Path, PathBuf};
-use git2::{Repository, BranchType, MergeOptions, Signature, AnnotatedCommit};
+use git2::{Repository, BranchType, MergeOptions, Signature};
 use std::collections::HashMap;
 
 
@@ -871,7 +871,7 @@ impl AdvancedGitIntegration {
     pub fn finish_release_branch(&mut self, version: &str) -> RhemaResult<ReleaseResult> {
         let branch_name = format!("release/{}", version);
         let mut messages = Vec::new();
-        let mut conflict_resolution = None;
+        let conflict_resolution = None;
         
         // Get the release branch
         let mut release_branch = self.repo.find_branch(&branch_name, BranchType::Local)
@@ -977,7 +977,7 @@ impl AdvancedGitIntegration {
     pub fn finish_hotfix_branch(&mut self, version: &str) -> RhemaResult<HotfixResult> {
         let branch_name = format!("hotfix/{}", version);
         let mut messages = Vec::new();
-        let mut conflict_resolution = None;
+        let conflict_resolution = None;
         
         // Get the hotfix branch
         let mut hotfix_branch = self.repo.find_branch(&branch_name, BranchType::Local)

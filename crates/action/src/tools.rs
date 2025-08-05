@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use async_trait::async_trait;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 use crate::schema::{ActionIntent, SafetyLevel};
 use crate::error::{ActionError, ActionResult};
@@ -319,7 +319,7 @@ impl TransformationTool for JscodeshiftTool {
         // Execute jscodeshift on each file
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         for file in files {
             match self.execute_jscodeshift_on_file(&script_path, file).await {
@@ -518,7 +518,7 @@ impl TransformationTool for CombyTool {
         // Execute comby on each file
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         for file in files {
             match self.execute_comby_on_file(&pattern, &rewrite, file).await {
@@ -657,7 +657,7 @@ impl TransformationTool for AstGrepTool {
         // Execute ast-grep on each file
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         for file in files {
             match self.execute_ast_grep_on_file(&pattern, file).await {
@@ -781,7 +781,7 @@ impl TransformationTool for PrettierTool {
         // Execute prettier on each file
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         for file in files {
             match self.execute_prettier_on_file(file).await {
@@ -886,7 +886,7 @@ impl TransformationTool for ESLintTool {
         // Execute eslint on each file
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         for file in files {
             match self.execute_eslint_on_file(file).await {
@@ -1003,7 +1003,7 @@ impl ValidationTool for TypeScriptTool {
         
         // Run TypeScript compiler check
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         for file in &ts_files {
             match self.validate_typescript_file(file).await {
@@ -1096,7 +1096,7 @@ impl ValidationTool for JestTool {
         // Run Jest tests
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         match self.run_jest_tests(&test_files).await {
             Ok(output) => {
@@ -1209,7 +1209,7 @@ impl ValidationTool for MochaTool {
         // Run Mocha tests
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         match self.run_mocha_tests(&test_files).await {
             Ok(output) => {
@@ -1321,7 +1321,7 @@ impl ValidationTool for PyTestTool {
         // Run PyTest
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         match self.run_pytest_tests(&test_files).await {
             Ok(output) => {
@@ -1426,7 +1426,7 @@ impl ValidationTool for CargoTool {
         
         // Run cargo check for each project
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         for cargo_file in &cargo_files {
             match self.run_cargo_check(cargo_file).await {
@@ -1519,7 +1519,7 @@ impl SafetyTool for SyntaxValidationTool {
         // Validate syntax for each file
         let mut changes = Vec::new();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         
         for file in files {
             match self.validate_file_syntax(file).await {

@@ -17,7 +17,7 @@
 use super::{
     CoordinationPattern, PatternContext, PatternResult, PatternError, ValidationResult,
     PatternMetadata, PatternCategory, PatternState, PatternPhase, PatternStatus,
-    PatternPerformanceMetrics, AgentInfo, AgentStatus, Constraint, ConstraintType, PatternConfig
+    PatternPerformanceMetrics, Constraint
 };
 use super::validation::PatternValidationEngine;
 use rhema_core::{RhemaResult, RhemaError};
@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error, instrument};
+use tracing::{info, instrument};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 

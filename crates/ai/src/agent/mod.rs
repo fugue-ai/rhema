@@ -22,6 +22,8 @@ pub mod task_scoring;
 pub mod real_time_coordination;
 pub mod conflict_prevention;
 pub mod advanced_conflict_prevention;
+pub mod ml_conflict_prediction;
+pub mod conflict_analysis;
 pub mod state;
 pub mod patterns;
 
@@ -37,6 +39,16 @@ pub use advanced_conflict_prevention::{
     AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig, AdvancedResolutionStrategy,
     ConflictPredictionModel, ConsensusConfig, CoordinationSession, AdvancedConflictStats,
     ConflictPrediction, PreventiveAction,
+};
+pub use ml_conflict_prediction::{
+    MLConflictPredictionSystem, MLConflictPredictionConfig, MLConflictPredictionModel,
+    ConflictPredictionResult, PreventionAction as MLPreventionAction, ConflictLearningSystem,
+    LearningMetrics, MLConflictPredictionStats,
+};
+pub use conflict_analysis::{
+    ConflictAnalysisSystem, ConflictAnalysisConfig, ConflictAnalysisReport, ReportType,
+    ReportData, ConflictStatistics, ResolutionStatistics, PredictionStatistics,
+    LearningInsights, TrendAnalysis, PerformanceMetrics, Recommendation,
 };
 pub use state::{AgentState, AgentManager, StateTransition};
 pub use patterns::{CoordinationPattern, PatternRegistry, PatternExecutor, PatternContext, PatternResult, PatternError}; 

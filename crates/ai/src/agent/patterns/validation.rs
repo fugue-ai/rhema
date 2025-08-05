@@ -4,10 +4,10 @@ use tokio::sync::RwLock;
 use chrono::{DateTime, Utc};
 
 use super::{
-    PatternContext, ValidationResult, PatternMetadata, PatternCategory,
-    AgentInfo, AgentStatus, Constraint, ConstraintType, PatternState,
-    PatternPhase, PatternStatus, PatternConfig, MemoryPool, CpuAllocator, NetworkResources,
-    AgentPerformanceMetrics, ResourcePool
+    PatternContext, ValidationResult, PatternMetadata,
+    AgentInfo, AgentStatus, ConstraintType,
+    PatternPhase, PatternStatus, PatternCategory, AgentPerformanceMetrics, 
+    ResourcePool, MemoryPool, CpuAllocator, NetworkResources, PatternState, PatternConfig
 };
 
 /// Pattern validation rule
@@ -486,7 +486,7 @@ pub struct DependencyValidationRule;
 impl ValidationRule for DependencyValidationRule {
     fn validate(&self, context: &PatternContext, metadata: &PatternMetadata) -> ValidationResult {
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         let mut details = HashMap::new();
 
         // Check pattern dependencies

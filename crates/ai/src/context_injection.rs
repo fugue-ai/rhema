@@ -1486,7 +1486,7 @@ pub async fn example_usage() -> RhemaResult<()> {
     };
     
     let scope_path = PathBuf::from(".");
-    let mut injector = EnhancedContextInjector::with_config(scope_path, config);
+    let injector = EnhancedContextInjector::with_config(scope_path, config);
     
     // Create a prompt pattern
     let pattern = PromptPattern {

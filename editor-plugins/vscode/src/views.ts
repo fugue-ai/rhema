@@ -19,6 +19,8 @@ import { RhemaLogger } from './logger';
 import { RhemaSettings } from './settings';
 import { RhemaErrorHandler } from './errorHandler';
 
+type Thenable<T> = Promise<T>;
+
 export class RhemaViews {
   private logger: RhemaLogger;
   private settings: RhemaSettings;

@@ -12,4 +12,5 @@ pub mod security;
 pub mod shell;
 pub mod tla;
 pub mod unit;
-pub mod validation; 
+pub mod validation;
+pub mod conflict_analysis_tests; 

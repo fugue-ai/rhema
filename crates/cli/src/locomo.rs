@@ -17,7 +17,7 @@
 use clap::{Subcommand, Args};
 use rhema_locomo::{
     LocomoBenchmarkEngine, LocomoReportingSystem, LocomoMetricsCollector,
-    LocomoValidationFramework, ContextOptimizer, LocomoError
+    LocomoValidationFramework, ContextOptimizer
 };
 use rhema_locomo::validation::ValidationStatus;
 use rhema_core::RhemaResult;
@@ -379,7 +379,7 @@ async fn run_dashboard_command(_rhema: &crate::Rhema, args: &DashboardArgs) -> R
 }
 
 /// Run trends command
-async fn run_trends_command(rhema: &crate::Rhema, args: &TrendsArgs) -> RhemaResult<()> {
+async fn run_trends_command(_rhema: &crate::Rhema, args: &TrendsArgs) -> RhemaResult<()> {
     println!("📈 Analyzing LOCOMO trends...");
     
     let metrics_collector = Arc::new(LocomoMetricsCollector::new()?);

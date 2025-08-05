@@ -23,7 +23,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 /// Conflict types
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ConflictType {
     /// File modification conflicts
     FileModification,
@@ -46,7 +46,7 @@ pub enum ConflictType {
 }
 
 /// Conflict severity levels
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum ConflictSeverity {
     Info = 0,
     Warning = 1,
@@ -55,7 +55,7 @@ pub enum ConflictSeverity {
 }
 
 /// Conflict status
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ConflictStatus {
     Detected,
     UnderReview,
@@ -66,7 +66,7 @@ pub enum ConflictStatus {
 }
 
 /// Conflict resolution strategies
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ResolutionStrategy {
     /// Automatic resolution
     Automatic,

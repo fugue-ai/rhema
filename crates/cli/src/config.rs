@@ -17,10 +17,6 @@
 use crate::{Config, GlobalConfig, RepositoryConfig};
 use crate::{ConfigManager, Rhema, RhemaResult};
 use colored::*;
-use rhema_config::{
-    backup, migration, validation, ConfigAuditLog, ConfigHealth, ConfigHealthStatus,
-    ConfigIssueSeverity, ConfigStats,
-};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 

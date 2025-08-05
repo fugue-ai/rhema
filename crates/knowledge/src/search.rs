@@ -15,19 +15,13 @@
  */
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Instant;
 use thiserror::Error;
-use tokio::sync::RwLock;
-use tracing::{debug, error, info, instrument, warn};
-use chrono::{DateTime, Utc};
+use tracing::{debug, error, info, instrument};
 
 use crate::types::{
-    ContentType, KnowledgeResult, CacheEntryMetadata, SemanticInfo,
-    CompressionAlgorithm, DistanceMetric, CacheTier, SearchResultMetadata,
-    SemanticResult, CacheInfo, SemanticSearchConfig,
+    ContentType, KnowledgeResult, SearchResultMetadata,
+    SemanticResult, SemanticSearchConfig,
 };
 
 use super::{

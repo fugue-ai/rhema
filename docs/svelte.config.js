@@ -6,7 +6,8 @@ import kitdocs from 'kitdocs/plugin';
 const config = {
   // Consult https://svelte.dev/docs/kit/integrations
   // for more information about preprocessors
-  preprocess: [vitePreprocess(), kitdocs('docs')],
+  preprocess: [vitePreprocess(), kitdocs()],
+  extensions: ['.svelte', '.md'],
 
   kit: {
     // Use static adapter for GitHub Pages deployment
@@ -21,6 +22,7 @@ const config = {
     // KitDocs configuration
     alias: {
       $docs: './src/docs',
+      $lib: './src/lib',
     },
   },
 };

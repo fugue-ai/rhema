@@ -50,10 +50,10 @@ build_vscode() {
     
     if [ -f "package.json" ]; then
         log_info "Installing VSCode extension dependencies..."
-        npm install --silent
+        pnpm install --silent
         
         log_info "Compiling VSCode extension..."
-        npm run compile
+        pnpm run compile
         
         log_success "VSCode extension built successfully"
     else
@@ -70,10 +70,10 @@ build_language_server() {
     
     if [ -f "package.json" ]; then
         log_info "Installing language server dependencies..."
-        npm install --silent
+        pnpm install --silent
         
         log_info "Compiling language server..."
-        npm run build
+        pnpm run build
         
         log_success "Language server built successfully"
     else
@@ -90,10 +90,10 @@ build_docs() {
     
     if [ -f "package.json" ]; then
         log_info "Installing docs dependencies..."
-        npm install --silent
+        pnpm install --silent
         
         log_info "Building docs..."
-        npm run build
+        pnpm run build
         
         log_success "Docs built successfully"
     else

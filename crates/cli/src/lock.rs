@@ -17,9 +17,7 @@
 use crate::{Rhema, RhemaResult};
 use clap::Subcommand;
 use colored::*;
-use rhema_core::lock::LockFileOps;
 use rhema_core::schema::RhemaLock;
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use serde_json;

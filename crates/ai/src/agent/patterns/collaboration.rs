@@ -544,7 +544,7 @@ impl CoordinationPattern for TestGenerationWorkflow {
 
     async fn validate(&self, context: &PatternContext) -> Result<ValidationResult, PatternError> {
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
 
         // Check if required agents are available
         let agent_ids: Vec<String> = context.agents.iter().map(|a| a.id.clone()).collect();

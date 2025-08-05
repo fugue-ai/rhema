@@ -18,7 +18,6 @@ use chrono::{DateTime, Utc};
 use rhema_core::{RhemaResult, RhemaError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use thiserror::Error;
@@ -26,11 +25,11 @@ use uuid::Uuid;
 use tracing::{info, warn, error, debug};
 
 use super::conflict_prevention::{
-    Conflict, ConflictType, ConflictSeverity, ConflictStatus, ResolutionStrategy,
-    ConflictPreventionSystem, PreventionRule, DetectionPattern,
+    ConflictType, ConflictSeverity, ResolutionStrategy,
+    ConflictPreventionSystem,
 };
 use super::real_time_coordination::{
-    AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType,
+    AgentMessage, MessagePriority, MessageType,
     RealTimeCoordinationSystem,
 };
 use crate::grpc::coordination_client::SyneidesisCoordinationClient;

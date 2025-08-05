@@ -233,7 +233,7 @@ export const measurePerformance = async (
 };
 
 // Mock utilities
-export const createMockConnection = () => ({
+export const createMockConnection = (): any => ({
   console: {
     log: jest.fn(),
     error: jest.fn(),

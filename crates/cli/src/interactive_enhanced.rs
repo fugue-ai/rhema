@@ -18,7 +18,7 @@ use crate::{Rhema, RhemaResult};
 use colored::*;
 use rustyline::error::ReadlineError;
 use rustyline::hint::{Hinter, HistoryHinter};
-use rustyline::history::History;
+// use rustyline::history::History;
 use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 use rustyline::{Editor, Helper};
 use std::collections::{HashMap, HashSet};
@@ -546,7 +546,7 @@ impl EnhancedInteractiveSession {
                     }
 
                     // Add to history
-                    self.editor.add_history_entry(line);
+                    let _ = self.editor.add_history_entry(line);
 
                     // Execute command
                     if let Err(e) = self.execute_command(line) {

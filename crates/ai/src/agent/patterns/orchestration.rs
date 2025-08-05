@@ -16,7 +16,6 @@
 
 use super::{
     PatternContext, PatternMetadata, PatternCategory, PatternResult, PatternError, ValidationResult,
-    AgentInfo, AgentStatus, PatternState, PatternPhase, PatternStatus, PatternConfig,
     PatternPerformanceMetrics
 };
 use crate::agent::CoordinationPattern;
@@ -250,7 +249,7 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
 
     async fn validate(&self, context: &PatternContext) -> Result<ValidationResult, PatternError> {
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
 
         // Check if orchestrator agent is available
         let agent_ids: Vec<String> = context.agents.iter().map(|a| a.id.clone()).collect();

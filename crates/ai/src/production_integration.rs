@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-use crate::ai_service::{AIService, AIServiceConfig, AIRequest, AIResponse};
-use crate::coordination_integration::{CoordinationIntegration, CoordinationConfig};
+use crate::ai_service::{AIService, AIRequest, AIResponse};
+use crate::coordination_integration::CoordinationIntegration;
 use crate::agent::real_time_coordination::{
-    AgentInfo, AgentMessage, AgentStatus, MessageType, MessagePriority,
-    RealTimeCoordinationSystem
+    AgentInfo, AgentMessage, RealTimeCoordinationSystem
 };
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error, instrument};
+use tracing::{info, instrument};
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
 
 /// Production-ready integration between AI service and coordination system
 pub struct ProductionIntegration {

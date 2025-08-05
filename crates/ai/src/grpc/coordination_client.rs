@@ -15,15 +15,13 @@
  */
 
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
-use tonic::{transport::Channel, Request, Status};
+use tokio::sync::RwLock;
 use uuid::Uuid;
-use tracing::{info, warn, error};
+use tracing::info;
 use serde::{Deserialize, Serialize};
 
 use crate::agent::real_time_coordination::{
-    AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType,
-    RealTimeCoordinationSystem,
+    AgentInfo, AgentMessage,
 };
 
 // Temporarily comment out the generated protobuf code until we fix the dependencies

@@ -9,14 +9,20 @@ words:
   - chrono
   - cpus
   - dashmap
+  - iconify
+  - kitdocs
   - LOCOMO
+  - mathjax
   - minmax
   - onclick
   - Segoe
   - serde
+  - shiki
+  - svelteness
   - Syneidesis
   - Tahoma
   - thiserror
+  - unplugin
   - Verdana
 ignoreWords: []
 import: []

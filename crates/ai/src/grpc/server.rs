@@ -15,9 +15,7 @@
  */
 
 use std::net::SocketAddr;
-use std::path::Path;
-use tonic::{transport::Server, Request, Response, Status};
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::agent::real_time_coordination::RealTimeCoordinationSystem;
 

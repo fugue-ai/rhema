@@ -16,7 +16,7 @@
 
 use clap::Subcommand;
 use std::path::PathBuf;
-use tracing::{info, warn, error};
+use tracing::info;
 
 use crate::schema::{ActionIntent, ActionType, SafetyLevel};
 use crate::error::{ActionError, ActionResult};

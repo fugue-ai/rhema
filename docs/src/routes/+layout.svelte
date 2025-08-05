@@ -75,7 +75,7 @@ function handleScroll() {
 	<a href="#main-content" class="skip-link sr-only">Skip to main content</a>
 	
 	<!-- Top Navigation -->
-	<header class="topNav" role="banner">
+	<header class="topNav">
 		<div class="navContent">
 			<div class="logo">
 				<a href="/" aria-label="Rhema Documentation Home">Rhema</a>
@@ -102,8 +102,8 @@ function handleScroll() {
 
 	<div class="appContent">
 		<!-- Side Navigation -->
-		<aside class="sideNav" role="complementary" aria-label="Documentation navigation">
-			<nav role="navigation">
+		<aside class="sideNav" aria-label="Documentation navigation">
+			<nav>
 				{#each Object.entries($appJsonDataStore.kitDocs || {}) as [section, items]}
 					<div class="navSection">
 						<h3 class="sectionTitle">{section.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h3>
@@ -122,7 +122,7 @@ function handleScroll() {
 		</aside>
 
 		<!-- Main Content -->
-		<main class="mainContent" id="main-content" role="main">
+		<main class="mainContent" id="main-content">
 			{@render children?.()}
 		</main>
 	</div>
