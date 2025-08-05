@@ -36,7 +36,7 @@ pub use rhema_mcp::mcp;
 pub use rhema_config::{config, GlobalConfig, RepositoryConfig};
 
 // Re-export CLI commands from the cli crate
-pub use rhema_cli::{
+pub use rhema_api::{
     interactive, interactive_advanced, interactive_parser, Rhema as CliRhema,
     // Re-export all the modules that main.rs needs
     init, scopes, show, query, search, validate, migrate, schema, health, stats,
@@ -53,7 +53,7 @@ pub mod lock;
 pub use lock::{LockGenerator, LockSystem, DependencyResolver, LockValidator};
 
 // Re-export commands from CLI crate
-pub use rhema_cli::commands;
+pub use rhema_api::commands;
 
 use anyhow::Result;
 use std::collections::HashMap;

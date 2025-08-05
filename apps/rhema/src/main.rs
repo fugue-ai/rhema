@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use rhema_cli::{Rhema, RhemaResult};
+use rhema_api::{Rhema, RhemaResult};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

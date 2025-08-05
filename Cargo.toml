@@ -1,5 +1,5 @@
 [package]
-name = "rhema"
+name = "rhema-workspace"
 version = "0.1.0"
 edition = "2021"
 authors = ["Cory Parent <cory.parent@gmail.com>"]
@@ -12,11 +12,11 @@ keywords = ["git", "ai", "context", "yaml", "protocol", "agent", "cli"]
 categories = ["command-line-utilities", "development-tools", "configuration"]
 
 [lib]
-path = "crates/rhema/src/lib.rs"
+path = "crates/rhema-api/src/lib.rs"
 
 [[bin]]
 name = "rhema"
-path = "rhema/main.rs"
+path = "crates/rhema/main.rs"
 
 [workspace]
 resolver = "2"
@@ -29,6 +29,8 @@ members = [
     "crates/config",
     "crates/monitoring",
     "crates/integrations",
+    "crates/rhema-api",
+    "crates/rhema",
     "apps/rhema",
     "crates/action",
     "crates/dependency",
@@ -158,6 +160,7 @@ rhema-mcp = { path = "crates/mcp" }
 rhema-config = { path = "crates/config" }
 rhema-monitoring = { path = "crates/monitoring" }
 rhema-integrations = { path = "crates/integrations" }
+rhema-api = { path = "crates/rhema-api" }
 rhema-cli = { path = "apps/rhema" }
 rhema-action = { path = "crates/action" }
 rhema-locomo = { path = "crates/locomo" }
@@ -210,4 +213,4 @@ path = "examples/testing/core_unit_tests.rs"
 
 [[example]]
 name = "simple_coordination_example"
-path = "crates/rhema/examples/simple_coordination_example.rs" 
+path = "crates/rhema-api/examples/simple_coordination_example.rs" 

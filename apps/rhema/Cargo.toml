@@ -24,7 +24,7 @@ rhema-locomo = { path = "../../crates/locomo" }  # LOCOMO integration for perfor
 # rhema-monitoring = { path = "../../crates/monitoring" }
 rhema-integrations = { path = "../../crates/integrations" }
 rhema-action = { path = "../../crates/action" }
-# rhema = { path = "../rhema" }  # Removed to avoid cyclic dependency
+rhema-api = { path = "../../crates/rhema-api" }
 
 clap = { workspace = true }
 rustyline = { workspace = true }
