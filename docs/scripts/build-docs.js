@@ -21,6 +21,10 @@ function convertMarkdownToHtml(markdownPath, outputPath) {
       mkdirSync(outputDir, { recursive: true });
     }
     
+    // Calculate relative path to build root for assets
+    const relativePath = relative(outputDir, join(process.cwd(), 'build'));
+    const assetPrefix = relativePath === '' ? '.' : relativePath;
+    
     // Create HTML page with proper structure
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -28,8 +32,8 @@ function convertMarkdownToHtml(markdownPath, outputPath) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rhema Documentation</title>
-    <link rel="stylesheet" href="/_app/immutable/assets/0.CUkH5Dtm.css">
-    <script type="module" data-sveltekit-hydrate="1" src="/_app/immutable/entry/start.Dh5_5E8I.js"></script>
+    <link rel="stylesheet" href="${assetPrefix}/_app/immutable/assets/0.CUkH5Dtm.css">
+    <script type="module" data-sveltekit-hydrate="1" src="${assetPrefix}/_app/immutable/entry/start.Dh5_5E8I.js"></script>
 </head>
 <body data-sveltekit-preload-data="hover">
     <div style="display: contents">
