@@ -65,9 +65,9 @@ function processDirectory(inputDir, outputDir) {
       
       if (stat.isDirectory()) {
         walkDir(filePath);
-      } else if (file.endsWith('.md')) {
+      } else if (file.endsWith('.mdx')) {
         const relativePath = relative(inputDir, filePath);
-        const htmlPath = relativePath.replace(/\.md$/, '.html');
+        const htmlPath = relativePath.replace(/\.mdx$/, '.html');
         const outputPath = join(outputDir, htmlPath);
         
         convertMarkdownToHtml(filePath, outputPath);
