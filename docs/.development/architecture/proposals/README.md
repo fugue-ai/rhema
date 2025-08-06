@@ -77,6 +77,31 @@ Integrate LOCOMO (Language Model Context Optimization) benchmarks into Rhema to 
 
 ---
 
+### 🔧 [GritQL Integration](./0027-gritql-integration.md)
+
+
+**Status**: ❌ **Not Started**  
+**Priority**: High  
+**Effort**: 12-16 weeks  
+
+Integrate GritQL as a powerful code transformation tool within the Rhema Action Protocol, enabling declarative, pattern-based code modifications with advanced AST manipulation capabilities.
+
+**Key Features**:
+
+- Advanced pattern matching with semantic understanding
+
+- Declarative transformation language
+
+- Multi-language support (TypeScript, JavaScript, Python, etc.)
+
+- Integration with Rhema's safety pipeline
+
+- Pattern registry and sharing ecosystem
+
+- Performance optimization for large codebases
+
+---
+
 ### 🤖 [RAG (Retrieval-Augmented Generation) Integration](./0004-rag-integration.md)
 
 
