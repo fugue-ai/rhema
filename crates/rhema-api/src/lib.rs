@@ -65,6 +65,10 @@ pub use security::{
     SecurityManager,
 };
 
+// Init module
+pub mod init;
+pub use init::run as init_run;
+
 // Tests module
 #[cfg(test)]
 mod tests;

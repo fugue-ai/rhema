@@ -6,10 +6,10 @@ This directory contains detailed proposals for future Rhema features and enhance
 ## Table of Contents
 
 
-### 📋 [MCP Daemon Implementation](./0001-mcp-daemon-implementation.md)
+### 📋 [MCP Daemon Implementation](./.archived/0001-mcp-daemon-implementation.md)
 
 
-**Status**: ✅ **COMPLETED**  
+**Status**: ✅ **COMPLETED** - *Promoted to Production Documentation*  
 **Priority**: High  
 **Effort**: 3-4 weeks  
 
@@ -26,6 +26,8 @@ Real-time context service for AI agents via Model Context Protocol with WebSocke
 - Redis and in-memory caching layers
 
 - Comprehensive client libraries (Rust, Python, JavaScript)
+
+**Production Documentation**: [MCP Implementation](../../../src/docs/architecture/mcp/)
 
 ---
 
@@ -183,10 +185,10 @@ Extend Rhema from a "map" layer to include a safe "action" layer that translates
 
 ---
 
-### 🔒 [Rhema Lock File System](./0006-rhema-lock-file-system.md)
+### 🔒 [Rhema Lock File System](./.archived/0006-rhema-lock-file-system-prompts.md)
 
 
-**Status**: ✅ **ACCEPTED**  
+**Status**: ✅ **COMPLETED** - *Promoted to Production Documentation*  
 **Priority**: High  
 **Effort**: 4-6 weeks  
 
@@ -203,6 +205,8 @@ Implement a lock file system for Rhema that provides deterministic dependency re
 - Performance optimization
 
 - AI agent coordination improvements
+
+**Production Documentation**: [Lock File System](../../../src/docs/architecture/lock-file-system/)
 
 ---
 
@@ -603,6 +607,21 @@ Implement a unified system that combines Retrieval-Augmented Generation (RAG) ca
 | Shared Global Cache System for Large Token Sets and Objects | ❌ Rejected | High | 10-16 weeks | Q2-Q3 2025 |
 | Unified RAG and K/V Local Store System | ❌ Not Started | Critical | 16-22 weeks | Q2-Q3 2025 |
 | Scope Loader Plugin System | ❌ Not Started | High | 12-16 weeks | Q2-Q3 2025 |
+
+## Archived Proposals
+
+### ✅ Completed and Promoted to Production
+
+- **[MCP Daemon Implementation](./.archived/0001-mcp-daemon-implementation.md)** - Real-time context service for AI agents
+- **[Task Scoring for Agentic Development](./.archived/0002-task-scoring-agentic-development.md)** - Comprehensive task scoring and constraint management
+- **[LOCOMO Benchmarks Integration](./.archived/0003-locomo-benchmarks-integration.md)** - Performance benchmarking and optimization
+- **[Rhema Lock File System](./.archived/0006-rhema-lock-file-system-prompts.md)** - Deterministic dependency resolution
+- **[Enhanced Monitoring & Observability](./.archived/0009-enhanced-monitoring-observability.md)** - Comprehensive monitoring and observability
+- **[Rhema Enhancement TODO Tracking](./.archived/0012-rhema-enhancement-todo-tracking.md)** - Comprehensive TODO tracking and prompt engineering
+- **[Rhema Cache Directory System](./.archived/0016-rhema-cache-directory-system.md)** - Centralized caching system
+- **[MCP Protocol Compliance Migration](./.archived/0023-mcp-protocol-compliance-migration.md)** - Official MCP SDK migration
+
+These proposals have been completed and their documentation has been promoted to production architecture documentation.
 
 ## Priority Matrix
 

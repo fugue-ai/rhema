@@ -11,7 +11,19 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Initialize a new Rhema repository
-    Init,
+    Init {
+        /// Scope type (e.g., service, library, application)
+        #[arg(long)]
+        scope_type: Option<String>,
+        
+        /// Scope name
+        #[arg(long)]
+        scope_name: Option<String>,
+        
+        /// Auto-configure based on repository analysis
+        #[arg(long)]
+        auto_config: bool,
+    },
     
     /// List all scopes in the repository
     Scopes,
@@ -92,11 +104,14 @@ fn main() -> RhemaResult<()> {
     let rhema = Rhema::new()?;
     
     match &cli.command {
-        Some(Commands::Init) => {
+        Some(Commands::Init { scope_type, scope_name, auto_config }) => {
             println!("Initializing new Rhema repository...");
-            // TODO: Implement init functionality
-            println!("Repository initialized successfully!");
-            Ok(())
+            crate::core::init::run(
+                &rhema,
+                scope_type.as_deref(),
+                scope_name.as_deref(),
+                *auto_config,
+            )
         }
         
         Some(Commands::Scopes) => {

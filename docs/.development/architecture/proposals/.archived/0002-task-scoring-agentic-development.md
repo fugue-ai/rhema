@@ -1,5 +1,10 @@
 # Task Scoring for Agentic Development
 
+**Proposal ID**: 0002  
+**Status**: ✅ **COMPLETED** - *Promoted to Production Documentation*  
+**Priority**: Critical  
+**Effort**: 8-12 weeks  
+**Completion Date**: January 2025  
 
 **Proposal**: Extend Rhema to provide comprehensive task scoring and constraint management for agentic development workflows, enabling agents to coordinate effectively and avoid conflicts like "only one `cargo` command running per project".
 
