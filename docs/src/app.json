@@ -19,17 +19,17 @@
       "links": [
         {
           "text": "Getting Started",
-          "href": "/docs/getting-started/quick-start",
+          "href": "/getting-started/quick-start",
           "external": false
         },
         {
           "text": "User Guide",
-          "href": "/docs/user-guide/cli-command-reference",
+          "href": "/user-guide/cli-command-reference",
           "external": false
         },
         {
           "text": "Reference",
-          "href": "/docs/reference/global-config-reference",
+          "href": "/reference/global-config-reference",
           "external": false
         }
       ]
@@ -39,17 +39,17 @@
       "links": [
         {
           "text": "Development Setup",
-          "href": "/docs/development-setup/development",
+          "href": "/development-setup/development",
           "external": false
         },
         {
           "text": "Architecture",
-          "href": "/docs/architecture/",
+          "href": "/architecture/",
           "external": false
         },
         {
           "text": "Examples",
-          "href": "/docs/examples/",
+          "href": "/examples/",
           "external": false
         }
       ]
@@ -61,7 +61,7 @@
         "layout": "default",
         "title": "Quick Start",
         "description": "Get started with Rhema quickly",
-        "href": "/docs/getting-started/quick-start",
+        "href": "/getting-started/quick-start",
         "new": false,
         "headers": []
       },
@@ -69,7 +69,7 @@
         "layout": "default",
         "title": "Workspace Quick Start",
         "description": "Set up Rhema in your workspace",
-        "href": "/docs/getting-started/workspace-quick-start",
+        "href": "/getting-started/workspace-quick-start",
         "new": false,
         "headers": []
       },
@@ -77,7 +77,7 @@
         "layout": "default",
         "title": "Refactoring to Workspace",
         "description": "Guide for refactoring to workspace structure",
-        "href": "/docs/getting-started/refactoring-to-workspace",
+        "href": "/getting-started/refactoring-to-workspace",
         "new": false,
         "headers": []
       }
@@ -87,7 +87,7 @@
         "layout": "default",
         "title": "CLI Command Reference",
         "description": "Complete reference for Rhema CLI commands",
-        "href": "/docs/user-guide/cli-command-reference",
+        "href": "/user-guide/cli-command-reference",
         "new": false,
         "headers": []
       },
@@ -95,7 +95,7 @@
         "layout": "default",
         "title": "Configuration Management",
         "description": "How to configure Rhema for your project",
-        "href": "/docs/user-guide/configuration-management",
+        "href": "/user-guide/configuration-management",
         "new": false,
         "headers": []
       },
@@ -103,7 +103,7 @@
         "layout": "default",
         "title": "Batch Operations",
         "description": "Performing batch operations with Rhema",
-        "href": "/docs/user-guide/batch-operations",
+        "href": "/user-guide/batch-operations",
         "new": false,
         "headers": []
       },
@@ -111,7 +111,7 @@
         "layout": "default",
         "title": "Interactive Mode",
         "description": "Using Rhema in interactive mode",
-        "href": "/docs/user-guide/interactive-mode",
+        "href": "/user-guide/interactive-mode",
         "new": false,
         "headers": []
       },
@@ -119,7 +119,7 @@
         "layout": "default",
         "title": "Performance Monitoring",
         "description": "Monitoring Rhema performance",
-        "href": "/docs/user-guide/performance-monitoring",
+        "href": "/user-guide/performance-monitoring",
         "new": false,
         "headers": []
       },
@@ -127,7 +127,7 @@
         "layout": "default",
         "title": "Conflict Resolution",
         "description": "Resolving conflicts in Rhema",
-        "href": "/docs/user-guide/conflict-resolution",
+        "href": "/user-guide/conflict-resolution",
         "new": false,
         "headers": []
       },
@@ -135,7 +135,7 @@
         "layout": "default",
         "title": "Enhanced Dependencies Command",
         "description": "Using enhanced dependencies features",
-        "href": "/docs/user-guide/enhanced-dependencies-command",
+        "href": "/user-guide/enhanced-dependencies-command",
         "new": false,
         "headers": []
       },
@@ -143,7 +143,7 @@
         "layout": "default",
         "title": "Enhanced Validation Command",
         "description": "Using enhanced validation features",
-        "href": "/docs/user-guide/enhanced-validation-command",
+        "href": "/user-guide/enhanced-validation-command",
         "new": false,
         "headers": []
       },
@@ -151,7 +151,7 @@
         "layout": "default",
         "title": "Lock File Health Checks",
         "description": "Checking the health of lock files",
-        "href": "/docs/user-guide/lock-file-health-checks",
+        "href": "/user-guide/lock-file-health-checks",
         "new": false,
         "headers": []
       }
@@ -161,7 +161,7 @@
         "layout": "default",
         "title": "Overview",
         "description": "Overview of Rhema core features",
-        "href": "/docs/core-features/README",
+        "href": "/core-features/README",
         "new": false,
         "headers": []
       },
@@ -169,7 +169,7 @@
         "layout": "default",
         "title": "Lock Configuration System",
         "description": "Understanding the lock configuration system",
-        "href": "/docs/core-features/lock-configuration-system",
+        "href": "/core-features/lock-configuration-system",
         "new": false,
         "headers": []
       },
@@ -177,7 +177,7 @@
         "layout": "default",
         "title": "Lock File Cache System",
         "description": "How the lock file cache system works",
-        "href": "/docs/core-features/lock-file-cache-system",
+        "href": "/core-features/lock-file-cache-system",
         "new": false,
         "headers": []
       },
@@ -185,7 +185,7 @@
         "layout": "default",
         "title": "Lock File AI Integration",
         "description": "AI integration with lock files",
-        "href": "/docs/core-features/lock-file-ai-integration",
+        "href": "/core-features/lock-file-ai-integration",
         "new": false,
         "headers": []
       },
@@ -193,7 +193,7 @@
         "layout": "default",
         "title": "CI/CD Lock File Integration",
         "description": "Integrating lock files with CI/CD",
-        "href": "/docs/core-features/ci-cd-lock-file-integration",
+        "href": "/core-features/ci-cd-lock-file-integration",
         "new": false,
         "headers": []
       },
@@ -201,7 +201,7 @@
         "layout": "default",
         "title": "AI Service Lock File Enhancement",
         "description": "Enhancing AI services with lock files",
-        "href": "/docs/core-features/ai-service-lock-file-enhancement",
+        "href": "/core-features/ai-service-lock-file-enhancement",
         "new": false,
         "headers": []
       },
@@ -209,7 +209,7 @@
         "layout": "default",
         "title": "Conflict Resolver Usage",
         "description": "Using the conflict resolver",
-        "href": "/docs/core-features/conflict-resolver-usage",
+        "href": "/core-features/conflict-resolver-usage",
         "new": false,
         "headers": []
       },
@@ -217,7 +217,7 @@
         "layout": "default",
         "title": "Context Query Language",
         "description": "Using the context query language",
-        "href": "/docs/core-features/context-query-language",
+        "href": "/core-features/context-query-language",
         "new": false,
         "headers": []
       },
@@ -225,7 +225,7 @@
         "layout": "default",
         "title": "Scope Management",
         "description": "Managing scopes in Rhema",
-        "href": "/docs/core-features/scope-management",
+        "href": "/core-features/scope-management",
         "new": false,
         "headers": []
       },
@@ -233,7 +233,7 @@
         "layout": "default",
         "title": "Validation System",
         "description": "Using the validation system",
-        "href": "/docs/core-features/validation-system",
+        "href": "/core-features/validation-system",
         "new": false,
         "headers": []
       }
@@ -243,7 +243,7 @@
         "layout": "default",
         "title": "Global Config Reference",
         "description": "Reference for global configuration options",
-        "href": "/docs/reference/global-config-reference",
+        "href": "/reference/global-config-reference",
         "new": false,
         "headers": []
       },
@@ -251,7 +251,7 @@
         "layout": "default",
         "title": "Specification Schema Examples",
         "description": "Examples of specification schemas",
-        "href": "/docs/reference/specification-schema-examples",
+        "href": "/reference/specification-schema-examples",
         "new": false,
         "headers": []
       }
@@ -261,7 +261,7 @@
         "layout": "default",
         "title": "Development Overview",
         "description": "Overview of development setup",
-        "href": "/docs/development-setup/development",
+        "href": "/development-setup/development",
         "new": false,
         "headers": []
       },
@@ -269,7 +269,7 @@
         "layout": "default",
         "title": "Local Setup",
         "description": "Setting up Rhema locally",
-        "href": "/docs/development-setup/development/local-setup",
+        "href": "/development-setup/development/local-setup",
         "new": false,
         "headers": []
       },
@@ -277,7 +277,7 @@
         "layout": "default",
         "title": "Rust Setup",
         "description": "Setting up Rust for Rhema development",
-        "href": "/docs/development-setup/development/rust-setup",
+        "href": "/development-setup/development/rust-setup",
         "new": false,
         "headers": []
       },
@@ -285,7 +285,7 @@
         "layout": "default",
         "title": "Git Setup",
         "description": "Setting up Git for Rhema development",
-        "href": "/docs/development-setup/development/git-setup",
+        "href": "/development-setup/development/git-setup",
         "new": false,
         "headers": []
       },
@@ -293,7 +293,7 @@
         "layout": "default",
         "title": "VS Code Setup",
         "description": "Setting up VS Code for Rhema development",
-        "href": "/docs/development-setup/editor-setup/vscode",
+        "href": "/development-setup/editor-setup/vscode",
         "new": false,
         "headers": []
       },
@@ -301,7 +301,7 @@
         "layout": "default",
         "title": "Cursor Setup",
         "description": "Setting up Cursor for Rhema development",
-        "href": "/docs/development-setup/editor-setup/cursor",
+        "href": "/development-setup/editor-setup/cursor",
         "new": false,
         "headers": []
       },
@@ -309,7 +309,7 @@
         "layout": "default",
         "title": "IntelliJ Setup",
         "description": "Setting up IntelliJ for Rhema development",
-        "href": "/docs/development-setup/editor-setup/intellij",
+        "href": "/development-setup/editor-setup/intellij",
         "new": false,
         "headers": []
       },
@@ -317,7 +317,7 @@
         "layout": "default",
         "title": "Sublime Text Setup",
         "description": "Setting up Sublime Text for Rhema development",
-        "href": "/docs/development-setup/editor-setup/sublime",
+        "href": "/development-setup/editor-setup/sublime",
         "new": false,
         "headers": []
       },
@@ -325,7 +325,7 @@
         "layout": "default",
         "title": "Vim Setup",
         "description": "Setting up Vim for Rhema development",
-        "href": "/docs/development-setup/editor-setup/vim",
+        "href": "/development-setup/editor-setup/vim",
         "new": false,
         "headers": []
       },
@@ -333,7 +333,7 @@
         "layout": "default",
         "title": "GitHub Actions",
         "description": "Setting up GitHub Actions for Rhema",
-        "href": "/docs/development-setup/development/cicd/github-actions",
+        "href": "/development-setup/development/cicd/github-actions",
         "new": false,
         "headers": []
       },
@@ -341,7 +341,7 @@
         "layout": "default",
         "title": "Local Pipeline Execution",
         "description": "Executing pipelines locally",
-        "href": "/docs/development-setup/development/cicd/local-pipeline-execution",
+        "href": "/development-setup/development/cicd/local-pipeline-execution",
         "new": false,
         "headers": []
       },
@@ -349,7 +349,7 @@
         "layout": "default",
         "title": "Pull Request Pipeline",
         "description": "Pull request pipeline setup",
-        "href": "/docs/development-setup/development/cicd/pull-request-pipeline",
+        "href": "/development-setup/development/cicd/pull-request-pipeline",
         "new": false,
         "headers": []
       }
@@ -359,7 +359,7 @@
         "layout": "default",
         "title": "Overview",
         "description": "Architecture overview",
-        "href": "/docs/architecture/README",
+        "href": "/architecture/README",
         "new": false,
         "headers": []
       }
@@ -369,7 +369,7 @@
         "layout": "default",
         "title": "Overview",
         "description": "Examples overview",
-        "href": "/docs/examples/README",
+        "href": "/examples/README",
         "new": false,
         "headers": []
       },
@@ -377,7 +377,7 @@
         "layout": "default",
         "title": "Advanced Usage",
         "description": "Advanced usage examples",
-        "href": "/docs/examples/advanced-usage",
+        "href": "/examples/advanced-usage",
         "new": false,
         "headers": []
       },
@@ -385,7 +385,7 @@
         "layout": "default",
         "title": "CQL Queries",
         "description": "CQL query examples",
-        "href": "/docs/examples/cql-queries",
+        "href": "/examples/cql-queries",
         "new": false,
         "headers": []
       },
@@ -393,7 +393,7 @@
         "layout": "default",
         "title": "E-commerce Epic Orchestration",
         "description": "E-commerce epic orchestration example",
-        "href": "/docs/examples/ecommerce-epic-orchestration",
+        "href": "/examples/ecommerce-epic-orchestration",
         "new": false,
         "headers": []
       },
@@ -401,7 +401,7 @@
         "layout": "default",
         "title": "Enhanced Context Injection",
         "description": "Enhanced context injection examples",
-        "href": "/docs/examples/enhanced-context-injection",
+        "href": "/examples/enhanced-context-injection",
         "new": false,
         "headers": []
       },
@@ -409,7 +409,7 @@
         "layout": "default",
         "title": "Implicit to Explicit Knowledge",
         "description": "Converting implicit to explicit knowledge",
-        "href": "/docs/examples/implicit-to-explicit-knowledge",
+        "href": "/examples/implicit-to-explicit-knowledge",
         "new": false,
         "headers": []
       },
@@ -417,7 +417,7 @@
         "layout": "default",
         "title": "Lock File Operations",
         "description": "Lock file operation examples",
-        "href": "/docs/examples/lock-file-operations",
+        "href": "/examples/lock-file-operations",
         "new": false,
         "headers": []
       },
@@ -425,7 +425,7 @@
         "layout": "default",
         "title": "Prompt Chain Persistence",
         "description": "Prompt chain persistence examples",
-        "href": "/docs/examples/prompt-chain-persistence",
+        "href": "/examples/prompt-chain-persistence",
         "new": false,
         "headers": []
       },
@@ -433,7 +433,7 @@
         "layout": "default",
         "title": "Prompt Effectiveness Tracking",
         "description": "Tracking prompt effectiveness",
-        "href": "/docs/examples/prompt-effectiveness-tracking",
+        "href": "/examples/prompt-effectiveness-tracking",
         "new": false,
         "headers": []
       },
@@ -441,7 +441,7 @@
         "layout": "default",
         "title": "Prompt Versioning",
         "description": "Prompt versioning examples",
-        "href": "/docs/examples/prompt-versioning",
+        "href": "/examples/prompt-versioning",
         "new": false,
         "headers": []
       },
@@ -449,7 +449,7 @@
         "layout": "default",
         "title": "Query Provenance",
         "description": "Query provenance examples",
-        "href": "/docs/examples/query-provenance",
+        "href": "/examples/query-provenance",
         "new": false,
         "headers": []
       },
@@ -457,7 +457,7 @@
         "layout": "default",
         "title": "Template Management",
         "description": "Template management examples",
-        "href": "/docs/examples/template-management",
+        "href": "/examples/template-management",
         "new": false,
         "headers": []
       },
@@ -465,7 +465,7 @@
         "layout": "default",
         "title": "Quick Start Commands",
         "description": "Quick start command examples",
-        "href": "/docs/examples/quick-start-commands",
+        "href": "/examples/quick-start-commands",
         "new": false,
         "headers": []
       }

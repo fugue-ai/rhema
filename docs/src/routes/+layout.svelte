@@ -84,7 +84,7 @@ function handleScroll() {
 			<div class="navActions">
 				<Search searchIndex={searchIndex} on:select={(event) => {
 					const result = event.detail;
-					window.location.href = (base || "") + `/docs/${result.path}`;
+					window.location.href = (base || "") + `/${result.path}`;
 				}} />
 				<button 
 					class="themeToggle" 
