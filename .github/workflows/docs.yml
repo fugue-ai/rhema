@@ -39,6 +39,9 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
 
+      - name: Build repo
+        run: pnpm build
+
       - name: Build documentation
         run: |
           pnpm --filter docs build
