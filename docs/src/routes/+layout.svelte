@@ -4,7 +4,7 @@ import { writable } from 'svelte/store';
 import 'kitdocs/sb.css';
 import 'kitdocs/md.css';
 import '../app.css';
-import favicon from '$lib/assets/favicon.svg';
+// import favicon from '$lib/assets/favicon.svg';
 import appData from '../app.json';
 import Search from '$lib/Search.svelte';
 import { searchIndex } from '$lib/searchIndex.js';
@@ -54,7 +54,7 @@ function handleScroll() {
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<!-- <link rel="icon" href={favicon} /> -->
 	<title>{$metaTagsStore.title}</title>
 	<meta name="title" content={$metaTagsStore.title} />
 	<meta name="description" content={$metaTagsStore.description} />
