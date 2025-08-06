@@ -1,40 +1,78 @@
 <script>
 import { marked } from 'marked';
-import { base } from '$app/paths';
+import { onMount } from 'svelte';
 
 export let data;
 
 let content = '';
+let title = '';
+let loading = true;
+let error = false;
 
-// Process markdown when data changes
-$: {
-  if (data.markdown) {
-    content = marked(data.markdown);
+onMount(async () => {
+  try {
+    const slug = data.slug;
+    if (!slug) {
+      error = true;
+      return;
+    }
+
+    // Try to load the markdown file
+    const response = await fetch(`/docs/${slug}.md`);
+    if (!response.ok) {
+      error = true;
+      return;
+    }
+
+    const markdown = await response.text();
+    
+    // Extract title from first heading
+    const titleMatch = markdown.match(/^#\s+(.+)$/m);
+    title = titleMatch ? titleMatch[1] : slug.split('/').pop() || 'Documentation';
+    
+    // Process markdown
+    content = marked(markdown);
+    loading = false;
+  } catch (err) {
+    console.error('Error loading document:', err);
+    error = true;
   }
-}
+});
 </script>
 
 <svelte:head>
-  <title>{data.title} - Rhema Documentation</title>
-  <meta name="description" content="Rhema documentation for {data.title}" />
+  <title>{title || 'Documentation'} - Rhema Documentation</title>
+  <meta name="description" content="Rhema documentation for {title || 'Documentation'}" />
 </svelte:head>
 
 <div class="docs-page">
   <div class="docs-content">
     <header class="docs-header">
-      <h1>{data.title}</h1>
+      <h1>{title || 'Loading...'}</h1>
       <div class="breadcrumb">
-        <a href={base || "/"}>Home</a>
+        <a href="/">Home</a>
         <span class="separator">/</span>
-        <a href={(base || "") + "/docs"}>Documentation</a>
+        <a href="/docs">Documentation</a>
         <span class="separator">/</span>
-        <span class="current">{data.title}</span>
+        <span class="current">{title || 'Loading...'}</span>
       </div>
     </header>
 
-    <article class="markdown-content">
-      {@html content}
-    </article>
+    {#if loading}
+      <div class="loading">
+        <p>Loading documentation...</p>
+      </div>
+    {:else if error}
+      <div class="error">
+        <h2>Document Not Found</h2>
+        <p>The requested documentation page could not be found.</p>
+        <a href="/docs">Return to Documentation</a>
+      </div>
+    {:else}
+      <article class="markdown-content">
+        {@html content}
+      </article>
+    {/if}
   </div>
 </div>
 
