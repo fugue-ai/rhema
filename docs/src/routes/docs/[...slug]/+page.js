@@ -6,12 +6,17 @@ export const prerender = true;
 export const entries = async () => {
   // List all the doc routes that actually have markdown files
   const routes = [
+    // Index
+    { slug: 'index' },
+    
     // Getting Started
+    { slug: 'getting-started/README' },
     { slug: 'getting-started/quick-start' },
-    { slug: 'getting-started/workspace-quick-start' },
     { slug: 'getting-started/refactoring-to-workspace' },
+    { slug: 'getting-started/workspace-quick-start' },
     
     // User Guide
+    { slug: 'user-guide/README' },
     { slug: 'user-guide/cli-command-reference' },
     { slug: 'user-guide/configuration-management' },
     { slug: 'user-guide/batch-operations' },
@@ -21,6 +26,7 @@ export const entries = async () => {
     { slug: 'user-guide/enhanced-dependencies-command' },
     { slug: 'user-guide/enhanced-validation-command' },
     { slug: 'user-guide/lock-file-health-checks' },
+    { slug: 'user-guide/enhanced/getting-started-complete' },
     
     // Core Features
     { slug: 'core-features/README' },
@@ -35,14 +41,18 @@ export const entries = async () => {
     { slug: 'core-features/validation-system' },
     
     // Reference
+    { slug: 'reference/README' },
     { slug: 'reference/global-config-reference' },
     { slug: 'reference/specification-schema-examples' },
+    { slug: 'reference/enhanced/complete-api-reference' },
     
     // Development Setup
+    { slug: 'development-setup/README' },
     { slug: 'development-setup/development' },
     { slug: 'development-setup/development/local-setup' },
     { slug: 'development-setup/development/rust-setup' },
     { slug: 'development-setup/development/git-setup' },
+    { slug: 'development-setup/editor-setup/README' },
     { slug: 'development-setup/editor-setup/vscode' },
     { slug: 'development-setup/editor-setup/cursor' },
     { slug: 'development-setup/editor-setup/intellij' },
@@ -54,6 +64,24 @@ export const entries = async () => {
     
     // Architecture
     { slug: 'architecture/README' },
+    { slug: 'architecture/agents/README' },
+    { slug: 'architecture/agents/agent-implementations' },
+    { slug: 'architecture/agents/agent-workflows' },
+    { slug: 'architecture/cache-system/README' },
+    { slug: 'architecture/lock-file-system/README' },
+    { slug: 'architecture/lock-file-system/schema' },
+    { slug: 'architecture/locomo/README' },
+    { slug: 'architecture/mcp/README' },
+    { slug: 'architecture/mcp/configuration' },
+    { slug: 'architecture/mcp/mcp-daemon-api' },
+    { slug: 'architecture/mcp/mcp-daemon-config' },
+    { slug: 'architecture/mcp/mcp-daemon-deployment' },
+    { slug: 'architecture/mcp/mcp-daemon-quick-reference' },
+    { slug: 'architecture/mcp/mcp-daemon-usage' },
+    { slug: 'architecture/mcp/protocol' },
+    { slug: 'architecture/monitoring/README' },
+    { slug: 'architecture/task-scoring/README' },
+    { slug: 'architecture/todo-tracking/README' },
     
     // Examples
     { slug: 'examples/README' },
@@ -68,7 +96,10 @@ export const entries = async () => {
     { slug: 'examples/prompt-versioning' },
     { slug: 'examples/query-provenance' },
     { slug: 'examples/template-management' },
-    { slug: 'examples/quick-start-commands' }
+    { slug: 'examples/quick-start-commands' },
+    
+    // Troubleshooting
+    { slug: 'troubleshooting/common-issues' }
   ];
   
   return routes;
