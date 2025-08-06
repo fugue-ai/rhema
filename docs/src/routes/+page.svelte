@@ -1,21 +1,5 @@
 <script lang="ts">
-import { onMount } from 'svelte';
-import { marked } from 'marked';
-
-let content = $state('');
-
-onMount(async () => {
-  try {
-    const response = await fetch('/docs/index.md');
-    if (response.ok) {
-      const markdown = await response.text();
-      content = await marked(markdown);
-    }
-  } catch (error) {
-    console.error('Failed to load documentation:', error);
-    content = await marked('# Rhema Documentation\n\nWelcome to the Rhema documentation.');
-  }
-});
+// Static content for GitHub Pages compatibility
 </script>
 
 <div class="home-content">
@@ -29,11 +13,27 @@ onMount(async () => {
 	</div>
 	
 	<div class="content">
-		{#if content}
-			{@html content}
-		{:else}
-			<div class="loading">Loading documentation...</div>
-		{/if}
+		<h1>Welcome to Rhema</h1>
+		<p>
+			Rhema is a powerful development coordination and automation platform designed to streamline 
+			software development workflows. It provides intelligent conflict prevention, automated 
+			refactoring, and seamless integration with modern development tools.
+		</p>
+		
+		<h2>Key Features</h2>
+		<ul>
+			<li><strong>Conflict Prevention:</strong> Intelligent detection and prevention of merge conflicts</li>
+			<li><strong>Automated Refactoring:</strong> AI-powered code refactoring and optimization</li>
+			<li><strong>Workspace Management:</strong> Efficient monorepo and workspace coordination</li>
+			<li><strong>Lock Configuration:</strong> Advanced configuration management with locking</li>
+			<li><strong>AI Integration:</strong> Seamless integration with AI services for enhanced development</li>
+		</ul>
+		
+		<h2>Getting Started</h2>
+		<p>
+			Whether you're new to Rhema or looking to integrate it into your existing workflow, 
+			our documentation provides comprehensive guides and examples to help you succeed.
+		</p>
 	</div>
 	
 	<div class="quick-links">
@@ -221,11 +221,7 @@ onMount(async () => {
 		text-decoration: underline;
 	}
 	
-	.loading {
-		text-align: center;
-		padding: 2rem;
-		color: #64748b;
-	}
+
 	
 	.quick-links {
 		margin-top: 3rem;
