@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onNavigate } from '$app/navigation';
+import { base } from '$app/paths';
 import { writable } from 'svelte/store';
 import 'kitdocs/sb.css';
 import 'kitdocs/md.css';
@@ -78,12 +79,12 @@ function handleScroll() {
 	<header class="topNav">
 		<div class="navContent">
 			<div class="logo">
-				<a href="/" aria-label="Rhema Documentation Home">Rhema</a>
+				<a href={base || "/"} aria-label="Rhema Documentation Home">Rhema</a>
 			</div>
 			<div class="navActions">
 				<Search searchIndex={searchIndex} on:select={(event) => {
 					const result = event.detail;
-					window.location.href = `/docs/${result.path}`;
+					window.location.href = (base || "") + `/docs/${result.path}`;
 				}} />
 				<button 
 					class="themeToggle" 
@@ -110,7 +111,7 @@ function handleScroll() {
 						<ul class="navItems">
 							{#each items as item}
 								<li>
-									<a href={item.href} class="navLink">
+									<a href={(base || "") + item.href} class="navLink">
 										{item.title}
 									</a>
 								</li>

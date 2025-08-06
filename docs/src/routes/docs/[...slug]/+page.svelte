@@ -1,5 +1,6 @@
 <script>
 import { marked } from 'marked';
+import { base } from '$app/paths';
 
 export let data;
 
@@ -23,9 +24,9 @@ $: {
     <header class="docs-header">
       <h1>{data.title}</h1>
       <div class="breadcrumb">
-        <a href="/">Home</a>
+        <a href={base || "/"}>Home</a>
         <span class="separator">/</span>
-        <a href="/docs">Documentation</a>
+        <a href={(base || "") + "/docs"}>Documentation</a>
         <span class="separator">/</span>
         <span class="current">{data.title}</span>
       </div>
