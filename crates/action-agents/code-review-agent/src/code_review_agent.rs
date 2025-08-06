@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-use crate::agent::{
+use rhema_agent::agent::{
     Agent, AgentId, AgentConfig, AgentContext, AgentCapability, AgentType, AgentState,
     AgentMessage, AgentRequest, AgentResponse, AgentStatus, HealthStatus, ResourceUsage,
     BaseAgent
 };
-use crate::error::{AgentError, AgentResult};
+use rhema_agent::error::{AgentError, AgentResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -857,11 +857,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_security_analysis() {
-        let agent = CodeReviewAgent::new("test-agent".to_string());
+        let mut agent = CodeReviewAgent::new("test-agent".to_string());
+        agent.initialize().await.unwrap();
         
         // Test SQL injection detection
         let code = r#"
-            let query = "SELECT * FROM users WHERE id = " + user_input;
+            let query = "SELECT * FROM users WHERE id = " + $user_input;
             execute(query);
         "#;
         

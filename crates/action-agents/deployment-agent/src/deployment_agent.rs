@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-use crate::agent::{
+use rhema_agent::agent::{
     Agent, AgentConfig, AgentContext, AgentId, AgentMessage, AgentRequest, AgentResponse,
     AgentType, BaseAgent, HealthStatus,
 };
-use crate::agent::AgentCapability;
-use crate::error::{AgentError, AgentResult};
+use rhema_agent::agent::AgentCapability;
+use rhema_agent::error::{AgentError, AgentResult};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -690,7 +690,7 @@ impl Agent for DeploymentAgent {
         }
     }
 
-    async fn get_status(&self) -> AgentResult<crate::agent::AgentStatus> {
+    async fn get_status(&self) -> AgentResult<rhema_agent::agent::AgentStatus> {
         self.base.get_status().await
     }
 

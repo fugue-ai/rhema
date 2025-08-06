@@ -63,6 +63,23 @@ git2 = { workspace = true }
 # External tool integration
 reqwest = { workspace = true, features = ["json"] }
 
+# Action tool dependencies
+rhema-action-tool = { path = "../rhema-action-tool" }
+rhema-action-jscodeshift = { path = "../action-tools/jscodeshift-tool" }
+rhema-action-comby = { path = "../action-tools/comby-tool" }
+rhema-action-ast-grep = { path = "../action-tools/ast-grep-tool" }
+rhema-action-prettier = { path = "../action-tools/prettier-tool" }
+rhema-action-eslint = { path = "../action-tools/eslint-tool" }
+rhema-action-typescript = { path = "../action-tools/typescript-tool" }
+rhema-action-jest = { path = "../action-tools/jest-tool" }
+rhema-action-mocha = { path = "../action-tools/mocha-tool" }
+rhema-action-pytest = { path = "../action-tools/pytest-tool" }
+rhema-action-cargo = { path = "../action-tools/cargo-tool" }
+rhema-action-syntax-validation = { path = "../action-tools/syntax-validation-tool" }
+rhema-action-type-checking = { path = "../action-tools/type-checking-tool" }
+rhema-action-test-coverage = { path = "../action-tools/test-coverage-tool" }
+rhema-action-security-scanning = { path = "../action-tools/security-scanning-tool" }
+
 [dev-dependencies]
 tempfile = { workspace = true }
 assert_fs = { workspace = true }

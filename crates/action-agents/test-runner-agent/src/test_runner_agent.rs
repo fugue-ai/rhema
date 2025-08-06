@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-use crate::agent::{
+use rhema_agent::agent::{
     Agent, AgentId, AgentConfig, AgentContext, AgentCapability, AgentType, AgentState,
     AgentMessage, AgentRequest, AgentResponse, AgentStatus, HealthStatus, ResourceUsage,
     BaseAgent
 };
-use crate::error::{AgentError, AgentResult};
+use rhema_agent::error::{AgentError, AgentResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;

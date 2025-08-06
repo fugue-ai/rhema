@@ -25,8 +25,6 @@ pub mod policies;
 pub mod metrics;
 pub mod workflow;
 pub mod error;
-pub mod agents;
-
 // Re-export main components for easy access
 pub use agent::{
     Agent, AgentId, AgentType, AgentCapability, AgentState, AgentConfig,
@@ -42,7 +40,6 @@ pub use policies::{PolicyEngine, Policy, PolicyViolation, PolicyEnforcement};
 pub use metrics::{AgentMetrics, MetricsCollector, PerformanceMetrics};
 pub use workflow::{WorkflowEngine, WorkflowDefinition, WorkflowStep, WorkflowStepType, WorkflowCondition, WorkflowStatus, WorkflowExecutionContext, WorkflowStats};
 pub use error::{AgentError, AgentResult};
-pub use agents::{CodeReviewAgent, TestRunnerAgent};
 
 /// Main agent framework for Rhema
 pub struct RhemaAgentFramework {

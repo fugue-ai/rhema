@@ -36,7 +36,27 @@ members = [
     "crates/rhema-dependency",
     "crates/rhema-locomo",
     "crates/rhema-knowledge",
-    "crates/rhema-agent"
+    "crates/rhema-agent",
+    "crates/rhema-action-tool",
+    "crates/action-agents/code-review-agent",
+    "crates/action-agents/test-runner-agent",
+    "crates/action-agents/deployment-agent",
+    "crates/action-agents/documentation-agent",
+    "crates/action-agents/monitoring-agent",
+    "crates/action-tools/jscodeshift-tool",
+    "crates/action-tools/comby-tool",
+    "crates/action-tools/ast-grep-tool",
+    "crates/action-tools/prettier-tool",
+    "crates/action-tools/eslint-tool",
+    "crates/action-tools/typescript-tool",
+    "crates/action-tools/jest-tool",
+    "crates/action-tools/mocha-tool",
+    "crates/action-tools/pytest-tool",
+    "crates/action-tools/cargo-tool",
+    "crates/action-tools/syntax-validation-tool",
+    "crates/action-tools/type-checking-tool",
+    "crates/action-tools/test-coverage-tool",
+    "crates/action-tools/security-scanning-tool"
 ]
 
 [workspace.package]

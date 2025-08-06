@@ -21,22 +21,22 @@
 //! to include a comprehensive "action" layer with safety controls, validation pipelines, 
 //! and human oversight.
 
-pub mod schema;
-pub mod pipeline;
-pub mod tools;
-pub mod validation;
-pub mod rollback;
-pub mod approval;
-pub mod git;
 pub mod cli;
 pub mod error;
-pub mod safety;
+pub mod git;
+pub mod pipeline;
+pub mod rollback;
+pub mod schema;
+pub mod tools;
+pub mod validation;
 
-// Re-export main types for convenience
-pub use schema::{ActionIntent, ActionType, SafetyLevel, ApprovalWorkflow, ActionStatus};
-pub use pipeline::ActionSafetyPipeline;
-pub use error::{ActionError, ActionResult};
-pub use tools::{TransformationTool, ValidationTool, SafetyTool};
+// Re-export shared types
+pub use rhema_action_tool::{TransformationTool, ValidationTool, SafetyTool, ToolResult, ActionIntent, ActionResult, ActionError, SafetyLevel};
+
+// Re-export internal types
+pub use tools::ToolRegistry;
+pub use schema::{ActionType, ActionIntent as ActionConfig, ApprovalWorkflow as ActionContext};
+pub use error::ActionError as LocalActionError;
 
 use anyhow::Result;
 
@@ -49,12 +49,7 @@ impl ActionProtocol {
         tracing::info!("Initializing Rhema Action Protocol");
         
         // Initialize components
-        pipeline::ActionSafetyPipeline::initialize().await?;
         tools::ToolRegistry::initialize().await?;
-        validation::ValidationEngine::initialize().await?;
-        rollback::RollbackManager::initialize().await?;
-        approval::ApprovalWorkflow::initialize().await?;
-        git::ActionGitIntegration::initialize().await?;
         
         tracing::info!("Rhema Action Protocol initialized successfully");
         Ok(())
@@ -65,12 +60,7 @@ impl ActionProtocol {
         tracing::info!("Shutting down Rhema Action Protocol");
         
         // Cleanup components
-        pipeline::ActionSafetyPipeline::shutdown().await?;
         tools::ToolRegistry::shutdown().await?;
-        validation::ValidationEngine::shutdown().await?;
-        rollback::RollbackManager::shutdown().await?;
-        approval::ApprovalWorkflow::shutdown().await?;
-        git::ActionGitIntegration::shutdown().await?;
         
         tracing::info!("Rhema Action Protocol shutdown successfully");
         Ok(())

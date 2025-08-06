@@ -15,16 +15,5 @@
  */
 
 pub mod code_review_agent;
-pub mod test_runner_agent;
-pub mod deployment_agent;
-pub mod documentation_agent;
-pub mod monitoring_agent;
 
-pub use code_review_agent::CodeReviewAgent;
-pub use test_runner_agent::TestRunnerAgent;
-pub use deployment_agent::DeploymentAgent;
-pub use documentation_agent::DocumentationAgent;
-pub use monitoring_agent::MonitoringAgent;
-
-#[cfg(test)]
-mod tests; 
+pub use code_review_agent::CodeReviewAgent; 

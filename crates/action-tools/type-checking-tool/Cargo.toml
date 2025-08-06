@@ -1,0 +1,12 @@
+[package]
+name = "rhema-action-type-checking"
+version = "0.1.0"
+edition = "2021"
+description = "Type checking safety tool for Rhema actions"
+license = "Apache-2.0"
+
+[dependencies]
+async-trait = "0.1"
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+rhema-action-tool = { path = "../../rhema-action-tool" }

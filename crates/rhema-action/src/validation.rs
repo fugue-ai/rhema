@@ -14,443 +14,447 @@
  * limitations under the License.
  */
 
-use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::{info, warn, error};
+use anyhow::Result;
 
-use crate::schema::ActionIntent;
-use crate::error::ActionResult;
-use crate::tools::{ToolRegistry, ToolResult};
+use crate::tools::ToolRegistry;
+use crate::schema::{ActionIntent as SchemaActionIntent, ActionType, SafetyLevel};
+use rhema_action_tool::{ActionIntent, ActionResult, ActionError, ToolResult};
 
-/// Result from validation
-#[derive(Debug, Clone)]
-pub struct ValidationResult {
-    pub success: bool,
-    pub message: String,
-    pub details: HashMap<String, serde_json::Value>,
-    pub duration: std::time::Duration,
-}
-
-/// Result from safety check
-#[derive(Debug, Clone)]
-pub struct SafetyCheckResult {
-    pub success: bool,
-    pub message: String,
-    pub severity: SafetySeverity,
-    pub details: HashMap<String, serde_json::Value>,
-    pub duration: std::time::Duration,
-}
-
-/// Safety check severity levels
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SafetySeverity {
-    Low,
-    Medium,
-    High,
-    Critical,
-}
-
-/// Validation engine for running validation and safety checks
-pub struct ValidationEngine {
+/// Action validation manager
+pub struct ActionValidator {
     tool_registry: Arc<ToolRegistry>,
-    validation_cache: Arc<RwLock<HashMap<String, ValidationResult>>>,
-    safety_cache: Arc<RwLock<HashMap<String, SafetyCheckResult>>>,
 }
 
-impl ValidationEngine {
-    /// Create a new validation engine
-    pub async fn new() -> ActionResult<Self> {
-        info!("Initializing Validation Engine");
+impl ActionValidator {
+    /// Create a new action validator
+    pub async fn new() -> Result<Self> {
+        info!("Initializing Action Validator");
         
-        let tool_registry = Arc::new(ToolRegistry::new().await?);
+        let tool_registry = Arc::new(ToolRegistry::new().await.map_err(|e| {
+            anyhow::anyhow!("Failed to initialize tool registry: {:?}", e)
+        })?);
         
-        let engine = Self {
-            tool_registry,
-            validation_cache: Arc::new(RwLock::new(HashMap::new())),
-            safety_cache: Arc::new(RwLock::new(HashMap::new())),
-        };
-        
-        info!("Validation Engine initialized successfully");
-        Ok(engine)
-    }
-
-    /// Initialize the validation engine (stub)
-    pub async fn initialize() -> ActionResult<()> {
-        info!("ValidationEngine initialized (stub)");
-        Ok(())
-    }
-
-    /// Shutdown the validation engine (stub)
-    pub async fn shutdown() -> ActionResult<()> {
-        info!("ValidationEngine shutdown (stub)");
-        Ok(())
+        info!("Action Validator initialized successfully");
+        Ok(Self { tool_registry })
     }
     
-    /// Run a validation tool
-    pub async fn run_validation(&self, tool_name: &str, intent: &ActionIntent) -> ActionResult<ValidationResult> {
-        info!("Running validation tool: {} for intent: {}", tool_name, intent.id);
+    /// Validate an action intent
+    pub async fn validate_action(&self, intent: &SchemaActionIntent) -> Result<ValidationResult> {
+        info!("Validating action intent: {}", intent.id);
         
-        let start_time = std::time::Instant::now();
+        let start = std::time::Instant::now();
+        let mut validation_errors = Vec::new();
+        let mut validation_warnings = Vec::new();
         
-        // Check cache first
-        let cache_key = format!("{}:{}", tool_name, intent.id);
-        {
-            let cache = self.validation_cache.read().await;
-            if let Some(cached_result) = cache.get(&cache_key) {
-                info!("Using cached validation result for tool: {}", tool_name);
-                return Ok(cached_result.clone());
-            }
+        // Convert schema intent to shared intent
+        let shared_intent = self.convert_to_shared_intent(intent);
+        
+        // Run validation based on action type
+        match intent.action_type {
+            ActionType::Refactor => {
+                self.validate_refactor_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::BugFix => {
+                self.validate_bugfix_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Feature => {
+                self.validate_feature_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Security => {
+                self.validate_security_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Performance => {
+                self.validate_performance_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Documentation => {
+                // Documentation actions typically don't need extensive validation
+                info!("Documentation action validation skipped");
+            },
+            ActionType::Test => {
+                self.validate_test_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Configuration => {
+                self.validate_configuration_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Dependency => {
+                self.validate_dependency_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Cleanup => {
+                self.validate_cleanup_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Migration => {
+                self.validate_migration_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
+            ActionType::Custom(_) => {
+                // Custom actions use default validation
+                self.validate_default_action(&shared_intent, &mut validation_errors, &mut validation_warnings).await?;
+            },
         }
         
-        // Execute validation tool
-        let tool_result = self.tool_registry.execute_validation(tool_name, intent).await?;
+        let success = validation_errors.is_empty();
+        let duration = start.elapsed();
         
-        let duration = start_time.elapsed();
-        
+        let errors_count = validation_errors.len();
         let result = ValidationResult {
-            success: tool_result.success,
-            message: if tool_result.success {
-                format!("Validation {} passed", tool_name)
-            } else {
-                format!("Validation {} failed: {}", tool_name, tool_result.errors.join("; "))
-            },
-            details: HashMap::new(), // TODO: Add detailed validation results
-            duration,
-        };
-        
-        // Cache the result
-        {
-            let mut cache = self.validation_cache.write().await;
-            cache.insert(cache_key, result.clone());
-        }
-        
-        if result.success {
-            info!("Validation tool {} completed successfully", tool_name);
-        } else {
-            warn!("Validation tool {} failed", tool_name);
-        }
-        
-        Ok(result)
-    }
-    
-    /// Run a safety check
-    pub async fn run_safety_check(&self, check_name: &str, intent: &ActionIntent) -> ActionResult<SafetyCheckResult> {
-        info!("Running safety check: {} for intent: {}", check_name, intent.id);
-        
-        let start_time = std::time::Instant::now();
-        
-        // Check cache first
-        let cache_key = format!("{}:{}", check_name, intent.id);
-        {
-            let cache = self.safety_cache.read().await;
-            if let Some(cached_result) = cache.get(&cache_key) {
-                info!("Using cached safety check result for: {}", check_name);
-                return Ok(cached_result.clone());
-            }
-        }
-        
-        // Execute safety check
-        let tool_result = self.tool_registry.execute_safety_check(check_name, intent).await?;
-        
-        let duration = start_time.elapsed();
-        
-        let severity = self.determine_safety_severity(check_name, &tool_result);
-        
-        let result = SafetyCheckResult {
-            success: tool_result.success,
-            message: if tool_result.success {
-                format!("Safety check {} passed", check_name)
-            } else {
-                format!("Safety check {} failed: {}", check_name, tool_result.errors.join("; "))
-            },
-            severity,
-            details: HashMap::new(), // TODO: Add detailed safety check results
-            duration,
-        };
-        
-        // Cache the result
-        {
-            let mut cache = self.safety_cache.write().await;
-            cache.insert(cache_key, result.clone());
-        }
-        
-        if result.success {
-            info!("Safety check {} completed successfully", check_name);
-        } else {
-            warn!("Safety check {} failed with severity: {:?}", check_name, result.severity);
-        }
-        
-        Ok(result)
-    }
-    
-    /// Determine safety severity based on check type and results
-    fn determine_safety_severity(&self, check_name: &str, tool_result: &ToolResult) -> SafetySeverity {
-        match check_name {
-            "syntax_validation" => {
-                if tool_result.success {
-                    SafetySeverity::Low
-                } else {
-                    SafetySeverity::Critical
-                }
-            }
-            "type_checking" => {
-                if tool_result.success {
-                    SafetySeverity::Low
-                } else {
-                    SafetySeverity::High
-                }
-            }
-            "test_coverage" => {
-                if tool_result.success {
-                    SafetySeverity::Low
-                } else {
-                    SafetySeverity::Medium
-                }
-            }
-            "security_scanning" => {
-                if tool_result.success {
-                    SafetySeverity::Low
-                } else {
-                    SafetySeverity::Critical
-                }
-            }
-            "performance_check" => {
-                if tool_result.success {
-                    SafetySeverity::Low
-                } else {
-                    SafetySeverity::Medium
-                }
-            }
-            "dependency_check" => {
-                if tool_result.success {
-                    SafetySeverity::Low
-                } else {
-                    SafetySeverity::High
-                }
-            }
-            _ => {
-                if tool_result.success {
-                    SafetySeverity::Low
-                } else {
-                    SafetySeverity::Medium
-                }
-            }
-        }
-    }
-    
-    /// Run comprehensive validation for an intent
-    pub async fn run_comprehensive_validation(&self, intent: &ActionIntent) -> ActionResult<ComprehensiveValidationResult> {
-        info!("Running comprehensive validation for intent: {}", intent.id);
-        
-        let start_time = std::time::Instant::now();
-        let mut validation_results = HashMap::new();
-        let mut safety_results = HashMap::new();
-        let mut errors = Vec::new();
-        let warnings = Vec::new();
-        
-        // Run all validation tools
-        for validation_tool in &intent.transformation.validation {
-            match self.run_validation(validation_tool, intent).await {
-                Ok(result) => {
-                    validation_results.insert(validation_tool.clone(), result.success);
-                    if !result.success {
-                        errors.push(format!("Validation {} failed: {}", validation_tool, result.message));
-                    }
-                }
-                Err(e) => {
-                    errors.push(format!("Validation {} error: {}", validation_tool, e));
-                }
-            }
-        }
-        
-        // Run all safety checks
-        for check in &intent.safety_checks.pre_execution {
-            match self.run_safety_check(check, intent).await {
-                Ok(result) => {
-                    safety_results.insert(check.clone(), result.success);
-                    if !result.success {
-                        errors.push(format!("Safety check {} failed: {}", check, result.message));
-                    }
-                }
-                Err(e) => {
-                    errors.push(format!("Safety check {} error: {}", check, e));
-                }
-            }
-        }
-        
-        for check in &intent.safety_checks.post_execution {
-            match self.run_safety_check(check, intent).await {
-                Ok(result) => {
-                    safety_results.insert(check.clone(), result.success);
-                    if !result.success {
-                        errors.push(format!("Safety check {} failed: {}", check, result.message));
-                    }
-                }
-                Err(e) => {
-                    errors.push(format!("Safety check {} error: {}", check, e));
-                }
-            }
-        }
-        
-        let duration = start_time.elapsed();
-        let success = errors.is_empty();
-        
-        let result = ComprehensiveValidationResult {
             success,
-            validation_results,
-            safety_results,
-            errors,
-            warnings,
+            errors: validation_errors,
+            warnings: validation_warnings,
             duration,
         };
         
         if success {
-            info!("Comprehensive validation completed successfully for intent: {}", intent.id);
+            info!("Action validation completed successfully in {:?}", duration);
         } else {
-            warn!("Comprehensive validation failed for intent: {}", intent.id);
+            warn!("Action validation completed with {} errors in {:?}", errors_count, duration);
         }
         
         Ok(result)
     }
     
-    /// Clear validation cache
-    pub async fn clear_validation_cache(&self) {
-        let mut cache = self.validation_cache.write().await;
-        cache.clear();
-        info!("Validation cache cleared");
-    }
-    
-    /// Clear safety cache
-    pub async fn clear_safety_cache(&self) {
-        let mut cache = self.safety_cache.write().await;
-        cache.clear();
-        info!("Safety cache cleared");
-    }
-    
-    /// Clear all caches
-    pub async fn clear_all_caches(&self) {
-        self.clear_validation_cache().await;
-        self.clear_safety_cache().await;
-        info!("All validation caches cleared");
-    }
-    
-    /// Get validation cache statistics
-    pub async fn get_cache_stats(&self) -> CacheStats {
-        let validation_cache = self.validation_cache.read().await;
-        let safety_cache = self.safety_cache.read().await;
+    /// Validate refactor action
+    async fn validate_refactor_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating refactor action");
         
-        CacheStats {
-            validation_cache_size: validation_cache.len(),
-            safety_cache_size: safety_cache.len(),
-            total_cache_size: validation_cache.len() + safety_cache.len(),
+        // Run TypeScript validation
+        let tool_result = self.tool_registry.execute_validation("typescript", intent).await.map_err(|e| {
+            anyhow::anyhow!("TypeScript validation failed: {:?}", e)
+        })?;
+        
+        if !tool_result.success {
+            errors.extend(tool_result.errors);
         }
+        warnings.extend(tool_result.warnings);
+        
+        // Run syntax validation
+        let syntax_result = self.tool_registry.execute_safety_check("syntax_validation", intent).await.map_err(|e| {
+            anyhow::anyhow!("Syntax validation failed: {:?}", e)
+        })?;
+        
+        if !syntax_result.success {
+            errors.extend(syntax_result.errors);
+        }
+        warnings.extend(syntax_result.warnings);
+        
+        Ok(())
+    }
+    
+    /// Validate bugfix action
+    async fn validate_bugfix_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating bugfix action");
+        
+        // Run Jest tests
+        let jest_result = self.tool_registry.execute_validation("jest", intent).await.map_err(|e| {
+            anyhow::anyhow!("Jest validation failed: {:?}", e)
+        })?;
+        
+        if !jest_result.success {
+            errors.extend(jest_result.errors);
+        }
+        warnings.extend(jest_result.warnings);
+        
+        // Run TypeScript validation
+        let ts_result = self.tool_registry.execute_validation("typescript", intent).await.map_err(|e| {
+            anyhow::anyhow!("TypeScript validation failed: {:?}", e)
+        })?;
+        
+        if !ts_result.success {
+            errors.extend(ts_result.errors);
+        }
+        warnings.extend(ts_result.warnings);
+        
+        Ok(())
+    }
+    
+    /// Validate feature action
+    async fn validate_feature_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating feature action");
+        
+        // Run comprehensive validation
+        let validations = vec![
+            ("typescript", "TypeScript validation"),
+            ("jest", "Jest tests"),
+            ("syntax_validation", "Syntax validation"),
+        ];
+        
+        for (tool_name, description) in validations {
+            match self.tool_registry.execute_validation(tool_name, intent).await {
+                Ok(result) => {
+                    if !result.success {
+                        errors.extend(result.errors);
+                    }
+                    warnings.extend(result.warnings);
+                },
+                Err(e) => {
+                    error!("{} failed: {:?}", description, e);
+                    errors.push(format!("{} failed: {:?}", description, e));
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Validate security action
+    async fn validate_security_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating security action");
+        
+        // Run security scanning
+        let security_result = self.tool_registry.execute_safety_check("security_scanning", intent).await.map_err(|e| {
+            anyhow::anyhow!("Security scanning failed: {:?}", e)
+        })?;
+        
+        if !security_result.success {
+            errors.extend(security_result.errors);
+        }
+        warnings.extend(security_result.warnings);
+        
+        // Run syntax validation
+        let syntax_result = self.tool_registry.execute_safety_check("syntax_validation", intent).await.map_err(|e| {
+            anyhow::anyhow!("Syntax validation failed: {:?}", e)
+        })?;
+        
+        if !syntax_result.success {
+            errors.extend(syntax_result.errors);
+        }
+        warnings.extend(syntax_result.warnings);
+        
+        Ok(())
+    }
+    
+    /// Validate performance action
+    async fn validate_performance_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating performance action");
+        
+        // Run type checking
+        let type_result = self.tool_registry.execute_safety_check("type_checking", intent).await.map_err(|e| {
+            anyhow::anyhow!("Type checking failed: {:?}", e)
+        })?;
+        
+        if !type_result.success {
+            errors.extend(type_result.errors);
+        }
+        warnings.extend(type_result.warnings);
+        
+        // Run test coverage
+        let coverage_result = self.tool_registry.execute_safety_check("test_coverage", intent).await.map_err(|e| {
+            anyhow::anyhow!("Test coverage check failed: {:?}", e)
+        })?;
+        
+        if !coverage_result.success {
+            errors.extend(coverage_result.errors);
+        }
+        warnings.extend(coverage_result.warnings);
+        
+        Ok(())
+    }
+    
+    /// Convert schema intent to shared intent
+    fn convert_to_shared_intent(&self, intent: &SchemaActionIntent) -> ActionIntent {
+        ActionIntent {
+            id: intent.id.clone(),
+            action_type: match &intent.action_type {
+                ActionType::Refactor => rhema_action_tool::ActionType::Refactor,
+                ActionType::BugFix => rhema_action_tool::ActionType::BugFix,
+                ActionType::Feature => rhema_action_tool::ActionType::Feature,
+                ActionType::Security => rhema_action_tool::ActionType::Security,
+                ActionType::Performance => rhema_action_tool::ActionType::Performance,
+                ActionType::Documentation => rhema_action_tool::ActionType::Custom("documentation".to_string()),
+                ActionType::Test => rhema_action_tool::ActionType::Test,
+                ActionType::Configuration => rhema_action_tool::ActionType::Custom("configuration".to_string()),
+                ActionType::Dependency => rhema_action_tool::ActionType::Custom("dependency".to_string()),
+                ActionType::Cleanup => rhema_action_tool::ActionType::Custom("cleanup".to_string()),
+                ActionType::Migration => rhema_action_tool::ActionType::Custom("migration".to_string()),
+                ActionType::Custom(s) => rhema_action_tool::ActionType::Custom(s.clone()),
+            },
+            description: intent.description.clone(),
+            scope: intent.scope.clone(),
+            safety_level: match intent.safety_level {
+                SafetyLevel::Low => rhema_action_tool::SafetyLevel::Low,
+                SafetyLevel::Medium => rhema_action_tool::SafetyLevel::Medium,
+                SafetyLevel::High => rhema_action_tool::SafetyLevel::High,
+                SafetyLevel::Critical => rhema_action_tool::SafetyLevel::Critical,
+            },
+            created_at: intent.created_at,
+            metadata: serde_json::to_value(intent.metadata.as_ref()).unwrap_or(serde_json::Value::Null),
+            context_refs: intent.context_refs.as_ref().map(|refs| {
+                refs.iter().map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)).collect()
+            }),
+            transformation: serde_json::to_value(&intent.transformation).unwrap_or(serde_json::Value::Null),
+            safety_checks: serde_json::to_value(&intent.safety_checks).unwrap_or(serde_json::Value::Null),
+            approval_workflow: serde_json::to_value(&intent.approval_workflow).unwrap_or(serde_json::Value::Null),
+            created_by: intent.created_by.clone(),
+            tags: intent.tags.clone(),
+            priority: intent.priority.clone(),
+            estimated_effort: intent.estimated_effort.clone(),
+            dependencies: intent.dependencies.clone(),
+        }
+    }
+
+    /// Validate test action
+    async fn validate_test_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating test action");
+        
+        // Run Jest tests
+        let jest_result = self.tool_registry.execute_validation("jest", intent).await.map_err(|e| {
+            anyhow::anyhow!("Jest validation failed: {:?}", e)
+        })?;
+        
+        if !jest_result.success {
+            errors.extend(jest_result.errors);
+        }
+        warnings.extend(jest_result.warnings);
+        
+        Ok(())
+    }
+
+    /// Validate configuration action
+    async fn validate_configuration_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating configuration action");
+        
+        // Run syntax validation
+        let syntax_result = self.tool_registry.execute_safety_check("syntax_validation", intent).await.map_err(|e| {
+            anyhow::anyhow!("Syntax validation failed: {:?}", e)
+        })?;
+        
+        if !syntax_result.success {
+            errors.extend(syntax_result.errors);
+        }
+        warnings.extend(syntax_result.warnings);
+        
+        Ok(())
+    }
+
+    /// Validate dependency action
+    async fn validate_dependency_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating dependency action");
+        
+        // Run cargo validation
+        let cargo_result = self.tool_registry.execute_validation("cargo", intent).await.map_err(|e| {
+            anyhow::anyhow!("Cargo validation failed: {:?}", e)
+        })?;
+        
+        if !cargo_result.success {
+            errors.extend(cargo_result.errors);
+        }
+        warnings.extend(cargo_result.warnings);
+        
+        Ok(())
+    }
+
+    /// Validate cleanup action
+    async fn validate_cleanup_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating cleanup action");
+        
+        // Run syntax validation
+        let syntax_result = self.tool_registry.execute_safety_check("syntax_validation", intent).await.map_err(|e| {
+            anyhow::anyhow!("Syntax validation failed: {:?}", e)
+        })?;
+        
+        if !syntax_result.success {
+            errors.extend(syntax_result.errors);
+        }
+        warnings.extend(syntax_result.warnings);
+        
+        Ok(())
+    }
+
+    /// Validate migration action
+    async fn validate_migration_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating migration action");
+        
+        // Run comprehensive validation
+        let type_result = self.tool_registry.execute_safety_check("type_checking", intent).await.map_err(|e| {
+            anyhow::anyhow!("Type checking failed: {:?}", e)
+        })?;
+        
+        if !type_result.success {
+            errors.extend(type_result.errors);
+        }
+        warnings.extend(type_result.warnings);
+        
+        Ok(())
+    }
+
+    /// Validate default action (for custom types)
+    async fn validate_default_action(
+        &self,
+        intent: &ActionIntent,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>
+    ) -> Result<()> {
+        info!("Validating default action");
+        
+        // Run basic syntax validation
+        let syntax_result = self.tool_registry.execute_safety_check("syntax_validation", intent).await.map_err(|e| {
+            anyhow::anyhow!("Syntax validation failed: {:?}", e)
+        })?;
+        
+        if !syntax_result.success {
+            errors.extend(syntax_result.errors);
+        }
+        warnings.extend(syntax_result.warnings);
+        
+        Ok(())
     }
 }
 
-/// Comprehensive validation result
+/// Validation result
 #[derive(Debug, Clone)]
-pub struct ComprehensiveValidationResult {
+pub struct ValidationResult {
     pub success: bool,
-    pub validation_results: HashMap<String, bool>,
-    pub safety_results: HashMap<String, bool>,
     pub errors: Vec<String>,
     pub warnings: Vec<String>,
     pub duration: std::time::Duration,
-}
-
-/// Cache statistics
-#[derive(Debug, Clone)]
-pub struct CacheStats {
-    pub validation_cache_size: usize,
-    pub safety_cache_size: usize,
-    pub total_cache_size: usize,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::schema::{ActionType, SafetyLevel};
-
-    #[tokio::test]
-    async fn test_validation_engine_creation() {
-        let engine = ValidationEngine::new().await;
-        assert!(engine.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_validation_engine_validation() {
-        let engine = ValidationEngine::new().await.unwrap();
-        
-        let intent = ActionIntent::new(
-            "test-validation",
-            ActionType::Test,
-            "Test validation",
-            vec!["src/".to_string()],
-            SafetyLevel::Low,
-        );
-        
-        let result = engine.run_validation("typescript", &intent).await;
-        assert!(result.is_ok());
-        
-        let validation_result = result.unwrap();
-        assert!(validation_result.success);
-    }
-
-    #[tokio::test]
-    async fn test_validation_engine_safety_check() {
-        let engine = ValidationEngine::new().await.unwrap();
-        
-        let intent = ActionIntent::new(
-            "test-safety",
-            ActionType::Test,
-            "Test safety check",
-            vec!["src/".to_string()],
-            SafetyLevel::Low,
-        );
-        
-        let result = engine.run_safety_check("syntax_validation", &intent).await;
-        assert!(result.is_ok());
-        
-        let safety_result = result.unwrap();
-        assert!(safety_result.success);
-        assert_eq!(safety_result.severity, SafetySeverity::Low);
-    }
-
-    #[tokio::test]
-    async fn test_comprehensive_validation() {
-        let engine = ValidationEngine::new().await.unwrap();
-        
-        let mut intent = ActionIntent::new(
-            "test-comprehensive",
-            ActionType::Test,
-            "Test comprehensive validation",
-            vec!["src/".to_string()],
-            SafetyLevel::Low,
-        );
-        
-        intent.add_validation("typescript");
-        intent.add_pre_execution_check("syntax_validation");
-        
-        let result = engine.run_comprehensive_validation(&intent).await;
-        assert!(result.is_ok());
-        
-        let comprehensive_result = result.unwrap();
-        assert!(comprehensive_result.success);
-    }
-
-    #[tokio::test]
-    async fn test_cache_operations() {
-        let engine = ValidationEngine::new().await.unwrap();
-        
-        // Test cache stats
-        let stats = engine.get_cache_stats().await;
-        assert_eq!(stats.total_cache_size, 0);
-        
-        // Test cache clearing
-        engine.clear_all_caches().await;
-        
-        let stats_after_clear = engine.get_cache_stats().await;
-        assert_eq!(stats_after_clear.total_cache_size, 0);
-    }
 } 
