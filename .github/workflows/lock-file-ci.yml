@@ -1,19 +1,6 @@
 name: Lock File Verification
 
 on:
-  push:
-    branches: [ main, develop, feature/* ]
-    paths:
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'rhema.lock'
-      - '.github/workflows/lock-file-ci.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'rhema.lock'
   workflow_dispatch:
     inputs:
       lock_operation:

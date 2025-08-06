@@ -4,9 +4,6 @@ on:
   push:
     branches: [ main ]
     paths: [ 'docs/**', 'package.json', 'pnpm-lock.yaml' ]
-  pull_request:
-    branches: [ main ]
-    paths: [ 'docs/**', 'package.json', 'pnpm-lock.yaml' ]
 
 permissions:
   contents: read
@@ -35,7 +32,6 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
