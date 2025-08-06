@@ -1,78 +1,39 @@
 <script>
 import { marked } from 'marked';
-import { onMount } from 'svelte';
 
 export let data;
 
 let content = '';
-let title = '';
-let loading = true;
-let error = false;
 
-onMount(async () => {
-  try {
-    const slug = data.slug;
-    if (!slug) {
-      error = true;
-      return;
-    }
-
-    // Try to load the markdown file
-    const response = await fetch(`/docs/${slug}.md`);
-    if (!response.ok) {
-      error = true;
-      return;
-    }
-
-    const markdown = await response.text();
-    
-    // Extract title from first heading
-    const titleMatch = markdown.match(/^#\s+(.+)$/m);
-    title = titleMatch ? titleMatch[1] : slug.split('/').pop() || 'Documentation';
-    
-    // Process markdown
-    content = marked(markdown);
-    loading = false;
-  } catch (err) {
-    console.error('Error loading document:', err);
-    error = true;
+// Process markdown when data changes
+$: {
+  if (data.markdown) {
+    content = marked(data.markdown);
   }
-});
+}
 </script>
 
 <svelte:head>
-  <title>{title || 'Documentation'} - Rhema Documentation</title>
-  <meta name="description" content="Rhema documentation for {title || 'Documentation'}" />
+  <title>{data.title} - Rhema Documentation</title>
+  <meta name="description" content="Rhema documentation for {data.title}" />
 </svelte:head>
 
 <div class="docs-page">
   <div class="docs-content">
     <header class="docs-header">
-      <h1>{title || 'Loading...'}</h1>
+      <h1>{data.title}</h1>
       <div class="breadcrumb">
-        <a href="/">Home</a>
+        <a href="/rhema/">Home</a>
         <span class="separator">/</span>
-        <a href="/docs">Documentation</a>
+        <a href="/rhema/docs">Documentation</a>
         <span class="separator">/</span>
-        <span class="current">{title || 'Loading...'}</span>
+        <span class="current">{data.title}</span>
       </div>
     </header>
 
-    {#if loading}
-      <div class="loading">
-        <p>Loading documentation...</p>
-      </div>
-    {:else if error}
-      <div class="error">
-        <h2>Document Not Found</h2>
-        <p>The requested documentation page could not be found.</p>
-        <a href="/docs">Return to Documentation</a>
-      </div>
-    {:else}
-      <article class="markdown-content">
-        {@html content}
-      </article>
-    {/if}
+    <article class="markdown-content">
+      {@html content}
+    </article>
   </div>
 </div>
 
