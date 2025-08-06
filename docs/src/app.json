@@ -161,7 +161,7 @@
         "layout": "default",
         "title": "Overview",
         "description": "Overview of Rhema core features",
-        "href": "/docs/core-features/",
+        "href": "/docs/core-features/README",
         "new": false,
         "headers": []
       },
@@ -210,6 +210,30 @@
         "title": "Conflict Resolver Usage",
         "description": "Using the conflict resolver",
         "href": "/docs/core-features/conflict-resolver-usage",
+        "new": false,
+        "headers": []
+      },
+      {
+        "layout": "default",
+        "title": "Context Query Language",
+        "description": "Using the context query language",
+        "href": "/docs/core-features/context-query-language",
+        "new": false,
+        "headers": []
+      },
+      {
+        "layout": "default",
+        "title": "Scope Management",
+        "description": "Managing scopes in Rhema",
+        "href": "/docs/core-features/scope-management",
+        "new": false,
+        "headers": []
+      },
+      {
+        "layout": "default",
+        "title": "Validation System",
+        "description": "Using the validation system",
+        "href": "/docs/core-features/validation-system",
         "new": false,
         "headers": []
       }
@@ -335,7 +359,7 @@
         "layout": "default",
         "title": "Overview",
         "description": "Architecture overview",
-        "href": "/docs/architecture/",
+        "href": "/docs/architecture/README",
         "new": false,
         "headers": []
       }
@@ -345,7 +369,7 @@
         "layout": "default",
         "title": "Overview",
         "description": "Examples overview",
-        "href": "/docs/examples/",
+        "href": "/docs/examples/README",
         "new": false,
         "headers": []
       },
