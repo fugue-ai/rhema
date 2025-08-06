@@ -1,0 +1,111 @@
+name: Setup Environment
+
+on:
+  workflow_call:
+    inputs:
+      rust-version:
+        description: 'Rust version to install'
+        required: false
+        default: '1.88'
+        type: string
+      rust-components:
+        description: 'Rust components to install'
+        required: false
+        default: 'rustfmt,clippy'
+        type: string
+      cache-key:
+        description: 'Cache key for dependencies'
+        required: false
+        default: ''
+        type: string
+      fetch-depth:
+        description: 'Git fetch depth for checkout'
+        required: false
+        default: '0'
+        type: string
+      run-all:
+        description: 'Run all projects (ignore affected)'
+        required: false
+        default: 'false'
+        type: string
+    outputs:
+      cache-hit:
+        description: 'Whether the cache was hit'
+        value: ${{ jobs.setup.outputs.cache-hit }}
+      affected-projects:
+        description: 'Affected projects (if applicable)'
+        value: ${{ jobs.setup.outputs.affected-projects }}
+      affected-projects-json:
+        description: 'Affected projects as JSON (if applicable)'
+        value: ${{ jobs.setup.outputs.affected-projects-json }}
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
+      affected-projects: ${{ steps.affected.outputs.projects }}
+      affected-projects-json: ${{ steps.affected.outputs.projects-json }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+      
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10.14.0
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        cache: 'pnpm'
+        cache-dependency-path: pnpm-lock.yaml
+        
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+      
+    - name: Install Rust ${{ inputs.rust-version }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.rust-version }}
+        components: ${{ inputs.rust-components }}
+        
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+          .nx/cache
+        key: ${{ runner.os }}-cargo-${{ inputs.rust-version }}-${{ hashFiles('**/Cargo.lock') }}${{ inputs.cache-key }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ inputs.rust-version }}-
+          
+    - name: Get affected projects
+      id: affected
+      if: ${{ github.event_name == 'pull_request' || inputs.run-all == 'true' }}
+      run: |
+        if [ "${{ inputs.run-all }}" = "true" ]; then
+          echo "Running all projects"
+          AFFECTED_PROJECTS=$(npx nx show projects --json | jq -r '.[]' | grep '^rhema-' | tr '\n' ',' | sed 's/,$//')
+          AFFECTED_PROJECTS_JSON=$(npx nx show projects --json | jq -r '.[]' | grep '^rhema-' | jq -R -s -c 'split("\n")[:-1]')
+        else
+          echo "Running affected projects only"
+          AFFECTED_PROJECTS=$(npx nx show projects --affected --base=origin/main --head=HEAD --json | jq -r '.[]' | tr '\n' ',' | sed 's/,$//')
+          AFFECTED_PROJECTS_JSON=$(npx nx show projects --affected --base=origin/main --head=HEAD --json)
+        fi
+        
+        if [ -z "$AFFECTED_PROJECTS" ]; then
+          echo "No affected projects found, running all projects"
+          AFFECTED_PROJECTS=$(npx nx show projects --json | jq -r '.[]' | grep '^rhema-' | tr '\n' ',' | sed 's/,$//')
+          AFFECTED_PROJECTS_JSON=$(npx nx show projects --json | jq -r '.[]' | grep '^rhema-' | jq -R -s -c 'split("\n")[:-1]')
+        fi
+        
+        echo "projects=$AFFECTED_PROJECTS" >> $GITHUB_OUTPUT
+        echo "projects-json=$AFFECTED_PROJECTS_JSON" >> $GITHUB_OUTPUT
+        echo "Affected projects: $AFFECTED_PROJECTS" 

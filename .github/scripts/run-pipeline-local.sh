@@ -79,7 +79,7 @@ show_usage() {
     echo ""
     echo "Commands:"
     echo "  test           Run the test suite only"
-    echo "  validation     Run GACP validation only"
+    echo "  validation     Run Rhema validation only"
     echo "  security       Run security checks only"
     echo "  quality        Run code quality checks only"
     echo "  performance    Run performance tests only"

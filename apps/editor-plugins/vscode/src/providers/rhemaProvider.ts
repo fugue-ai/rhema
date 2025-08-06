@@ -38,7 +38,7 @@ export class RhemaProvider {
     try {
       this.logger.info('Initializing Rhema provider...');
 
-      // Initialize the GACP provider
+      // Initialize the Rhema provider
       await this.gacpProvider.initialize(context);
 
       // Set up workspace change listeners for context-aware features
@@ -328,7 +328,7 @@ export class RhemaProvider {
     }
   }
 
-  // Delegate to GACP provider for language service features
+  // Delegate to Rhema provider for language service features
   getGacpProvider(): GacpProvider {
     return this.gacpProvider;
   }
@@ -499,7 +499,7 @@ export class RhemaProvider {
     try {
       this.logger.info('Disposing Rhema provider...');
 
-      // Dispose of the GACP provider
+      // Dispose of the Rhema provider
       await this.gacpProvider.dispose();
 
       // Dispose of all disposables

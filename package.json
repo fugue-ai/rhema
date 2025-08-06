@@ -38,7 +38,19 @@
     "docs:format": "npx nx format --project=docs",
     "docs:install": "pnpm --filter kitdocs-docs install",
     "docs:clean": "pnpm --filter kitdocs-docs run clean",
-    "docs:help": "echo 'Available docs commands: docs:dev, docs:build, docs:preview, docs:test, docs:check, docs:lint, docs:format, docs:install, docs:clean'"
+    "docs:help": "echo 'Available docs commands: docs:dev, docs:build, docs:preview, docs:test, docs:check, docs:lint, docs:format, docs:install, docs:clean'",
+    "pipeline:test": "npx nx run-many --target=test --projects=rhema-* --parallel=4",
+    "pipeline:build": "npx nx run-many --target=build:release --projects=rhema-* --parallel=4",
+    "pipeline:check": "npx nx run-many --target=check --projects=rhema-* --parallel=4",
+    "pipeline:clippy": "npx nx run-many --target=clippy --projects=rhema-* --parallel=4",
+    "pipeline:fmt:check": "npx nx run-many --target=fmt:check --projects=rhema-* --parallel=4",
+    "pipeline:affected:test": "npx nx affected:test --base=main --parallel=4",
+    "pipeline:affected:build": "npx nx affected:build --base=main --parallel=4",
+    "pipeline:affected:check": "npx nx affected:check --base=main --parallel=4",
+    "pipeline:affected:clippy": "npx nx affected --target=clippy --base=main --parallel=4",
+    "pipeline:affected:fmt:check": "npx nx affected --target=fmt:check --base=main --parallel=4",
+    "pipeline:all": "pnpm run pipeline:fmt:check && pnpm run pipeline:clippy && pnpm run pipeline:test && pnpm run pipeline:build",
+    "pipeline:affected:all": "pnpm run pipeline:affected:fmt:check && pnpm run pipeline:affected:clippy && pnpm run pipeline:affected:test && pnpm run pipeline:affected:build"
   },
   "devDependencies": {
     "nx": "^21.3.11",
