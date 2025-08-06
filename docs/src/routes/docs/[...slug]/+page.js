@@ -4,7 +4,7 @@ export const prerender = true;
 
 // Generate all possible doc routes for static pre-rendering
 export const entries = async () => {
-  // List all the doc routes from app.json
+  // List all the doc routes that actually have markdown files
   const routes = [
     // Getting Started
     { slug: 'getting-started/quick-start' },
@@ -23,13 +23,16 @@ export const entries = async () => {
     { slug: 'user-guide/lock-file-health-checks' },
     
     // Core Features
-    { slug: 'core-features' },
+    { slug: 'core-features/README' },
     { slug: 'core-features/lock-configuration-system' },
     { slug: 'core-features/lock-file-cache-system' },
     { slug: 'core-features/lock-file-ai-integration' },
     { slug: 'core-features/ci-cd-lock-file-integration' },
     { slug: 'core-features/ai-service-lock-file-enhancement' },
     { slug: 'core-features/conflict-resolver-usage' },
+    { slug: 'core-features/context-query-language' },
+    { slug: 'core-features/scope-management' },
+    { slug: 'core-features/validation-system' },
     
     // Reference
     { slug: 'reference/global-config-reference' },
@@ -50,10 +53,10 @@ export const entries = async () => {
     { slug: 'development-setup/development/cicd/pull-request-pipeline' },
     
     // Architecture
-    { slug: 'architecture' },
+    { slug: 'architecture/README' },
     
     // Examples
-    { slug: 'examples' },
+    { slug: 'examples/README' },
     { slug: 'examples/advanced-usage' },
     { slug: 'examples/cql-queries' },
     { slug: 'examples/ecommerce-epic-orchestration' },
