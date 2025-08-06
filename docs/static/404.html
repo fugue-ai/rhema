@@ -4,25 +4,20 @@
     <meta charset="utf-8">
     <title>Rhema Documentation</title>
     <script>
-        // Try to load the page via client-side routing
+        // Redirect to the main documentation page
         var path = window.location.pathname;
         var basePath = '/rhema';
         
-        // If we're on GitHub Pages, try to load the page
+        // If we're on GitHub Pages, redirect to the main docs page
         if (path.startsWith(basePath)) {
-            // Remove the base path and try to load the page
-            var route = path.replace(basePath, '');
-            if (route === '' || route === '/') {
-                route = '/';
-            }
-            window.location.href = basePath + route;
+            window.location.href = basePath + '/';
         } else {
             // For local development
-            window.location.href = path;
+            window.location.href = '/';
         }
     </script>
 </head>
 <body>
-    <p>Loading page...</p>
+    <p>Redirecting to <a href="/rhema/">Rhema Documentation</a>...</p>
 </body>
 </html> 
