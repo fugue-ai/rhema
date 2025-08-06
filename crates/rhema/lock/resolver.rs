@@ -1201,7 +1201,7 @@ mod tests {
     #[test]
     fn test_enhanced_dependency_spec_creation() {
         let spec = DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Range(
                 VersionReq::parse(">=1.0.0,<2.0.0").unwrap()
             ),
@@ -1211,7 +1211,7 @@ mod tests {
             scope_path: "crates/app".to_string(),
             priority: 5,
             optional: false,
-            alternatives: vec!["crates/core-alt".to_string()],
+            alternatives: vec!["crates/rhema-core-alt".to_string()],
             metadata: {
                 let mut map = HashMap::new();
                 map.insert("category".to_string(), "core".to_string());
@@ -1219,7 +1219,7 @@ mod tests {
             },
         };
 
-        assert_eq!(spec.path, "crates/core");
+        assert_eq!(spec.path, "crates/rhema-core");
         assert!(!spec.is_transitive);
         assert_eq!(spec.priority, 5);
         assert!(!spec.optional);
@@ -1233,7 +1233,7 @@ mod tests {
         
         let deps = vec![
             DependencySpec {
-                path: "crates/core".to_string(),
+                path: "crates/rhema-core".to_string(),
                 version_constraint: VersionConstraint::Exact(Version::parse("1.0.0").unwrap()),
                 dependency_type: DependencyType::Required,
                 is_transitive: false,
@@ -1245,7 +1245,7 @@ mod tests {
                 metadata: HashMap::new(),
             },
             DependencySpec {
-                path: "crates/core".to_string(),
+                path: "crates/rhema-core".to_string(),
                 version_constraint: VersionConstraint::Exact(Version::parse("2.0.0").unwrap()),
                 dependency_type: DependencyType::Required,
                 is_transitive: false,
@@ -1260,7 +1260,7 @@ mod tests {
 
         let conflicts = resolver.detect_version_conflicts_enhanced(&deps);
         assert_eq!(conflicts.len(), 1);
-        assert_eq!(conflicts[0].dependency_name, "crates/core");
+        assert_eq!(conflicts[0].dependency_name, "crates/rhema-core");
         assert_eq!(conflicts[0].conflict_type, ConflictType::VersionIncompatibility);
         assert_eq!(conflicts[0].severity, ConflictSeverity::High);
     }
@@ -1628,7 +1628,7 @@ mod tests {
         metadata.insert("maintainer".to_string(), "team".to_string());
 
         let spec = DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Latest,
             dependency_type: DependencyType::Required,
             is_transitive: false,
@@ -1636,7 +1636,7 @@ mod tests {
             scope_path: "crates/app".to_string(),
             priority: 10,
             optional: false,
-            alternatives: vec!["crates/core-alt".to_string(), "crates/core-legacy".to_string()],
+            alternatives: vec!["crates/rhema-core-alt".to_string(), "crates/rhema-core-legacy".to_string()],
             metadata: metadata.clone(),
         };
 

@@ -26,7 +26,7 @@ Rhema previously used a custom JSON-RPC implementation for its MCP daemon functi
 
 ### 1. Dependencies Update
 
-**File**: `crates/mcp/Cargo.toml`
+**File**: `crates/rhema-mcp/Cargo.toml`
 
 ```toml
 # Official MCP SDK
@@ -36,7 +36,7 @@ rust-mcp-schema = "0.7.2"
 
 ### 2. Official SDK Implementation
 
-**File**: `crates/mcp/src/official_sdk.rs`
+**File**: `crates/rhema-mcp/src/official_sdk.rs`
 
 Created a new implementation that:
 - Uses the official `rust-mcp-sdk` 
@@ -55,7 +55,7 @@ Created a new implementation that:
 
 ### 3. Updated MCP Daemon
 
-**File**: `crates/mcp/src/mcp.rs`
+**File**: `crates/rhema-mcp/src/mcp.rs`
 
 Modified the main MCP daemon to:
 - Use the new official SDK implementation by default

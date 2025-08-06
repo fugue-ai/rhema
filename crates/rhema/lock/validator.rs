@@ -727,10 +727,10 @@ mod tests {
         let mut lock = RhemaLock::new("test-validator");
         lock.lockfile_version = "1.0.0".to_string();
         
-        let mut scope = LockedScope::new("1.0.0", "crates/core");
-        let dep = LockedDependency::new("1.0.0", "crates/ai", DependencyType::Required);
-        scope.add_dependency("crates/ai".to_string(), dep);
-        lock.add_scope("crates/core".to_string(), scope);
+        let mut scope = LockedScope::new("1.0.0", "crates/rhema-core");
+        let dep = LockedDependency::new("1.0.0", "crates/rhema-ai", DependencyType::Required);
+        scope.add_dependency("crates/rhema-ai".to_string(), dep);
+        lock.add_scope("crates/rhema-core".to_string(), scope);
         
         // Set a valid checksum format manually
         lock.checksum = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456".to_string();

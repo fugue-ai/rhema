@@ -18,14 +18,14 @@ path = "main.rs"
 
 [dependencies]
 rhema-api = { path = "../rhema-api" }
-rhema-core = { path = "../core" }
-rhema-query = { path = "../query" }
-rhema-git = { path = "../git" }
-rhema-ai = { path = "../ai" }
-rhema-mcp = { path = "../mcp" }
-rhema-config = { path = "../config" }
-rhema-monitoring = { path = "../monitoring" }
-rhema-integrations = { path = "../integrations" }
+rhema-core = { path = "../rhema-core" }
+rhema-query = { path = "../rhema-query" }
+rhema-git = { path = "../rhema-git" }
+rhema-ai = { path = "../rhema-ai" }
+rhema-mcp = { path = "../rhema-mcp" }
+rhema-config = { path = "../rhema-config" }
+rhema-monitoring = { path = "../rhema-monitoring" }
+rhema-integrations = { path = "../rhema-integrations" }
 clap = { workspace = true, features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde_yaml = { workspace = true }

@@ -17,7 +17,7 @@ While Rhema provides excellent context management capabilities, there's a need f
 ### ✅ **Implemented Components**
 
 1. **LOCOMO (Language Model Context Optimization) Framework**
-   - Complete benchmark engine (`crates/locomo/src/benchmark_engine.rs`)
+   - Complete benchmark engine (`crates/rhema-locomo/src/benchmark_engine.rs`)
    - Context quality assessment system
    - Performance metrics collection
    - AI agent optimization capabilities

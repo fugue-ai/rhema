@@ -61,7 +61,7 @@ Add Syneidesis dependencies to your `Cargo.toml`:
 ```toml
 [dependencies]
 syneidesis-grpc = { path = "../syneidesis/crates/grpc" }
-syneidesis-config = { path = "../syneidesis/crates/config" }
+syneidesis-config = { path = "../syneidesis/crates/rhema-config" }
 ```
 
 ### 2. Basic Agent Integration

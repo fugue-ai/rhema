@@ -13,17 +13,17 @@ keywords = ["cli", "interactive", "commands"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-rhema-core = { path = "../../crates/core" }
-rhema-query = { path = "../../crates/query" }
-rhema-git = { path = "../../crates/git" }
-rhema-ai = { path = "../../crates/ai" }
-rhema-mcp = { path = "../../crates/mcp" }
-rhema-config = { path = "../../crates/config" }
-rhema-knowledge = { path = "../../crates/knowledge" }
-rhema-locomo = { path = "../../crates/locomo" }  # LOCOMO integration for performance monitoring and analytics
-# rhema-monitoring = { path = "../../crates/monitoring" }
-rhema-integrations = { path = "../../crates/integrations" }
-rhema-action = { path = "../../crates/action" }
+rhema-core = { path = "../../crates/rhema-core" }
+rhema-query = { path = "../../crates/rhema-query" }
+rhema-git = { path = "../../crates/rhema-git" }
+rhema-ai = { path = "../../crates/rhema-ai" }
+rhema-mcp = { path = "../../crates/rhema-mcp" }
+rhema-config = { path = "../../crates/rhema-config" }
+rhema-knowledge = { path = "../../crates/rhema-knowledge" }
+rhema-locomo = { path = "../../crates/rhema-locomo" }  # LOCOMO integration for performance monitoring and analytics
+# rhema-monitoring = { path = "../../crates/rhema-monitoring" }
+rhema-integrations = { path = "../../crates/rhema-integrations" }
+rhema-action = { path = "../../crates/rhema-action" }
 rhema-api = { path = "../../crates/rhema-api" }
 
 clap = { workspace = true }

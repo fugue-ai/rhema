@@ -18,7 +18,7 @@ The current Rhema scope discovery system has several limitations:
 ### ✅ **Implemented Components**
 
 1. **Basic Scope Discovery**
-   - Manual `.rhema` directory detection (`crates/core/src/scope.rs`)
+   - Manual `.rhema` directory detection (`crates/rhema-core/src/scope.rs`)
    - Scope file parsing and validation
    - Dependency graph building
    - Scope hierarchy management

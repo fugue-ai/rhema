@@ -1,0 +1,70 @@
+[package]
+name = "rhema-action"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+description = "Action Protocol for safe agent-assisted codebase modifications"
+keywords = ["action", "protocol", "safety", "validation", "transformation"]
+categories = ["development-tools", "command-line-utilities"]
+
+[dependencies]
+rhema-core = { path = "../rhema-core" }
+rhema-query = { path = "../rhema-query" }
+rhema-git = { path = "../rhema-git" }
+rhema-ai = { path = "../rhema-ai" }
+rhema-config = { path = "../rhema-config" }
+rhema-monitoring = { path = "../rhema-monitoring" }
+
+# Core dependencies
+serde = { workspace = true, features = ["derive"] }
+serde_yaml = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true, features = ["serde"] }
+clap = { workspace = true, features = ["derive"] }
+
+# File and process handling
+walkdir = { workspace = true }
+regex = { workspace = true }
+tempfile = { workspace = true }
+dirs = { workspace = true }
+
+# Async and concurrency
+futures = { workspace = true }
+rayon = { workspace = true }
+once_cell = "1.19"
+
+# Logging and tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Validation and serialization
+validator = { workspace = true, features = ["derive"] }
+bincode = { workspace = true }
+async-trait = "0.1"
+
+# Interactive features
+dialoguer = { workspace = true }
+console = { workspace = true }
+colored = { workspace = true }
+indicatif = { workspace = true }
+
+# Git integration
+git2 = { workspace = true }
+
+# External tool integration
+reqwest = { workspace = true, features = ["json"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+assert_fs = { workspace = true }
+predicates = { workspace = true }
+mockall = { workspace = true } 

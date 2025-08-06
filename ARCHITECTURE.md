@@ -167,19 +167,19 @@ Rhema is designed as a comprehensive workspace with multiple specialized crates 
 
 The Rhema workspace is built around several specialized crates that work together:
 
-1. **Core (`crates/core`)** - Fundamental types, error handling, and file operations
-2. **Query (`crates/query`)** - Advanced CQL (Context Query Language) for data retrieval
-3. **Git (`crates/git`)** - Repository-aware context management and Git integration
-4. **AI (`crates/ai`)** - Agentic development coordination, constraint systems, and AI service integration
-5. **MCP (`crates/mcp`)** - Model Context Protocol daemon for AI agent communication
-6. **Config (`crates/config`)** - Configuration management and validation
-7. **Knowledge (`crates/knowledge`)** - Knowledge base management, caching, and cross-session persistence
-8. **Dependency (`crates/dependency`)** - Advanced dependency management, impact analysis, and health monitoring
-9. **Monitoring (`crates/monitoring`)** - Performance monitoring and metrics collection
-10. **Integrations (`crates/integrations`)** - Third-party service integrations
+1. **Core (`crates/rhema-core`)** - Fundamental types, error handling, and file operations
+2. **Query (`crates/rhema-query`)** - Advanced CQL (Context Query Language) for data retrieval
+3. **Git (`crates/rhema-git`)** - Repository-aware context management and Git integration
+4. **AI (`crates/rhema-ai`)** - Agentic development coordination, constraint systems, and AI service integration
+5. **MCP (`crates/rhema-mcp`)** - Model Context Protocol daemon for AI agent communication
+6. **Config (`crates/rhema-config`)** - Configuration management and validation
+7. **Knowledge (`crates/rhema-knowledge`)** - Knowledge base management, caching, and cross-session persistence
+8. **Dependency (`crates/rhema-dependency`)** - Advanced dependency management, impact analysis, and health monitoring
+9. **Monitoring (`crates/rhema-monitoring`)** - Performance monitoring and metrics collection
+10. **Integrations (`crates/rhema-integrations`)** - Third-party service integrations
 11. **CLI (`crates/cli`)** - Command-line interface and user interaction
-12. **Action (`crates/action`)** - GitHub Actions and CI/CD integration
-13. **Locomo (`crates/locomo`)** - Performance benchmarking and quality assessment
+12. **Action (`crates/rhema-action`)** - GitHub Actions and CI/CD integration
+13. **Locomo (`crates/rhema-locomo`)** - Performance benchmarking and quality assessment
 
 ### Data Model
 
@@ -213,19 +213,19 @@ The Rhema project is organized as a Rust workspace with specialized crates that 
 
 #### Core Infrastructure Crates
 
-**`crates/core`** - Foundation Layer
+**`crates/rhema-core`** - Foundation Layer
 - Fundamental types and error handling
 - File operations and utilities
 - Common traits and interfaces
 - Base functionality used by all other crates
 
-**`crates/config`** - Configuration Management
+**`crates/rhema-config`** - Configuration Management
 - Global and repository-specific configuration
 - Configuration validation and migration
 - Security features (encryption, RBAC, audit logging)
 - Environment-specific settings
 
-**`crates/query`** - Query Engine
+**`crates/rhema-query`** - Query Engine
 - Context Query Language (CQL) implementation
 - Query optimization and caching
 - Advanced search capabilities
@@ -233,7 +233,7 @@ The Rhema project is organized as a Rust workspace with specialized crates that 
 
 #### AI and Agent Integration
 
-**`crates/ai`** - Agentic Development System
+**`crates/rhema-ai`** - Agentic Development System
 - **AgenticDevelopmentService**: Main service coordinating all AI components
 - **ConstraintSystem**: Enforces development constraints and rules
 - **TaskScoringSystem**: Prioritizes and scores development tasks
@@ -242,7 +242,7 @@ The Rhema project is organized as a Rust workspace with specialized crates that 
 - **LockFileContextProvider**: Manages dependency lock file context
 - **SyncCoordinator**: Handles cross-scope synchronization
 
-**`crates/mcp`** - Model Context Protocol
+**`crates/rhema-mcp`** - Model Context Protocol
 - **RhemaMcpService**: Main MCP service coordinating components
 - **McpDaemon**: Core daemon functionality
 - **HttpServer**: HTTP API for external access
@@ -254,19 +254,19 @@ The Rhema project is organized as a Rust workspace with specialized crates that 
 
 #### Development Workflow Crates
 
-**`crates/git`** - Git Integration
+**`crates/rhema-git`** - Git Integration
 - Repository-aware context management
 - Git hooks integration
 - Branch-aware context handling
 - Version control synchronization
 
-**`crates/knowledge`** - Knowledge Management
+**`crates/rhema-knowledge`** - Knowledge Management
 - Knowledge base operations
 - Cross-session persistence
 - Embedding and semantic search
 - Knowledge caching and optimization
 
-**`crates/dependency`** - Dependency Management
+**`crates/rhema-dependency`** - Dependency Management
 - **DependencyManager**: Core dependency management
 - **ImpactAnalysis**: Dependency impact assessment
 - **HealthMonitor**: Dependency health monitoring
@@ -283,13 +283,13 @@ The Rhema project is organized as a Rust workspace with specialized crates that 
 
 #### Performance and Monitoring
 
-**`crates/monitoring`** - Performance Monitoring
+**`crates/rhema-monitoring`** - Performance Monitoring
 - System performance metrics
 - User experience tracking
 - Usage analytics
 - Performance reporting
 
-**`crates/locomo`** - Performance Benchmarking
+**`crates/rhema-locomo`** - Performance Benchmarking
 - **LocomoBenchmarkEngine**: Performance benchmarking
 - **ContextQualityAssessor**: Context quality assessment
 - **LocomoMetrics**: Performance metrics collection
@@ -297,13 +297,13 @@ The Rhema project is organized as a Rust workspace with specialized crates that 
 
 #### Integration and Automation
 
-**`crates/integrations`** - External Integrations
+**`crates/rhema-integrations`** - External Integrations
 - Third-party service integrations
 - API connectors
 - Communication protocols
 - External tool integration
 
-**`crates/action`** - CI/CD Integration
+**`crates/rhema-action`** - CI/CD Integration
 - GitHub Actions integration
 - Automated workflows
 - Deployment automation
@@ -570,7 +570,7 @@ Rhema integrates with common Git workflows:
 
 ### Overview
 
-The AI and agentic development system (`crates/ai`) provides comprehensive coordination and management for AI-assisted development workflows. It consists of several interconnected components that work together to enable intelligent, coordinated development:
+The AI and agentic development system (`crates/rhema-ai`) provides comprehensive coordination and management for AI-assisted development workflows. It consists of several interconnected components that work together to enable intelligent, coordinated development:
 
 1. **AgenticDevelopmentService** - Main service coordinating all AI components
 2. **ConstraintSystem** - Enforces development constraints and rules
@@ -853,7 +853,7 @@ service.send_message(message).await?;
 
 ### Overview
 
-The Model Context Protocol (MCP) system (`crates/mcp`) provides a standardized way for AI agents to interact with Rhema's context management capabilities. It implements the official MCP specification and provides additional Rhema-specific extensions.
+The Model Context Protocol (MCP) system (`crates/rhema-mcp`) provides a standardized way for AI agents to interact with Rhema's context management capabilities. It implements the official MCP specification and provides additional Rhema-specific extensions.
 
 ### Core Components
 
@@ -1049,7 +1049,7 @@ The MCP system enables AI agents to:
 
 ### Overview
 
-The Dependency Management system (`crates/dependency`) provides comprehensive dependency management capabilities with advanced analysis, health monitoring, and predictive capabilities. It goes beyond basic dependency tracking to provide intelligent insights and automated management.
+The Dependency Management system (`crates/rhema-dependency`) provides comprehensive dependency management capabilities with advanced analysis, health monitoring, and predictive capabilities. It goes beyond basic dependency tracking to provide intelligent insights and automated management.
 
 ### Core Components
 
@@ -1391,7 +1391,7 @@ for prediction in predictions {
 
 ### Overview
 
-The Locomo Performance Benchmarking system (`crates/locomo`) provides comprehensive performance benchmarking, quality assessment, and optimization capabilities for Rhema's context management operations. It helps ensure optimal performance and quality across all Rhema operations.
+The Locomo Performance Benchmarking system (`crates/rhema-locomo`) provides comprehensive performance benchmarking, quality assessment, and optimization capabilities for Rhema's context management operations. It helps ensure optimal performance and quality across all Rhema operations.
 
 ### Core Components
 

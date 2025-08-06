@@ -186,7 +186,7 @@ fn test_conflict_detection_comprehensive() {
     // Test no conflicts
     let deps = vec![
         DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Exact(Version::parse("1.0.0").unwrap()),
             dependency_type: DependencyType::Required,
             is_transitive: false,
@@ -200,14 +200,14 @@ fn test_conflict_detection_comprehensive() {
     // Test version incompatibility
     let deps = vec![
         DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Exact(Version::parse("1.0.0").unwrap()),
             dependency_type: DependencyType::Required,
             is_transitive: false,
             original_constraint: "=1.0.0".to_string(),
         },
         DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Exact(Version::parse("2.0.0").unwrap()),
             dependency_type: DependencyType::Required,
             is_transitive: false,
@@ -217,13 +217,13 @@ fn test_conflict_detection_comprehensive() {
 
     let conflicts = resolver.detect_conflicts(&deps);
     assert_eq!(conflicts.len(), 1);
-    assert_eq!(conflicts[0].dependency_name, "crates/core");
+    assert_eq!(conflicts[0].dependency_name, "crates/rhema-core");
     assert_eq!(conflicts[0].conflict_type, ConflictType::VersionIncompatibility);
 
     // Test range conflicts
     let deps = vec![
         DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Range(
                 VersionReq::parse(">=1.0.0,<2.0.0").unwrap()
             ),
@@ -232,7 +232,7 @@ fn test_conflict_detection_comprehensive() {
             original_constraint: ">=1.0.0,<2.0.0".to_string(),
         },
         DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Range(
                 VersionReq::parse(">=2.0.0,<3.0.0").unwrap()
             ),
@@ -330,7 +330,7 @@ fn test_complex_dependency_scenarios() {
     // Test multiple dependencies with different types
     let deps = vec![
         DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Range(
                 VersionReq::parse(">=1.0.0,<2.0.0").unwrap()
             ),
@@ -339,14 +339,14 @@ fn test_complex_dependency_scenarios() {
             original_constraint: ">=1.0.0,<2.0.0".to_string(),
         },
         DependencySpec {
-            path: "crates/ai".to_string(),
+            path: "crates/rhema-ai".to_string(),
             version_constraint: VersionConstraint::Exact(Version::parse("2.0.0").unwrap()),
             dependency_type: DependencyType::Optional,
             is_transitive: false,
             original_constraint: "=2.0.0".to_string(),
         },
         DependencySpec {
-            path: "crates/config".to_string(),
+            path: "crates/rhema-config".to_string(),
             version_constraint: VersionConstraint::Latest,
             dependency_type: DependencyType::Development,
             is_transitive: true,
@@ -374,14 +374,14 @@ fn test_conflict_resolution_methods() {
     // Test that different conflict resolution methods are properly configured
     let deps = vec![
         DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Exact(Version::parse("1.0.0").unwrap()),
             dependency_type: DependencyType::Required,
             is_transitive: false,
             original_constraint: "=1.0.0".to_string(),
         },
         DependencySpec {
-            path: "crates/core".to_string(),
+            path: "crates/rhema-core".to_string(),
             version_constraint: VersionConstraint::Exact(Version::parse("2.0.0").unwrap()),
             dependency_type: DependencyType::Required,
             is_transitive: false,

@@ -23,7 +23,7 @@ AI agents receive detailed dependency information including:
 
 ```rust
 // Example: Getting dependency versions for a scope
-let context = integration.get_scope_context("crates/core")?;
+let context = integration.get_scope_context("crates/rhema-core")?;
 for dep in context.dependencies {
     println!("{}: {} ({})", dep.name, dep.version, dep.dependency_type);
 }
@@ -77,7 +77,7 @@ println!("Health Score: {:.1}/100", context.health_assessment.overall_score);
 ```rust
 // Generate AI prompt for dependency updates
 let prompt = integration.generate_dependency_update_prompt(
-    "crates/core",
+    "crates/rhema-core",
     "Analyze dependencies and suggest updates for security and performance improvements."
 )?;
 
@@ -102,7 +102,7 @@ for conflict in conflicts.version_conflicts {
 ```rust
 // Generate security review prompt
 let security_prompt = integration.generate_security_review_prompt(
-    "crates/core",
+    "crates/rhema-core",
     "Perform security analysis of dependencies and identify vulnerabilities."
 )?;
 ```
@@ -228,11 +228,11 @@ let context_provider = ContextProvider::new(repo_root)?;
 context_provider.initialize().await?;
 
 // Get lock file information through MCP
-let lock_context = context_provider.get_scope_lock_context("crates/core").await?;
-let dependency_versions = context_provider.get_dependency_versions("crates/core").await?;
+let lock_context = context_provider.get_scope_lock_context("crates/rhema-core").await?;
+let dependency_versions = context_provider.get_dependency_versions("crates/rhema-core").await?;
 let conflict_info = context_provider.get_conflict_prevention_info().await?;
 let health_info = context_provider.get_lock_file_health().await?;
-let recommendations = context_provider.get_dependency_recommendations("crates/core").await?;
+let recommendations = context_provider.get_dependency_recommendations("crates/rhema-core").await?;
 ```
 
 ## Best Practices

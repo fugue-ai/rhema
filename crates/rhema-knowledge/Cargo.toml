@@ -1,0 +1,76 @@
+[package]
+name = "rhema-knowledge"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+description = "Unified RAG and K/V local store system for Rhema"
+keywords = ["rag", "cache", "knowledge", "semantic", "vector", "embedding"]
+categories = ["development-tools"]
+
+[dependencies]
+# Internal crates
+rhema-core = { path = "../rhema-core" }
+rhema-query = { path = "../rhema-query" }
+rhema-ai = { path = "../rhema-ai" }
+rhema-mcp = { path = "../rhema-mcp" }
+rhema-config = { path = "../rhema-config" }
+
+# Core dependencies
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+
+# Caching and storage
+dashmap = "5.5"
+redis = { workspace = true, features = ["tokio-comp", "connection-manager"] }
+bincode = { workspace = true }
+flate2 = { workspace = true }
+sha2 = { workspace = true }
+lru = "0.12"
+
+# Vector storage and embeddings
+qdrant-client = "1.7"
+reqwest = { version = "0.11", features = ["json"] }
+# rust-bert = "0.21"  # Temporarily disabled due to PyTorch dependency
+# tokenizers = "0.15"  # Temporarily disabled due to C++ compilation issues
+ndarray = "0.15"
+ndarray-stats = "0.5"
+
+# Async and concurrency
+futures = "0.3"
+async-trait = "0.1"
+
+# File system and compression
+walkdir = "2.4"
+tar = "0.4"
+zstd = "0.13"
+lz4 = "1.24"
+notify = "6.1"
+
+# Utilities
+regex = "1.10"
+base64 = "0.21"
+dirs = "5.0"
+pathdiff = "0.2"
+similar = "2.2"
+
+# Performance monitoring
+prometheus = "0.13"
+
+[dev-dependencies]
+tempfile = "3.8"
+assert_fs = "1.1"
+predicates = "3.0"
+mockall = "0.12"
+tokio-test = "0.4" 

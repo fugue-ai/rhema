@@ -350,18 +350,18 @@
       "generated_by": "rhema v1.0.0",
       "checksum": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
       "scopes": {
-        "crates/core": {
+        "crates/rhema-core": {
           "version": "1.0.0",
-          "path": "crates/core",
+          "path": "crates/rhema-core",
           "dependencies": {
-            "crates/ai": {
+            "crates/rhema-ai": {
               "version": "2.0.0",
-              "path": "crates/ai",
+              "path": "crates/rhema-ai",
               "resolved_at": "2025-01-15T10:30:00Z",
               "checksum": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890",
               "dependency_type": "required",
               "is_transitive": false,
-              "dependencies": ["crates/config"]
+              "dependencies": ["crates/rhema-config"]
             }
           },
           "resolved_at": "2025-01-15T10:30:00Z",

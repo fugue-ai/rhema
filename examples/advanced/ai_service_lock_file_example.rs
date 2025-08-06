@@ -73,7 +73,7 @@ impl LockFileAwareAIExample {
             include_conflict_prevention: true,
             include_health_info: true,
             include_recommendations: true,
-            target_scopes: Some(vec!["crates/core".to_string()]),
+            target_scopes: Some(vec!["crates/rhema-core".to_string()]),
             include_transitive_deps: true,
             validate_before_processing: true,
             conflict_resolution_mode: ConflictResolutionMode::Automatic,
@@ -90,7 +90,7 @@ impl LockFileAwareAIExample {
             created_at: chrono::Utc::now(),
             lock_file_context: Some(lock_context),
             task_type: Some(TaskType::DependencyUpdate),
-            scope_path: Some("crates/core".to_string()),
+            scope_path: Some("crates/rhema-core".to_string()),
         };
 
         let response = self.ai_service.process_request(request).await?;
@@ -191,7 +191,7 @@ impl LockFileAwareAIExample {
         let workflow_id = self.workflow_manager.start_workflow(
             "conflict-prevention-agent",
             TaskType::DependencyUpdate,
-            Some("crates/core".to_string()),
+            Some("crates/rhema-core".to_string()),
             workflow_config.clone(),
         ).await?;
 
@@ -277,7 +277,7 @@ impl LockFileAwareAIExample {
         // Use AI agent tools for conflict resolution
         let conflict_result = self.agent_tools.resolve_dependency_conflicts(
             "conflict-resolution-agent",
-            Some("crates/core".to_string())
+            Some("crates/rhema-core".to_string())
         ).await?;
 
         println!("Conflict resolution workflow: {}", conflict_result.workflow_id);
@@ -359,7 +359,7 @@ impl LockFileAwareAIExample {
 
         let security_result = self.agent_tools.security_review(
             "security-agent",
-            Some("crates/core".to_string())
+            Some("crates/rhema-core".to_string())
         ).await?;
 
         println!("Security review workflow: {}", security_result.workflow_id);
@@ -393,7 +393,7 @@ impl LockFileAwareAIExample {
 
         let update_result = self.agent_tools.update_dependencies(
             "dependency-update-agent",
-            "crates/core"
+            "crates/rhema-core"
         ).await?;
 
         println!("Dependency update workflow: {}", update_result.workflow_id);

@@ -1,0 +1,37 @@
+[package]
+name = "rhema-monitoring"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+description = "Performance monitoring and analytics for the Rhema Protocol"
+keywords = ["monitoring", "performance", "analytics", "metrics"]
+categories = ["development-tools"]
+
+[dependencies]
+rhema-core = { path = "../rhema-core" }
+rhema-locomo = { path = "../rhema-locomo" }
+prometheus = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dashmap = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+num_cpus = { workspace = true }
+actix-web = { workspace = true }
+axum = "0.7"
+tower-http = { version = "0.5", features = ["cors"] }
+hyper = "1"
+
+[dev-dependencies]
+tempfile = { workspace = true }
+assert_fs = { workspace = true }
+predicates = { workspace = true } 

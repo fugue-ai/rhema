@@ -30,7 +30,7 @@ This document tracks server-side fixes and enhancements required to fully suppor
 
 #### Implementation Tasks:
 ```rust
-// crates/ai/src/ai_service.rs
+// crates/rhema-ai/src/ai_service.rs
 pub struct AICompletionService {
     model_client: Box<dyn AIModelClient>,
     context_analyzer: ContextAnalyzer,
@@ -79,7 +79,7 @@ impl AICompletionService {
 
 #### Implementation Tasks:
 ```rust
-// crates/config/src/validation.rs
+// crates/rhema-config/src/validation.rs
 pub struct RhemaValidator {
     schema_registry: SchemaRegistry,
     custom_rules: Vec<Box<dyn ValidationRule>>,
@@ -129,7 +129,7 @@ impl RhemaValidator {
 
 #### Implementation Tasks:
 ```rust
-// crates/git/src/advanced.rs
+// crates/rhema-git/src/advanced.rs
 pub struct GitWorkflowManager {
     hook_manager: GitHookManager,
     conflict_resolver: ConflictResolver,
@@ -180,7 +180,7 @@ impl GitWorkflowManager {
 
 #### Implementation Tasks:
 ```rust
-// crates/knowledge/src/context_service.rs
+// crates/rhema-knowledge/src/context_service.rs
 pub struct ContextService {
     workspace_analyzer: WorkspaceAnalyzer,
     context_cache: ContextCache,
@@ -231,7 +231,7 @@ impl ContextService {
 
 #### Implementation Tasks:
 ```rust
-// crates/monitoring/src/performance.rs
+// crates/rhema-monitoring/src/performance.rs
 pub struct PerformanceMonitor {
     metrics_collector: MetricsCollector,
     cache_manager: CacheManager,
@@ -268,7 +268,7 @@ impl PerformanceMonitor {
 
 #### Implementation Tasks:
 ```rust
-// crates/config/src/extension_config.rs
+// crates/rhema-config/src/extension_config.rs
 pub struct ExtensionConfigManager {
     validator: ConfigValidator,
     workspace_config: WorkspaceConfigManager,
@@ -306,7 +306,7 @@ impl ExtensionConfigManager {
 
 #### Implementation Tasks:
 ```rust
-// crates/monitoring/src/analytics.rs
+// crates/rhema-monitoring/src/analytics.rs
 pub struct AnalyticsService {
     usage_tracker: UsageTracker,
     error_reporter: ErrorReporter,
@@ -343,7 +343,7 @@ impl AnalyticsService {
 
 #### Implementation Tasks:
 ```rust
-// crates/integrations/src/collaboration.rs
+// crates/rhema-integrations/src/collaboration.rs
 pub struct CollaborationService {
     real_time_sync: RealTimeSync,
     user_manager: UserManager,
@@ -415,9 +415,9 @@ impl CollaborationService {
 
 - [VS Code Extension Implementation Plan](./TODO.md)
 - [Rhema CLI Documentation](../../docs/api-reference/cli-api-reference.md)
-- [AI Service Documentation](../../crates/ai/README.md)
-- [Git Integration Documentation](../../crates/git/README.md)
-- [Configuration Documentation](../../crates/config/README.md)
+- [AI Service Documentation](../../crates/rhema-ai/README.md)
+- [Git Integration Documentation](../../crates/rhema-git/README.md)
+- [Configuration Documentation](../../crates/rhema-config/README.md)
 
 ---
 

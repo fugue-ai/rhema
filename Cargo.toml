@@ -21,22 +21,22 @@ path = "crates/rhema/main.rs"
 [workspace]
 resolver = "2"
 members = [
-    "crates/core",
-    "crates/query", 
-    "crates/git",
-    "crates/ai",
-    "crates/mcp",
-    "crates/config",
-    "crates/monitoring",
-    "crates/integrations",
+    "crates/rhema-core",
+    "crates/rhema-query", 
+    "crates/rhema-git",
+    "crates/rhema-ai",
+    "crates/rhema-mcp",
+    "crates/rhema-config",
+    "crates/rhema-monitoring",
+    "crates/rhema-integrations",
     "crates/rhema-api",
     "crates/rhema",
     "apps/rhema",
-    "crates/action",
-    "crates/dependency",
-    "crates/locomo",
-    "crates/knowledge",
-    "crates/agent"
+    "crates/rhema-action",
+    "crates/rhema-dependency",
+    "crates/rhema-locomo",
+    "crates/rhema-knowledge",
+    "crates/rhema-agent"
 ]
 
 [workspace.package]
@@ -152,19 +152,19 @@ rand = "0.8"
 
 [dependencies]
 # Internal crates
-rhema-core = { path = "crates/core" }
-rhema-query = { path = "crates/query" }
-rhema-git = { path = "crates/git" }
-rhema-ai = { path = "crates/ai" }
-rhema-mcp = { path = "crates/mcp" }
-rhema-config = { path = "crates/config" }
-rhema-monitoring = { path = "crates/monitoring" }
-rhema-integrations = { path = "crates/integrations" }
+rhema-core = { path = "crates/rhema-core" }
+rhema-query = { path = "crates/rhema-query" }
+rhema-git = { path = "crates/rhema-git" }
+rhema-ai = { path = "crates/rhema-ai" }
+rhema-mcp = { path = "crates/rhema-mcp" }
+rhema-config = { path = "crates/rhema-config" }
+rhema-monitoring = { path = "crates/rhema-monitoring" }
+rhema-integrations = { path = "crates/rhema-integrations" }
 rhema-api = { path = "crates/rhema-api" }
 rhema-cli = { path = "apps/rhema" }
-rhema-action = { path = "crates/action" }
-rhema-locomo = { path = "crates/locomo" }
-# rhema-knowledge = { path = "crates/knowledge" }
+rhema-action = { path = "crates/rhema-action" }
+rhema-locomo = { path = "crates/rhema-locomo" }
+# rhema-knowledge = { path = "crates/rhema-knowledge" }
 
 # External dependencies
 anyhow = "1.0"
