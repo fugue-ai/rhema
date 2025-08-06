@@ -4,11 +4,20 @@
     <meta charset="utf-8">
     <title>Rhema Documentation</title>
     <script>
-        // Redirect to SPA fallback page
-        window.location.href = '/spa.html';
+        // Redirect to SPA fallback page with correct base path
+        var path = window.location.pathname;
+        var basePath = '/rhema';
+        
+        // If we're on GitHub Pages, use the base path
+        if (path.startsWith(basePath)) {
+            window.location.href = basePath + '/spa.html';
+        } else {
+            // For local development
+            window.location.href = '/spa.html';
+        }
     </script>
 </head>
 <body>
-    <p>Redirecting to <a href="/spa.html">Rhema Documentation</a>...</p>
+    <p>Redirecting to <a href="/rhema/spa.html">Rhema Documentation</a>...</p>
 </body>
 </html> 
