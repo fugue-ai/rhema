@@ -42,7 +42,7 @@ jobs:
           pnpm install --frozen-lockfile
 
       - name: Build repo
-        run: pnpm build
+        run: pnpm build:all
 
       - name: Build documentation
         run: |
