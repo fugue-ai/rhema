@@ -56,6 +56,16 @@
     }
   ],
   "kitDocs": {
+    "index": [
+      {
+        "layout": "default",
+        "title": "Documentation",
+        "description": "Rhema Documentation",
+        "href": "/",
+        "new": false,
+        "headers": []
+      }
+    ],
     "getting-started": [
       {
         "layout": "default",
