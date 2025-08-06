@@ -12,7 +12,7 @@ export async function load({ params }) {
     // Construct the file path - handle both development and production paths
     let filePath;
     let markdown;
-    
+
     // Try the current working directory first (for development)
     filePath = join(process.cwd(), 'src', 'docs', `${slug}.md`);
     try {
@@ -42,24 +42,24 @@ export async function load({ params }) {
   }
 }
 
-/**
- * @param {string} markdown
- * @returns {Array<{id: string, text: string, level: number}>}
- */
 function generateTOC(markdown) {
-  /** @type {Array<{id: string, text: string, level: number}>} */
-  const toc = [];
   const lines = markdown.split('\n');
-
-  lines.forEach((line) => {
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+  const toc = [];
+  
+  for (const line of lines) {
+    const headingMatch = line.match(/^(#{2,4})\s+(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
-      const text = headingMatch[2];
-      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      toc.push({ id, text, level });
+      const title = headingMatch[2].trim();
+      const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      
+      toc.push({
+        level,
+        title,
+        id,
+      });
     }
-  });
-
+  }
+  
   return toc;
 } 
