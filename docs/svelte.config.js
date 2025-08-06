@@ -10,6 +10,11 @@ const config = {
   extensions: ['.svelte', '.md'],
 
   kit: {
+    // Base path for GitHub Pages deployment
+    paths: {
+      base: process.env.NODE_ENV === 'production' ? '/rhema' : ''
+    },
+
     // Use static adapter for GitHub Pages deployment
     adapter: adapter({
       pages: 'build',
