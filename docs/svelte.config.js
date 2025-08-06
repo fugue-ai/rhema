@@ -15,11 +15,22 @@ const config = {
       base: process.env.NODE_ENV === 'production' ? '/rhema' : ''
     },
 
+    // Prerender all pages for static generation
+    prerender: {
+      handleHttpError: ({ path, referrer, message }) => {
+        // Ignore missing pages during prerendering
+        if (message.includes('not found')) {
+          return;
+        }
+        throw new Error(message);
+      }
+    },
+
     // Use static adapter for GitHub Pages deployment
     adapter: adapter({
       pages: 'build',
       assets: 'build',
-      fallback: '404.html',
+      fallback: 'index.html',
       precompress: false,
       strict: false,
     }),
