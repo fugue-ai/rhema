@@ -50,7 +50,7 @@ templates: [...]  # Array of SharedTemplate
 - id: "security-code-review-1"
   name: "Security Code Review"
   description: "Comprehensive security-focused code review template"
-  template: "SECURITY CODE REVIEW\n\nPlease review: {{CONTEXT}}"
+  template: "SECURITY CODE REVIEW\n\nPlease review: \{\{CONTEXT\}\}"
   metadata:
     author: "security-team@example.com"
     version: "1.0.0"
@@ -101,7 +101,7 @@ rhema template create-library "Internal Templates" \
 
 rhema template add-template "Security Templates" \
   "Security Code Review" \
-  "SECURITY CODE REVIEW\n\nPlease review: {{CONTEXT}}" \
+  "SECURITY CODE REVIEW\n\nPlease review: \{\{CONTEXT\}\}" \
   --description "Comprehensive security-focused code review template" \
   --category "security" \
   --complexity "Advanced" \
@@ -114,7 +114,7 @@ rhema template add-template "Security Templates" \
 
 rhema template add-template "Security Templates" \
   "Vulnerability Assessment" \
-  "VULNERABILITY ASSESSMENT\n\nAssess: {{CONTEXT}}" \
+  "VULNERABILITY ASSESSMENT\n\nAssess: \{\{CONTEXT\}\}" \
   --description "Template for assessing potential vulnerabilities" \
   --category "security" \
   --complexity "Expert" \
@@ -460,7 +460,7 @@ metadata:
 
 2. **Use consistent formatting** - Standardize template structure
 
-3. **Include context variables** - Use {{CONTEXT}} for flexibility
+3. **Include context variables** - Use \{\{CONTEXT\}\} for flexibility
 
 4. **Document requirements** - Specify when and how to use
 

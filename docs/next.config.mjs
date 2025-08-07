@@ -1,14 +1,16 @@
 import nextra from 'nextra'
 
 const withNextra = nextra({
+  latex: true,
+  search: {
+    codeblocks: false
+  },
   contentDirBasePath: process.env.NODE_ENV === 'production' ? '/rhema' : '/',
 })
 
 export default withNextra({
-  turbopack: {
-    resolveAlias: {
-      // Path to your `mdx-components` file with extension
-      'next-mdx-import-source-file': './src/mdx-components.tsx'
-    }
-  }
+  output: 'export',
+  experimental: {
+    optimizePackageImports: false,
+  },
 })

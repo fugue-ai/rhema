@@ -893,59 +893,6 @@ scrape_configs:
     metrics_path: /metrics
 ```
 
-### Grafana Dashboard
-
-
-```json
-{
-  "dashboard": {
-    "title": "Rhema MCP Daemon",
-    "panels": [
-      {
-        "title": "Request Rate",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(http_requests_total[5m])",
-            "legendFormat": "{{method}} {{endpoint}}"
-          }
-        ]
-      },
-      {
-        "title": "Response Time",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
-            "legendFormat": "95th percentile"
-          }
-        ]
-      },
-      {
-        "title": "Memory Usage",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "process_resident_memory_bytes",
-            "legendFormat": "Memory Usage"
-          }
-        ]
-      },
-      {
-        "title": "Cache Hit Rate",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "rhema_cache_hit_rate",
-            "legendFormat": "Cache Hit Rate"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
 ## Security Considerations
 
 
