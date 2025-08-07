@@ -1,13 +1,9 @@
 packages:
-  # Rust crates (for reference, not managed by pnpm)
-  - 'crates/*'
-  
-  # Documentation site
-  - 'docs'
-  
-  # Applications
-  - 'apps/*'
-  
-  # Examples and other Node.js projects
-  - 'examples/*'
-  - 'kitdocs-docs' 
+  - crates/*
+  - docs
+  - apps/*
+  - examples/*
+  - kitdocs-docs
+
+onlyBuiltDependencies:
+  - unrs-resolver

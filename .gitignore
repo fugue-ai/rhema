@@ -96,11 +96,12 @@ target/
 **/build/
 **/.svelte-kit/
 **/out/
+**/.next/
 
 # TypeScript build outputs
 target/node/
 **/target/node/ 
-
+**/*.tsbuildinfo
 
 .nx/cache
 .nx/workspace-data

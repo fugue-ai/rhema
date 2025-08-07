@@ -1,58 +1,166 @@
 {
   "name": "docs",
   "$schema": "../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "docs/src",
+  "sourceRoot": "docs",
   "projectType": "application",
   "targets": {
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm build",
+        "command": "pnpm run build",
         "cwd": "docs"
-      }
+      },
+      "outputs": ["{projectRoot}/.next", "{projectRoot}/out"]
+    },
+    "build:static": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run build && pnpm run export",
+        "cwd": "docs"
+      },
+      "outputs": ["{projectRoot}/out"],
+      "dependsOn": ["build"]
     },
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dev",
+        "command": "pnpm run dev",
         "cwd": "docs"
       }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run start",
+        "cwd": "docs"
+      },
+      "dependsOn": ["build"]
     },
     "preview": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm preview",
+        "command": "pnpm run preview",
         "cwd": "docs"
-      }
+      },
+      "dependsOn": ["build"]
     },
-    "test": {
+    "install": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm test",
+        "command": "pnpm install",
         "cwd": "docs"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm lint:biome",
+        "command": "pnpm run lint",
+        "cwd": "docs"
+      }
+    },
+    "lint:fix": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run lint:fix",
         "cwd": "docs"
       }
     },
     "format": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm format",
+        "command": "pnpm run format",
         "cwd": "docs"
       }
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run format:check",
+        "cwd": "docs"
+      }
+    },
+    "type-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run type-check",
+        "cwd": "docs"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run test",
+        "cwd": "docs"
+      }
+    },
+    "test:watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run test:watch",
+        "cwd": "docs"
+      }
+    },
+    "test:coverage": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run test:coverage",
+        "cwd": "docs"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "rm -rf .next out node_modules/.cache",
+        "cwd": "docs"
+      }
+    },
+    "clean:all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "rm -rf .next out node_modules/.cache node_modules",
+        "cwd": "docs"
+      }
+    },
+    "analyze": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ANALYZE=true pnpm run build",
+        "cwd": "docs"
+      },
+      "dependsOn": ["build"]
+    },
+    "export": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run export",
+        "cwd": "docs"
+      },
+      "dependsOn": ["build"]
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run serve",
+        "cwd": "docs"
+      },
+      "dependsOn": ["build"]
+    },
+    "validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run validate",
+        "cwd": "docs"
+      },
+      "dependsOn": ["lint", "type-check", "format:check"]
     },
     "check": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm check",
+        "command": "pnpm run check",
         "cwd": "docs"
-      }
+      },
+      "dependsOn": ["lint", "type-check", "format:check", "test"]
     }
   },
-  "tags": ["type:app", "scope:docs"]
+  "tags": ["type:app", "scope:docs", "platform:web", "framework:nextjs"]
 } 
