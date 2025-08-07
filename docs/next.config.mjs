@@ -1,6 +1,6 @@
 import nextra from 'nextra'
 
-const basePath = process.env.NODE_ENV === 'production' ? '/rhema' : '/'
+const basePath = process.env.NODE_ENV === 'production' ? '/rhema' : ''
 
 const withNextra = nextra({
   latex: true,
