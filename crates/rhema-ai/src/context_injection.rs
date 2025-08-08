@@ -1,11 +1,11 @@
 use rhema_core::schema::{PromptInjectionMethod, PromptPattern};
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use std::sync::Arc;
 
 /// Task type for context injection
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -150,11 +150,15 @@ impl EnhancedContextInjector {
     pub fn new(scope_path: PathBuf) -> Self {
         let default_rules = Self::get_default_injection_rules();
         let lock_file_path = scope_path.join("rhema.lock");
-        
+
         Self {
             scope_path,
             injection_rules: default_rules,
-            lock_file_path: if lock_file_path.exists() { Some(lock_file_path) } else { None },
+            lock_file_path: if lock_file_path.exists() {
+                Some(lock_file_path)
+            } else {
+                None
+            },
             // Initialize enhancement features
             context_cache: Arc::new(RwLock::new(HashMap::new())),
             learning_metrics: Arc::new(RwLock::new(Vec::new())),
@@ -174,11 +178,15 @@ impl EnhancedContextInjector {
     pub fn with_config(scope_path: PathBuf, config: ContextOptimizationConfig) -> Self {
         let default_rules = Self::get_default_injection_rules();
         let lock_file_path = scope_path.join("rhema.lock");
-        
+
         Self {
             scope_path,
             injection_rules: default_rules,
-            lock_file_path: if lock_file_path.exists() { Some(lock_file_path) } else { None },
+            lock_file_path: if lock_file_path.exists() {
+                Some(lock_file_path)
+            } else {
+                None
+            },
             context_cache: Arc::new(RwLock::new(HashMap::new())),
             learning_metrics: Arc::new(RwLock::new(Vec::new())),
             optimization_config: config.clone(),
@@ -223,9 +231,8 @@ impl EnhancedContextInjector {
         pattern: &PromptPattern,
         task_type: Option<TaskType>,
     ) -> RhemaResult<String> {
-        let detected_task = task_type.unwrap_or_else(|| {
-            self.detect_task_type().unwrap_or(TaskType::CodeReview)
-        });
+        let detected_task =
+            task_type.unwrap_or_else(|| self.detect_task_type().unwrap_or(TaskType::CodeReview));
 
         // Check cache first for performance
         let cache_key = self.generate_cache_key(&detected_task, pattern);
@@ -235,10 +242,10 @@ impl EnhancedContextInjector {
 
         // Get dynamic context based on current state
         let dynamic_context = self.load_dynamic_context(&detected_task).await?;
-        
+
         // Optimize the context for AI consumption
         let optimized_context = self.optimize_context(&dynamic_context).await?;
-        
+
         // Validate the context
         let validation_result = self.validate_context(&optimized_context).await?;
         if !validation_result.is_valid {
@@ -263,7 +270,8 @@ impl EnhancedContextInjector {
         };
 
         // Cache the result
-        self.cache_context(&cache_key, &final_prompt, &detected_task).await;
+        self.cache_context(&cache_key, &final_prompt, &detected_task)
+            .await;
 
         Ok(final_prompt)
     }
@@ -301,7 +309,7 @@ impl EnhancedContextInjector {
         success_metrics: &ContextLearningMetrics,
     ) -> RhemaResult<()> {
         let mut metrics = self.learning_metrics.write().await;
-        
+
         // Add new learning metrics
         let new_metrics = ContextLearningMetrics {
             task_type: task_type.clone(),
@@ -312,9 +320,9 @@ impl EnhancedContextInjector {
             timestamp: Instant::now(),
             optimization_suggestions: success_metrics.optimization_suggestions.clone(),
         };
-        
+
         metrics.push(new_metrics);
-        
+
         // Keep only recent metrics (last 1000 entries)
         if metrics.len() > 1000 {
             metrics.sort_by_key(|m| m.timestamp);
@@ -386,7 +394,7 @@ impl EnhancedContextInjector {
     /// 5. Context Caching - Cache frequently used contexts for performance
     pub async fn get_cached_context(&self, key: &str) -> Option<String> {
         let cache = self.context_cache.read().await;
-        
+
         if let Some(entry) = cache.get(key) {
             // Check if entry is still valid
             if entry.created_at.elapsed() < self.cache_ttl {
@@ -401,14 +409,14 @@ impl EnhancedContextInjector {
                 return Some(content);
             }
         }
-        
+
         None
     }
 
     /// Cache context for future use
     pub async fn cache_context(&self, key: &str, content: &str, task_type: &TaskType) {
         let mut cache = self.context_cache.write().await;
-        
+
         let entry = ContextCacheEntry {
             content: content.to_string(),
             created_at: Instant::now(),
@@ -417,9 +425,9 @@ impl EnhancedContextInjector {
             source_hash: self.calculate_source_hash(),
             task_type: task_type.clone(),
         };
-        
+
         cache.insert(key.to_string(), entry);
-        
+
         // Clean up old entries if cache is too large
         if cache.len() > 1000 {
             self.cleanup_cache(&mut cache).await;
@@ -434,34 +442,35 @@ impl EnhancedContextInjector {
         lock_context_requirement: &LockFileContextRequirement,
     ) -> RhemaResult<String> {
         let mut lock_context = String::new();
-        
+
         // Load lock file if available
         if let Some(lock_file_path) = &self.lock_file_path {
             if let Ok(lock_file) = rhema_core::lock::LockFileOps::read_lock_file(lock_file_path) {
                 lock_context.push_str("## Lock File Context\n\n");
-                
+
                 // Add dependency version information
                 if lock_context_requirement.include_dependency_versions {
-                    lock_context.push_str(&self.format_dependency_versions(&lock_file, scope_path)?);
+                    lock_context
+                        .push_str(&self.format_dependency_versions(&lock_file, scope_path)?);
                 }
-                
+
                 // Add conflict prevention information
                 if lock_context_requirement.include_conflict_prevention {
                     lock_context.push_str(&self.format_conflict_prevention(&lock_file)?);
                 }
-                
+
                 // Add health information
                 if lock_context_requirement.include_health_info {
                     lock_context.push_str(&self.format_health_info(&lock_file)?);
                 }
-                
+
                 // Add recommendations
                 if lock_context_requirement.include_recommendations {
                     lock_context.push_str(&self.format_recommendations(&lock_file, scope_path)?);
                 }
             }
         }
-        
+
         // Apply injection method
         let final_prompt = match pattern.injection {
             PromptInjectionMethod::Prepend => {
@@ -479,25 +488,31 @@ impl EnhancedContextInjector {
     }
 
     /// Format dependency version information for AI context
-    fn format_dependency_versions(&self, lock_file: &rhema_core::RhemaLock, scope_path: &str) -> RhemaResult<String> {
+    fn format_dependency_versions(
+        &self,
+        lock_file: &rhema_core::RhemaLock,
+        scope_path: &str,
+    ) -> RhemaResult<String> {
         let mut output = String::new();
         output.push_str("### Dependency Versions\n\n");
-        
+
         if let Some(locked_scope) = lock_file.scopes.get(scope_path) {
             output.push_str(&format!("**Scope**: {}\n", scope_path));
             output.push_str(&format!("**Version**: {}\n", locked_scope.version));
             output.push_str(&format!("**Resolved**: {}\n\n", locked_scope.resolved_at));
-            
+
             if !locked_scope.dependencies.is_empty() {
                 output.push_str("**Dependencies**:\n");
                 for (dep_name, dep) in &locked_scope.dependencies {
-                    output.push_str(&format!("- **{}**: {} ({:?})\n", 
-                        dep_name, dep.version, dep.dependency_type));
-                    
+                    output.push_str(&format!(
+                        "- **{}**: {} ({:?})\n",
+                        dep_name, dep.version, dep.dependency_type
+                    ));
+
                     if let Some(constraint) = &dep.original_constraint {
                         output.push_str(&format!("  - Original constraint: {}\n", constraint));
                     }
-                    
+
                     if dep.is_transitive {
                         output.push_str("  - Transitive dependency\n");
                     }
@@ -506,9 +521,12 @@ impl EnhancedContextInjector {
                 output.push_str("No dependencies found.\n");
             }
         } else {
-            output.push_str(&format!("No lock file information found for scope: {}\n", scope_path));
+            output.push_str(&format!(
+                "No lock file information found for scope: {}\n",
+                scope_path
+            ));
         }
-        
+
         Ok(output)
     }
 
@@ -516,13 +534,28 @@ impl EnhancedContextInjector {
     fn format_conflict_prevention(&self, lock_file: &rhema_core::RhemaLock) -> RhemaResult<String> {
         let mut output = String::new();
         output.push_str("### Conflict Prevention Information\n\n");
-        
-        output.push_str(&format!("**Total Scopes**: {}\n", lock_file.metadata.total_scopes));
-        output.push_str(&format!("**Total Dependencies**: {}\n", lock_file.metadata.total_dependencies));
-        output.push_str(&format!("**Circular Dependencies**: {}\n", lock_file.metadata.circular_dependencies));
-        output.push_str(&format!("**Resolution Strategy**: {:?}\n", lock_file.metadata.resolution_strategy));
-        output.push_str(&format!("**Conflict Resolution**: {:?}\n\n", lock_file.metadata.conflict_resolution));
-        
+
+        output.push_str(&format!(
+            "**Total Scopes**: {}\n",
+            lock_file.metadata.total_scopes
+        ));
+        output.push_str(&format!(
+            "**Total Dependencies**: {}\n",
+            lock_file.metadata.total_dependencies
+        ));
+        output.push_str(&format!(
+            "**Circular Dependencies**: {}\n",
+            lock_file.metadata.circular_dependencies
+        ));
+        output.push_str(&format!(
+            "**Resolution Strategy**: {:?}\n",
+            lock_file.metadata.resolution_strategy
+        ));
+        output.push_str(&format!(
+            "**Conflict Resolution**: {:?}\n\n",
+            lock_file.metadata.conflict_resolution
+        ));
+
         // Check for potential conflicts
         let mut conflicts = Vec::new();
         for (scope_path, locked_scope) in &lock_file.scopes {
@@ -531,25 +564,32 @@ impl EnhancedContextInjector {
                     if scope_path != other_scope_path {
                         if let Some(other_dep) = other_scope.dependencies.get(dep_name) {
                             if dep.version != other_dep.version {
-                                conflicts.push((dep_name.clone(), scope_path.clone(), dep.version.clone(), 
-                                              other_scope_path.clone(), other_dep.version.clone()));
+                                conflicts.push((
+                                    dep_name.clone(),
+                                    scope_path.clone(),
+                                    dep.version.clone(),
+                                    other_scope_path.clone(),
+                                    other_dep.version.clone(),
+                                ));
                             }
                         }
                     }
                 }
             }
         }
-        
+
         if !conflicts.is_empty() {
             output.push_str("**Potential Version Conflicts**:\n");
             for (dep_name, scope1, version1, scope2, version2) in conflicts {
-                output.push_str(&format!("- **{}**: {} ({}), {} ({})\n", 
-                    dep_name, scope1, version1, scope2, version2));
+                output.push_str(&format!(
+                    "- **{}**: {} ({}), {} ({})\n",
+                    dep_name, scope1, version1, scope2, version2
+                ));
             }
         } else {
             output.push_str("No version conflicts detected.\n");
         }
-        
+
         Ok(output)
     }
 
@@ -557,29 +597,32 @@ impl EnhancedContextInjector {
     fn format_health_info(&self, lock_file: &rhema_core::RhemaLock) -> RhemaResult<String> {
         let mut output = String::new();
         output.push_str("### Lock File Health\n\n");
-        
+
         let mut health_score = 100.0;
         let mut issues = Vec::new();
-        
+
         // Check validation status
         if lock_file.metadata.validation_status != rhema_core::schema::ValidationStatus::Valid {
             health_score -= 30.0;
             issues.push("Lock file validation failed".to_string());
         }
-        
+
         // Check circular dependencies
         if lock_file.metadata.circular_dependencies > 0 {
             health_score -= 20.0 * lock_file.metadata.circular_dependencies as f64;
-            issues.push(format!("{} circular dependencies detected", lock_file.metadata.circular_dependencies));
+            issues.push(format!(
+                "{} circular dependencies detected",
+                lock_file.metadata.circular_dependencies
+            ));
         }
-        
+
         // Check performance metrics
         if let Some(metrics) = &lock_file.metadata.performance_metrics {
             if metrics.generation_time_ms > 5000 {
                 health_score -= 10.0;
                 issues.push("Lock file generation took too long".to_string());
             }
-            
+
             // Calculate cache hit rate manually
             let total_cache_operations = metrics.cache_hits + metrics.cache_misses;
             if total_cache_operations > 0 {
@@ -590,52 +633,61 @@ impl EnhancedContextInjector {
                 }
             }
         }
-        
+
         health_score = health_score.max(0.0_f64);
-        
+
         output.push_str(&format!("**Health Score**: {:.1}/100\n", health_score));
-        output.push_str(&format!("**Validation Status**: {:?}\n", lock_file.metadata.validation_status));
-        
+        output.push_str(&format!(
+            "**Validation Status**: {:?}\n",
+            lock_file.metadata.validation_status
+        ));
+
         if let Some(last_validated) = &lock_file.metadata.last_validated {
             output.push_str(&format!("**Last Validated**: {}\n", last_validated));
         }
-        
+
         if !issues.is_empty() {
             output.push_str("\n**Issues**:\n");
             for issue in issues {
                 output.push_str(&format!("- {}\n", issue));
             }
         }
-        
+
         Ok(output)
     }
 
     /// Format recommendations for AI context
-    fn format_recommendations(&self, lock_file: &rhema_core::RhemaLock, scope_path: &str) -> RhemaResult<String> {
+    fn format_recommendations(
+        &self,
+        lock_file: &rhema_core::RhemaLock,
+        scope_path: &str,
+    ) -> RhemaResult<String> {
         let mut output = String::new();
         output.push_str("### Dependency Recommendations\n\n");
-        
+
         let mut recommendations = Vec::new();
-        
+
         // Check for outdated dependencies
         if let Some(locked_scope) = lock_file.scopes.get(scope_path) {
             for (dep_name, dep) in &locked_scope.dependencies {
                 if dep.version.starts_with("0.") {
-                    recommendations.push(format!("Consider upgrading {} from {} to a stable version", 
-                        dep_name, dep.version));
+                    recommendations.push(format!(
+                        "Consider upgrading {} from {} to a stable version",
+                        dep_name, dep.version
+                    ));
                 }
             }
         }
-        
+
         // Add recommendations based on health issues
         if lock_file.metadata.circular_dependencies > 0 {
             recommendations.push("Review and resolve circular dependencies".to_string());
         }
-        
+
         if lock_file.metadata.validation_status != rhema_core::schema::ValidationStatus::Valid {
             recommendations.push("Fix validation issues in lock file".to_string());
         }
-        
+
         if recommendations.is_empty() {
             output.push_str("No specific recommendations at this time.\n");
         } else {
@@ -643,7 +695,7 @@ impl EnhancedContextInjector {
                 output.push_str(&format!("{}. {}\n", i + 1, rec));
             }
         }
-        
+
         Ok(output)
     }
 
@@ -696,7 +748,12 @@ impl EnhancedContextInjector {
             .iter()
             .filter(|rule| rule.task_type == *task_type)
             .max_by_key(|rule| rule.priority)
-            .ok_or_else(|| RhemaError::InvalidInput(format!("No injection rule found for task type: {:?}", task_type)))
+            .ok_or_else(|| {
+                RhemaError::InvalidInput(format!(
+                    "No injection rule found for task type: {:?}",
+                    task_type
+                ))
+            })
     }
 
     /// Load context based on the rule
@@ -721,21 +778,25 @@ impl EnhancedContextInjector {
         // Add lock file context if required
         if let Some(lock_requirement) = &rule.lock_file_context {
             if let Some(lock_file_path) = &self.lock_file_path {
-                if let Ok(lock_file) = rhema_core::lock::LockFileOps::read_lock_file(lock_file_path) {
+                if let Ok(lock_file) = rhema_core::lock::LockFileOps::read_lock_file(lock_file_path)
+                {
                     context.push_str("## Lock File Context\n\n");
-                    
+
                     if lock_requirement.include_dependency_versions {
-                        if let Ok(dep_context) = self.format_dependency_versions(&lock_file, &self.scope_path.to_string_lossy()) {
+                        if let Ok(dep_context) = self.format_dependency_versions(
+                            &lock_file,
+                            &self.scope_path.to_string_lossy(),
+                        ) {
                             context.push_str(&dep_context);
                         }
                     }
-                    
+
                     if lock_requirement.include_conflict_prevention {
                         if let Ok(conflict_context) = self.format_conflict_prevention(&lock_file) {
                             context.push_str(&conflict_context);
                         }
                     }
-                    
+
                     if lock_requirement.include_health_info {
                         if let Ok(health_context) = self.format_health_info(&lock_file) {
                             context.push_str(&health_context);
@@ -754,14 +815,14 @@ impl EnhancedContextInjector {
             .args(&["status", "--porcelain"])
             .current_dir(&self.scope_path)
             .output()?;
-        
+
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 
     /// Get file types in the scope for task detection
     fn get_file_types(&self) -> RhemaResult<Vec<String>> {
         let mut file_types = Vec::new();
-        
+
         if let Ok(entries) = std::fs::read_dir(&self.scope_path) {
             for entry in entries {
                 if let Ok(entry) = entry {
@@ -771,7 +832,7 @@ impl EnhancedContextInjector {
                 }
             }
         }
-        
+
         Ok(file_types)
     }
 
@@ -779,14 +840,19 @@ impl EnhancedContextInjector {
     fn generate_cache_key(&self, task_type: &TaskType, pattern: &PromptPattern) -> String {
         let pattern_hash = self.calculate_pattern_hash(pattern);
         let source_hash = self.calculate_source_hash();
-        format!("{}_{}_{}", Self::task_type_to_string(task_type), pattern_hash, source_hash)
+        format!(
+            "{}_{}_{}",
+            Self::task_type_to_string(task_type),
+            pattern_hash,
+            source_hash
+        )
     }
 
     /// Calculate hash for pattern
     fn calculate_pattern_hash(&self, pattern: &PromptPattern) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         pattern.template.hash(&mut hasher);
         // Hash the injection method as a string since it doesn't implement Hash
@@ -802,9 +868,9 @@ impl EnhancedContextInjector {
     fn calculate_source_hash(&self) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
-        
+
         // Hash all context files
         for rule in &self.injection_rules {
             for file_name in &rule.context_files {
@@ -816,7 +882,7 @@ impl EnhancedContextInjector {
                 }
             }
         }
-        
+
         // Hash lock file if present
         if let Some(lock_path) = &self.lock_file_path {
             if let Ok(metadata) = std::fs::metadata(lock_path) {
@@ -825,7 +891,7 @@ impl EnhancedContextInjector {
                 }
             }
         }
-        
+
         hasher.finish()
     }
 
@@ -833,7 +899,7 @@ impl EnhancedContextInjector {
     fn calculate_context_hash(&self, context: &str) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         context.hash(&mut hasher);
         hasher.finish()
@@ -842,12 +908,12 @@ impl EnhancedContextInjector {
     /// Load dynamic context based on current state
     async fn load_dynamic_context(&self, task_type: &TaskType) -> RhemaResult<String> {
         let mut context = String::new();
-        
+
         // Get current git status for dynamic context
         if let Ok(git_status) = self.get_git_status() {
             context.push_str(&format!("## Current Git Status\n{}\n\n", git_status));
         }
-        
+
         // Get current file changes
         if let Ok(changed_files) = self.get_changed_files() {
             if !changed_files.is_empty() {
@@ -858,12 +924,12 @@ impl EnhancedContextInjector {
                 context.push_str("\n");
             }
         }
-        
+
         // Load task-specific context
         let rule = self.find_best_rule(task_type)?;
         let task_context = self.load_context_for_task(&rule)?;
         context.push_str(&task_context);
-        
+
         Ok(context)
     }
 
@@ -873,12 +939,12 @@ impl EnhancedContextInjector {
             .args(&["diff", "--name-only"])
             .current_dir(&self.scope_path)
             .output()?;
-        
+
         let files = String::from_utf8_lossy(&output.stdout)
             .lines()
             .map(|s| s.to_string())
             .collect();
-        
+
         Ok(files)
     }
 
@@ -886,7 +952,7 @@ impl EnhancedContextInjector {
     async fn apply_semantic_compression(&self, context: &str) -> RhemaResult<String> {
         // Simple semantic compression - remove redundant information
         let mut compressed = context.to_string();
-        
+
         // Remove duplicate lines
         let lines: Vec<&str> = compressed.lines().collect();
         let mut unique_lines = Vec::new();
@@ -896,25 +962,25 @@ impl EnhancedContextInjector {
             }
         }
         compressed = unique_lines.join("\n");
-        
+
         // Remove excessive whitespace
         compressed = compressed.replace("\n\n\n", "\n\n");
-        
+
         Ok(compressed)
     }
 
     /// Apply structure optimization to context
     async fn apply_structure_optimization(&self, context: &str) -> RhemaResult<String> {
         let mut optimized = context.to_string();
-        
+
         // Ensure proper section headers
         if !optimized.contains("## ") {
             optimized = format!("## Context\n\n{}", optimized);
         }
-        
+
         // Ensure consistent formatting
         optimized = optimized.replace("\n\n\n", "\n\n");
-        
+
         Ok(optimized)
     }
 
@@ -923,18 +989,24 @@ impl EnhancedContextInjector {
         // Simple relevance filtering - keep sections that seem relevant
         let lines: Vec<&str> = context.lines().collect();
         let mut relevant_lines = Vec::new();
-        
+
         for line in lines {
             // Keep headers and important content
-            if line.starts_with("## ") || line.starts_with("# ") || 
-               line.contains("TODO") || line.contains("FIXME") ||
-               line.contains("import") || line.contains("use ") ||
-               line.contains("fn ") || line.contains("struct ") ||
-               line.contains("enum ") || line.contains("impl ") {
+            if line.starts_with("## ")
+                || line.starts_with("# ")
+                || line.contains("TODO")
+                || line.contains("FIXME")
+                || line.contains("import")
+                || line.contains("use ")
+                || line.contains("fn ")
+                || line.contains("struct ")
+                || line.contains("enum ")
+                || line.contains("impl ")
+            {
                 relevant_lines.push(line);
             }
         }
-        
+
         Ok(relevant_lines.join("\n"))
     }
 
@@ -942,13 +1014,13 @@ impl EnhancedContextInjector {
     fn ensure_token_limit(&self, context: &str) -> RhemaResult<String> {
         // Simple token estimation (rough approximation)
         let estimated_tokens = context.split_whitespace().count() + context.lines().count();
-        
+
         if estimated_tokens > self.optimization_config.max_tokens {
             // Truncate context while preserving structure
             let lines: Vec<&str> = context.lines().collect();
             let mut truncated = Vec::new();
             let mut token_count = 0;
-            
+
             for line in lines {
                 let line_tokens = line.split_whitespace().count() + 1;
                 if token_count + line_tokens > self.optimization_config.max_tokens {
@@ -958,7 +1030,7 @@ impl EnhancedContextInjector {
                 truncated.push(line);
                 token_count += line_tokens;
             }
-            
+
             Ok(truncated.join("\n"))
         } else {
             Ok(context.to_string())
@@ -969,9 +1041,11 @@ impl EnhancedContextInjector {
     fn validate_context_schema(&self, context: &str) -> RhemaResult<()> {
         // Basic schema validation - check for required sections
         if !context.contains("## ") && !context.contains("# ") {
-            return Err(RhemaError::InvalidInput("Context lacks proper structure".to_string()));
+            return Err(RhemaError::InvalidInput(
+                "Context lacks proper structure".to_string(),
+            ));
         }
-        
+
         Ok(())
     }
 
@@ -985,45 +1059,47 @@ impl EnhancedContextInjector {
     /// Calculate completeness score
     fn calculate_completeness_score(&self, context: &str) -> f64 {
         let mut score: f64 = 1.0;
-        
+
         // Check for minimum content length
         if context.len() < 100 {
             score -= 0.3;
         }
-        
+
         // Check for required sections
         if !context.contains("## ") {
             score -= 0.2;
         }
-        
+
         // Check for code blocks or technical content
         if !context.contains("```") && !context.contains("fn ") && !context.contains("struct ") {
             score -= 0.1;
         }
-        
+
         score.max(0.0_f64)
     }
 
     /// Calculate relevance score
     fn calculate_relevance_score(&self, context: &str) -> f64 {
         let mut score: f64 = 1.0;
-        
+
         // Check for technical terms
-        let technical_terms = ["fn ", "struct ", "enum ", "impl ", "use ", "import", "TODO", "FIXME"];
+        let technical_terms = [
+            "fn ", "struct ", "enum ", "impl ", "use ", "import", "TODO", "FIXME",
+        ];
         let mut found_terms = 0;
-        
+
         for term in &technical_terms {
             if context.contains(term) {
                 found_terms += 1;
             }
         }
-        
+
         if found_terms == 0 {
             score -= 0.3;
         } else if found_terms < 2 {
             score -= 0.1;
         }
-        
+
         score.max(0.0_f64)
     }
 
@@ -1031,13 +1107,13 @@ impl EnhancedContextInjector {
     async fn cleanup_cache(&self, cache: &mut HashMap<String, ContextCacheEntry>) {
         let now = Instant::now();
         let mut to_remove = Vec::new();
-        
+
         for (key, entry) in cache.iter() {
             if now.duration_since(entry.created_at) > self.cache_ttl {
                 to_remove.push(key.clone());
             }
         }
-        
+
         for key in to_remove {
             cache.remove(&key);
         }
@@ -1104,7 +1180,7 @@ impl EnhancedContextInjector {
         let cache = self.context_cache.read().await;
         let total_accesses: u32 = cache.values().map(|entry| entry.access_count).sum();
         let total_entries = cache.len();
-        
+
         if total_accesses == 0 {
             0.0
         } else {
@@ -1117,7 +1193,7 @@ impl EnhancedContextInjector {
         let cache_hit_rate = self.get_cache_hit_rate().await;
         let (_cache_size, avg_accesses) = self.get_cache_stats().await;
         let metrics_count = self.learning_metrics.read().await.len();
-        
+
         (cache_hit_rate, avg_accesses, metrics_count as f64)
     }
 
@@ -1343,7 +1419,7 @@ impl TaskDetector {
     /// Detect task type from commit message
     pub fn from_commit_message(message: &str) -> TaskType {
         let message_lower = message.to_lowercase();
-        
+
         if message_lower.contains("fix") || message_lower.contains("bug") {
             TaskType::BugFix
         } else if message_lower.contains("feat") || message_lower.contains("feature") {
@@ -1372,7 +1448,7 @@ impl TaskDetector {
     /// Detect task type from file path
     pub fn from_file_path(path: &Path) -> TaskType {
         let path_str = path.to_string_lossy().to_lowercase();
-        
+
         if path_str.contains("test") || path_str.contains("spec") {
             TaskType::Testing
         } else if path_str.contains("doc") || path_str.contains("readme") {
@@ -1400,7 +1476,7 @@ mod tests {
         // Create a temporary scope path
         let temp_dir = std::env::temp_dir().join("rhema_test");
         std::fs::create_dir_all(&temp_dir).unwrap();
-        
+
         // Create test context files
         let knowledge_content = r#"
 # Knowledge Base
@@ -1409,10 +1485,10 @@ mod tests {
 - Implement proper error handling
 "#;
         std::fs::write(temp_dir.join("knowledge.yaml"), knowledge_content).unwrap();
-        
+
         // Create enhanced context injector
         let mut injector = EnhancedContextInjector::new(temp_dir.clone());
-        
+
         // Create a test prompt pattern
         let pattern = PromptPattern {
             id: "test-pattern".to_string(),
@@ -1424,23 +1500,25 @@ mod tests {
             version: rhema_core::PromptVersion::new("1.0.0"),
             tags: Some(vec!["test".to_string()]),
         };
-        
+
         // Test dynamic context injection
-        let result = injector.inject_dynamic_context(&pattern, Some(TaskType::CodeReview)).await;
+        let result = injector
+            .inject_dynamic_context(&pattern, Some(TaskType::CodeReview))
+            .await;
         assert!(result.is_ok());
-        
+
         // Test context optimization
         let test_context = "## Test Context\n\nThis is a test context with some code:\n```rust\nfn test() {\n    println!(\"Hello, world!\");\n}\n```";
         let optimized = injector.optimize_context(test_context).await;
         assert!(optimized.is_ok());
-        
+
         // Test context validation
         let validation = injector.validate_context(test_context).await;
         assert!(validation.is_ok());
         let validation_result = validation.unwrap();
         assert!(validation_result.is_valid);
         assert!(validation_result.score > 0.5);
-        
+
         // Test learning from usage
         let metrics = ContextLearningMetrics {
             task_type: TaskType::CodeReview,
@@ -1451,23 +1529,27 @@ mod tests {
             timestamp: Instant::now(),
             optimization_suggestions: vec!["Add more code examples".to_string()],
         };
-        
-        let learn_result = injector.learn_from_usage(test_context, &TaskType::CodeReview, &metrics).await;
+
+        let learn_result = injector
+            .learn_from_usage(test_context, &TaskType::CodeReview, &metrics)
+            .await;
         assert!(learn_result.is_ok());
-        
+
         // Test cache functionality
         let cache_key = injector.generate_cache_key(&TaskType::CodeReview, &pattern);
-        injector.cache_context(&cache_key, test_context, &TaskType::CodeReview).await;
-        
+        injector
+            .cache_context(&cache_key, test_context, &TaskType::CodeReview)
+            .await;
+
         let cached = injector.get_cached_context(&cache_key).await;
         assert!(cached.is_some());
-        
+
         // Test performance metrics
         let (hit_rate, avg_accesses, metrics_count) = injector.get_performance_metrics().await;
         assert!(hit_rate >= 0.0 && hit_rate <= 1.0);
         assert!(avg_accesses >= 0.0);
         assert!(metrics_count >= 0.0);
-        
+
         // Clean up
         std::fs::remove_dir_all(temp_dir).unwrap();
     }
@@ -1484,10 +1566,10 @@ pub async fn example_usage() -> RhemaResult<()> {
         enable_relevance_filtering: true,
         cache_ttl_seconds: 1800, // 30 minutes
     };
-    
+
     let scope_path = PathBuf::from(".");
     let injector = EnhancedContextInjector::with_config(scope_path, config);
-    
+
     // Create a prompt pattern
     let pattern = PromptPattern {
         id: "example-pattern".to_string(),
@@ -1499,17 +1581,19 @@ pub async fn example_usage() -> RhemaResult<()> {
         version: rhema_core::PromptVersion::new("1.0.0"),
         tags: Some(vec!["example".to_string()]),
     };
-    
+
     // Use dynamic context injection
-    let result = injector.inject_dynamic_context(&pattern, Some(TaskType::CodeReview)).await?;
+    let result = injector
+        .inject_dynamic_context(&pattern, Some(TaskType::CodeReview))
+        .await?;
     println!("Generated context: {}", result);
-    
+
     // Get performance metrics
     let (hit_rate, avg_accesses, metrics_count) = injector.get_performance_metrics().await;
     println!("Cache hit rate: {:.2}%", hit_rate * 100.0);
     println!("Average accesses: {:.2}", avg_accesses);
     println!("Learning metrics count: {:.0}", metrics_count);
-    
+
     Ok(())
 }
 

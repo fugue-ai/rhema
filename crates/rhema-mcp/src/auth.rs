@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+use aes_gcm::{Aes256Gcm, Key};
+use chrono::{DateTime, Utc};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use std::time::{Duration, Instant};
-use uuid::Uuid;
-use tracing::{info, error, warn};
-use std::path::PathBuf;
 use std::fs::OpenOptions;
 use std::io::Write;
-use chrono::{DateTime, Utc};
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use aes_gcm::{Aes256Gcm, Key};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
+use tracing::{error, info, warn};
+use uuid::Uuid;
 
 /// Authentication token types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -280,14 +280,16 @@ impl AuthManager {
         let unknown = "unknown".to_string();
         let client_id = client_ip.as_ref().unwrap_or(&unknown);
         if self.security_monitor.is_locked_out(client_id).await {
-            self.security_monitor.record_security_event(
-                SecurityEventType::BruteForceAttempt,
-                client_ip.clone(),
-                None,
-                "Account locked due to multiple failed attempts".to_string(),
-                SecuritySeverity::High,
-            ).await;
-            
+            self.security_monitor
+                .record_security_event(
+                    SecurityEventType::BruteForceAttempt,
+                    client_ip.clone(),
+                    None,
+                    "Account locked due to multiple failed attempts".to_string(),
+                    SecuritySeverity::High,
+                )
+                .await;
+
             return Ok(AuthResult {
                 authenticated: false,
                 user_id: None,
@@ -299,17 +301,19 @@ impl AuthManager {
         }
 
         // Log authentication attempt
-        self.audit_logger.log(
-            AuditEventType::Authentication,
-            "Authentication attempt",
-            AuditResult::Success,
-            None,
-            client_ip.clone(),
-            user_agent.clone(),
-            None,
-            None,
-            HashMap::new(),
-        ).await;
+        self.audit_logger
+            .log(
+                AuditEventType::Authentication,
+                "Authentication attempt",
+                AuditResult::Success,
+                None,
+                client_ip.clone(),
+                user_agent.clone(),
+                None,
+                None,
+                HashMap::new(),
+            )
+            .await;
 
         if !self.config.enabled {
             return Ok(AuthResult {
@@ -334,18 +338,20 @@ impl AuthManager {
             None => {
                 stats.failed_auths += 1;
                 stats.security_violations += 1;
-                
-                self.audit_logger.log(
-                    AuditEventType::SecurityViolation,
-                    "Missing authorization header",
-                    AuditResult::Failure,
-                    None,
-                    client_ip,
-                    user_agent,
-                    None,
-                    None,
-                    HashMap::new(),
-                ).await;
+
+                self.audit_logger
+                    .log(
+                        AuditEventType::SecurityViolation,
+                        "Missing authorization header",
+                        AuditResult::Failure,
+                        None,
+                        client_ip,
+                        user_agent,
+                        None,
+                        None,
+                        HashMap::new(),
+                    )
+                    .await;
 
                 return Ok(AuthResult {
                     authenticated: false,
@@ -362,18 +368,20 @@ impl AuthManager {
         if !self.validate_auth_header(auth_header) {
             stats.failed_auths += 1;
             stats.security_violations += 1;
-            
-            self.audit_logger.log(
-                AuditEventType::SecurityViolation,
-                "Invalid authorization header format",
-                AuditResult::Failure,
-                None,
-                client_ip,
-                user_agent,
-                None,
-                None,
-                HashMap::new(),
-            ).await;
+
+            self.audit_logger
+                .log(
+                    AuditEventType::SecurityViolation,
+                    "Invalid authorization header format",
+                    AuditResult::Failure,
+                    None,
+                    client_ip,
+                    user_agent,
+                    None,
+                    None,
+                    HashMap::new(),
+                )
+                .await;
 
             return Ok(AuthResult {
                 authenticated: false,
@@ -386,9 +394,11 @@ impl AuthManager {
         }
 
         let result = if auth_header.starts_with("Bearer ") {
-            self.authenticate_bearer_token(&auth_header[7..], client_info).await
+            self.authenticate_bearer_token(&auth_header[7..], client_info)
+                .await
         } else if auth_header.starts_with("ApiKey ") {
-            self.authenticate_api_key(&auth_header[7..], client_info).await
+            self.authenticate_api_key(&auth_header[7..], client_info)
+                .await
         } else {
             self.authenticate_api_key(auth_header, client_info).await
         };
@@ -397,30 +407,55 @@ impl AuthManager {
             Ok(auth_result) => {
                 if auth_result.authenticated {
                     stats.successful_auths += 1;
-                    
+
                     // Reset failed attempts on successful authentication
                     self.security_monitor.reset_failed_attempts(client_id).await;
-                    
-                    self.audit_logger.log(
-                        AuditEventType::Authentication,
-                        "Authentication successful",
-                        AuditResult::Success,
-                        auth_result.user_id.clone(),
-                        client_ip,
-                        user_agent,
-                        None,
-                        auth_result.session_id.clone(),
-                        HashMap::new(),
-                    ).await;
+
+                    self.audit_logger
+                        .log(
+                            AuditEventType::Authentication,
+                            "Authentication successful",
+                            AuditResult::Success,
+                            auth_result.user_id.clone(),
+                            client_ip,
+                            user_agent,
+                            None,
+                            auth_result.session_id.clone(),
+                            HashMap::new(),
+                        )
+                        .await;
                 } else {
                     stats.failed_auths += 1;
-                    
+
                     // Record failed attempt for security monitoring
                     self.security_monitor.record_failed_attempt(client_id).await;
-                    
-                    self.audit_logger.log(
-                        AuditEventType::Authentication,
-                        "Authentication failed",
+
+                    self.audit_logger
+                        .log(
+                            AuditEventType::Authentication,
+                            "Authentication failed",
+                            AuditResult::Failure,
+                            None,
+                            client_ip,
+                            user_agent,
+                            None,
+                            None,
+                            HashMap::new(),
+                        )
+                        .await;
+                }
+            }
+            Err(_) => {
+                stats.failed_auths += 1;
+                stats.security_violations += 1;
+
+                // Record failed attempt for security monitoring
+                self.security_monitor.record_failed_attempt(client_id).await;
+
+                self.audit_logger
+                    .log(
+                        AuditEventType::SecurityViolation,
+                        "Authentication error",
                         AuditResult::Failure,
                         None,
                         client_ip,
@@ -428,27 +463,8 @@ impl AuthManager {
                         None,
                         None,
                         HashMap::new(),
-                    ).await;
-                }
-            }
-            Err(_) => {
-                stats.failed_auths += 1;
-                stats.security_violations += 1;
-                
-                // Record failed attempt for security monitoring
-                self.security_monitor.record_failed_attempt(client_id).await;
-                
-                self.audit_logger.log(
-                    AuditEventType::SecurityViolation,
-                    "Authentication error",
-                    AuditResult::Failure,
-                    None,
-                    client_ip,
-                    user_agent,
-                    None,
-                    None,
-                    HashMap::new(),
-                ).await;
+                    )
+                    .await;
             }
         }
 
@@ -460,20 +476,30 @@ impl AuthManager {
         if header.is_empty() {
             return false;
         }
-        
+
         // Check for common injection patterns
         let dangerous_patterns = [
-            "javascript:", "data:", "vbscript:", "onload=", "onerror=",
-            "<script", "</script>", "<?php", "<%", "%>", "{{", "}}",
+            "javascript:",
+            "data:",
+            "vbscript:",
+            "onload=",
+            "onerror=",
+            "<script",
+            "</script>",
+            "<?php",
+            "<%",
+            "%>",
+            "{{",
+            "}}",
         ];
-        
+
         let header_lower = header.to_lowercase();
         for pattern in &dangerous_patterns {
             if header_lower.contains(pattern) {
                 return false;
             }
         }
-        
+
         true
     }
 
@@ -498,8 +524,10 @@ impl AuthManager {
         // Check if API key is configured
         if let Some(configured_key) = &self.config.api_key {
             if api_key == configured_key {
-                let session_id = self.create_session("api_user", vec!["*".to_string()], client_info).await?;
-                
+                let session_id = self
+                    .create_session("api_user", vec!["*".to_string()], client_info)
+                    .await?;
+
                 return Ok(AuthResult {
                     authenticated: true,
                     user_id: Some("api_user".to_string()),
@@ -518,13 +546,15 @@ impl AuthManager {
                 // Update token usage
                 token.last_used = Some(chrono::Utc::now());
                 token.usage_count += 1;
-                
-                let session_id = self.create_session(
-                    token.user_id.as_ref().unwrap_or(&"unknown".to_string()),
-                    token.permissions.clone(),
-                    client_info,
-                ).await?;
-                
+
+                let session_id = self
+                    .create_session(
+                        token.user_id.as_ref().unwrap_or(&"unknown".to_string()),
+                        token.permissions.clone(),
+                        client_info,
+                    )
+                    .await?;
+
                 return Ok(AuthResult {
                     authenticated: true,
                     user_id: token.user_id.clone(),
@@ -551,12 +581,15 @@ impl AuthManager {
         if api_key.len() < 16 || api_key.len() > 256 {
             return false;
         }
-        
+
         // Check for valid characters (alphanumeric, hyphens, underscores)
-        if !api_key.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+        if !api_key
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+        {
             return false;
         }
-        
+
         true
     }
 
@@ -585,7 +618,7 @@ impl AuthManager {
                         .get("sub")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string());
-                    
+
                     let permissions: Vec<String> = claims
                         .get("permissions")
                         .and_then(|v| v.as_array())
@@ -596,13 +629,14 @@ impl AuthManager {
                                 .collect()
                         })
                         .unwrap_or_default();
-                    
+
                     let session_id = if let Some(ref uid) = user_id {
-                        self.create_session(uid, permissions.clone(), client_info).await?
+                        self.create_session(uid, permissions.clone(), client_info)
+                            .await?
                     } else {
                         Uuid::new_v4().to_string()
                     };
-                    
+
                     Ok(AuthResult {
                         authenticated: true,
                         user_id,
@@ -639,19 +673,22 @@ impl AuthManager {
         if parts.len() != 3 {
             return false;
         }
-        
+
         // Check each part is valid base64
         for part in &parts {
             if part.is_empty() {
                 return false;
             }
-            
+
             // Check for valid base64 characters
-            if !part.chars().all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=') {
+            if !part
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=')
+            {
                 return false;
             }
         }
-        
+
         true
     }
 
@@ -665,7 +702,7 @@ impl AuthManager {
         let session_id = Uuid::new_v4().to_string();
         let now = chrono::Utc::now();
         let expires_at = now + chrono::Duration::hours(24); // 24 hour session
-        
+
         let session = Session {
             id: session_id.clone(),
             user_id: user_id.to_string(),
@@ -681,9 +718,12 @@ impl AuthManager {
             permissions,
             metadata: HashMap::new(),
         };
-        
-        self.active_sessions.write().await.insert(session_id.clone(), session);
-        
+
+        self.active_sessions
+            .write()
+            .await
+            .insert(session_id.clone(), session);
+
         Ok(session_id)
     }
 
@@ -695,7 +735,7 @@ impl AuthManager {
             "unix_socket" => self.config.rate_limiting.unix_socket_messages_per_minute,
             _ => self.config.rate_limiting.http_requests_per_minute,
         };
-        
+
         let mut rate_limiters = self.rate_limiters.write().await;
         let rate_limiter = rate_limiters
             .entry(client_id.to_string())
@@ -706,35 +746,39 @@ impl AuthManager {
                 window: Duration::from_secs(60),
                 last_violation: None,
             });
-        
+
         let now = Instant::now();
-        
+
         // Remove expired requests
-        rate_limiter.requests.retain(|&time| now.duration_since(time) < rate_limiter.window);
-        
+        rate_limiter
+            .requests
+            .retain(|&time| now.duration_since(time) < rate_limiter.window);
+
         if rate_limiter.requests.len() < rate_limiter.limit as usize {
             rate_limiter.requests.push(now);
             true
         } else {
             rate_limiter.last_violation = Some(now);
-            
+
             // Update statistics
             let mut stats = self.stats.write().await;
             stats.rate_limit_violations += 1;
-            
+
             // Log rate limit violation
-            self.audit_logger.log(
-                AuditEventType::RateLimitViolation,
-                "Rate limit exceeded",
-                AuditResult::RateLimited,
-                None,
-                None,
-                None,
-                None,
-                None,
-                HashMap::new(),
-            ).await;
-            
+            self.audit_logger
+                .log(
+                    AuditEventType::RateLimitViolation,
+                    "Rate limit exceeded",
+                    AuditResult::RateLimited,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    HashMap::new(),
+                )
+                .await;
+
             false
         }
     }
@@ -743,16 +787,16 @@ impl AuthManager {
     async fn verify_jwt_token(&self, token: &str, secret: &str) -> RhemaResult<serde_json::Value> {
         // Use proper JWT library for secure verification
         let decoding_key = DecodingKey::from_secret(secret.as_ref());
-        
+
         let mut validation = Validation::new(Algorithm::HS256);
         validation.validate_exp = true;
         validation.validate_nbf = true;
         validation.leeway = 0; // No leeway for security
-        
+
         match decode::<serde_json::Value>(token, &decoding_key, &validation) {
             Ok(token_data) => {
                 let claims = token_data.claims;
-                
+
                 // Additional security checks
                 if let Some(exp) = claims.get("exp").and_then(|v| v.as_u64()) {
                     let now = chrono::Utc::now().timestamp() as u64;
@@ -760,14 +804,16 @@ impl AuthManager {
                         return Err(RhemaError::InvalidInput("JWT token expired".to_string()));
                     }
                 }
-                
+
                 if let Some(iat) = claims.get("iat").and_then(|v| v.as_u64()) {
                     let now = chrono::Utc::now().timestamp() as u64;
                     if iat > now {
-                        return Err(RhemaError::InvalidInput("JWT token issued in the future".to_string()));
+                        return Err(RhemaError::InvalidInput(
+                            "JWT token issued in the future".to_string(),
+                        ));
                     }
                 }
-                
+
                 // Check for token reuse (basic implementation)
                 if let Some(jti) = claims.get("jti").and_then(|v| v.as_str()) {
                     // In a production system, you'd check against a blacklist
@@ -776,20 +822,25 @@ impl AuthManager {
                         return Err(RhemaError::InvalidInput("Invalid JWT ID".to_string()));
                     }
                 }
-                
+
                 Ok(claims)
             }
             Err(e) => {
                 // Log security event for failed JWT verification
-                self.security_monitor.record_security_event(
-                    SecurityEventType::FailedAuthentication,
-                    None,
-                    None,
-                    format!("JWT verification failed: {}", e),
-                    SecuritySeverity::Medium,
-                ).await;
-                
-                Err(RhemaError::InvalidInput(format!("JWT verification failed: {}", e)))
+                self.security_monitor
+                    .record_security_event(
+                        SecurityEventType::FailedAuthentication,
+                        None,
+                        None,
+                        format!("JWT verification failed: {}", e),
+                        SecuritySeverity::Medium,
+                    )
+                    .await;
+
+                Err(RhemaError::InvalidInput(format!(
+                    "JWT verification failed: {}",
+                    e
+                )))
             }
         }
     }
@@ -813,7 +864,9 @@ impl AuthManager {
     ) -> RhemaResult<String> {
         // Validate user_id
         if !self.validate_user_id(user_id) {
-            return Err(RhemaError::InvalidInput("Invalid user ID format".to_string()));
+            return Err(RhemaError::InvalidInput(
+                "Invalid user ID format".to_string(),
+            ));
         }
 
         // Validate permissions
@@ -840,17 +893,19 @@ impl AuthManager {
         self.api_keys.write().await.insert(api_key.clone(), token);
 
         // Log API key creation
-        self.audit_logger.log(
-            AuditEventType::TokenManagement,
-            "API key created",
-            AuditResult::Success,
-            Some(user_id.to_string()),
-            None,
-            None,
-            None,
-            None,
-            HashMap::new(),
-        ).await;
+        self.audit_logger
+            .log(
+                AuditEventType::TokenManagement,
+                "API key created",
+                AuditResult::Success,
+                Some(user_id.to_string()),
+                None,
+                None,
+                None,
+                None,
+                HashMap::new(),
+            )
+            .await;
 
         Ok(api_key)
     }
@@ -860,12 +915,15 @@ impl AuthManager {
         if user_id.is_empty() || user_id.len() > 100 {
             return false;
         }
-        
+
         // Check for valid characters
-        if !user_id.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.') {
+        if !user_id
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
+        {
             return false;
         }
-        
+
         true
     }
 
@@ -875,13 +933,16 @@ impl AuthManager {
             if permission.is_empty() || permission.len() > 50 {
                 return false;
             }
-            
+
             // Check for valid characters
-            if !permission.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == ':') {
+            if !permission
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == ':')
+            {
                 return false;
             }
         }
-        
+
         true
     }
 
@@ -894,14 +955,17 @@ impl AuthManager {
     ) -> RhemaResult<String> {
         // Validate inputs
         if !self.validate_user_id(user_id) {
-            return Err(RhemaError::InvalidInput("Invalid user ID format".to_string()));
+            return Err(RhemaError::InvalidInput(
+                "Invalid user ID format".to_string(),
+            ));
         }
 
         if !self.validate_permissions(&permissions) {
             return Err(RhemaError::InvalidInput("Invalid permissions".to_string()));
         }
 
-        if ttl_hours == 0 || ttl_hours > 8760 { // Max 1 year
+        if ttl_hours == 0 || ttl_hours > 8760 {
+            // Max 1 year
             return Err(RhemaError::InvalidInput("Invalid TTL hours".to_string()));
         }
 
@@ -918,53 +982,62 @@ impl AuthManager {
 
             // Use proper JWT library for secure token creation
             let encoding_key = EncodingKey::from_secret(secret.as_ref());
-            
+
             match encode(&Header::default(), &claims, &encoding_key) {
                 Ok(token) => {
                     // Log JWT token creation
-                    self.audit_logger.log(
-                        AuditEventType::TokenManagement,
-                        "JWT token created",
-                        AuditResult::Success,
-                        Some(user_id.to_string()),
-                        None,
-                        None,
-                        None,
-                        None,
-                        HashMap::new(),
-                    ).await;
+                    self.audit_logger
+                        .log(
+                            AuditEventType::TokenManagement,
+                            "JWT token created",
+                            AuditResult::Success,
+                            Some(user_id.to_string()),
+                            None,
+                            None,
+                            None,
+                            None,
+                            HashMap::new(),
+                        )
+                        .await;
 
                     Ok(token)
                 }
                 Err(e) => {
                     error!("Failed to create JWT token: {}", e);
-                    Err(RhemaError::InvalidInput(format!("JWT creation failed: {}", e)))
+                    Err(RhemaError::InvalidInput(format!(
+                        "JWT creation failed: {}",
+                        e
+                    )))
                 }
             }
         } else {
-            Err(RhemaError::InvalidInput("JWT secret not configured".to_string()))
+            Err(RhemaError::InvalidInput(
+                "JWT secret not configured".to_string(),
+            ))
         }
     }
 
     /// Revoke API key
     pub async fn revoke_api_key(&self, api_key: &str) -> RhemaResult<bool> {
         let was_present = self.api_keys.write().await.remove(api_key).is_some();
-        
+
         if was_present {
             // Log API key revocation
-            self.audit_logger.log(
-                AuditEventType::TokenManagement,
-                "API key revoked",
-                AuditResult::Success,
-                None,
-                None,
-                None,
-                None,
-                None,
-                HashMap::new(),
-            ).await;
+            self.audit_logger
+                .log(
+                    AuditEventType::TokenManagement,
+                    "API key revoked",
+                    AuditResult::Success,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    HashMap::new(),
+                )
+                .await;
         }
-        
+
         Ok(was_present)
     }
 
@@ -981,8 +1054,9 @@ impl AuthManager {
         if !auth_result.authenticated {
             return false;
         }
-        
-        auth_result.permissions.contains(&"*".to_string()) || auth_result.permissions.contains(&permission.to_string())
+
+        auth_result.permissions.contains(&"*".to_string())
+            || auth_result.permissions.contains(&permission.to_string())
     }
 
     /// Validate origin for CORS
@@ -990,10 +1064,11 @@ impl AuthManager {
         if self.config.allowed_origins.is_empty() {
             return true;
         }
-        
-        self.config.allowed_origins.iter().any(|allowed| {
-            allowed == "*" || allowed == origin || origin.ends_with(allowed)
-        })
+
+        self.config
+            .allowed_origins
+            .iter()
+            .any(|allowed| allowed == "*" || allowed == origin || origin.ends_with(allowed))
     }
 
     /// Cleanup expired tokens and sessions
@@ -1031,7 +1106,9 @@ impl AuthManager {
         let mut rate_limiters = self.rate_limiters.write().await;
         rate_limiters.retain(|_, limiter| {
             let now_instant = Instant::now();
-            limiter.requests.retain(|&time| now_instant.duration_since(time) < limiter.window);
+            limiter
+                .requests
+                .retain(|&time| now_instant.duration_since(time) < limiter.window);
             !limiter.requests.is_empty()
         });
 
@@ -1056,47 +1133,56 @@ impl AuthManager {
 
     /// Revoke session
     pub async fn revoke_session(&self, session_id: &str) -> RhemaResult<bool> {
-        let was_present = self.active_sessions.write().await.remove(session_id).is_some();
-        
+        let was_present = self
+            .active_sessions
+            .write()
+            .await
+            .remove(session_id)
+            .is_some();
+
         if was_present {
             // Log session revocation
-            self.audit_logger.log(
-                AuditEventType::SessionManagement,
-                "Session revoked",
-                AuditResult::Success,
-                None,
-                None,
-                None,
-                None,
-                Some(session_id.to_string()),
-                HashMap::new(),
-            ).await;
+            self.audit_logger
+                .log(
+                    AuditEventType::SessionManagement,
+                    "Session revoked",
+                    AuditResult::Success,
+                    None,
+                    None,
+                    None,
+                    None,
+                    Some(session_id.to_string()),
+                    HashMap::new(),
+                )
+                .await;
         }
-        
+
         Ok(was_present)
     }
 
     /// Enhanced JWT token validation with proper signature verification
     async fn verify_jwt_token_enhanced(&self, token: &str) -> RhemaResult<serde_json::Value> {
         if let Some(decoding_key) = &self.jwt_decoding_key {
-            let token_data = decode::<JwtClaims>(
-                token,
-                decoding_key,
-                &Validation::default()
-            ).map_err(|e| {
-                error!("JWT token validation failed: {}", e);
-                RhemaError::AuthenticationError(format!("Invalid JWT token: {}", e))
-            })?;
+            let token_data = decode::<JwtClaims>(token, decoding_key, &Validation::default())
+                .map_err(|e| {
+                    error!("JWT token validation failed: {}", e);
+                    RhemaError::AuthenticationError(format!("Invalid JWT token: {}", e))
+                })?;
 
             // Check if token is expired
             let now = chrono::Utc::now().timestamp();
             if token_data.claims.exp < now {
-                return Err(RhemaError::AuthenticationError("JWT token has expired".to_string()));
+                return Err(RhemaError::AuthenticationError(
+                    "JWT token has expired".to_string(),
+                ));
             }
 
             // Check if token is issued in the future (clock skew protection)
-            if token_data.claims.iat > now + 300 { // 5 minutes clock skew tolerance
-                return Err(RhemaError::AuthenticationError("JWT token issued in the future".to_string()));
+            if token_data.claims.iat > now + 300 {
+                // 5 minutes clock skew tolerance
+                return Err(RhemaError::AuthenticationError(
+                    "JWT token issued in the future".to_string(),
+                ));
             }
 
             // Convert claims to JSON for return
@@ -1109,16 +1195,14 @@ impl AuthManager {
 
             Ok(claims_json)
         } else {
-            Err(RhemaError::AuthenticationError("JWT secret not configured".to_string()))
+            Err(RhemaError::AuthenticationError(
+                "JWT secret not configured".to_string(),
+            ))
         }
     }
 
     /// Create a refresh token for JWT
-    pub async fn create_refresh_token(
-        &self,
-        user_id: &str,
-        ttl_hours: u64,
-    ) -> RhemaResult<String> {
+    pub async fn create_refresh_token(&self, user_id: &str, ttl_hours: u64) -> RhemaResult<String> {
         if let Some(encoding_key) = &self.jwt_encoding_key {
             let now = chrono::Utc::now();
             let exp = now + chrono::Duration::hours(ttl_hours as i64);
@@ -1136,7 +1220,9 @@ impl AuthManager {
                 RhemaError::AuthenticationError(format!("Failed to create refresh token: {}", e))
             })
         } else {
-            Err(RhemaError::AuthenticationError("JWT secret not configured".to_string()))
+            Err(RhemaError::AuthenticationError(
+                "JWT secret not configured".to_string(),
+            ))
         }
     }
 
@@ -1148,50 +1234,72 @@ impl AuthManager {
     ) -> RhemaResult<String> {
         // Verify the refresh token
         let claims = self.verify_jwt_token_enhanced(refresh_token).await?;
-        
+
         // Check if it's actually a refresh token
-        let permissions = claims["permissions"].as_array()
-            .ok_or_else(|| RhemaError::AuthenticationError("Invalid token permissions".to_string()))?;
-        
+        let permissions = claims["permissions"].as_array().ok_or_else(|| {
+            RhemaError::AuthenticationError("Invalid token permissions".to_string())
+        })?;
+
         if !permissions.iter().any(|p| p.as_str() == Some("refresh")) {
-            return Err(RhemaError::AuthenticationError("Token is not a refresh token".to_string()));
+            return Err(RhemaError::AuthenticationError(
+                "Token is not a refresh token".to_string(),
+            ));
         }
 
         // Extract user ID from refresh token
-        let user_id = claims["sub"].as_str()
+        let user_id = claims["sub"]
+            .as_str()
             .ok_or_else(|| RhemaError::AuthenticationError("Invalid token subject".to_string()))?;
 
         // Create new access token
-        self.create_jwt_token(user_id, vec!["read".to_string(), "write".to_string()], access_token_ttl_hours).await
+        self.create_jwt_token(
+            user_id,
+            vec!["read".to_string(), "write".to_string()],
+            access_token_ttl_hours,
+        )
+        .await
     }
 
     /// Enhanced API key validation with additional security checks
     async fn validate_api_key_enhanced(&self, api_key: &str) -> RhemaResult<AuthToken> {
         let api_keys = self.api_keys.read().await;
-        
+
         if let Some(token) = api_keys.get(api_key) {
             // Check if token is expired
             if let Some(expires_at) = token.expires_at {
                 if expires_at < chrono::Utc::now() {
-                    return Err(RhemaError::AuthenticationError("API key has expired".to_string()));
+                    return Err(RhemaError::AuthenticationError(
+                        "API key has expired".to_string(),
+                    ));
                 }
             }
 
             // Check if token is revoked
-            if token.metadata.get("revoked").and_then(|v| v.as_bool()).unwrap_or(false) {
-                return Err(RhemaError::AuthenticationError("API key has been revoked".to_string()));
+            if token
+                .metadata
+                .get("revoked")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
+            {
+                return Err(RhemaError::AuthenticationError(
+                    "API key has been revoked".to_string(),
+                ));
             }
 
             // Check usage limits
             if let Some(max_usage) = token.metadata.get("max_usage").and_then(|v| v.as_u64()) {
                 if token.usage_count >= max_usage {
-                    return Err(RhemaError::AuthenticationError("API key usage limit exceeded".to_string()));
+                    return Err(RhemaError::AuthenticationError(
+                        "API key usage limit exceeded".to_string(),
+                    ));
                 }
             }
 
             Ok(token.clone())
         } else {
-            Err(RhemaError::AuthenticationError("Invalid API key".to_string()))
+            Err(RhemaError::AuthenticationError(
+                "Invalid API key".to_string(),
+            ))
         }
     }
 
@@ -1206,31 +1314,46 @@ impl AuthManager {
     ) -> RhemaResult<String> {
         // Validate inputs
         if !self.validate_user_id(user_id) {
-            return Err(RhemaError::ValidationError("Invalid user ID format".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Invalid user ID format".to_string(),
+            ));
         }
 
         if !self.validate_permissions(&permissions) {
-            return Err(RhemaError::ValidationError("Invalid permissions".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Invalid permissions".to_string(),
+            ));
         }
 
         // Generate secure API key
         let api_key = self.generate_secure_api_key();
 
         // Calculate expiration
-        let expires_at = ttl_hours.map(|hours| {
-            chrono::Utc::now() + chrono::Duration::hours(hours as i64)
-        });
+        let expires_at =
+            ttl_hours.map(|hours| chrono::Utc::now() + chrono::Duration::hours(hours as i64));
 
         // Create token with enhanced metadata
         let mut metadata = HashMap::new();
         if let Some(max_usage) = max_usage {
-            metadata.insert("max_usage".to_string(), serde_json::Value::Number(max_usage.into()));
+            metadata.insert(
+                "max_usage".to_string(),
+                serde_json::Value::Number(max_usage.into()),
+            );
         }
         if let Some(ref desc) = description {
-            metadata.insert("description".to_string(), serde_json::Value::String(desc.clone()));
+            metadata.insert(
+                "description".to_string(),
+                serde_json::Value::String(desc.clone()),
+            );
         }
-        metadata.insert("created_by".to_string(), serde_json::Value::String(user_id.to_string()));
-        metadata.insert("key_type".to_string(), serde_json::Value::String("enhanced".to_string()));
+        metadata.insert(
+            "created_by".to_string(),
+            serde_json::Value::String(user_id.to_string()),
+        );
+        metadata.insert(
+            "key_type".to_string(),
+            serde_json::Value::String("enhanced".to_string()),
+        );
 
         let token = AuthToken {
             id: Uuid::new_v4().to_string(),
@@ -1250,41 +1373,52 @@ impl AuthManager {
 
         // Log the creation
         let mut details = HashMap::new();
-        details.insert("key_type".to_string(), serde_json::Value::String("enhanced".to_string()));
+        details.insert(
+            "key_type".to_string(),
+            serde_json::Value::String("enhanced".to_string()),
+        );
         if let Some(max_usage) = max_usage {
-            details.insert("max_usage".to_string(), serde_json::Value::Number(max_usage.into()));
+            details.insert(
+                "max_usage".to_string(),
+                serde_json::Value::Number(max_usage.into()),
+            );
         }
         if let Some(ref desc) = description {
-            details.insert("description".to_string(), serde_json::Value::String(desc.clone()));
+            details.insert(
+                "description".to_string(),
+                serde_json::Value::String(desc.clone()),
+            );
         }
-        
-        self.audit_logger.log(
-            crate::auth::AuditEventType::TokenManagement,
-            "create_enhanced_api_key",
-            crate::auth::AuditResult::Success,
-            Some(user_id.to_string()),
-            None,
-            None,
-            None,
-            None,
-            details,
-        ).await;
+
+        self.audit_logger
+            .log(
+                crate::auth::AuditEventType::TokenManagement,
+                "create_enhanced_api_key",
+                crate::auth::AuditResult::Success,
+                Some(user_id.to_string()),
+                None,
+                None,
+                None,
+                None,
+                details,
+            )
+            .await;
 
         Ok(api_key)
     }
 
     /// Generate a cryptographically secure API key
     fn generate_secure_api_key(&self) -> String {
+        use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
         use rand::{thread_rng, RngCore};
-        use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-        
+
         let mut bytes = [0u8; 32];
         thread_rng().fill_bytes(&mut bytes);
-        
+
         // Format: rhema_<base64>_<timestamp>
         let base64_part = URL_SAFE_NO_PAD.encode(bytes);
         let timestamp = chrono::Utc::now().timestamp();
-        
+
         format!("rhema_{}_{}", base64_part, timestamp)
     }
 
@@ -1321,23 +1455,33 @@ impl AuthManager {
         sessions.insert(session_id.clone(), session);
 
         // Log session creation
-        self.audit_logger.log(
-            crate::auth::AuditEventType::Authentication,
-            "create_secure_session",
-            crate::auth::AuditResult::Success,
-            Some(user_id.to_string()),
-            client_info_clone.as_ref().and_then(|c| c.ip_address.clone()),
-            client_info_clone.as_ref().and_then(|c| c.user_agent.clone()),
-            None,
-            Some(session_id.clone()),
-            HashMap::new(),
-        ).await;
+        self.audit_logger
+            .log(
+                crate::auth::AuditEventType::Authentication,
+                "create_secure_session",
+                crate::auth::AuditResult::Success,
+                Some(user_id.to_string()),
+                client_info_clone
+                    .as_ref()
+                    .and_then(|c| c.ip_address.clone()),
+                client_info_clone
+                    .as_ref()
+                    .and_then(|c| c.user_agent.clone()),
+                None,
+                Some(session_id.clone()),
+                HashMap::new(),
+            )
+            .await;
 
         Ok(session_id)
     }
 
     /// Validate session with enhanced security checks
-    pub async fn validate_session_enhanced(&self, session_id: &str, client_info: Option<ClientInfo>) -> RhemaResult<AuthResult> {
+    pub async fn validate_session_enhanced(
+        &self,
+        session_id: &str,
+        client_info: Option<ClientInfo>,
+    ) -> RhemaResult<AuthResult> {
         if let Some(session) = self.get_session(session_id).await {
             // Check if session is expired
             if session.expires_at < Utc::now() {
@@ -1448,7 +1592,8 @@ impl SecurityMonitor {
                 None,
                 format!("Multiple failed attempts: {}", count),
                 SecuritySeverity::High,
-            ).await;
+            )
+            .await;
             return false; // Locked out
         }
         true // Still allowed
@@ -1513,9 +1658,8 @@ impl AuditLogger {
             session_id,
         };
 
-        let log_line = serde_json::to_string(&entry).unwrap_or_else(|_| {
-            format!("AUDIT_LOG_ERROR: Failed to serialize audit entry")
-        });
+        let log_line = serde_json::to_string(&entry)
+            .unwrap_or_else(|_| format!("AUDIT_LOG_ERROR: Failed to serialize audit entry"));
 
         // Log to console
         match entry.result {
@@ -1527,11 +1671,7 @@ impl AuditLogger {
 
         // Log to file if configured
         if let Some(ref log_file) = self.log_file {
-            if let Ok(mut file) = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(log_file)
-            {
+            if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(log_file) {
                 let _ = writeln!(file, "{}", log_line);
             }
         }
@@ -1605,7 +1745,9 @@ mod tests {
             client_type: ClientType::Http,
             fingerprint: None,
         };
-        let result = auth_manager.authenticate(Some("test_api_key_12345"), Some(client_info)).await?;
+        let result = auth_manager
+            .authenticate(Some("test_api_key_12345"), Some(client_info))
+            .await?;
         assert!(result.authenticated);
         assert_eq!(result.user_id, Some("api_user".to_string()));
         Ok(())
@@ -1630,8 +1772,10 @@ mod tests {
             client_type: ClientType::Http,
             fingerprint: None,
         };
-        let result = auth_manager.authenticate(Some("test_api_key_12345"), Some(client_info)).await?;
-        
+        let result = auth_manager
+            .authenticate(Some("test_api_key_12345"), Some(client_info))
+            .await?;
+
         assert!(auth_manager.has_permission(&result, "read").await);
         assert!(auth_manager.has_permission(&result, "write").await);
         Ok(())
@@ -1650,7 +1794,7 @@ mod tests {
         };
 
         let auth_manager = AuthManager::new(&config)?;
-        
+
         assert!(auth_manager.validate_origin("https://example.com"));
         assert!(!auth_manager.validate_origin("https://malicious.com"));
         Ok(())
@@ -1673,14 +1817,14 @@ mod tests {
         };
 
         let auth_manager = AuthManager::new(&config)?;
-        
+
         // First two requests should be allowed
         assert!(auth_manager.check_rate_limit("test_client", "http").await);
         assert!(auth_manager.check_rate_limit("test_client", "http").await);
-        
+
         // Third request should be rate limited
         assert!(!auth_manager.check_rate_limit("test_client", "http").await);
-        
+
         Ok(())
     }
 
@@ -1703,20 +1847,22 @@ mod tests {
             client_type: ClientType::Http,
             fingerprint: None,
         };
-        let result = auth_manager.authenticate(Some("test_api_key_12345"), Some(client_info)).await?;
-        
+        let result = auth_manager
+            .authenticate(Some("test_api_key_12345"), Some(client_info))
+            .await?;
+
         assert!(result.session_id.is_some());
-        
+
         let session_id = result.session_id.unwrap();
         let session = auth_manager.get_session(&session_id).await;
         assert!(session.is_some());
-        
+
         assert!(auth_manager.update_session_activity(&session_id).await?);
         assert!(auth_manager.revoke_session(&session_id).await?);
-        
+
         let session = auth_manager.get_session(&session_id).await;
         assert!(session.is_none());
-        
+
         Ok(())
     }
 
@@ -1733,22 +1879,29 @@ mod tests {
         };
 
         let auth_manager = AuthManager::new(&config)?;
-        
+
         let client_info = ClientInfo {
             ip_address: Some("127.0.0.1".to_string()),
             user_agent: Some("Test Client".to_string()),
             client_type: ClientType::Http,
             fingerprint: None,
         };
-        
+
         // Test invalid auth header
-        let result = auth_manager.authenticate(Some("<script>alert('xss')</script>"), Some(client_info.clone())).await?;
+        let result = auth_manager
+            .authenticate(
+                Some("<script>alert('xss')</script>"),
+                Some(client_info.clone()),
+            )
+            .await?;
         assert!(!result.authenticated);
-        
+
         // Test invalid API key format
-        let result = auth_manager.authenticate(Some("invalid_key"), Some(client_info)).await?;
+        let result = auth_manager
+            .authenticate(Some("invalid_key"), Some(client_info))
+            .await?;
         assert!(!result.authenticated);
-        
+
         Ok(())
     }
 }

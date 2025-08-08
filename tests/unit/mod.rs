@@ -7,4 +7,4 @@ pub mod interactive_tests;
 pub mod resolver_tests;
 pub mod send_sync_test;
 pub mod unit_tests;
-pub mod validation_command_tests; 
+pub mod validation_command_tests;

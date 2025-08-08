@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-use std::collections::HashMap;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::types::{
-    KnowledgeError, SearchResultMetadata, CacheEntryMetadata, 
-    DistanceMetric, VectorStoreConfig, ContentType
+    CacheEntryMetadata, ContentType, DistanceMetric, KnowledgeError, SearchResultMetadata,
+    VectorStoreConfig,
 };
 
 pub type KnowledgeResult<T> = Result<T, KnowledgeError>;
@@ -31,28 +31,28 @@ pub type KnowledgeResult<T> = Result<T, KnowledgeError>;
 pub enum VectorError {
     #[error("Vector store error: {0}")]
     StoreError(String),
-    
+
     #[error("Collection not found: {0}")]
     CollectionNotFound(String),
-    
+
     #[error("Vector dimension mismatch: expected {expected}, got {actual}")]
     DimensionMismatch { expected: usize, actual: usize },
-    
+
     #[error("Invalid vector data: {0}")]
     InvalidVectorData(String),
-    
+
     #[error("Storage initialization error: {0}")]
     InitializationError(String),
-    
+
     #[error("Search error: {0}")]
     SearchError(String),
-    
+
     #[error("Insertion error: {0}")]
     InsertionError(String),
-    
+
     #[error("Deletion error: {0}")]
     DeletionError(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
 }
@@ -62,9 +62,24 @@ pub enum VectorError {
 /// Vector storage trait for different implementations
 #[async_trait]
 pub trait VectorStore: Send + Sync {
-    async fn store(&self, id: &str, embedding: &[f32], metadata: Option<SearchResultMetadata>) -> KnowledgeResult<()>;
-    async fn store_with_metadata(&self, id: &str, embedding: &[f32], content: &str, metadata: Option<CacheEntryMetadata>) -> KnowledgeResult<()>;
-    async fn search(&self, query_embedding: &[f32], limit: usize) -> KnowledgeResult<Vec<VectorSearchResult>>;
+    async fn store(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        metadata: Option<SearchResultMetadata>,
+    ) -> KnowledgeResult<()>;
+    async fn store_with_metadata(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        content: &str,
+        metadata: Option<CacheEntryMetadata>,
+    ) -> KnowledgeResult<()>;
+    async fn search(
+        &self,
+        query_embedding: &[f32],
+        limit: usize,
+    ) -> KnowledgeResult<Vec<VectorSearchResult>>;
     async fn delete(&self, id: &str) -> KnowledgeResult<()>;
     async fn get(&self, id: &str) -> KnowledgeResult<Option<VectorRecord>>;
     async fn collection_info(&self) -> KnowledgeResult<VectorCollectionInfo>;
@@ -123,7 +138,12 @@ pub enum VectorStoreWrapper {
 
 #[async_trait]
 impl VectorStore for VectorStoreWrapper {
-    async fn store(&self, id: &str, embedding: &[f32], metadata: Option<SearchResultMetadata>) -> KnowledgeResult<()> {
+    async fn store(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        metadata: Option<SearchResultMetadata>,
+    ) -> KnowledgeResult<()> {
         match self {
             VectorStoreWrapper::Mock(store) => store.store(id, embedding, metadata).await,
             VectorStoreWrapper::Qdrant(store) => store.store(id, embedding, metadata).await,
@@ -132,16 +152,42 @@ impl VectorStore for VectorStoreWrapper {
         }
     }
 
-    async fn store_with_metadata(&self, id: &str, embedding: &[f32], content: &str, metadata: Option<CacheEntryMetadata>) -> KnowledgeResult<()> {
+    async fn store_with_metadata(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        content: &str,
+        metadata: Option<CacheEntryMetadata>,
+    ) -> KnowledgeResult<()> {
         match self {
-            VectorStoreWrapper::Mock(store) => store.store_with_metadata(id, embedding, content, metadata).await,
-            VectorStoreWrapper::Qdrant(store) => store.store_with_metadata(id, embedding, content, metadata).await,
-            VectorStoreWrapper::Chroma(store) => store.store_with_metadata(id, embedding, content, metadata).await,
-            VectorStoreWrapper::Pinecone(store) => store.store_with_metadata(id, embedding, content, metadata).await,
+            VectorStoreWrapper::Mock(store) => {
+                store
+                    .store_with_metadata(id, embedding, content, metadata)
+                    .await
+            }
+            VectorStoreWrapper::Qdrant(store) => {
+                store
+                    .store_with_metadata(id, embedding, content, metadata)
+                    .await
+            }
+            VectorStoreWrapper::Chroma(store) => {
+                store
+                    .store_with_metadata(id, embedding, content, metadata)
+                    .await
+            }
+            VectorStoreWrapper::Pinecone(store) => {
+                store
+                    .store_with_metadata(id, embedding, content, metadata)
+                    .await
+            }
         }
     }
 
-    async fn search(&self, query_embedding: &[f32], limit: usize) -> KnowledgeResult<Vec<VectorSearchResult>> {
+    async fn search(
+        &self,
+        query_embedding: &[f32],
+        limit: usize,
+    ) -> KnowledgeResult<Vec<VectorSearchResult>> {
         match self {
             VectorStoreWrapper::Mock(store) => store.search(query_embedding, limit).await,
             VectorStoreWrapper::Qdrant(store) => store.search(query_embedding, limit).await,
@@ -188,8 +234,16 @@ impl VectorStore for VectorStoreWrapper {
 }
 
 impl VectorStoreWrapper {
-    pub fn new_mock(collection_name: String, dimension: usize, distance_metric: DistanceMetric) -> Self {
-        VectorStoreWrapper::Mock(MockVectorStore::new(collection_name, dimension, distance_metric))
+    pub fn new_mock(
+        collection_name: String,
+        dimension: usize,
+        distance_metric: DistanceMetric,
+    ) -> Self {
+        VectorStoreWrapper::Mock(MockVectorStore::new(
+            collection_name,
+            dimension,
+            distance_metric,
+        ))
     }
 
     pub fn new_qdrant(config: QdrantConfig) -> Result<Self, anyhow::Error> {
@@ -227,7 +281,12 @@ impl MockVectorStore {
 
 #[async_trait]
 impl VectorStore for MockVectorStore {
-        async fn store(&self, id: &str, embedding: &[f32], metadata: Option<SearchResultMetadata>) -> KnowledgeResult<()> {
+    async fn store(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        metadata: Option<SearchResultMetadata>,
+    ) -> KnowledgeResult<()> {
         // Store the vector in the mock store for testing
         let record = VectorRecord {
             id: id.to_string(),
@@ -240,8 +299,14 @@ impl VectorStore for MockVectorStore {
         // For now, just return success
         Ok(())
     }
-    
-    async fn store_with_metadata(&self, id: &str, embedding: &[f32], content: &str, metadata: Option<CacheEntryMetadata>) -> KnowledgeResult<()> {
+
+    async fn store_with_metadata(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        content: &str,
+        metadata: Option<CacheEntryMetadata>,
+    ) -> KnowledgeResult<()> {
         // Store the vector with content in the mock store for testing
         let record = VectorRecord {
             id: id.to_string(),
@@ -255,10 +320,15 @@ impl VectorStore for MockVectorStore {
         Ok(())
     }
 
-    async fn search(&self, _query_embedding: &[f32], limit: usize) -> KnowledgeResult<Vec<VectorSearchResult>> {
+    async fn search(
+        &self,
+        _query_embedding: &[f32],
+        limit: usize,
+    ) -> KnowledgeResult<Vec<VectorSearchResult>> {
         // Return dummy search results for testing
         let mut results = Vec::new();
-        for i in 0..limit.min(3) { // Return up to 3 dummy results
+        for i in 0..limit.min(3) {
+            // Return up to 3 dummy results
             results.push(VectorSearchResult {
                 id: format!("test_result_{}", i),
                 score: 0.9 - (i as f32 * 0.1), // Decreasing scores
@@ -352,20 +422,26 @@ impl QdrantVectorStore {
             keep_alive_while_idle: true,
         };
         let client = qdrant_client::Qdrant::new(client_config)?;
-        
+
         Ok(Self { config, client })
     }
 
     async fn ensure_collection_exists(&self) -> KnowledgeResult<()> {
         let collection_name = &self.config.collection_name;
-        
+
         // Check if collection exists
-        let collections = self.client.list_collections().await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to list collections: {}", e))))?;
-        
-        let exists = collections.collections.iter()
+        let collections = self.client.list_collections().await.map_err(|e| {
+            KnowledgeError::VectorError(VectorError::StoreError(format!(
+                "Failed to list collections: {}",
+                e
+            )))
+        })?;
+
+        let exists = collections
+            .collections
+            .iter()
             .any(|c| c.name == *collection_name);
-        
+
         if !exists {
             // Create collection with basic configuration
             let config = qdrant_client::qdrant::CreateCollection {
@@ -375,28 +451,39 @@ impl QdrantVectorStore {
                             size: self.config.dimension as u64,
                             distance: qdrant_client::qdrant::Distance::Cosine as i32,
                             ..Default::default()
-                        }
-                    ))
+                        },
+                    )),
                 }),
                 ..Default::default()
             };
-            
-            self.client.create_collection(config).await
-                .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to create collection: {}", e))))?;
+
+            self.client.create_collection(config).await.map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to create collection: {}",
+                    e
+                )))
+            })?;
         }
-        
+
         Ok(())
     }
 }
 
 #[async_trait]
 impl VectorStore for QdrantVectorStore {
-    async fn store(&self, id: &str, embedding: &[f32], metadata: Option<SearchResultMetadata>) -> KnowledgeResult<()> {
+    async fn store(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        metadata: Option<SearchResultMetadata>,
+    ) -> KnowledgeResult<()> {
         self.ensure_collection_exists().await?;
-        
+
         let point = qdrant_client::qdrant::PointStruct {
             id: Some(qdrant_client::qdrant::PointId {
-                point_id_options: Some(qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id.to_string())),
+                point_id_options: Some(qdrant_client::qdrant::point_id::PointIdOptions::Uuid(
+                    id.to_string(),
+                )),
             }),
             vectors: Some(qdrant_client::qdrant::Vectors {
                 vectors_options: Some(qdrant_client::qdrant::vectors::VectorsOptions::Vector(
@@ -405,46 +492,98 @@ impl VectorStore for QdrantVectorStore {
                         indices: None,
                         vector: None,
                         vectors_count: None,
-                    }
-                ))
+                    },
+                )),
             }),
-            payload: metadata.map(|m| {
-                let mut payload = std::collections::HashMap::new();
-                payload.insert("source_type".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(m.source_type.to_string())) });
-                if let Some(scope) = m.scope_path {
-                    payload.insert("scope_path".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(scope)) });
-                }
-                payload.insert("created_at".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(m.created_at.to_rfc3339())) });
-                payload.insert("last_modified".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(m.last_modified.to_rfc3339())) });
-                payload.insert("size_bytes".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::IntegerValue(m.size_bytes as i64)) });
-                if let Some(chunk_id) = m.chunk_id {
-                    payload.insert("chunk_id".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(chunk_id)) });
-                }
-                payload
-            }).unwrap_or_default(),
+            payload: metadata
+                .map(|m| {
+                    let mut payload = std::collections::HashMap::new();
+                    payload.insert(
+                        "source_type".to_string(),
+                        qdrant_client::qdrant::Value {
+                            kind: Some(qdrant_client::qdrant::value::Kind::StringValue(
+                                m.source_type.to_string(),
+                            )),
+                        },
+                    );
+                    if let Some(scope) = m.scope_path {
+                        payload.insert(
+                            "scope_path".to_string(),
+                            qdrant_client::qdrant::Value {
+                                kind: Some(qdrant_client::qdrant::value::Kind::StringValue(scope)),
+                            },
+                        );
+                    }
+                    payload.insert(
+                        "created_at".to_string(),
+                        qdrant_client::qdrant::Value {
+                            kind: Some(qdrant_client::qdrant::value::Kind::StringValue(
+                                m.created_at.to_rfc3339(),
+                            )),
+                        },
+                    );
+                    payload.insert(
+                        "last_modified".to_string(),
+                        qdrant_client::qdrant::Value {
+                            kind: Some(qdrant_client::qdrant::value::Kind::StringValue(
+                                m.last_modified.to_rfc3339(),
+                            )),
+                        },
+                    );
+                    payload.insert(
+                        "size_bytes".to_string(),
+                        qdrant_client::qdrant::Value {
+                            kind: Some(qdrant_client::qdrant::value::Kind::IntegerValue(
+                                m.size_bytes as i64,
+                            )),
+                        },
+                    );
+                    if let Some(chunk_id) = m.chunk_id {
+                        payload.insert(
+                            "chunk_id".to_string(),
+                            qdrant_client::qdrant::Value {
+                                kind: Some(qdrant_client::qdrant::value::Kind::StringValue(
+                                    chunk_id,
+                                )),
+                            },
+                        );
+                    }
+                    payload
+                })
+                .unwrap_or_default(),
         };
-        
+
         let points = vec![point];
-        
+
         // Use the new Qdrant API for upsert
         let upsert_points = qdrant_client::qdrant::UpsertPoints {
             collection_name: self.config.collection_name.clone(),
             points,
             ..Default::default()
         };
-        
+
         match self.client.upsert_points(upsert_points).await {
             Ok(_) => Ok(()),
-            Err(e) => Err(KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to store vector: {}", e)))),
+            Err(e) => Err(KnowledgeError::VectorError(VectorError::StoreError(
+                format!("Failed to store vector: {}", e),
+            ))),
         }
     }
 
-    async fn store_with_metadata(&self, id: &str, embedding: &[f32], content: &str, metadata: Option<CacheEntryMetadata>) -> KnowledgeResult<()> {
+    async fn store_with_metadata(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        content: &str,
+        metadata: Option<CacheEntryMetadata>,
+    ) -> KnowledgeResult<()> {
         self.ensure_collection_exists().await?;
-        
+
         let point = qdrant_client::qdrant::PointStruct {
             id: Some(qdrant_client::qdrant::PointId {
-                point_id_options: Some(qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id.to_string())),
+                point_id_options: Some(qdrant_client::qdrant::point_id::PointIdOptions::Uuid(
+                    id.to_string(),
+                )),
             }),
             vectors: Some(qdrant_client::qdrant::Vectors {
                 vectors_options: Some(qdrant_client::qdrant::vectors::VectorsOptions::Vector(
@@ -453,32 +592,81 @@ impl VectorStore for QdrantVectorStore {
                         indices: None,
                         vector: None,
                         vectors_count: None,
-                    }
-                ))
+                    },
+                )),
             }),
             payload: {
                 let mut payload = std::collections::HashMap::new();
-                payload.insert("content".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(content.to_string())) });
-                
+                payload.insert(
+                    "content".to_string(),
+                    qdrant_client::qdrant::Value {
+                        kind: Some(qdrant_client::qdrant::value::Kind::StringValue(
+                            content.to_string(),
+                        )),
+                    },
+                );
+
                 if let Some(m) = metadata {
                     if let Some(checksum) = &m.checksum {
-                        payload.insert("checksum".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(checksum.clone())) });
+                        payload.insert(
+                            "checksum".to_string(),
+                            qdrant_client::qdrant::Value {
+                                kind: Some(qdrant_client::qdrant::value::Kind::StringValue(
+                                    checksum.clone(),
+                                )),
+                            },
+                        );
                     }
                     if let Some(ratio) = m.compression_ratio {
-                        payload.insert("compression_ratio".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::DoubleValue(ratio as f64)) });
+                        payload.insert(
+                            "compression_ratio".to_string(),
+                            qdrant_client::qdrant::Value {
+                                kind: Some(qdrant_client::qdrant::value::Kind::DoubleValue(
+                                    ratio as f64,
+                                )),
+                            },
+                        );
                     }
-                    payload.insert("created_at".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(m.created_at.to_rfc3339())) });
-                    payload.insert("last_accessed".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::StringValue(m.accessed_at.to_rfc3339())) });
-                    payload.insert("access_count".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::IntegerValue(m.access_count as i64)) });
-                    payload.insert("size_bytes".to_string(), qdrant_client::qdrant::Value { kind: Some(qdrant_client::qdrant::value::Kind::IntegerValue(m.size_bytes as i64)) });
+                    payload.insert(
+                        "created_at".to_string(),
+                        qdrant_client::qdrant::Value {
+                            kind: Some(qdrant_client::qdrant::value::Kind::StringValue(
+                                m.created_at.to_rfc3339(),
+                            )),
+                        },
+                    );
+                    payload.insert(
+                        "last_accessed".to_string(),
+                        qdrant_client::qdrant::Value {
+                            kind: Some(qdrant_client::qdrant::value::Kind::StringValue(
+                                m.accessed_at.to_rfc3339(),
+                            )),
+                        },
+                    );
+                    payload.insert(
+                        "access_count".to_string(),
+                        qdrant_client::qdrant::Value {
+                            kind: Some(qdrant_client::qdrant::value::Kind::IntegerValue(
+                                m.access_count as i64,
+                            )),
+                        },
+                    );
+                    payload.insert(
+                        "size_bytes".to_string(),
+                        qdrant_client::qdrant::Value {
+                            kind: Some(qdrant_client::qdrant::value::Kind::IntegerValue(
+                                m.size_bytes as i64,
+                            )),
+                        },
+                    );
                 }
-                
+
                 payload
             },
         };
-        
+
         let points = vec![point];
-        
+
         // Use a simpler upsert call
         // Use the new Qdrant API for upsert
         let upsert_points = qdrant_client::qdrant::UpsertPoints {
@@ -486,25 +674,39 @@ impl VectorStore for QdrantVectorStore {
             points,
             ..Default::default()
         };
-        
+
         match self.client.upsert_points(upsert_points).await {
             Ok(_) => Ok(()),
-            Err(e) => Err(KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to store vector with metadata: {}", e)))),
+            Err(e) => Err(KnowledgeError::VectorError(VectorError::StoreError(
+                format!("Failed to store vector with metadata: {}", e),
+            ))),
         }
     }
 
-    async fn search(&self, query_embedding: &[f32], limit: usize) -> KnowledgeResult<Vec<VectorSearchResult>> {
+    async fn search(
+        &self,
+        query_embedding: &[f32],
+        limit: usize,
+    ) -> KnowledgeResult<Vec<VectorSearchResult>> {
         self.ensure_collection_exists().await?;
-        
+
         let search_points = qdrant_client::qdrant::SearchPoints {
             collection_name: self.config.collection_name.clone(),
             vector: query_embedding.to_vec(),
             limit: limit as u64,
-            with_payload: Some(qdrant_client::qdrant::WithPayloadSelector { selector_options: Some(qdrant_client::qdrant::with_payload_selector::SelectorOptions::Enable(true)) }),
-            with_vectors: Some(qdrant_client::qdrant::WithVectorsSelector { selector_options: Some(qdrant_client::qdrant::with_vectors_selector::SelectorOptions::Enable(true)) }),
+            with_payload: Some(qdrant_client::qdrant::WithPayloadSelector {
+                selector_options: Some(
+                    qdrant_client::qdrant::with_payload_selector::SelectorOptions::Enable(true),
+                ),
+            }),
+            with_vectors: Some(qdrant_client::qdrant::WithVectorsSelector {
+                selector_options: Some(
+                    qdrant_client::qdrant::with_vectors_selector::SelectorOptions::Enable(true),
+                ),
+            }),
             ..Default::default()
         };
-        
+
         let search_request = qdrant_client::qdrant::SearchPoints {
             collection_name: self.config.collection_name.clone(),
             vector: search_points.vector,
@@ -513,84 +715,111 @@ impl VectorStore for QdrantVectorStore {
             with_vectors: search_points.with_vectors,
             ..Default::default()
         };
-        
-        let response = self.client.search_points(search_request).await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::SearchError(format!("Failed to search vectors: {}", e))))?;
-        
-        let results = response.result.into_iter().map(|scored_point| {
-            let payload = &scored_point.payload;
-            let content = payload.get("content")
-                .and_then(|v| match &v.kind {
+
+        let response = self
+            .client
+            .search_points(search_request)
+            .await
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::SearchError(format!(
+                    "Failed to search vectors: {}",
+                    e
+                )))
+            })?;
+
+        let results = response
+            .result
+            .into_iter()
+            .map(|scored_point| {
+                let payload = &scored_point.payload;
+                let content = payload.get("content").and_then(|v| match &v.kind {
                     Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => Some(s.clone()),
                     _ => None,
                 });
-            
-            let metadata = if payload.contains_key("source_type") {
-                Some(SearchResultMetadata {
-                    source_type: payload.get("source_type")
-                        .and_then(|v| match &v.kind {
-                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => ContentType::from_str(&s),
-                            _ => None,
-                        })
-                        .unwrap_or(ContentType::Documentation),
-                    scope_path: payload.get("scope_path")
-                        .and_then(|v| match &v.kind {
-                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => Some(s.clone()),
-                            _ => None,
-                        }),
-                    created_at: payload.get("created_at")
-                        .and_then(|v| match &v.kind {
-                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => DateTime::parse_from_rfc3339(&s).ok(),
-                            _ => None,
-                        })
-                        .map(|dt| dt.with_timezone(&Utc))
-                        .unwrap_or_else(Utc::now),
-                    last_modified: payload.get("last_modified")
-                        .and_then(|v| match &v.kind {
-                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => DateTime::parse_from_rfc3339(s).ok(),
-                            _ => None,
-                        })
-                        .map(|dt| dt.with_timezone(&Utc))
-                        .unwrap_or_else(Utc::now),
-                    size_bytes: payload.get("size_bytes")
-                        .and_then(|v| match &v.kind {
-                            Some(qdrant_client::qdrant::value::Kind::IntegerValue(i)) => Some(*i as u64),
-                            _ => None,
-                        })
-                        .unwrap_or(0),
-                    chunk_id: payload.get("chunk_id")
-                        .and_then(|v| match &v.kind {
-                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => Some(s.clone()),
+
+                let metadata = if payload.contains_key("source_type") {
+                    Some(SearchResultMetadata {
+                        source_type: payload
+                            .get("source_type")
+                            .and_then(|v| match &v.kind {
+                                Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                                    ContentType::from_str(&s)
+                                }
+                                _ => None,
+                            })
+                            .unwrap_or(ContentType::Documentation),
+                        scope_path: payload.get("scope_path").and_then(|v| match &v.kind {
+                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                                Some(s.clone())
+                            }
                             _ => None,
                         }),
-                })
-            } else {
-                None
-            };
-            
-            VectorSearchResult {
-                id: match scored_point.id.unwrap().point_id_options.unwrap() {
-                    qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id) => id,
-                    qdrant_client::qdrant::point_id::PointIdOptions::Num(id) => id.to_string(),
-                },
-                score: scored_point.score,
-                embedding: match scored_point.vectors.unwrap().vectors_options.unwrap() {
-                    qdrant_client::qdrant::vectors_output::VectorsOptions::Vector(v) => v.data,
-                    _ => vec![],
-                },
-                content,
-                metadata,
-            }
-        }).collect();
-        
+                        created_at: payload
+                            .get("created_at")
+                            .and_then(|v| match &v.kind {
+                                Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                                    DateTime::parse_from_rfc3339(&s).ok()
+                                }
+                                _ => None,
+                            })
+                            .map(|dt| dt.with_timezone(&Utc))
+                            .unwrap_or_else(Utc::now),
+                        last_modified: payload
+                            .get("last_modified")
+                            .and_then(|v| match &v.kind {
+                                Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                                    DateTime::parse_from_rfc3339(s).ok()
+                                }
+                                _ => None,
+                            })
+                            .map(|dt| dt.with_timezone(&Utc))
+                            .unwrap_or_else(Utc::now),
+                        size_bytes: payload
+                            .get("size_bytes")
+                            .and_then(|v| match &v.kind {
+                                Some(qdrant_client::qdrant::value::Kind::IntegerValue(i)) => {
+                                    Some(*i as u64)
+                                }
+                                _ => None,
+                            })
+                            .unwrap_or(0),
+                        chunk_id: payload.get("chunk_id").and_then(|v| match &v.kind {
+                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                                Some(s.clone())
+                            }
+                            _ => None,
+                        }),
+                    })
+                } else {
+                    None
+                };
+
+                VectorSearchResult {
+                    id: match scored_point.id.unwrap().point_id_options.unwrap() {
+                        qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id) => id,
+                        qdrant_client::qdrant::point_id::PointIdOptions::Num(id) => id.to_string(),
+                    },
+                    score: scored_point.score,
+                    embedding: match scored_point.vectors.unwrap().vectors_options.unwrap() {
+                        qdrant_client::qdrant::vectors_output::VectorsOptions::Vector(v) => v.data,
+                        _ => vec![],
+                    },
+                    content,
+                    metadata,
+                }
+            })
+            .collect();
+
         Ok(results)
     }
 
     async fn delete(&self, id: &str) -> KnowledgeResult<()> {
         let point_id = qdrant_client::qdrant::PointId {
-            point_id_options: Some(qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id.to_string())),
+            point_id_options: Some(qdrant_client::qdrant::point_id::PointIdOptions::Uuid(
+                id.to_string(),
+            )),
         };
-        
+
         // For now, just return success since the delete method is not available in the current API
         // TODO: Implement proper delete functionality when the API is available
         Ok(())
@@ -615,12 +844,20 @@ impl VectorStore for QdrantVectorStore {
     }
 
     async fn clear(&self) -> KnowledgeResult<()> {
-        let _ = self.client.delete_collection(&self.config.collection_name).await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to clear collection: {}", e))))?;
-        
+        let _ = self
+            .client
+            .delete_collection(&self.config.collection_name)
+            .await
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to clear collection: {}",
+                    e
+                )))
+            })?;
+
         // Recreate the collection
         self.ensure_collection_exists().await?;
-        
+
         Ok(())
     }
 }
@@ -638,25 +875,34 @@ impl ChromaVectorStore {
             .timeout(std::time::Duration::from_secs(config.timeout_seconds))
             .build()
             .unwrap_or_default();
-        
+
         Self { config, client }
     }
 
     async fn ensure_collection_exists(&self) -> KnowledgeResult<()> {
         let url = format!("{}/api/v1/collections", self.config.url);
-        
+
         // Check if collection exists
-        let response = self.client.get(&url).send().await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to check collections: {}", e))))?;
-        
+        let response = self.client.get(&url).send().await.map_err(|e| {
+            KnowledgeError::VectorError(VectorError::StoreError(format!(
+                "Failed to check collections: {}",
+                e
+            )))
+        })?;
+
         if response.status().is_success() {
-            let collections: serde_json::Value = response.json().await
-                .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to parse collections response: {}", e))))?;
-            
-            let exists = collections["data"].as_array()
+            let collections: serde_json::Value = response.json().await.map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to parse collections response: {}",
+                    e
+                )))
+            })?;
+
+            let exists = collections["data"]
+                .as_array()
                 .map(|arr| arr.iter().any(|c| c["name"] == self.config.collection_name))
                 .unwrap_or(false);
-            
+
             if !exists {
                 // Create collection
                 let create_data = serde_json::json!({
@@ -670,26 +916,41 @@ impl ChromaVectorStore {
                         }
                     }
                 });
-                
-                let _ = self.client.post(&url)
+
+                let _ = self
+                    .client
+                    .post(&url)
                     .json(&create_data)
                     .send()
                     .await
-                    .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to create collection: {}", e))))?;
+                    .map_err(|e| {
+                        KnowledgeError::VectorError(VectorError::StoreError(format!(
+                            "Failed to create collection: {}",
+                            e
+                        )))
+                    })?;
             }
         }
-        
+
         Ok(())
     }
 }
 
 #[async_trait]
 impl VectorStore for ChromaVectorStore {
-    async fn store(&self, id: &str, embedding: &[f32], metadata: Option<SearchResultMetadata>) -> KnowledgeResult<()> {
+    async fn store(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        metadata: Option<SearchResultMetadata>,
+    ) -> KnowledgeResult<()> {
         self.ensure_collection_exists().await?;
-        
-        let url = format!("{}/api/v1/collections/{}/add", self.config.url, self.config.collection_name);
-        
+
+        let url = format!(
+            "{}/api/v1/collections/{}/add",
+            self.config.url, self.config.collection_name
+        );
+
         let mut payload = serde_json::json!({
             "ids": [id],
             "embeddings": [embedding],
@@ -704,21 +965,37 @@ impl VectorStore for ChromaVectorStore {
                 })
             }).unwrap_or(serde_json::Value::Null)]
         });
-        
-        let _ = self.client.post(&url)
+
+        let _ = self
+            .client
+            .post(&url)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to store vector: {}", e))))?;
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to store vector: {}",
+                    e
+                )))
+            })?;
+
         Ok(())
     }
 
-    async fn store_with_metadata(&self, id: &str, embedding: &[f32], content: &str, metadata: Option<CacheEntryMetadata>) -> KnowledgeResult<()> {
+    async fn store_with_metadata(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        content: &str,
+        metadata: Option<CacheEntryMetadata>,
+    ) -> KnowledgeResult<()> {
         self.ensure_collection_exists().await?;
-        
-        let url = format!("{}/api/v1/collections/{}/add", self.config.url, self.config.collection_name);
-        
+
+        let url = format!(
+            "{}/api/v1/collections/{}/add",
+            self.config.url, self.config.collection_name
+        );
+
         let mut payload = serde_json::json!({
             "ids": [id],
             "embeddings": [embedding],
@@ -734,36 +1011,62 @@ impl VectorStore for ChromaVectorStore {
                 })
             }).unwrap_or(serde_json::Value::Null)]
         });
-        
-        let _ = self.client.post(&url)
+
+        let _ = self
+            .client
+            .post(&url)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to store vector with metadata: {}", e))))?;
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to store vector with metadata: {}",
+                    e
+                )))
+            })?;
+
         Ok(())
     }
 
-    async fn search(&self, query_embedding: &[f32], limit: usize) -> KnowledgeResult<Vec<VectorSearchResult>> {
-        let url = format!("{}/api/v1/collections/{}/query", self.config.url, self.config.collection_name);
-        
+    async fn search(
+        &self,
+        query_embedding: &[f32],
+        limit: usize,
+    ) -> KnowledgeResult<Vec<VectorSearchResult>> {
+        let url = format!(
+            "{}/api/v1/collections/{}/query",
+            self.config.url, self.config.collection_name
+        );
+
         let payload = serde_json::json!({
             "query_embeddings": [query_embedding],
             "n_results": limit,
             "include": ["metadatas", "documents", "embeddings"]
         });
-        
-        let response = self.client.post(&url)
+
+        let response = self
+            .client
+            .post(&url)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::SearchError(format!("Failed to search vectors: {}", e))))?;
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::SearchError(format!(
+                    "Failed to search vectors: {}",
+                    e
+                )))
+            })?;
+
         if response.status().is_success() {
-            let data: serde_json::Value = response.json().await
-                .map_err(|e| KnowledgeError::VectorError(VectorError::SearchError(format!("Failed to parse search response: {}", e))))?;
-            
-            let results = data["ids"][0].as_array()
+            let data: serde_json::Value = response.json().await.map_err(|e| {
+                KnowledgeError::VectorError(VectorError::SearchError(format!(
+                    "Failed to parse search response: {}",
+                    e
+                )))
+            })?;
+
+            let results = data["ids"][0]
+                .as_array()
                 .unwrap_or(&vec![])
                 .iter()
                 .zip(data["distances"][0].as_array().unwrap_or(&vec![]))
@@ -773,15 +1076,18 @@ impl VectorStore for ChromaVectorStore {
                 .map(|((((id, distance), embedding), document), metadata)| {
                     let metadata = if !metadata.is_null() {
                         Some(SearchResultMetadata {
-                            source_type: metadata["source_type"].as_str()
+                            source_type: metadata["source_type"]
+                                .as_str()
                                 .and_then(|s| ContentType::from_str(s))
                                 .unwrap_or(ContentType::Documentation),
                             scope_path: metadata["scope_path"].as_str().map(|s| s.to_string()),
-                            created_at: metadata["created_at"].as_str()
+                            created_at: metadata["created_at"]
+                                .as_str()
                                 .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                                 .map(|dt| dt.with_timezone(&Utc))
                                 .unwrap_or_else(Utc::now),
-                            last_modified: metadata["last_modified"].as_str()
+                            last_modified: metadata["last_modified"]
+                                .as_str()
                                 .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                                 .map(|dt| dt.with_timezone(&Utc))
                                 .unwrap_or_else(Utc::now),
@@ -791,72 +1097,106 @@ impl VectorStore for ChromaVectorStore {
                     } else {
                         None
                     };
-                    
+
                     VectorSearchResult {
                         id: id.as_str().unwrap_or("").to_string(),
                         score: 1.0 - distance.as_f64().unwrap_or(0.0) as f32, // Convert distance to similarity
-                        embedding: embedding.as_array()
-                            .map(|arr| arr.iter().map(|v| v.as_f64().unwrap_or(0.0) as f32).collect())
+                        embedding: embedding
+                            .as_array()
+                            .map(|arr| {
+                                arr.iter()
+                                    .map(|v| v.as_f64().unwrap_or(0.0) as f32)
+                                    .collect()
+                            })
                             .unwrap_or_default(),
                         content: document.as_str().map(|s| s.to_string()),
                         metadata,
                     }
                 })
                 .collect();
-            
+
             Ok(results)
         } else {
-            Err(KnowledgeError::VectorError(VectorError::SearchError("Search request failed".to_string())))
+            Err(KnowledgeError::VectorError(VectorError::SearchError(
+                "Search request failed".to_string(),
+            )))
         }
     }
 
     async fn delete(&self, id: &str) -> KnowledgeResult<()> {
-        let url = format!("{}/api/v1/collections/{}/delete", self.config.url, self.config.collection_name);
-        
+        let url = format!(
+            "{}/api/v1/collections/{}/delete",
+            self.config.url, self.config.collection_name
+        );
+
         let payload = serde_json::json!({
             "ids": [id]
         });
-        
-        let _ = self.client.post(&url)
+
+        let _ = self
+            .client
+            .post(&url)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::DeletionError(format!("Failed to delete vector: {}", e))))?;
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::DeletionError(format!(
+                    "Failed to delete vector: {}",
+                    e
+                )))
+            })?;
+
         Ok(())
     }
 
     async fn get(&self, id: &str) -> KnowledgeResult<Option<VectorRecord>> {
-        let url = format!("{}/api/v1/collections/{}/get", self.config.url, self.config.collection_name);
-        
+        let url = format!(
+            "{}/api/v1/collections/{}/get",
+            self.config.url, self.config.collection_name
+        );
+
         let payload = serde_json::json!({
             "ids": [id],
             "include": ["metadatas", "documents", "embeddings"]
         });
-        
-        let response = self.client.post(&url)
+
+        let response = self
+            .client
+            .post(&url)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to get vector: {}", e))))?;
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to get vector: {}",
+                    e
+                )))
+            })?;
+
         if response.status().is_success() {
-            let data: serde_json::Value = response.json().await
-                .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to parse get response: {}", e))))?;
-            
+            let data: serde_json::Value = response.json().await.map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to parse get response: {}",
+                    e
+                )))
+            })?;
+
             if let Some(id_val) = data["ids"][0].as_str() {
                 let metadata = if !data["metadatas"][0].is_null() {
                     let m = &data["metadatas"][0];
                     Some(SearchResultMetadata {
-                        source_type: m["source_type"].as_str()
+                        source_type: m["source_type"]
+                            .as_str()
                             .and_then(|s| ContentType::from_str(s))
                             .unwrap_or(ContentType::Documentation),
                         scope_path: m["scope_path"].as_str().map(|s| s.to_string()),
-                        created_at: m["created_at"].as_str()
+                        created_at: m["created_at"]
+                            .as_str()
                             .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                             .map(|dt| dt.with_timezone(&Utc))
                             .unwrap_or_else(Utc::now),
-                        last_modified: m["last_modified"].as_str()
+                        last_modified: m["last_modified"]
+                            .as_str()
                             .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                             .map(|dt| dt.with_timezone(&Utc))
                             .unwrap_or_else(Utc::now),
@@ -866,11 +1206,16 @@ impl VectorStore for ChromaVectorStore {
                 } else {
                     None
                 };
-                
+
                 Ok(Some(VectorRecord {
                     id: id_val.to_string(),
-                    embedding: data["embeddings"][0].as_array()
-                        .map(|arr| arr.iter().map(|v| v.as_f64().unwrap_or(0.0) as f32).collect())
+                    embedding: data["embeddings"][0]
+                        .as_array()
+                        .map(|arr| {
+                            arr.iter()
+                                .map(|v| v.as_f64().unwrap_or(0.0) as f32)
+                                .collect()
+                        })
                         .unwrap_or_default(),
                     content: data["documents"][0].as_str().map(|s| s.to_string()),
                     metadata,
@@ -885,15 +1230,26 @@ impl VectorStore for ChromaVectorStore {
     }
 
     async fn collection_info(&self) -> KnowledgeResult<VectorCollectionInfo> {
-        let url = format!("{}/api/v1/collections/{}", self.config.url, self.config.collection_name);
-        
-        let response = self.client.get(&url).send().await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to get collection info: {}", e))))?;
-        
+        let url = format!(
+            "{}/api/v1/collections/{}",
+            self.config.url, self.config.collection_name
+        );
+
+        let response = self.client.get(&url).send().await.map_err(|e| {
+            KnowledgeError::VectorError(VectorError::StoreError(format!(
+                "Failed to get collection info: {}",
+                e
+            )))
+        })?;
+
         if response.status().is_success() {
-            let data: serde_json::Value = response.json().await
-                .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to parse collection info: {}", e))))?;
-            
+            let data: serde_json::Value = response.json().await.map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to parse collection info: {}",
+                    e
+                )))
+            })?;
+
             Ok(VectorCollectionInfo {
                 name: self.config.collection_name.clone(),
                 vector_count: data["count"].as_u64().unwrap_or(0) as usize,
@@ -902,19 +1258,28 @@ impl VectorStore for ChromaVectorStore {
                 size_bytes: data["count"].as_u64().unwrap_or(0) * self.config.dimension as u64 * 4, // Rough estimate
             })
         } else {
-            Err(KnowledgeError::VectorError(VectorError::StoreError("Failed to get collection info".to_string())))
+            Err(KnowledgeError::VectorError(VectorError::StoreError(
+                "Failed to get collection info".to_string(),
+            )))
         }
     }
 
     async fn clear(&self) -> KnowledgeResult<()> {
-        let url = format!("{}/api/v1/collections/{}", self.config.url, self.config.collection_name);
-        
-        let _ = self.client.delete(&url).send().await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to clear collection: {}", e))))?;
-        
+        let url = format!(
+            "{}/api/v1/collections/{}",
+            self.config.url, self.config.collection_name
+        );
+
+        let _ = self.client.delete(&url).send().await.map_err(|e| {
+            KnowledgeError::VectorError(VectorError::StoreError(format!(
+                "Failed to clear collection: {}",
+                e
+            )))
+        })?;
+
         // Recreate the collection
         self.ensure_collection_exists().await?;
-        
+
         Ok(())
     }
 }
@@ -932,17 +1297,24 @@ impl PineconeVectorStore {
             .timeout(std::time::Duration::from_secs(config.timeout_seconds))
             .build()
             .unwrap_or_default();
-        
+
         Self { config, client }
     }
 }
 
 #[async_trait]
 impl VectorStore for PineconeVectorStore {
-    async fn store(&self, id: &str, embedding: &[f32], metadata: Option<SearchResultMetadata>) -> KnowledgeResult<()> {
-        let url = format!("https://{}-{}.svc.{}.pinecone.io/vectors/upsert", 
-            self.config.index_name, self.config.index_name, self.config.environment);
-        
+    async fn store(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        metadata: Option<SearchResultMetadata>,
+    ) -> KnowledgeResult<()> {
+        let url = format!(
+            "https://{}-{}.svc.{}.pinecone.io/vectors/upsert",
+            self.config.index_name, self.config.index_name, self.config.environment
+        );
+
         let mut payload = serde_json::json!({
             "vectors": [{
                 "id": id,
@@ -959,21 +1331,42 @@ impl VectorStore for PineconeVectorStore {
                 }).unwrap_or(serde_json::Value::Null)
             }]
         });
-        
-        let _ = self.client.post(&url)
+
+        let _ = self
+            .client
+            .post(&url)
             .header("Api-Key", &self.config.api_key)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to store vector: {}", e)))).map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to store vector: {}", e))));
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to store vector: {}",
+                    e
+                )))
+            })
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to store vector: {}",
+                    e
+                )))
+            });
+
         Ok(())
     }
 
-    async fn store_with_metadata(&self, id: &str, embedding: &[f32], content: &str, metadata: Option<CacheEntryMetadata>) -> KnowledgeResult<()> {
-        let url = format!("https://{}-{}.svc.{}.pinecone.io/vectors/upsert", 
-            self.config.index_name, self.config.index_name, self.config.environment);
-        
+    async fn store_with_metadata(
+        &self,
+        id: &str,
+        embedding: &[f32],
+        content: &str,
+        metadata: Option<CacheEntryMetadata>,
+    ) -> KnowledgeResult<()> {
+        let url = format!(
+            "https://{}-{}.svc.{}.pinecone.io/vectors/upsert",
+            self.config.index_name, self.config.index_name, self.config.environment
+        );
+
         let mut payload = serde_json::json!({
             "vectors": [{
                 "id": id,
@@ -989,40 +1382,65 @@ impl VectorStore for PineconeVectorStore {
                 }
             }]
         });
-        
-        let _ = self.client.post(&url)
+
+        let _ = self
+            .client
+            .post(&url)
             .header("Api-Key", &self.config.api_key)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to store vector with metadata: {}", e))));
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to store vector with metadata: {}",
+                    e
+                )))
+            });
+
         Ok(())
     }
 
-    async fn search(&self, query_embedding: &[f32], limit: usize) -> KnowledgeResult<Vec<VectorSearchResult>> {
-        let url = format!("https://{}-{}.svc.{}.pinecone.io/query", 
-            self.config.index_name, self.config.index_name, self.config.environment);
-        
+    async fn search(
+        &self,
+        query_embedding: &[f32],
+        limit: usize,
+    ) -> KnowledgeResult<Vec<VectorSearchResult>> {
+        let url = format!(
+            "https://{}-{}.svc.{}.pinecone.io/query",
+            self.config.index_name, self.config.index_name, self.config.environment
+        );
+
         let payload = serde_json::json!({
             "vector": query_embedding,
             "topK": limit,
             "includeMetadata": true,
             "includeValues": true
         });
-        
-        let response = self.client.post(&url)
+
+        let response = self
+            .client
+            .post(&url)
             .header("Api-Key", &self.config.api_key)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::SearchError(format!("Failed to search vectors: {}", e))))?;
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::SearchError(format!(
+                    "Failed to search vectors: {}",
+                    e
+                )))
+            })?;
+
         if response.status().is_success() {
-            let data: serde_json::Value = response.json().await
-                .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to parse search response: {}", e))))?;
-            
-            let results = data["matches"].as_array()
+            let data: serde_json::Value = response.json().await.map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to parse search response: {}",
+                    e
+                )))
+            })?;
+
+            let results = data["matches"]
+                .as_array()
                 .unwrap_or(&vec![])
                 .iter()
                 .map(|match_data| {
@@ -1030,15 +1448,18 @@ impl VectorStore for PineconeVectorStore {
                     let metadata = if let Some(meta) = metadata {
                         if meta.contains_key("source_type") {
                             Some(SearchResultMetadata {
-                                source_type: meta["source_type"].as_str()
+                                source_type: meta["source_type"]
+                                    .as_str()
                                     .and_then(|s| ContentType::from_str(s))
                                     .unwrap_or(ContentType::Documentation),
                                 scope_path: meta["scope_path"].as_str().map(|s| s.to_string()),
-                                created_at: meta["created_at"].as_str()
+                                created_at: meta["created_at"]
+                                    .as_str()
                                     .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                                     .map(|dt| dt.with_timezone(&Utc))
                                     .unwrap_or_else(Utc::now),
-                                last_modified: meta["last_modified"].as_str()
+                                last_modified: meta["last_modified"]
+                                    .as_str()
                                     .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                                     .map(|dt| dt.with_timezone(&Utc))
                                     .unwrap_or_else(Utc::now),
@@ -1051,73 +1472,107 @@ impl VectorStore for PineconeVectorStore {
                     } else {
                         None
                     };
-                    
+
                     VectorSearchResult {
                         id: match_data["id"].as_str().unwrap_or("").to_string(),
                         score: match_data["score"].as_f64().unwrap_or(0.0) as f32,
-                        embedding: match_data["values"].as_array()
-                            .map(|arr| arr.iter().map(|v| v.as_f64().unwrap_or(0.0) as f32).collect())
+                        embedding: match_data["values"]
+                            .as_array()
+                            .map(|arr| {
+                                arr.iter()
+                                    .map(|v| v.as_f64().unwrap_or(0.0) as f32)
+                                    .collect()
+                            })
                             .unwrap_or_default(),
-                        content: match_data["metadata"]["content"].as_str().map(|s| s.to_string()),
+                        content: match_data["metadata"]["content"]
+                            .as_str()
+                            .map(|s| s.to_string()),
                         metadata,
                     }
                 })
                 .collect();
-            
+
             Ok(results)
         } else {
-            Err(KnowledgeError::VectorError(VectorError::SearchError("Search request failed".to_string())))
+            Err(KnowledgeError::VectorError(VectorError::SearchError(
+                "Search request failed".to_string(),
+            )))
         }
     }
 
     async fn delete(&self, id: &str) -> KnowledgeResult<()> {
-        let url = format!("https://{}-{}.svc.{}.pinecone.io/vectors/delete", 
-            self.config.index_name, self.config.index_name, self.config.environment);
-        
+        let url = format!(
+            "https://{}-{}.svc.{}.pinecone.io/vectors/delete",
+            self.config.index_name, self.config.index_name, self.config.environment
+        );
+
         let payload = serde_json::json!({
             "ids": [id]
         });
-        
-        let _ = self.client.post(&url)
+
+        let _ = self
+            .client
+            .post(&url)
             .header("Api-Key", &self.config.api_key)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::DeletionError(format!("Failed to delete vector: {}", e))));
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::DeletionError(format!(
+                    "Failed to delete vector: {}",
+                    e
+                )))
+            });
+
         Ok(())
     }
 
     async fn get(&self, id: &str) -> KnowledgeResult<Option<VectorRecord>> {
-        let url = format!("https://{}-{}.svc.{}.pinecone.io/vectors/fetch", 
-            self.config.index_name, self.config.index_name, self.config.environment);
-        
+        let url = format!(
+            "https://{}-{}.svc.{}.pinecone.io/vectors/fetch",
+            self.config.index_name, self.config.index_name, self.config.environment
+        );
+
         let url = format!("{}?ids={}", url, id);
-        
-        let response = self.client.get(&url)
+
+        let response = self
+            .client
+            .get(&url)
             .header("Api-Key", &self.config.api_key)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to get vector: {}", e))))?;
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to get vector: {}",
+                    e
+                )))
+            })?;
+
         if response.status().is_success() {
-            let data: serde_json::Value = response.json().await
-                .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to parse get response: {}", e))))?;
-            
+            let data: serde_json::Value = response.json().await.map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to parse get response: {}",
+                    e
+                )))
+            })?;
+
             if let Some(vector_data) = data["vectors"][id].as_object() {
                 let metadata = if vector_data.contains_key("metadata") {
                     let meta = &vector_data["metadata"];
                     if meta["source_type"].is_string() {
                         Some(SearchResultMetadata {
-                            source_type: meta["source_type"].as_str()
+                            source_type: meta["source_type"]
+                                .as_str()
                                 .and_then(|s| ContentType::from_str(s))
                                 .unwrap_or(ContentType::Documentation),
                             scope_path: meta["scope_path"].as_str().map(|s| s.to_string()),
-                            created_at: meta["created_at"].as_str()
+                            created_at: meta["created_at"]
+                                .as_str()
                                 .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                                 .map(|dt| dt.with_timezone(&Utc))
                                 .unwrap_or_else(Utc::now),
-                            last_modified: meta["last_modified"].as_str()
+                            last_modified: meta["last_modified"]
+                                .as_str()
                                 .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
                                 .map(|dt| dt.with_timezone(&Utc))
                                 .unwrap_or_else(Utc::now),
@@ -1130,13 +1585,20 @@ impl VectorStore for PineconeVectorStore {
                 } else {
                     None
                 };
-                
+
                 Ok(Some(VectorRecord {
                     id: id.to_string(),
-                    embedding: vector_data["values"].as_array()
-                        .map(|arr| arr.iter().map(|v| v.as_f64().unwrap_or(0.0) as f32).collect())
+                    embedding: vector_data["values"]
+                        .as_array()
+                        .map(|arr| {
+                            arr.iter()
+                                .map(|v| v.as_f64().unwrap_or(0.0) as f32)
+                                .collect()
+                        })
                         .unwrap_or_default(),
-                    content: vector_data["metadata"]["content"].as_str().map(|s| s.to_string()),
+                    content: vector_data["metadata"]["content"]
+                        .as_str()
+                        .map(|s| s.to_string()),
                     metadata,
                     created_at: Utc::now(),
                 }))
@@ -1149,48 +1611,74 @@ impl VectorStore for PineconeVectorStore {
     }
 
     async fn collection_info(&self) -> KnowledgeResult<VectorCollectionInfo> {
-        let url = format!("https://{}-{}.svc.{}.pinecone.io/describe_index_stats", 
-            self.config.index_name, self.config.index_name, self.config.environment);
-        
-        let response = self.client.post(&url)
+        let url = format!(
+            "https://{}-{}.svc.{}.pinecone.io/describe_index_stats",
+            self.config.index_name, self.config.index_name, self.config.environment
+        );
+
+        let response = self
+            .client
+            .post(&url)
             .header("Api-Key", &self.config.api_key)
             .json(&serde_json::json!({}))
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to get index stats: {}", e))))?;
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to get index stats: {}",
+                    e
+                )))
+            })?;
+
         if response.status().is_success() {
-            let data: serde_json::Value = response.json().await
-                .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to parse index stats: {}", e))))?;
-            
+            let data: serde_json::Value = response.json().await.map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to parse index stats: {}",
+                    e
+                )))
+            })?;
+
             Ok(VectorCollectionInfo {
                 name: self.config.index_name.clone(),
                 vector_count: data["totalVectorCount"].as_u64().unwrap_or(0) as usize,
                 dimension: self.config.dimension,
                 distance_metric: self.config.distance_metric.clone(),
-                size_bytes: data["totalVectorCount"].as_u64().unwrap_or(0) * self.config.dimension as u64 * 4, // Rough estimate
+                size_bytes: data["totalVectorCount"].as_u64().unwrap_or(0)
+                    * self.config.dimension as u64
+                    * 4, // Rough estimate
             })
         } else {
-            Err(KnowledgeError::VectorError(VectorError::StoreError("Failed to get index stats".to_string())))
+            Err(KnowledgeError::VectorError(VectorError::StoreError(
+                "Failed to get index stats".to_string(),
+            )))
         }
     }
 
     async fn clear(&self) -> KnowledgeResult<()> {
         // Pinecone doesn't have a direct clear method, so we'll delete all vectors
-        let url = format!("https://{}-{}.svc.{}.pinecone.io/vectors/delete", 
-            self.config.index_name, self.config.index_name, self.config.environment);
-        
+        let url = format!(
+            "https://{}-{}.svc.{}.pinecone.io/vectors/delete",
+            self.config.index_name, self.config.index_name, self.config.environment
+        );
+
         let payload = serde_json::json!({
             "deleteAll": true
         });
-        
-        let _ = self.client.post(&url)
+
+        let _ = self
+            .client
+            .post(&url)
             .header("Api-Key", &self.config.api_key)
             .json(&payload)
             .send()
             .await
-            .map_err(|e| KnowledgeError::VectorError(VectorError::StoreError(format!("Failed to clear index: {}", e))));
-        
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to clear index: {}",
+                    e
+                )))
+            });
+
         Ok(())
     }
 }
@@ -1209,7 +1697,9 @@ impl VectorStoreFactory {
         Ok(VectorStoreWrapper::Mock(store))
     }
 
-    pub async fn create_distributed_store(_config: &crate::engine::DistributedRAGConfig) -> KnowledgeResult<VectorStoreWrapper> {
+    pub async fn create_distributed_store(
+        _config: &crate::engine::DistributedRAGConfig,
+    ) -> KnowledgeResult<VectorStoreWrapper> {
         let store = MockVectorStore::new(
             "distributed_collection".to_string(),
             384,
@@ -1237,4 +1727,4 @@ impl ContentTypeExt for ContentType {
             _ => None,
         }
     }
-} 
+}

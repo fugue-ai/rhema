@@ -1,5 +1,5 @@
 //! Comprehensive test suite for the Configuration Management System
-//! 
+//!
 //! This test suite covers all aspects of the enhanced configuration management system:
 //! - Configuration validation (schema, cross-reference, dependency)
 //! - Configuration migration (version migration, rollback, validation)
@@ -8,45 +8,98 @@
 //! - Tools functionality (editor, validator, migrator, backup, documentation)
 
 use rhema_config::{
-    BackupManager, BackupSchedule, BackupFrequency, DetailedBackupStats,
-    MigrationManager, MigrationRecord,
-    SecurityManager, AccessDecision, SecurityConfig,
-    ValidationManager, ValidationResult, ValidationReport,
-    GlobalConfig, RepositoryConfig, ScopeConfig,
-    Config, ConfigError, ConfigIssue, ConfigIssueSeverity,
-    RhemaResult, CURRENT_CONFIG_VERSION,
-    // Tools module imports
-    ToolsManager, ToolsConfig, ConfigEditor, ConfigValidator, ConfigMigrator, 
-    ConfigBackupTool, ConfigDocumentationTool, EditorSettings, ValidationSettings,
-    MigrationSettings, BackupSettings, DocumentationSettings, ToolIntegrations,
-    EditorType, ValidationCache,
-    MigrationStrategy, BackupRetention, RetentionPolicy,
-    DocumentationFormat, DocumentationStyle, GitIntegration, IDEIntegration, CICDIntegration,
-    ExternalTool, ValidationReport as ToolsValidationReport, MigrationReport as ToolsMigrationReport,
-    DocumentationReport, ValidationStatus, MigrationStatus, BackupStatus, DocumentationStatus,
-    // Invariants module imports
-    ContextValidator, DependencyValidator, AgentValidator, LockValidator, SyncValidator,
-    ScopeDependency, DependencyType,
-    // Validation rules module imports
-    validation_rules::{RuleType, RuleCondition, ConditionOperator, RuleAction, ActionType},
-    // Additional config imports
-    global::{UserConfig, ApplicationConfig, EnvironmentConfig, IntegrationConfig, UserPreferences, AppSettings, FeatureFlags, PluginConfig},
-    repository::{RepositorySettings, RepositoryInfo, RepositoryType, RepositoryVisibility, WorkflowConfig, RepositorySecurityConfig, RepositoryIntegrationConfig},
-    scope::{ScopeSettings, DependenciesConfig, ScopeInfo, ProtocolConfig, ContentConfig, ScopeSecurityConfig},
-    validation::ValidationSummary
-};
-use rhema_config::{
-    tools::{ValidationLevel as ToolsValidationLevel, ValidationRule, ValidationSeverity, BackupFormat, BackupReport as ToolsBackupReport},
     comprehensive_validator::ValidationLevel as ComprehensiveValidationLevel,
     lock::ValidationLevel as LockValidationLevel,
+    tools::{
+        BackupFormat, BackupReport as ToolsBackupReport, ValidationLevel as ToolsValidationLevel,
+        ValidationRule, ValidationSeverity,
+    },
 };
+use rhema_config::{
+    // Additional config imports
+    global::{
+        AppSettings, ApplicationConfig, EnvironmentConfig, FeatureFlags, IntegrationConfig,
+        PluginConfig, UserConfig, UserPreferences,
+    },
+    repository::{
+        RepositoryInfo, RepositoryIntegrationConfig, RepositorySecurityConfig, RepositorySettings,
+        RepositoryType, RepositoryVisibility, WorkflowConfig,
+    },
+    scope::{
+        ContentConfig, DependenciesConfig, ProtocolConfig, ScopeInfo, ScopeSecurityConfig,
+        ScopeSettings,
+    },
+    validation::ValidationSummary,
+    // Validation rules module imports
+    validation_rules::{ActionType, ConditionOperator, RuleAction, RuleCondition, RuleType},
+    AccessDecision,
+    AgentValidator,
+    BackupFrequency,
+    BackupManager,
+    BackupRetention,
+    BackupSchedule,
+    BackupSettings,
+    BackupStatus,
+    CICDIntegration,
+    Config,
+    ConfigBackupTool,
+    ConfigDocumentationTool,
+    ConfigEditor,
+    ConfigError,
+    ConfigIssue,
+    ConfigIssueSeverity,
+    ConfigMigrator,
+    ConfigValidator,
+    // Invariants module imports
+    ContextValidator,
+    DependencyType,
+    DependencyValidator,
+    DetailedBackupStats,
+    DocumentationFormat,
+    DocumentationReport,
+    DocumentationSettings,
+    DocumentationStatus,
+    DocumentationStyle,
+    EditorSettings,
+    EditorType,
+    ExternalTool,
+    GitIntegration,
+    GlobalConfig,
+    IDEIntegration,
+    LockValidator,
+    MigrationManager,
+    MigrationRecord,
+    MigrationReport as ToolsMigrationReport,
+    MigrationSettings,
+    MigrationStatus,
+    MigrationStrategy,
+    RepositoryConfig,
+    RetentionPolicy,
+    RhemaResult,
+    ScopeConfig,
+    ScopeDependency,
+    SecurityConfig,
+    SecurityManager,
+    SyncValidator,
+    ToolIntegrations,
+    ToolsConfig,
+    // Tools module imports
+    ToolsManager,
+    ValidationCache,
+    ValidationManager,
+    ValidationReport,
+    ValidationReport as ToolsValidationReport,
+    ValidationResult,
+    ValidationSettings,
+    ValidationStatus,
+    CURRENT_CONFIG_VERSION,
+};
+use serde_json::json;
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
 use tokio;
-use serde_json::json;
-use std::fs;
-
 
 /// Test fixtures for configuration management tests
 mod fixtures {
@@ -162,35 +215,50 @@ mod fixtures {
         let mut scope_config = create_test_scope_config();
 
         // Add references
-        global_config.custom.insert("repo_ref".to_string(), json!("test-repo"));
-        repo_config.custom.insert("scope_ref".to_string(), json!("test-scope"));
-        scope_config.dependencies.dependencies.push(ScopeDependency {
-            path: "test-repo".to_string(),
-            dependency_type: DependencyType::Required,
-            version: None,
-            description: None,
-            metadata: HashMap::new(),
-        });
+        global_config
+            .custom
+            .insert("repo_ref".to_string(), json!("test-repo"));
+        repo_config
+            .custom
+            .insert("scope_ref".to_string(), json!("test-scope"));
+        scope_config
+            .dependencies
+            .dependencies
+            .push(ScopeDependency {
+                path: "test-repo".to_string(),
+                dependency_type: DependencyType::Required,
+                version: None,
+                description: None,
+                metadata: HashMap::new(),
+            });
 
         (global_config, repo_config, scope_config)
     }
 
     /// Create test configuration with circular dependencies
-    pub fn create_test_config_with_circular_deps() -> (GlobalConfig, RepositoryConfig, ScopeConfig) {
+    pub fn create_test_config_with_circular_deps() -> (GlobalConfig, RepositoryConfig, ScopeConfig)
+    {
         let mut global_config = create_test_global_config();
         let mut repo_config = create_test_repository_config();
         let mut scope_config = create_test_scope_config();
 
         // Create circular dependency: global -> repo -> scope -> global
-        global_config.custom.insert("repo_ref".to_string(), json!("test-repo"));
-        repo_config.custom.insert("scope_ref".to_string(), json!("test-scope"));
-        scope_config.dependencies.dependencies.push(ScopeDependency {
-            path: "global".to_string(),
-            dependency_type: DependencyType::Required,
-            version: None,
-            description: None,
-            metadata: HashMap::new(),
-        });
+        global_config
+            .custom
+            .insert("repo_ref".to_string(), json!("test-repo"));
+        repo_config
+            .custom
+            .insert("scope_ref".to_string(), json!("test-scope"));
+        scope_config
+            .dependencies
+            .dependencies
+            .push(ScopeDependency {
+                path: "global".to_string(),
+                dependency_type: DependencyType::Required,
+                version: None,
+                description: None,
+                metadata: HashMap::new(),
+            });
 
         (global_config, repo_config, scope_config)
     }
@@ -212,15 +280,13 @@ mod fixtures {
             validation: ValidationSettings {
                 enabled: true,
                 level: ToolsValidationLevel::Standard,
-                rules: vec![
-                    ValidationRule {
-                        name: "strict_rule".to_string(),
-                        description: "Strict validation rule".to_string(),
-                        pattern: "version".to_string(),
-                        severity: ValidationSeverity::Error,
-                        enabled: true,
-                    }
-                ],
+                rules: vec![ValidationRule {
+                    name: "strict_rule".to_string(),
+                    description: "Strict validation rule".to_string(),
+                    pattern: "version".to_string(),
+                    severity: ValidationSeverity::Error,
+                    enabled: true,
+                }],
                 auto_validation: true,
                 timeout: 30,
                 cache: ValidationCache {
@@ -307,7 +373,10 @@ mod validation_tests {
         let global_config = fixtures::create_test_global_config();
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
         assert!(result.issues.is_empty());
@@ -319,10 +388,13 @@ mod validation_tests {
         let mut global_config = fixtures::create_test_global_config();
         // Corrupt the configuration by removing required fields
         global_config.version = "".to_string();
-        
+
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(!result.valid);
         assert!(!result.issues.is_empty());
@@ -330,14 +402,24 @@ mod validation_tests {
 
     #[tokio::test]
     async fn test_cross_reference_validation_success() {
-        let (global_config, repo_config, scope_config) = fixtures::create_test_config_with_references();
+        let (global_config, repo_config, scope_config) =
+            fixtures::create_test_config_with_references();
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
         // Validate each config separately since they have different types
-        let global_result = validation_manager.validate_schema(&global_config).await.unwrap();
-        let repo_result = validation_manager.validate_schema(&repo_config).await.unwrap();
-        let scope_result = validation_manager.validate_schema(&scope_config).await.unwrap();
-        
+        let global_result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
+        let repo_result = validation_manager
+            .validate_schema(&repo_config)
+            .await
+            .unwrap();
+        let scope_result = validation_manager
+            .validate_schema(&scope_config)
+            .await
+            .unwrap();
+
         assert!(global_result.valid);
         assert!(repo_result.valid);
         assert!(scope_result.valid);
@@ -345,23 +427,36 @@ mod validation_tests {
 
     #[tokio::test]
     async fn test_cross_reference_validation_failure() {
-        let (global_config, repo_config, mut scope_config) = fixtures::create_test_config_with_references();
+        let (global_config, repo_config, mut scope_config) =
+            fixtures::create_test_config_with_references();
         // Add a reference to a non-existent configuration
-        scope_config.dependencies.dependencies.push(ScopeDependency {
-            path: "non-existent-config".to_string(),
-            dependency_type: DependencyType::Required,
-            version: None,
-            description: None,
-            metadata: HashMap::new(),
-        });
-        
+        scope_config
+            .dependencies
+            .dependencies
+            .push(ScopeDependency {
+                path: "non-existent-config".to_string(),
+                dependency_type: DependencyType::Required,
+                version: None,
+                description: None,
+                metadata: HashMap::new(),
+            });
+
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
         // Validate each config separately since they have different types
-        let global_result = validation_manager.validate_schema(&global_config).await.unwrap();
-        let repo_result = validation_manager.validate_schema(&repo_config).await.unwrap();
-        let scope_result = validation_manager.validate_schema(&scope_config).await.unwrap();
-        
+        let global_result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
+        let repo_result = validation_manager
+            .validate_schema(&repo_config)
+            .await
+            .unwrap();
+        let scope_result = validation_manager
+            .validate_schema(&scope_config)
+            .await
+            .unwrap();
+
         // The scope config should have validation issues due to non-existent dependency
         assert!(global_result.valid);
         assert!(repo_result.valid);
@@ -370,10 +465,14 @@ mod validation_tests {
 
     #[tokio::test]
     async fn test_dependency_validation_success() {
-        let (global_config, repo_config, scope_config) = fixtures::create_test_config_with_references();
+        let (global_config, repo_config, scope_config) =
+            fixtures::create_test_config_with_references();
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
-        let result = validation_manager.validate_dependencies(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_dependencies(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
         assert!(result.issues.is_empty());
@@ -381,38 +480,51 @@ mod validation_tests {
 
     #[tokio::test]
     async fn test_dependency_validation_circular_deps() {
-        let (global_config, repo_config, scope_config) = fixtures::create_test_config_with_circular_deps();
+        let (global_config, repo_config, scope_config) =
+            fixtures::create_test_config_with_circular_deps();
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
-        let result = validation_manager.validate_dependencies(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_dependencies(&global_config)
+            .await
+            .unwrap();
 
         assert!(!result.valid);
-        assert!(result.issues.iter().any(|issue| 
-            issue.message.contains("Circular dependency")
-        ));
+        assert!(result
+            .issues
+            .iter()
+            .any(|issue| issue.message.contains("Circular dependency")));
     }
 
     #[tokio::test]
     async fn test_version_compatibility() {
         let mut global_config = fixtures::create_test_global_config();
         global_config.version = "0.0.1".to_string(); // Old version
-        
+
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
-        let result = validation_manager.validate_dependencies(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_dependencies(&global_config)
+            .await
+            .unwrap();
 
         // Should have warnings about version compatibility
-        assert!(result.issues.iter().any(|issue| 
-            issue.message.contains("version mismatch")
-        ));
+        assert!(result
+            .issues
+            .iter()
+            .any(|issue| issue.message.contains("version mismatch")));
     }
 
     #[tokio::test]
     async fn test_comprehensive_validation() {
-        let (global_config, repo_config, scope_config) = fixtures::create_test_config_with_references();
+        let (global_config, repo_config, scope_config) =
+            fixtures::create_test_config_with_references();
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
-        let result = validation_manager.validate_config(global_config, "comprehensive_test").await.unwrap();
+        let result = validation_manager
+            .validate_config(global_config, "comprehensive_test")
+            .await
+            .unwrap();
 
         assert!(result.valid);
         assert!(result.issues.is_empty());
@@ -436,10 +548,13 @@ mod migration_tests {
     async fn test_version_migration_success() {
         let mut global_config = fixtures::create_test_global_config();
         global_config.version = "0.1.0".to_string(); // Old version
-        
+
         let migration_manager = MigrationManager::new(&global_config).unwrap();
 
-        let result = migration_manager.migrate_version(&global_config, "1.0.0").await.unwrap();
+        let result = migration_manager
+            .migrate_version(&global_config, "1.0.0")
+            .await
+            .unwrap();
 
         assert!(result.migrations_applied.len() > 0);
         assert!(result.migrations_failed.is_empty());
@@ -452,7 +567,10 @@ mod migration_tests {
         let global_config = fixtures::create_test_global_config();
         let migration_manager = MigrationManager::new(&global_config).unwrap();
 
-        let result = migration_manager.migrate_version(&global_config, CURRENT_CONFIG_VERSION).await.unwrap();
+        let result = migration_manager
+            .migrate_version(&global_config, CURRENT_CONFIG_VERSION)
+            .await
+            .unwrap();
 
         assert!(result.migrations_applied.is_empty());
         assert!(result.migrations_skipped.len() > 0);
@@ -463,16 +581,22 @@ mod migration_tests {
     async fn test_migration_rollback() {
         let mut global_config = fixtures::create_test_global_config();
         global_config.version = "0.1.0".to_string();
-        
+
         let migration_manager = MigrationManager::new(&global_config).unwrap();
 
         // First, apply a migration
-        let migration_result = migration_manager.migrate_version(&global_config, "1.0.0").await.unwrap();
-        
+        let migration_result = migration_manager
+            .migrate_version(&global_config, "1.0.0")
+            .await
+            .unwrap();
+
         // Then rollback the first migration
         if let Some(migration_record) = migration_result.migrations_applied.first() {
-            let rollback_result = migration_manager.rollback_migration(&global_config, migration_record).await.unwrap();
-            
+            let rollback_result = migration_manager
+                .rollback_migration(&global_config, migration_record)
+                .await
+                .unwrap();
+
             assert!(rollback_result.migrations_applied.len() > 0);
             assert!(rollback_result.migrations_failed.is_empty());
         }
@@ -482,11 +606,17 @@ mod migration_tests {
     async fn test_migration_validation() {
         let mut global_config = fixtures::create_test_global_config();
         global_config.version = "0.1.0".to_string();
-        
+
         let migration_manager = MigrationManager::new(&global_config).unwrap();
 
-        let migration_result = migration_manager.migrate_version(&global_config, "1.0.0").await.unwrap();
-        let validation_result = migration_manager.validate_migration_results(&global_config, &migration_result).await.unwrap();
+        let migration_result = migration_manager
+            .migrate_version(&global_config, "1.0.0")
+            .await
+            .unwrap();
+        let validation_result = migration_manager
+            .validate_migration_results(&global_config, &migration_result)
+            .await
+            .unwrap();
 
         assert!(validation_result.valid);
     }
@@ -512,8 +642,14 @@ mod backup_tests {
         let global_config = fixtures::create_test_global_config();
         let backup_manager = BackupManager::new(&global_config).unwrap();
 
-        assert!(backup_manager.get_backup_directory().exists() || 
-                backup_manager.get_backup_directory().parent().unwrap().exists());
+        assert!(
+            backup_manager.get_backup_directory().exists()
+                || backup_manager
+                    .get_backup_directory()
+                    .parent()
+                    .unwrap()
+                    .exists()
+        );
     }
 
     #[tokio::test]
@@ -521,7 +657,9 @@ mod backup_tests {
         let global_config = fixtures::create_test_global_config();
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
 
-        let backup_record = backup_manager.backup_config(&global_config, "test_backup").unwrap();
+        let backup_record = backup_manager
+            .backup_config(&global_config, "test_backup")
+            .unwrap();
 
         assert_eq!(backup_record.original_path, PathBuf::from("global"));
         assert!(backup_record.backup_path.exists());
@@ -534,7 +672,10 @@ mod backup_tests {
         let global_config = fixtures::create_test_global_config();
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
 
-        let backup_record = backup_manager.backup_with_integrity_check(&global_config, "integrity_test").await.unwrap();
+        let backup_record = backup_manager
+            .backup_with_integrity_check(&global_config, "integrity_test")
+            .await
+            .unwrap();
 
         assert!(backup_record.backup_path.exists());
         assert!(backup_record.size_bytes > 0);
@@ -545,10 +686,14 @@ mod backup_tests {
         let global_config = fixtures::create_test_global_config();
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
 
-        let backup_record = backup_manager.backup_config(&global_config, "restore_test").unwrap();
-        
+        let backup_record = backup_manager
+            .backup_config(&global_config, "restore_test")
+            .unwrap();
+
         // Restore the configuration
-        let restored_config = backup_manager.restore_config::<GlobalConfig>("global", &backup_record.backup_id).unwrap();
+        let restored_config = backup_manager
+            .restore_config::<GlobalConfig>("global", &backup_record.backup_id)
+            .unwrap();
 
         assert_eq!(restored_config.version, global_config.version);
         assert_eq!(restored_config.user.name, global_config.user.name);
@@ -559,10 +704,15 @@ mod backup_tests {
         let global_config = fixtures::create_test_global_config();
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
 
-        let backup_record = backup_manager.backup_config(&global_config, "integrity_restore_test").unwrap();
-        
+        let backup_record = backup_manager
+            .backup_config(&global_config, "integrity_restore_test")
+            .unwrap();
+
         // Restore with integrity check
-        let restored_config = backup_manager.restore_with_integrity_check::<GlobalConfig>("global", &backup_record.backup_id).await.unwrap();
+        let restored_config = backup_manager
+            .restore_with_integrity_check::<GlobalConfig>("global", &backup_record.backup_id)
+            .await
+            .unwrap();
 
         assert_eq!(restored_config.version, global_config.version);
     }
@@ -584,7 +734,10 @@ mod backup_tests {
         let backup_manager = BackupManager::new(&global_config).unwrap();
 
         let test_data = b"This is some test data that should be compressed";
-        let compressed = backup_manager.optimize_compression(test_data).await.unwrap();
+        let compressed = backup_manager
+            .optimize_compression(test_data)
+            .await
+            .unwrap();
 
         assert!(compressed.len() < test_data.len() || compressed.len() == test_data.len());
     }
@@ -594,9 +747,14 @@ mod backup_tests {
         let global_config = fixtures::create_test_global_config();
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
 
-        let backup_record = backup_manager.backup_config(&global_config, "integrity_validation_test").unwrap();
-        
-        let is_valid = backup_manager.validate_backup_integrity(&backup_record.backup_path).await.unwrap();
+        let backup_record = backup_manager
+            .backup_config(&global_config, "integrity_validation_test")
+            .unwrap();
+
+        let is_valid = backup_manager
+            .validate_backup_integrity(&backup_record.backup_path)
+            .await
+            .unwrap();
 
         assert!(is_valid);
     }
@@ -607,8 +765,12 @@ mod backup_tests {
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
 
         // Create a few backups
-        backup_manager.backup_config(&global_config, "stats_test_1").unwrap();
-        backup_manager.backup_config(&global_config, "stats_test_2").unwrap();
+        backup_manager
+            .backup_config(&global_config, "stats_test_1")
+            .unwrap();
+        backup_manager
+            .backup_config(&global_config, "stats_test_2")
+            .unwrap();
 
         let stats = backup_manager.get_detailed_backup_stats().await.unwrap();
 
@@ -622,7 +784,9 @@ mod backup_tests {
         let global_config = fixtures::create_test_global_config();
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
 
-        backup_manager.backup_config(&global_config, "listing_test").unwrap();
+        backup_manager
+            .backup_config(&global_config, "listing_test")
+            .unwrap();
 
         let backups = backup_manager.list_backups(None);
         assert!(!backups.is_empty());
@@ -649,7 +813,10 @@ mod security_tests {
         let global_config = fixtures::create_test_global_config();
         let security_manager = SecurityManager::new(&global_config).unwrap();
 
-        let encrypted_data = security_manager.encrypt_configuration(&global_config).await.unwrap();
+        let encrypted_data = security_manager
+            .encrypt_configuration(&global_config)
+            .await
+            .unwrap();
 
         assert!(!encrypted_data.is_empty());
         assert_ne!(encrypted_data.len(), std::mem::size_of_val(&global_config));
@@ -660,8 +827,14 @@ mod security_tests {
         let global_config = fixtures::create_test_global_config();
         let security_manager = SecurityManager::new(&global_config).unwrap();
 
-        let encrypted_data = security_manager.encrypt_configuration(&global_config).await.unwrap();
-        let decrypted_config = security_manager.decrypt_configuration::<GlobalConfig>(&encrypted_data).await.unwrap();
+        let encrypted_data = security_manager
+            .encrypt_configuration(&global_config)
+            .await
+            .unwrap();
+        let decrypted_config = security_manager
+            .decrypt_configuration::<GlobalConfig>(&encrypted_data)
+            .await
+            .unwrap();
 
         assert_eq!(decrypted_config.version, global_config.version);
         assert_eq!(decrypted_config.user.name, global_config.user.name);
@@ -672,7 +845,10 @@ mod security_tests {
         let global_config = fixtures::create_test_global_config();
         let security_manager = SecurityManager::new(&global_config).unwrap();
 
-        let is_valid = security_manager.verify_integrity(&global_config).await.unwrap();
+        let is_valid = security_manager
+            .verify_integrity(&global_config)
+            .await
+            .unwrap();
 
         assert!(is_valid);
     }
@@ -682,7 +858,10 @@ mod security_tests {
         let global_config = fixtures::create_test_global_config();
         let security_manager = SecurityManager::new(&global_config).unwrap();
 
-        let decision = security_manager.check_access_permission("test_user", "config", "read", None).await.unwrap();
+        let decision = security_manager
+            .check_access_permission("test_user", "config", "read", None)
+            .await
+            .unwrap();
 
         assert!(decision.allowed);
         assert!(!decision.reason.is_empty());
@@ -694,12 +873,10 @@ mod security_tests {
         let global_config = fixtures::create_test_global_config();
         let security_manager = SecurityManager::new(&global_config).unwrap();
 
-        let decision = security_manager.check_access_permission(
-            "test_user", 
-            "config", 
-            "write", 
-            Some("production")
-        ).await.unwrap();
+        let decision = security_manager
+            .check_access_permission("test_user", "config", "write", Some("production"))
+            .await
+            .unwrap();
 
         assert!(decision.allowed);
         assert!(!decision.reason.is_empty());
@@ -711,8 +888,11 @@ mod security_tests {
         let security_manager = SecurityManager::new(&global_config).unwrap();
 
         // Test audit logging by performing an access check
-        let decision = security_manager.check_access_permission("test_user", "config", "read", None).await.unwrap();
-        
+        let decision = security_manager
+            .check_access_permission("test_user", "config", "read", None)
+            .await
+            .unwrap();
+
         // The audit logging should happen automatically during access control
         assert!(decision.allowed);
     }
@@ -720,7 +900,7 @@ mod security_tests {
     #[tokio::test]
     async fn test_security_config_validation() {
         let security_config = fixtures::create_test_security_config();
-        
+
         // Note: SecurityConfig doesn't have a validate_config method
         // let validation_result = security_config.validate_config();
         // assert!(validation_result.is_ok());
@@ -729,10 +909,10 @@ mod security_tests {
     #[tokio::test]
     async fn test_security_config_serialization() {
         let security_config = fixtures::create_test_security_config();
-        
+
         let json_value = serde_json::to_value(&security_config).unwrap();
         let deserialized_config: SecurityConfig = serde_json::from_value(json_value).unwrap();
-        
+
         // Note: SecurityConfig doesn't have a version field
         // assert_eq!(security_config.version, deserialized_config.version);
     }
@@ -808,7 +988,7 @@ mod tools_tests {
     #[tokio::test]
     async fn test_tools_config_validation() {
         let tools_config = fixtures::create_test_tools_config();
-        
+
         let validation_result = tools_config.validate_config();
         assert!(validation_result.is_ok());
     }
@@ -816,12 +996,15 @@ mod tools_tests {
     #[tokio::test]
     async fn test_tools_config_serialization() {
         let tools_config = fixtures::create_test_tools_config();
-        
+
         let json_value = serde_json::to_value(&tools_config).unwrap();
         let deserialized_config: ToolsConfig = serde_json::from_value(json_value).unwrap();
-        
+
         assert_eq!(tools_config.version, deserialized_config.version);
-        assert_eq!(tools_config.editor.default_editor, deserialized_config.editor.default_editor);
+        assert_eq!(
+            tools_config.editor.default_editor,
+            deserialized_config.editor.default_editor
+        );
     }
 
     #[tokio::test]
@@ -847,15 +1030,13 @@ mod tools_tests {
         let validation_settings = ValidationSettings {
             enabled: true,
             level: ToolsValidationLevel::Strict,
-            rules: vec![
-                ValidationRule {
-                    name: "strict_rule".to_string(),
-                    description: "Strict validation rule".to_string(),
-                    pattern: "version".to_string(),
-                    severity: ValidationSeverity::Error,
-                    enabled: true,
-                }
-            ],
+            rules: vec![ValidationRule {
+                name: "strict_rule".to_string(),
+                description: "Strict validation rule".to_string(),
+                pattern: "version".to_string(),
+                severity: ValidationSeverity::Error,
+                enabled: true,
+            }],
             auto_validation: true,
             timeout: 60,
             cache: ValidationCache {
@@ -868,7 +1049,10 @@ mod tools_tests {
         assert!(validation_settings.enabled);
         assert_eq!(validation_settings.level, ToolsValidationLevel::Strict);
         assert_eq!(validation_settings.rules.len(), 1);
-        assert_eq!(validation_settings.rules[0].severity, ValidationSeverity::Error);
+        assert_eq!(
+            validation_settings.rules[0].severity,
+            ValidationSeverity::Error
+        );
     }
 
     #[tokio::test]
@@ -953,9 +1137,10 @@ mod tools_tests {
                     ("test".to_string(), "cargo test".to_string()),
                 ]),
             },
-            external_tools: HashMap::from([
-                ("linter".to_string(), fixtures::create_test_external_tool()),
-            ]),
+            external_tools: HashMap::from([(
+                "linter".to_string(),
+                fixtures::create_test_external_tool(),
+            )]),
         };
 
         assert!(integrations.git.enabled);
@@ -1079,9 +1264,9 @@ mod invariants_tests {
     #[tokio::test]
     async fn test_context_validator_creation() {
         let mut validator = ContextValidator::new();
-        
+
         assert_eq!(validator.validation_count(), 0);
-        
+
         // Test YAML content validation
         let result = validator.validate_yaml_content("test: content");
         assert!(result.is_ok());
@@ -1091,8 +1276,12 @@ mod invariants_tests {
     #[tokio::test]
     async fn test_context_validator_scope_references() {
         let mut validator = ContextValidator::new();
-        let scopes = vec!["scope1".to_string(), "scope2".to_string(), "scope3".to_string()];
-        
+        let scopes = vec![
+            "scope1".to_string(),
+            "scope2".to_string(),
+            "scope3".to_string(),
+        ];
+
         let result = validator.validate_scope_references("scope1", &scopes);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1101,14 +1290,14 @@ mod invariants_tests {
     #[tokio::test]
     async fn test_dependency_validator_creation() {
         let mut validator = DependencyValidator::new();
-        
+
         assert_eq!(validator.validation_count(), 0);
-        
+
         let dependencies = HashMap::from([
             ("module1".to_string(), vec!["module2".to_string()]),
             ("module2".to_string(), vec!["module3".to_string()]),
         ]);
-        
+
         let result = validator.validate_no_circular_dependencies(&dependencies);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1122,7 +1311,7 @@ mod invariants_tests {
             ("module2".to_string(), vec!["module3".to_string()]),
             ("module3".to_string(), vec![]),
         ]);
-        
+
         let result = validator.validate_dependency_graph(&graph);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1132,7 +1321,7 @@ mod invariants_tests {
     async fn test_dependency_validator_bounds() {
         let mut validator = DependencyValidator::new();
         let deps = vec!["dep1".to_string(), "dep2".to_string(), "dep3".to_string()];
-        
+
         let result = validator.validate_dependency_bounds(&deps, 5);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1142,7 +1331,7 @@ mod invariants_tests {
     async fn test_dependency_validator_self_dependencies() {
         let mut validator = DependencyValidator::new();
         let deps = vec!["dep1".to_string(), "dep2".to_string()];
-        
+
         let result = validator.validate_no_self_dependencies("module1", &deps);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1151,14 +1340,14 @@ mod invariants_tests {
     #[tokio::test]
     async fn test_agent_validator_creation() {
         let mut validator = AgentValidator::new();
-        
+
         assert_eq!(validator.validation_count(), 0);
-        
+
         let agents = HashMap::from([
             ("agent1".to_string(), "running".to_string()),
             ("agent2".to_string(), "idle".to_string()),
         ]);
-        
+
         let result = validator.validate_agent_states(&agents);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1172,7 +1361,7 @@ mod invariants_tests {
             ("resource2".to_string(), Some("agent2".to_string())),
             ("resource3".to_string(), None),
         ]);
-        
+
         let result = validator.validate_concurrent_agents(&locks, 3);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1182,7 +1371,7 @@ mod invariants_tests {
     async fn test_agent_validator_progress() {
         let mut validator = AgentValidator::new();
         let max_block_time = Duration::from_secs(300); // 5 minutes
-        
+
         let result = validator.validate_agent_progress("agent1", "processing", max_block_time);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1191,15 +1380,15 @@ mod invariants_tests {
     #[tokio::test]
     async fn test_lock_validator_creation() {
         let mut validator = LockValidator::new();
-        
+
         assert_eq!(validator.validation_count(), 0);
-        
+
         let locks = HashMap::from([
             ("resource1".to_string(), Some("agent1".to_string())),
             ("resource2".to_string(), Some("agent2".to_string())),
         ]);
         let agents = vec!["agent1".to_string(), "agent2".to_string()];
-        
+
         let result = validator.validate_lock_ownership(&locks, &agents);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1212,7 +1401,7 @@ mod invariants_tests {
             ("resource1".to_string(), Some("agent1".to_string())),
             ("resource2".to_string(), Some("agent2".to_string())),
         ]);
-        
+
         let result = validator.validate_one_lock_per_agent(&locks);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1229,7 +1418,7 @@ mod invariants_tests {
             ("resource1".to_string(), Instant::now()),
             ("resource2".to_string(), Instant::now()),
         ]);
-        
+
         let result = validator.validate_lock_timeouts(&locks, &timeouts);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1238,17 +1427,16 @@ mod invariants_tests {
     #[tokio::test]
     async fn test_sync_validator_creation() {
         let mut validator = SyncValidator::new();
-        
+
         assert_eq!(validator.validation_count(), 0);
-        
+
         let sync_status = HashMap::from([
             ("module1".to_string(), "synced".to_string()),
             ("module2".to_string(), "pending".to_string()),
         ]);
-        let sync_dependencies = HashMap::from([
-            ("module1".to_string(), vec!["module2".to_string()]),
-        ]);
-        
+        let sync_dependencies =
+            HashMap::from([("module1".to_string(), vec!["module2".to_string()])]);
+
         let result = validator.validate_sync_status_consistency(&sync_status, &sync_dependencies);
         assert!(result.is_ok());
         assert_eq!(validator.validation_count(), 1);
@@ -1264,26 +1452,26 @@ mod invariants_tests {
 
         // Test all validators work together
         let scopes = vec!["scope1".to_string(), "scope2".to_string()];
-        let dependencies = HashMap::from([
-            ("module1".to_string(), vec!["module2".to_string()]),
-        ]);
-        let agents = HashMap::from([
-            ("agent1".to_string(), "running".to_string()),
-        ]);
-        let locks = HashMap::from([
-            ("resource1".to_string(), Some("agent1".to_string())),
-        ]);
-        let sync_status = HashMap::from([
-            ("module1".to_string(), "synced".to_string()),
-        ]);
+        let dependencies = HashMap::from([("module1".to_string(), vec!["module2".to_string()])]);
+        let agents = HashMap::from([("agent1".to_string(), "running".to_string())]);
+        let locks = HashMap::from([("resource1".to_string(), Some("agent1".to_string()))]);
+        let sync_status = HashMap::from([("module1".to_string(), "synced".to_string())]);
         let sync_dependencies = HashMap::new();
 
         // Run all validations
-        assert!(context_validator.validate_scope_references("scope1", &scopes).is_ok());
-        assert!(dependency_validator.validate_no_circular_dependencies(&dependencies).is_ok());
+        assert!(context_validator
+            .validate_scope_references("scope1", &scopes)
+            .is_ok());
+        assert!(dependency_validator
+            .validate_no_circular_dependencies(&dependencies)
+            .is_ok());
         assert!(agent_validator.validate_agent_states(&agents).is_ok());
-        assert!(lock_validator.validate_lock_ownership(&locks, &["agent1".to_string()]).is_ok());
-        assert!(sync_validator.validate_sync_status_consistency(&sync_status, &sync_dependencies).is_ok());
+        assert!(lock_validator
+            .validate_lock_ownership(&locks, &["agent1".to_string()])
+            .is_ok());
+        assert!(sync_validator
+            .validate_sync_status_consistency(&sync_status, &sync_dependencies)
+            .is_ok());
 
         // Verify all validators incremented their counters
         assert_eq!(context_validator.validation_count(), 1);
@@ -1300,35 +1488,57 @@ mod integration_tests {
 
     #[tokio::test]
     async fn test_full_configuration_lifecycle() {
-        let (global_config, repo_config, scope_config) = fixtures::create_test_config_with_references();
-        
+        let (global_config, repo_config, scope_config) =
+            fixtures::create_test_config_with_references();
+
         // 1. Validate configurations
         let validation_manager = ValidationManager::new(&global_config).unwrap();
         // Validate each config separately since they have different types
-        let global_result = validation_manager.validate_schema(&global_config).await.unwrap();
-        let repo_result = validation_manager.validate_schema(&repo_config).await.unwrap();
-        let scope_result = validation_manager.validate_schema(&scope_config).await.unwrap();
-        
+        let global_result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
+        let repo_result = validation_manager
+            .validate_schema(&repo_config)
+            .await
+            .unwrap();
+        let scope_result = validation_manager
+            .validate_schema(&scope_config)
+            .await
+            .unwrap();
+
         assert!(global_result.valid);
         assert!(repo_result.valid);
         assert!(scope_result.valid);
 
         // 2. Create backup
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
-        let backup_record = backup_manager.backup_with_integrity_check(&global_config, "lifecycle_test").await.unwrap();
+        let backup_record = backup_manager
+            .backup_with_integrity_check(&global_config, "lifecycle_test")
+            .await
+            .unwrap();
         assert!(backup_record.backup_path.exists());
 
         // 3. Encrypt configuration
         let security_manager = SecurityManager::new(&global_config).unwrap();
-        let encrypted_data = security_manager.encrypt_configuration(&global_config).await.unwrap();
+        let encrypted_data = security_manager
+            .encrypt_configuration(&global_config)
+            .await
+            .unwrap();
         assert!(!encrypted_data.is_empty());
 
         // 4. Verify integrity
-        let is_valid = security_manager.verify_integrity(&global_config).await.unwrap();
+        let is_valid = security_manager
+            .verify_integrity(&global_config)
+            .await
+            .unwrap();
         assert!(is_valid);
 
         // 5. Restore from backup
-        let restored_config = backup_manager.restore_with_integrity_check::<GlobalConfig>("global", &backup_record.backup_id).await.unwrap();
+        let restored_config = backup_manager
+            .restore_with_integrity_check::<GlobalConfig>("global", &backup_record.backup_id)
+            .await
+            .unwrap();
         assert_eq!(restored_config.version, global_config.version);
 
         // 6. Test tools integration
@@ -1343,24 +1553,38 @@ mod integration_tests {
 
         // 1. Create backup before migration
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
-        let backup_record = backup_manager.backup_config(&global_config, "pre_migration").unwrap();
+        let backup_record = backup_manager
+            .backup_config(&global_config, "pre_migration")
+            .unwrap();
 
         // 2. Perform migration
         let migration_manager = MigrationManager::new(&global_config).unwrap();
-        let migration_result = migration_manager.migrate_version(&global_config, "1.0.0").await.unwrap();
+        let migration_result = migration_manager
+            .migrate_version(&global_config, "1.0.0")
+            .await
+            .unwrap();
         assert!(migration_result.summary.successful_migrations > 0);
 
         // 3. Validate migration results
-        let validation_result = migration_manager.validate_migration_results(&global_config, &migration_result).await.unwrap();
+        let validation_result = migration_manager
+            .validate_migration_results(&global_config, &migration_result)
+            .await
+            .unwrap();
         assert!(validation_result.valid);
 
         // 4. Encrypt migrated configuration
         let security_manager = SecurityManager::new(&global_config).unwrap();
-        let encrypted_data = security_manager.encrypt_configuration(&global_config).await.unwrap();
+        let encrypted_data = security_manager
+            .encrypt_configuration(&global_config)
+            .await
+            .unwrap();
         assert!(!encrypted_data.is_empty());
 
         // 5. Verify integrity of migrated configuration
-        let is_valid = security_manager.verify_integrity(&global_config).await.unwrap();
+        let is_valid = security_manager
+            .verify_integrity(&global_config)
+            .await
+            .unwrap();
         assert!(is_valid);
 
         // 6. Test tools integration with migration
@@ -1379,17 +1603,24 @@ mod integration_tests {
         invalid_config.version = "".to_string();
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
-        let validation_result = validation_manager.validate_schema(&invalid_config).await.unwrap();
+        let validation_result = validation_manager
+            .validate_schema(&invalid_config)
+            .await
+            .unwrap();
         assert!(!validation_result.valid);
 
         // Test backup with invalid path
         let backup_manager = BackupManager::new(&global_config).unwrap();
-        let integrity_result = backup_manager.validate_backup_integrity(&PathBuf::from("/non/existent/path")).await;
+        let integrity_result = backup_manager
+            .validate_backup_integrity(&PathBuf::from("/non/existent/path"))
+            .await;
         assert!(integrity_result.is_err());
 
         // Test security with invalid data
         let security_manager = SecurityManager::new(&global_config).unwrap();
-        let decryption_result = security_manager.decrypt_configuration::<GlobalConfig>(&[0, 1, 2, 3]).await;
+        let decryption_result = security_manager
+            .decrypt_configuration::<GlobalConfig>(&[0, 1, 2, 3])
+            .await;
         assert!(decryption_result.is_err());
     }
 
@@ -1462,7 +1693,10 @@ mod edge_case_tests {
         // global_config.integrations.clear();
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
     }
@@ -1470,7 +1704,7 @@ mod edge_case_tests {
     #[tokio::test]
     async fn test_large_configuration() {
         let mut global_config = fixtures::create_test_global_config();
-        
+
         // Note: FeatureFlags doesn't have clear and insert methods
         // Add many features to create a large configuration
         // for i in 0..1000 {
@@ -1478,7 +1712,10 @@ mod edge_case_tests {
         // }
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
         assert!(result.duration_ms < 1000); // Should still be reasonably fast
@@ -1491,7 +1728,10 @@ mod edge_case_tests {
         global_config.user.email = "test@测试.com".to_string();
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
     }
@@ -1502,7 +1742,10 @@ mod edge_case_tests {
         global_config.user.name = "User with spaces and special chars: !@#$%^&*()".to_string();
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
     }
@@ -1522,7 +1765,7 @@ mod edge_case_tests {
         //         manager.validate_schema(&config).await
         //     }));
         // }
-        // 
+        //
         // let results: Vec<_> = tokio::task::spawn_blocking(handles).await;
         // for result in results {
         //     assert!(result.is_ok());
@@ -1540,7 +1783,10 @@ mod environment_tests {
         global_config.environment.current = rhema_config::ConfigEnvironment::Development;
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
     }
@@ -1551,7 +1797,10 @@ mod environment_tests {
         global_config.environment.current = rhema_config::ConfigEnvironment::Production;
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
     }
@@ -1559,10 +1808,14 @@ mod environment_tests {
     #[tokio::test]
     async fn test_custom_environment() {
         let mut global_config = fixtures::create_test_global_config();
-        global_config.environment.current = rhema_config::ConfigEnvironment::Custom("staging".to_string());
+        global_config.environment.current =
+            rhema_config::ConfigEnvironment::Custom("staging".to_string());
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
-        let result = validation_manager.validate_schema(&global_config).await.unwrap();
+        let result = validation_manager
+            .validate_schema(&global_config)
+            .await
+            .unwrap();
 
         assert!(result.valid);
     }
@@ -1572,10 +1825,10 @@ mod environment_tests {
 #[tokio::test]
 async fn test_configuration_management_system() {
     println!("Running comprehensive Configuration Management System tests...");
-    
+
     // This test serves as a summary and ensures all major components work together
     let global_config = fixtures::create_test_global_config();
-    
+
     // Test all major components
     let validation_manager = ValidationManager::new(&global_config).unwrap();
     let migration_manager = MigrationManager::new(&global_config).unwrap();
@@ -1593,8 +1846,14 @@ async fn test_configuration_management_system() {
     // Verify all managers are properly initialized
     assert!(!validation_manager.get_rules().is_empty());
     assert!(!migration_manager.get_available_migrations().is_empty());
-    assert!(backup_manager.get_backup_directory().exists() || 
-            backup_manager.get_backup_directory().parent().unwrap().exists());
+    assert!(
+        backup_manager.get_backup_directory().exists()
+            || backup_manager
+                .get_backup_directory()
+                .parent()
+                .unwrap()
+                .exists()
+    );
     assert_eq!(security_manager.config().version, CURRENT_CONFIG_VERSION);
     assert_eq!(tools_manager.config().version, CURRENT_CONFIG_VERSION);
 
@@ -1606,10 +1865,16 @@ async fn test_configuration_management_system() {
     assert_eq!(sync_validator.validation_count(), 0);
 
     println!("✅ All Configuration Management System components initialized successfully");
-    println!("✅ Validation Manager: {} rules loaded", validation_manager.get_rules().len());
-    println!("✅ Migration Manager: {} migrations available", migration_manager.get_available_migrations().len());
+    println!(
+        "✅ Validation Manager: {} rules loaded",
+        validation_manager.get_rules().len()
+    );
+    println!(
+        "✅ Migration Manager: {} migrations available",
+        migration_manager.get_available_migrations().len()
+    );
     println!("✅ Backup Manager: Backup directory configured");
     println!("✅ Security Manager: Security configuration loaded");
     println!("✅ Tools Manager: Tools configuration loaded");
     println!("✅ Invariants Validators: All validators initialized");
-} 
+}

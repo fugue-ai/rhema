@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use rhema_agent::agent::{
-    Agent, AgentId, AgentConfig, AgentContext, AgentCapability, AgentType, AgentState,
-    AgentMessage, AgentRequest, AgentResponse, AgentStatus, HealthStatus, ResourceUsage,
-    BaseAgent
+    Agent, AgentCapability, AgentConfig, AgentContext, AgentId, AgentMessage, AgentRequest,
+    AgentResponse, AgentState, AgentStatus, AgentType, BaseAgent, HealthStatus, ResourceUsage,
 };
 use rhema_agent::error::{AgentError, AgentResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
-use tracing::{info, warn, error, debug};
 
 /// Security vulnerability severity levels
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -263,13 +262,17 @@ impl CodeReviewAgent {
                 AgentCapability::Security,
             ],
             max_concurrent_tasks: 5,
-            task_timeout: 300, // 5 minutes
+            task_timeout: 300,       // 5 minutes
             memory_limit: Some(512), // 512 MB
-            cpu_limit: Some(50.0), // 50% CPU
+            cpu_limit: Some(50.0),   // 50% CPU
             retry_attempts: 3,
             retry_delay: 10,
             parameters: HashMap::new(),
-            tags: vec!["security".to_string(), "code-review".to_string(), "analysis".to_string()],
+            tags: vec![
+                "security".to_string(),
+                "code-review".to_string(),
+                "analysis".to_string(),
+            ],
         };
 
         let mut agent = Self {
@@ -415,7 +418,8 @@ impl CodeReviewAgent {
                 description: "Detects potential N+1 query problems".to_string(),
                 pattern: r#"(?i)(select|query).*in.*loop"#.to_string(),
                 severity: SecuritySeverity::Medium,
-                impact_description: "Can cause significant performance degradation with large datasets".to_string(),
+                impact_description:
+                    "Can cause significant performance degradation with large datasets".to_string(),
                 suggestions: vec![
                     "Use eager loading".to_string(),
                     "Batch queries".to_string(),
@@ -426,7 +430,11 @@ impl CodeReviewAgent {
     }
 
     /// Perform security analysis on code
-    async fn perform_security_analysis(&self, code: &str, file_path: &str) -> Vec<SecurityVulnerability> {
+    async fn perform_security_analysis(
+        &self,
+        code: &str,
+        file_path: &str,
+    ) -> Vec<SecurityVulnerability> {
         let mut vulnerabilities = Vec::new();
         let lines: Vec<&str> = code.lines().collect();
 
@@ -457,7 +465,11 @@ impl CodeReviewAgent {
     }
 
     /// Perform quality analysis on code
-    async fn perform_quality_analysis(&self, code: &str, file_path: &str) -> Vec<CodeReviewFinding> {
+    async fn perform_quality_analysis(
+        &self,
+        code: &str,
+        file_path: &str,
+    ) -> Vec<CodeReviewFinding> {
         let mut findings = Vec::new();
         let lines: Vec<&str> = code.lines().collect();
 
@@ -487,7 +499,11 @@ impl CodeReviewAgent {
     }
 
     /// Perform performance analysis on code
-    async fn perform_performance_analysis(&self, code: &str, file_path: &str) -> Vec<CodeReviewFinding> {
+    async fn perform_performance_analysis(
+        &self,
+        code: &str,
+        file_path: &str,
+    ) -> Vec<CodeReviewFinding> {
         let mut findings = Vec::new();
         let lines: Vec<&str> = code.lines().collect();
 
@@ -519,7 +535,7 @@ impl CodeReviewAgent {
     /// Calculate security score based on vulnerabilities
     fn calculate_security_score(&self, vulnerabilities: &[SecurityVulnerability]) -> f64 {
         let mut score: f64 = 100.0;
-        
+
         for vulnerability in vulnerabilities {
             let deduction = match vulnerability.severity {
                 SecuritySeverity::Critical => 25.0,
@@ -536,7 +552,7 @@ impl CodeReviewAgent {
     /// Calculate quality score based on findings
     fn calculate_quality_score(&self, findings: &[CodeReviewFinding]) -> f64 {
         let mut score: f64 = 100.0;
-        
+
         for finding in findings {
             let deduction = match finding.severity {
                 SecuritySeverity::Critical => 20.0,
@@ -555,23 +571,30 @@ impl CodeReviewAgent {
         use std::fs;
         use std::io::Read;
 
-        let mut file = fs::File::open(file_path)
-            .map_err(|e| AgentError::StorageError { reason: format!("Failed to open file {}: {}", file_path, e) })?;
-        
+        let mut file = fs::File::open(file_path).map_err(|e| AgentError::StorageError {
+            reason: format!("Failed to open file {}: {}", file_path, e),
+        })?;
+
         let mut content = String::new();
         file.read_to_string(&mut content)
-            .map_err(|e| AgentError::StorageError { reason: format!("Failed to read file {}: {}", file_path, e) })?;
-        
+            .map_err(|e| AgentError::StorageError {
+                reason: format!("Failed to read file {}: {}", file_path, e),
+            })?;
+
         Ok(content)
     }
 
     /// Get files to review
-    async fn get_files_to_review(&self, code_path: &str, extensions: &[String]) -> AgentResult<Vec<String>> {
+    async fn get_files_to_review(
+        &self,
+        code_path: &str,
+        extensions: &[String],
+    ) -> AgentResult<Vec<String>> {
         use std::fs;
         use std::path::Path;
 
         let mut files = Vec::new();
-        
+
         if let Ok(entries) = fs::read_dir(code_path) {
             for entry in entries {
                 if let Ok(entry) = entry {
@@ -587,7 +610,9 @@ impl CodeReviewAgent {
                         }
                     } else if path.is_dir() {
                         // Recursively scan subdirectories
-                        let sub_files = Box::pin(self.get_files_to_review(path.to_str().unwrap(), extensions)).await?;
+                        let sub_files =
+                            Box::pin(self.get_files_to_review(path.to_str().unwrap(), extensions))
+                                .await?;
                         files.extend(sub_files);
                     }
                 }
@@ -682,20 +707,28 @@ impl Agent for CodeReviewAgent {
 
         let result = match request.request_type.as_str() {
             "code_review" => {
-                if let Ok(review_request) = serde_json::from_value::<CodeReviewRequest>(request.payload) {
+                if let Ok(review_request) =
+                    serde_json::from_value::<CodeReviewRequest>(request.payload)
+                {
                     self.perform_code_review(review_request).await
                 } else {
-                    Err(AgentError::ValidationError { reason: "Invalid code review request format".to_string() })
+                    Err(AgentError::ValidationError {
+                        reason: "Invalid code review request format".to_string(),
+                    })
                 }
             }
             "security_scan" => {
                 if let Ok(file_path) = serde_json::from_value::<String>(request.payload) {
                     self.perform_security_scan(&file_path).await
                 } else {
-                    Err(AgentError::ValidationError { reason: "Invalid security scan request format".to_string() })
+                    Err(AgentError::ValidationError {
+                        reason: "Invalid security scan request format".to_string(),
+                    })
                 }
             }
-            _ => Err(AgentError::ValidationError { reason: format!("Unknown request type: {}", request.request_type) }),
+            _ => Err(AgentError::ValidationError {
+                reason: format!("Unknown request type: {}", request.request_type),
+            }),
         };
 
         let execution_time = start_time.elapsed().as_millis() as u64;
@@ -705,8 +738,7 @@ impl Agent for CodeReviewAgent {
         match result {
             Ok(payload) => {
                 self.record_task_completion(true);
-                Ok(AgentResponse::success(request.id, payload)
-                    .with_execution_time(execution_time))
+                Ok(AgentResponse::success(request.id, payload).with_execution_time(execution_time))
             }
             Err(e) => {
                 self.record_task_completion(false);
@@ -718,7 +750,7 @@ impl Agent for CodeReviewAgent {
 
     async fn get_status(&self) -> AgentResult<AgentStatus> {
         let base_status = self.base.get_status().await?;
-        
+
         Ok(AgentStatus {
             agent_id: base_status.agent_id,
             state: base_status.state,
@@ -740,31 +772,37 @@ impl Agent for CodeReviewAgent {
 
 impl CodeReviewAgent {
     /// Perform comprehensive code review
-    async fn perform_code_review(&mut self, request: CodeReviewRequest) -> AgentResult<serde_json::Value> {
+    async fn perform_code_review(
+        &mut self,
+        request: CodeReviewRequest,
+    ) -> AgentResult<serde_json::Value> {
         info!("Starting code review for path: {}", request.code_path);
 
-        let files = self.get_files_to_review(&request.code_path, &request.file_extensions).await?;
+        let files = self
+            .get_files_to_review(&request.code_path, &request.file_extensions)
+            .await?;
         let mut all_vulnerabilities = Vec::new();
         let mut all_quality_findings = Vec::new();
         let mut all_performance_findings = Vec::new();
 
         for file_path in &files {
             debug!("Reviewing file: {}", file_path);
-            
+
             let content = self.read_file_content(file_path).await?;
-            
+
             if request.security_analysis {
                 let vulnerabilities = self.perform_security_analysis(&content, file_path).await;
                 all_vulnerabilities.extend(vulnerabilities);
             }
-            
+
             if request.quality_analysis {
                 let quality_findings = self.perform_quality_analysis(&content, file_path).await;
                 all_quality_findings.extend(quality_findings);
             }
-            
+
             if request.performance_analysis {
-                let performance_findings = self.perform_performance_analysis(&content, file_path).await;
+                let performance_findings =
+                    self.perform_performance_analysis(&content, file_path).await;
                 all_performance_findings.extend(performance_findings);
             }
         }
@@ -780,7 +818,11 @@ impl CodeReviewAgent {
             performance_findings: all_performance_findings.clone(),
             security_score,
             quality_score,
-            summary: self.generate_review_summary(&all_vulnerabilities, &all_quality_findings, &all_performance_findings),
+            summary: self.generate_review_summary(
+                &all_vulnerabilities,
+                &all_quality_findings,
+                &all_performance_findings,
+            ),
             reviewed_at: Utc::now(),
         };
 
@@ -790,7 +832,11 @@ impl CodeReviewAgent {
         info!("Code review completed. Found {} vulnerabilities, {} quality issues, {} performance issues",
               all_vulnerabilities.len(), all_quality_findings.len(), all_performance_findings.len());
 
-        Ok(serde_json::to_value(response).map_err(|e| AgentError::SerializationError { reason: e.to_string() })?)
+        Ok(
+            serde_json::to_value(response).map_err(|e| AgentError::SerializationError {
+                reason: e.to_string(),
+            })?,
+        )
     }
 
     /// Perform security scan on a specific file
@@ -808,7 +854,10 @@ impl CodeReviewAgent {
             "scanned_at": Utc::now(),
         });
 
-        info!("Security scan completed. Found {} vulnerabilities", vulnerabilities.len());
+        info!(
+            "Security scan completed. Found {} vulnerabilities",
+            vulnerabilities.len()
+        );
 
         Ok(scan_result)
     }
@@ -820,9 +869,16 @@ impl CodeReviewAgent {
         quality_findings: &[CodeReviewFinding],
         performance_findings: &[CodeReviewFinding],
     ) -> String {
-        let critical_vulns = vulnerabilities.iter().filter(|v| v.severity == SecuritySeverity::Critical).count();
-        let high_vulns = vulnerabilities.iter().filter(|v| v.severity == SecuritySeverity::High).count();
-        let total_issues = vulnerabilities.len() + quality_findings.len() + performance_findings.len();
+        let critical_vulns = vulnerabilities
+            .iter()
+            .filter(|v| v.severity == SecuritySeverity::Critical)
+            .count();
+        let high_vulns = vulnerabilities
+            .iter()
+            .filter(|v| v.severity == SecuritySeverity::High)
+            .count();
+        let total_issues =
+            vulnerabilities.len() + quality_findings.len() + performance_findings.len();
 
         format!(
             "Code review completed with {} total issues found. \
@@ -843,9 +899,9 @@ impl CodeReviewAgent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs;
     use std::path::Path;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_code_review_agent_creation() {
@@ -859,20 +915,21 @@ mod tests {
     async fn test_security_analysis() {
         let mut agent = CodeReviewAgent::new("test-agent".to_string());
         agent.initialize().await.unwrap();
-        
+
         // Test SQL injection detection
         let code = r#"
             let query = "SELECT * FROM users WHERE id = " + $user_input;
             execute(query);
         "#;
-        
+
         let vulnerabilities = agent.perform_security_analysis(code, "test.rs").await;
         assert!(!vulnerabilities.is_empty());
-        
-        let sql_injection = vulnerabilities.iter()
+
+        let sql_injection = vulnerabilities
+            .iter()
             .find(|v| v.title.contains("SQL Injection"))
             .expect("Should find SQL injection vulnerability");
-        
+
         assert_eq!(sql_injection.severity, SecuritySeverity::Critical);
     }
 
@@ -884,13 +941,17 @@ mod tests {
         // Create temporary directory with test files
         let temp_dir = tempdir().unwrap();
         let test_file = temp_dir.path().join("test.rs");
-        
-        fs::write(&test_file, r#"
+
+        fs::write(
+            &test_file,
+            r#"
             fn main() {
                 let password = "hardcoded_password_123";
                 let query = "SELECT * FROM users WHERE id = " + user_input;
             }
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let request = CodeReviewRequest {
             code_path: temp_dir.path().to_string_lossy().to_string(),
@@ -913,24 +974,22 @@ mod tests {
     #[tokio::test]
     async fn test_security_score_calculation() {
         let agent = CodeReviewAgent::new("test-agent".to_string());
-        
-        let vulnerabilities = vec![
-            SecurityVulnerability {
-                id: "test1".to_string(),
-                title: "Test Critical".to_string(),
-                description: "Test".to_string(),
-                severity: SecuritySeverity::Critical,
-                file_path: "test.rs".to_string(),
-                line_number: Some(1),
-                code_snippet: Some("test".to_string()),
-                cve_id: None,
-                remediation: vec![],
-                detection_method: "test".to_string(),
-                detected_at: Utc::now(),
-            }
-        ];
+
+        let vulnerabilities = vec![SecurityVulnerability {
+            id: "test1".to_string(),
+            title: "Test Critical".to_string(),
+            description: "Test".to_string(),
+            severity: SecuritySeverity::Critical,
+            file_path: "test.rs".to_string(),
+            line_number: Some(1),
+            code_snippet: Some("test".to_string()),
+            cve_id: None,
+            remediation: vec![],
+            detection_method: "test".to_string(),
+            detected_at: Utc::now(),
+        }];
 
         let score = agent.calculate_security_score(&vulnerabilities);
         assert_eq!(score, 75.0); // 100 - 25 for critical
     }
-} 
+}

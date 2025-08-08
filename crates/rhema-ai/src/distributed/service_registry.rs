@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use super::{ServiceRegistryConfig, ServiceInfo};
+use super::{ServiceInfo, ServiceRegistryConfig};
 use rhema_core::RhemaResult;
 
 /// Service registry
@@ -63,4 +63,4 @@ impl ServiceRegistry {
         // TODO: Implement all services retrieval
         Ok(Vec::new())
     }
-} 
+}

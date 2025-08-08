@@ -315,8 +315,12 @@ impl ConfigManager {
 
     pub fn global_config_mut(&mut self) -> std::sync::MutexGuard<'static, GlobalConfig> {
         // TODO: Implement actual global config loading
-        static GLOBAL_CONFIG: std::sync::OnceLock<std::sync::Mutex<GlobalConfig>> = std::sync::OnceLock::new();
-        GLOBAL_CONFIG.get_or_init(|| std::sync::Mutex::new(GlobalConfig::new())).lock().unwrap()
+        static GLOBAL_CONFIG: std::sync::OnceLock<std::sync::Mutex<GlobalConfig>> =
+            std::sync::OnceLock::new();
+        GLOBAL_CONFIG
+            .get_or_init(|| std::sync::Mutex::new(GlobalConfig::new()))
+            .lock()
+            .unwrap()
     }
 
     pub fn load_repository_config(
@@ -353,17 +357,23 @@ impl ConfigManager {
         })
     }
 
-    pub fn backup_mut(&mut self) -> std::sync::MutexGuard<'static, rhema_config::backup::BackupManager> {
+    pub fn backup_mut(
+        &mut self,
+    ) -> std::sync::MutexGuard<'static, rhema_config::backup::BackupManager> {
         // TODO: Implement actual backup
-        static BACKUP: std::sync::OnceLock<std::sync::Mutex<rhema_config::backup::BackupManager>> = std::sync::OnceLock::new();
-        BACKUP.get_or_init(|| {
-            let global_config = self.global_config();
-            std::sync::Mutex::new(
-                rhema_config::backup::BackupManager::new(global_config).unwrap_or_else(|_| {
-                    rhema_config::backup::BackupManager::new(global_config).unwrap()
-                })
-            )
-        }).lock().unwrap()
+        static BACKUP: std::sync::OnceLock<std::sync::Mutex<rhema_config::backup::BackupManager>> =
+            std::sync::OnceLock::new();
+        BACKUP
+            .get_or_init(|| {
+                let global_config = self.global_config();
+                std::sync::Mutex::new(
+                    rhema_config::backup::BackupManager::new(global_config).unwrap_or_else(|_| {
+                        rhema_config::backup::BackupManager::new(global_config).unwrap()
+                    }),
+                )
+            })
+            .lock()
+            .unwrap()
     }
 
     pub fn migration(&self) -> &rhema_config::migration::MigrationManager {

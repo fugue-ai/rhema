@@ -90,39 +90,44 @@ impl DependencyResolver {
     pub fn new(strategy: ResolutionStrategy) -> Self {
         Self { strategy }
     }
-    
+
     pub fn with_config(config: ResolutionConfig) -> Self {
-        Self { strategy: config.strategy }
+        Self {
+            strategy: config.strategy,
+        }
     }
-    
+
     pub fn detect_conflicts(&self, _deps: &[DependencySpec]) -> Vec<Conflict> {
         // Mock implementation - return empty conflicts
         vec![]
     }
-    
+
     pub fn cache_size(&self) -> usize {
         0 // Mock implementation
     }
-    
+
     pub fn clear_cache(&mut self) {
         // Mock implementation
     }
-    
-    pub fn filter_versions(&self, _versions: &[semver::Version]) -> Result<Vec<semver::Version>, String> {
+
+    pub fn filter_versions(
+        &self,
+        _versions: &[semver::Version],
+    ) -> Result<Vec<semver::Version>, String> {
         // Mock implementation - return all versions
         Ok(_versions.to_vec())
     }
-    
+
     pub fn detect_circular_dependencies(&self, _deps: &[DependencySpec]) -> Vec<Vec<String>> {
         // Mock implementation - return empty circular dependencies
         vec![]
     }
-    
+
     pub fn get_stats(&self) -> HashMap<String, usize> {
         // Mock implementation
         HashMap::new()
     }
-    
+
     pub fn parse_version_constraint(input: &str) -> Result<VersionConstraint, String> {
         match input {
             "latest" => Ok(VersionConstraint::Latest),
@@ -141,8 +146,12 @@ impl DependencyResolver {
             }
         }
     }
-    
-    pub fn resolve_version(&mut self, constraint: &VersionConstraint, versions: &[semver::Version]) -> Result<semver::Version, String> {
+
+    pub fn resolve_version(
+        &mut self,
+        constraint: &VersionConstraint,
+        versions: &[semver::Version],
+    ) -> Result<semver::Version, String> {
         match (constraint, self.strategy.clone()) {
             (VersionConstraint::Exact(ver), _) => {
                 let target = semver::Version::parse(ver).map_err(|_| "Invalid version")?;
@@ -152,13 +161,17 @@ impl DependencyResolver {
                     Err("Exact version not found".to_string())
                 }
             }
-            (VersionConstraint::Latest, ResolutionStrategy::Latest) | 
-            (VersionConstraint::Range(_), ResolutionStrategy::Latest) => {
-                versions.iter().max().cloned().ok_or("No versions available".to_string())
-            }
-            (VersionConstraint::Earliest, ResolutionStrategy::Earliest) => {
-                versions.iter().min().cloned().ok_or("No versions available".to_string())
-            }
+            (VersionConstraint::Latest, ResolutionStrategy::Latest)
+            | (VersionConstraint::Range(_), ResolutionStrategy::Latest) => versions
+                .iter()
+                .max()
+                .cloned()
+                .ok_or("No versions available".to_string()),
+            (VersionConstraint::Earliest, ResolutionStrategy::Earliest) => versions
+                .iter()
+                .min()
+                .cloned()
+                .ok_or("No versions available".to_string()),
             (VersionConstraint::Pinned(ver), ResolutionStrategy::Pinned) => {
                 let target = semver::Version::parse(ver).map_err(|_| "Invalid version")?;
                 if versions.contains(&target) {
@@ -169,7 +182,11 @@ impl DependencyResolver {
             }
             _ => {
                 // Default to latest for other combinations
-                versions.iter().max().cloned().ok_or("No versions available".to_string())
+                versions
+                    .iter()
+                    .max()
+                    .cloned()
+                    .ok_or("No versions available".to_string())
             }
         }
     }
@@ -229,9 +246,7 @@ fn test_all_resolution_strategies() {
         Version::parse("2.1.0").unwrap(),
     ];
 
-    let constraint = VersionConstraint::Range(
-        ">=1.0.0,<3.0.0".to_string()
-    );
+    let constraint = VersionConstraint::Range(">=1.0.0,<3.0.0".to_string());
 
     // Test Latest strategy
     let mut resolver = DependencyResolver::new(ResolutionStrategy::Latest);
@@ -256,7 +271,9 @@ fn test_all_resolution_strategies() {
     // Test Pinned strategy
     let mut resolver = DependencyResolver::new(ResolutionStrategy::Pinned);
     let pinned_constraint = VersionConstraint::Pinned("1.2.0".to_string());
-    let resolved = resolver.resolve_version(&pinned_constraint, &versions).unwrap();
+    let resolved = resolver
+        .resolve_version(&pinned_constraint, &versions)
+        .unwrap();
     assert_eq!(resolved, Version::parse("1.2.0").unwrap());
 }
 
@@ -323,7 +340,7 @@ fn test_circular_dependency_detection_complex() {
 
     let resolver = DependencyResolver::new(ResolutionStrategy::Latest);
     let cycles = resolver.detect_circular_dependencies(&deps);
-    
+
     // Mock implementation returns empty cycles
     assert!(cycles.is_empty());
 
@@ -346,14 +363,12 @@ fn test_circular_dependency_detection_complex() {
 #[test]
 fn test_conflict_detection_comprehensive() {
     let resolver = DependencyResolver::new(ResolutionStrategy::Latest);
-    
+
     // Test no conflicts
-    let deps = vec![
-        DependencySpec {
-            name: "rhema-core".to_string(),
-            version: "1.0.0".to_string(),
-        },
-    ];
+    let deps = vec![DependencySpec {
+        name: "rhema-core".to_string(),
+        version: "1.0.0".to_string(),
+    }];
 
     let conflicts = resolver.detect_conflicts(&deps);
     assert_eq!(conflicts.len(), 0);
@@ -420,10 +435,10 @@ fn test_fallback_strategy() {
 #[test]
 fn test_caching_behavior() {
     let mut resolver = DependencyResolver::new(ResolutionStrategy::Latest);
-    
+
     // Initially cache should be empty
     assert_eq!(resolver.cache_size(), 0);
-    
+
     // Clear cache
     resolver.clear_cache();
     assert_eq!(resolver.cache_size(), 0);
@@ -431,8 +446,8 @@ fn test_caching_behavior() {
 
 #[test]
 fn test_error_handling_edge_cases() {
-        let mut resolver = DependencyResolver::new(ResolutionStrategy::Latest);
-    
+    let mut resolver = DependencyResolver::new(ResolutionStrategy::Latest);
+
     // Test empty versions list
     let constraint = VersionConstraint::Range(">=1.0.0".to_string());
     let result = resolver.resolve_version(&constraint, &[]);
@@ -445,9 +460,7 @@ fn test_error_handling_edge_cases() {
 
     // Test pinned strategy with non-pinned constraint
     let mut resolver = DependencyResolver::new(ResolutionStrategy::Pinned);
-    let constraint = VersionConstraint::Range(
-        ">=1.0.0".to_string()
-    );
+    let constraint = VersionConstraint::Range(">=1.0.0".to_string());
     let versions = vec![Version::parse("1.0.0").unwrap()];
     let result = resolver.resolve_version(&constraint, &versions);
     assert!(result.is_err());
@@ -456,7 +469,7 @@ fn test_error_handling_edge_cases() {
 #[test]
 fn test_resolution_statistics() {
     let mut resolver = DependencyResolver::new(ResolutionStrategy::Latest);
-    
+
     let stats = resolver.get_stats();
     // Mock implementation returns empty HashMap
     assert!(stats.is_empty());
@@ -465,7 +478,7 @@ fn test_resolution_statistics() {
 #[test]
 fn test_complex_dependency_scenarios() {
     let resolver = DependencyResolver::new(ResolutionStrategy::Latest);
-    
+
     // Test multiple dependencies with different types
     let deps = vec![
         DependencySpec {
@@ -542,7 +555,7 @@ fn test_version_compatibility_logic() {
 #[test]
 fn test_performance_under_load() {
     let resolver = DependencyResolver::new(ResolutionStrategy::Latest);
-    
+
     // Create many dependencies to test performance
     let mut deps = Vec::new();
     for i in 0..100 {
@@ -558,4 +571,4 @@ fn test_performance_under_load() {
 
     assert_eq!(conflicts.len(), 0); // No conflicts in this scenario
     assert!(duration.as_millis() < 1000); // Should complete within 1 second
-} 
+}

@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-use rhema_action_tool::{ActionIntent, ActionType, SafetyLevel, ValidationTool, TransformationTool};
 use rhema_action_cargo::CargoTool;
+use rhema_action_tool::{
+    ActionIntent, ActionType, SafetyLevel, TransformationTool, ValidationTool,
+};
 use serde_json::json;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
-    
+
     let cargo_tool = CargoTool;
-    
+
     // Example 1: Workspace root only validation
     println!("=== Example 1: Workspace Root Only ===");
     let root_only_intent = ActionIntent::new(
@@ -34,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         vec!["Cargo.toml".to_string()],
         SafetyLevel::Low,
     );
-    
+
     match cargo_tool.validate(&root_only_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -45,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {}", e),
     }
-    
+
     // Example 2: All workspace members validation
     println!("\n=== Example 2: All Workspace Members ===");
     let mut all_members_intent = ActionIntent::new(
@@ -61,7 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "json_output": true,
         "verbose": false
     });
-    
+
     match cargo_tool.validate(&all_members_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -72,7 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {}", e),
     }
-    
+
     // Example 3: Root and members validation
     println!("\n=== Example 3: Root and Members ===");
     let mut root_and_members_intent = ActionIntent::new(
@@ -88,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "json_output": true,
         "verbose": true
     });
-    
+
     match cargo_tool.validate(&root_and_members_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -99,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {}", e),
     }
-    
+
     // Example 4: Selected members validation
     println!("\n=== Example 4: Selected Members ===");
     let mut selected_members_intent = ActionIntent::new(
@@ -117,7 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "json_output": true,
         "verbose": false
     });
-    
+
     match cargo_tool.validate(&selected_members_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -128,7 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {}", e),
     }
-    
+
     // Example 5: Workspace transformation
     println!("\n=== Example 5: Workspace Transformation ===");
     let mut workspace_transform_intent = ActionIntent::new(
@@ -144,7 +146,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "json_output": true,
         "verbose": false
     });
-    
+
     match cargo_tool.execute(&workspace_transform_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -156,7 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {}", e),
     }
-    
+
     // Example 6: Workspace dependency analysis
     println!("\n=== Example 6: Workspace Dependency Analysis ===");
     let mut dependency_analysis_intent = ActionIntent::new(
@@ -172,7 +174,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "json_output": true,
         "verbose": false
     });
-    
+
     match cargo_tool.validate(&dependency_analysis_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -183,6 +185,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {}", e),
     }
-    
+
     Ok(())
-} 
+}

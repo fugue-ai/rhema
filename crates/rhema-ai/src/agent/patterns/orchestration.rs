@@ -15,8 +15,8 @@
  */
 
 use super::{
-    PatternContext, PatternMetadata, PatternCategory, PatternResult, PatternError, ValidationResult,
-    PatternPerformanceMetrics
+    PatternCategory, PatternContext, PatternError, PatternMetadata, PatternPerformanceMetrics,
+    PatternResult, ValidationResult,
 };
 use crate::agent::CoordinationPattern;
 use chrono::{DateTime, Utc};
@@ -186,23 +186,29 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
 
         // Initialize step states
         for step in &workflow_state.steps {
-            workflow_state.step_states.insert(step.step_id.clone(), StepState {
-                step_id: step.step_id.clone(),
-                status: StepStatus::Pending,
-                started_at: None,
-                completed_at: None,
-                retry_count: 0,
-                error_message: None,
-            });
+            workflow_state.step_states.insert(
+                step.step_id.clone(),
+                StepState {
+                    step_id: step.step_id.clone(),
+                    status: StepStatus::Pending,
+                    started_at: None,
+                    completed_at: None,
+                    retry_count: 0,
+                    error_message: None,
+                },
+            );
         }
 
         // Determine execution order
-        workflow_state.execution_order = self.determine_execution_order(&workflow_state.steps, &workflow_state.dependencies).await?;
+        workflow_state.execution_order = self
+            .determine_execution_order(&workflow_state.steps, &workflow_state.dependencies)
+            .await?;
 
         // Execute workflow based on strategy
         match self.execution_strategy {
             ExecutionStrategy::Sequential => {
-                self.execute_sequential(&mut workflow_state, context).await?;
+                self.execute_sequential(&mut workflow_state, context)
+                    .await?;
             }
             ExecutionStrategy::Parallel => {
                 self.execute_parallel(&mut workflow_state, context).await?;
@@ -230,12 +236,22 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
 
         let result_data = HashMap::from([
             ("workflow_id".to_string(), json!(workflow_state.workflow_id)),
-            ("status".to_string(), json!(workflow_state.status.to_string())),
-            ("steps_completed".to_string(), json!(workflow_state.step_results.len())),
-            ("execution_strategy".to_string(), json!(self.execution_strategy.to_string())),
+            (
+                "status".to_string(),
+                json!(workflow_state.status.to_string()),
+            ),
+            (
+                "steps_completed".to_string(),
+                json!(workflow_state.step_results.len()),
+            ),
+            (
+                "execution_strategy".to_string(),
+                json!(self.execution_strategy.to_string()),
+            ),
         ]);
 
-        Ok(PatternResult { // TODO: Implement actual pattern execution logic
+        Ok(PatternResult {
+            // TODO: Implement actual pattern execution logic
             pattern_id: "workflow-orchestration".to_string(),
             success: workflow_state.status == WorkflowStatus::Completed,
             data: result_data,
@@ -254,20 +270,29 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
         // Check if orchestrator agent is available
         let agent_ids: Vec<String> = context.agents.iter().map(|a| a.id.clone()).collect();
         if !agent_ids.contains(&self.orchestrator) {
-            errors.push(format!("Orchestrator agent {} not found", self.orchestrator));
+            errors.push(format!(
+                "Orchestrator agent {} not found",
+                self.orchestrator
+            ));
         }
 
         // Check if all required agents are available
         for step in &self.workflow_definition.steps {
             if let Some(agent_id) = &step.assigned_agent {
                 if !agent_ids.contains(agent_id) {
-                    errors.push(format!("Agent {} required for step {} not found", agent_id, step.step_id));
+                    errors.push(format!(
+                        "Agent {} required for step {} not found",
+                        agent_id, step.step_id
+                    ));
                 }
             }
         }
 
         // Check for circular dependencies
-        if self.has_circular_dependencies(&self.workflow_definition.steps, &self.workflow_definition.dependencies) {
+        if self.has_circular_dependencies(
+            &self.workflow_definition.steps,
+            &self.workflow_definition.dependencies,
+        ) {
             errors.push("Circular dependencies detected in workflow".to_string());
         }
 
@@ -287,20 +312,23 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
 
     async fn rollback(&self, context: &PatternContext) -> Result<(), PatternError> {
         info!("Rolling back workflow orchestration pattern");
-        
+
         // Workflow rollback would typically involve:
         // - Stopping all running steps
         // - Reverting completed steps
         // - Cleaning up resources
         // - Restoring previous state
-        
+
         Ok(())
     }
 
-    fn metadata(&self) -> PatternMetadata { // TODO: Implement actual metadata logic
-        PatternMetadata { // TODO: Implement actual metadata values
+    fn metadata(&self) -> PatternMetadata {
+        // TODO: Implement actual metadata logic
+        PatternMetadata {
+            // TODO: Implement actual metadata values
             name: "Workflow Orchestration Pattern".to_string(),
-            description: "Coordinated execution of multi-step workflows with dependency management".to_string(),
+            description: "Coordinated execution of multi-step workflows with dependency management"
+                .to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::WorkflowOrchestration,
             required_capabilities: vec![
@@ -348,17 +376,17 @@ impl WorkflowOrchestrationPattern {
         dependencies: &[WorkflowDependency],
     ) -> Result<Vec<String>, PatternError> {
         info!("Determining workflow execution order");
-        
+
         // Build dependency graph
         let mut graph: HashMap<String, Vec<String>> = HashMap::new();
         let mut in_degree: HashMap<String, usize> = HashMap::new();
-        
+
         // Initialize graph
         for step in steps {
             graph.insert(step.step_id.clone(), vec![]);
             in_degree.insert(step.step_id.clone(), 0);
         }
-        
+
         // Add dependencies
         for dependency in dependencies {
             if let Some(neighbors) = graph.get_mut(&dependency.source_step_id) {
@@ -368,21 +396,21 @@ impl WorkflowOrchestrationPattern {
                 *degree += 1;
             }
         }
-        
+
         // Topological sort
         let mut queue: VecDeque<String> = VecDeque::new();
         let mut execution_order: Vec<String> = Vec::new();
-        
+
         // Add steps with no dependencies
         for (step_id, degree) in &in_degree {
             if *degree == 0 {
                 queue.push_back(step_id.clone());
             }
         }
-        
+
         while let Some(step_id) = queue.pop_front() {
             execution_order.push(step_id.clone());
-            
+
             if let Some(neighbors) = graph.get(&step_id) {
                 for neighbor in neighbors {
                     if let Some(degree) = in_degree.get_mut(neighbor) {
@@ -394,12 +422,14 @@ impl WorkflowOrchestrationPattern {
                 }
             }
         }
-        
+
         // Check for cycles
         if execution_order.len() != steps.len() {
-            return Err(PatternError::ConfigurationError("Circular dependencies detected".to_string()));
+            return Err(PatternError::ConfigurationError(
+                "Circular dependencies detected".to_string(),
+            ));
         }
-        
+
         Ok(execution_order)
     }
 
@@ -409,20 +439,22 @@ impl WorkflowOrchestrationPattern {
         context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Executing workflow sequentially");
-        
+
         for step_id in &workflow_state.execution_order {
             let step = self.find_step(step_id, &workflow_state.steps)?;
             let step_result = self.execute_step(step, context).await?;
-            
-            workflow_state.step_results.insert(step_id.clone(), step_result);
-            
+
+            workflow_state
+                .step_results
+                .insert(step_id.clone(), step_result);
+
             // Update step state
             if let Some(step_state) = workflow_state.step_states.get_mut(step_id) {
                 step_state.status = StepStatus::Completed;
                 step_state.completed_at = Some(Utc::now());
             }
         }
-        
+
         Ok(())
     }
 
@@ -432,25 +464,32 @@ impl WorkflowOrchestrationPattern {
         context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Executing workflow in parallel");
-        
+
         // Group steps by dependency level
-        let dependency_levels = self.group_by_dependency_level(&workflow_state.execution_order, &workflow_state.dependencies).await?;
-        
+        let dependency_levels = self
+            .group_by_dependency_level(
+                &workflow_state.execution_order,
+                &workflow_state.dependencies,
+            )
+            .await?;
+
         for level in dependency_levels {
             // Execute all steps in this level in parallel
             let mut tasks = Vec::new();
-            
+
             for step_id in level {
                 let step = self.find_step(&step_id, &workflow_state.steps)?;
                 let task = self.execute_step_async(step.clone(), context);
                 tasks.push((step_id, task));
             }
-            
+
             // Wait for all tasks in this level to complete
             for (step_id, task) in tasks {
                 let step_result = task.await?;
-                workflow_state.step_results.insert(step_id.clone(), step_result);
-                
+                workflow_state
+                    .step_results
+                    .insert(step_id.clone(), step_result);
+
                 // Update step state
                 if let Some(step_state) = workflow_state.step_states.get_mut(&step_id) {
                     step_state.status = StepStatus::Completed;
@@ -458,7 +497,7 @@ impl WorkflowOrchestrationPattern {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -468,19 +507,22 @@ impl WorkflowOrchestrationPattern {
         context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Executing workflow with hybrid strategy");
-        
+
         // Execute steps that can run in parallel, but limit concurrency
         let max_concurrent = 3; // Limit to 3 concurrent steps
         let mut running_tasks = Vec::new();
-        
+
         for step_id in &workflow_state.execution_order {
             // Wait if we have too many running tasks
             while running_tasks.len() >= max_concurrent {
                 // Wait for one task to complete
-                let (completed_step_id, result) = self.wait_for_task_completion(&mut running_tasks).await?;
-                workflow_state.step_results.insert(completed_step_id, result);
+                let (completed_step_id, result) =
+                    self.wait_for_task_completion(&mut running_tasks).await?;
+                workflow_state
+                    .step_results
+                    .insert(completed_step_id, result);
             }
-            
+
             // Start new task
             let step = self.find_step(step_id, &workflow_state.steps)?;
             let step_clone = step.clone();
@@ -496,13 +538,16 @@ impl WorkflowOrchestrationPattern {
             });
             running_tasks.push((step_id.clone(), task));
         }
-        
+
         // Wait for remaining tasks
         while !running_tasks.is_empty() {
-            let (completed_step_id, result) = self.wait_for_task_completion(&mut running_tasks).await?;
-            workflow_state.step_results.insert(completed_step_id, result);
+            let (completed_step_id, result) =
+                self.wait_for_task_completion(&mut running_tasks).await?;
+            workflow_state
+                .step_results
+                .insert(completed_step_id, result);
         }
-        
+
         Ok(())
     }
 
@@ -522,7 +567,7 @@ impl WorkflowOrchestrationPattern {
         _context: &PatternContext,
     ) -> Result<StepResult, PatternError> {
         info!("Executing step: {}", step.name);
-        
+
         // Simulate step execution
         let execution_time = match step.step_type {
             StepType::Task => 5,
@@ -532,9 +577,9 @@ impl WorkflowOrchestrationPattern {
             StepType::Conditional => 1,
             StepType::Custom(_) => 4,
         };
-        
+
         tokio::time::sleep(tokio::time::Duration::from_secs(execution_time)).await;
-        
+
         Ok(StepResult {
             step_id: step.step_id.clone(),
             status: StepResultStatus::Success,
@@ -554,11 +599,16 @@ impl WorkflowOrchestrationPattern {
 
     async fn wait_for_task_completion(
         &self,
-        running_tasks: &mut Vec<(String, tokio::task::JoinHandle<Result<StepResult, PatternError>>)>,
+        running_tasks: &mut Vec<(
+            String,
+            tokio::task::JoinHandle<Result<StepResult, PatternError>>,
+        )>,
     ) -> Result<(String, StepResult), PatternError> {
         // Wait for any task to complete
         let (step_id, task) = running_tasks.remove(0);
-        let result = task.await.map_err(|e| PatternError::ExecutionError(e.to_string()))??;
+        let result = task
+            .await
+            .map_err(|e| PatternError::ExecutionError(e.to_string()))??;
         Ok((step_id, result))
     }
 
@@ -570,14 +620,14 @@ impl WorkflowOrchestrationPattern {
         let mut levels = Vec::new();
         let mut current_level = Vec::new();
         let mut completed_steps: HashSet<String> = HashSet::new();
-        
+
         for step_id in execution_order {
             // Check if all dependencies are satisfied
             let dependencies_satisfied = dependencies
                 .iter()
                 .filter(|d| d.target_step_id == *step_id)
                 .all(|d| completed_steps.contains(&d.source_step_id));
-            
+
             if dependencies_satisfied {
                 current_level.push(step_id.clone());
             } else {
@@ -589,15 +639,19 @@ impl WorkflowOrchestrationPattern {
                 current_level.push(step_id.clone());
             }
         }
-        
+
         if !current_level.is_empty() {
             levels.push(current_level);
         }
-        
+
         Ok(levels)
     }
 
-    fn find_step<'a>(&self, step_id: &str, steps: &'a [WorkflowStep]) -> Result<&'a WorkflowStep, PatternError> {
+    fn find_step<'a>(
+        &self,
+        step_id: &str,
+        steps: &'a [WorkflowStep],
+    ) -> Result<&'a WorkflowStep, PatternError> {
         steps
             .iter()
             .find(|s| s.step_id == step_id)
@@ -614,17 +668,17 @@ impl WorkflowOrchestrationPattern {
         for step in steps {
             graph.insert(step.step_id.clone(), vec![]);
         }
-        
+
         for dependency in dependencies {
             if let Some(neighbors) = graph.get_mut(&dependency.source_step_id) {
                 neighbors.push(dependency.target_step_id.clone());
             }
         }
-        
+
         // Check for cycles using DFS
         let mut visited = HashSet::new();
         let mut rec_stack = HashSet::new();
-        
+
         for step in steps {
             if !visited.contains(&step.step_id) {
                 if self.dfs_has_cycle(&step.step_id, &graph, &mut visited, &mut rec_stack) {
@@ -632,7 +686,7 @@ impl WorkflowOrchestrationPattern {
                 }
             }
         }
-        
+
         false
     }
 
@@ -645,7 +699,7 @@ impl WorkflowOrchestrationPattern {
     ) -> bool {
         visited.insert(step_id.to_string());
         rec_stack.insert(step_id.to_string());
-        
+
         if let Some(neighbors) = graph.get(step_id) {
             for neighbor in neighbors {
                 if !visited.contains(neighbor) {
@@ -657,7 +711,7 @@ impl WorkflowOrchestrationPattern {
                 }
             }
         }
-        
+
         rec_stack.remove(step_id);
         false
     }
@@ -722,25 +776,31 @@ impl CoordinationPattern for StateSynchronizationPattern {
 
         // Collect agent states
         for agent in &context.agents {
-            sync_state.agent_states.insert(agent.id.clone(), AgentState {
-                agent_id: agent.id.clone(),
-                state_data: HashMap::new(),
-                last_sync: None,
-                version: 0,
-                conflicts: vec![],
-            });
+            sync_state.agent_states.insert(
+                agent.id.clone(),
+                AgentState {
+                    agent_id: agent.id.clone(),
+                    state_data: HashMap::new(),
+                    last_sync: None,
+                    version: 0,
+                    conflicts: vec![],
+                },
+            );
         }
 
         // Perform synchronization based on strategy
         match self.sync_strategy {
             SyncStrategy::EventualConsistency => {
-                self.sync_eventual_consistency(&mut sync_state, context).await?;
+                self.sync_eventual_consistency(&mut sync_state, context)
+                    .await?;
             }
             SyncStrategy::StrongConsistency => {
-                self.sync_strong_consistency(&mut sync_state, context).await?;
+                self.sync_strong_consistency(&mut sync_state, context)
+                    .await?;
             }
             SyncStrategy::CausalConsistency => {
-                self.sync_causal_consistency(&mut sync_state, context).await?;
+                self.sync_causal_consistency(&mut sync_state, context)
+                    .await?;
             }
             SyncStrategy::Custom(_) => {
                 self.sync_custom(&mut sync_state, context).await?;
@@ -768,9 +828,18 @@ impl CoordinationPattern for StateSynchronizationPattern {
         let result_data = HashMap::from([
             ("sync_id".to_string(), json!(sync_state.sync_id)),
             ("status".to_string(), json!(sync_state.status.to_string())),
-            ("agents_synced".to_string(), json!(sync_state.agent_states.len())),
-            ("conflicts_resolved".to_string(), json!(sync_state.conflicts.len())),
-            ("sync_strategy".to_string(), json!(self.sync_strategy.to_string())),
+            (
+                "agents_synced".to_string(),
+                json!(sync_state.agent_states.len()),
+            ),
+            (
+                "conflicts_resolved".to_string(),
+                json!(sync_state.conflicts.len()),
+            ),
+            (
+                "sync_strategy".to_string(),
+                json!(self.sync_strategy.to_string()),
+            ),
         ]);
 
         Ok(PatternResult { // TODO: Implement actual pattern execution logic
@@ -800,12 +869,16 @@ impl CoordinationPattern for StateSynchronizationPattern {
         // Check if state manager agent is available
         let agent_ids: Vec<String> = context.agents.iter().map(|a| a.id.clone()).collect();
         if !agent_ids.contains(&self.state_manager) {
-            errors.push(format!("State manager agent {} not found", self.state_manager));
+            errors.push(format!(
+                "State manager agent {} not found",
+                self.state_manager
+            ));
         }
 
         // Check if there are multiple agents to synchronize
         if context.agents.len() < 2 {
-            warnings.push("Only one agent available, synchronization may not be necessary".to_string());
+            warnings
+                .push("Only one agent available, synchronization may not be necessary".to_string());
         }
 
         let is_valid = errors.is_empty();
@@ -825,7 +898,9 @@ impl CoordinationPattern for StateSynchronizationPattern {
     fn metadata(&self) -> PatternMetadata {
         PatternMetadata {
             name: "State Synchronization Pattern".to_string(),
-            description: "Coordinated state synchronization across multiple agents with conflict resolution".to_string(),
+            description:
+                "Coordinated state synchronization across multiple agents with conflict resolution"
+                    .to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::StateSynchronization,
             id: "state-synchronization".to_string(),
@@ -870,16 +945,16 @@ impl StateSynchronizationPattern {
         _context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Performing eventual consistency synchronization");
-        
+
         // Simulate eventual consistency sync
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        
+
         // Update all agent states
         for agent_state in sync_state.agent_states.values_mut() {
             agent_state.last_sync = Some(Utc::now());
             agent_state.version += 1;
         }
-        
+
         Ok(())
     }
 
@@ -889,27 +964,27 @@ impl StateSynchronizationPattern {
         _context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Performing strong consistency synchronization");
-        
+
         // Simulate strong consistency sync (more time-consuming)
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-        
+
         // Ensure all agents have the same state
         let mut global_state = HashMap::new();
-        
+
         // Collect all states
         for agent_state in &sync_state.agent_states {
             for (key, value) in &agent_state.1.state_data {
                 global_state.insert(key.clone(), value.clone());
             }
         }
-        
+
         // Distribute global state to all agents
         for agent_state in sync_state.agent_states.values_mut() {
             agent_state.state_data = global_state.clone();
             agent_state.last_sync = Some(Utc::now());
             agent_state.version += 1;
         }
-        
+
         Ok(())
     }
 
@@ -919,21 +994,21 @@ impl StateSynchronizationPattern {
         _context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Performing causal consistency synchronization");
-        
+
         // Simulate causal consistency sync
         tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-        
+
         // Implement causal consistency logic
         // This would typically involve:
         // - Tracking causal dependencies
         // - Ensuring causal ordering
         // - Resolving causal conflicts
-        
+
         for agent_state in sync_state.agent_states.values_mut() {
             agent_state.last_sync = Some(Utc::now());
             agent_state.version += 1;
         }
-        
+
         Ok(())
     }
 
@@ -946,9 +1021,12 @@ impl StateSynchronizationPattern {
         Ok(())
     }
 
-    async fn resolve_state_conflicts(&self, sync_state: &mut StateSyncState) -> Result<(), PatternError> {
+    async fn resolve_state_conflicts(
+        &self,
+        sync_state: &mut StateSyncState,
+    ) -> Result<(), PatternError> {
         info!("Resolving {} state conflicts", sync_state.conflicts.len());
-        
+
         for conflict in &sync_state.conflicts {
             // Implement conflict resolution logic
             // This would typically involve:
@@ -956,7 +1034,7 @@ impl StateSynchronizationPattern {
             // - Applying resolution strategy
             // - Updating affected states
         }
-        
+
         Ok(())
     }
 }
@@ -1138,7 +1216,9 @@ mod tests {
         let metadata = pattern.metadata();
         assert_eq!(metadata.name, "Workflow Orchestration Pattern");
         assert_eq!(metadata.category, PatternCategory::WorkflowOrchestration);
-        assert!(metadata.required_capabilities.contains(&"workflow-orchestration".to_string()));
+        assert!(metadata
+            .required_capabilities
+            .contains(&"workflow-orchestration".to_string()));
     }
 
     #[tokio::test]
@@ -1154,7 +1234,9 @@ mod tests {
         let metadata = pattern.metadata();
         assert_eq!(metadata.name, "State Synchronization Pattern");
         assert_eq!(metadata.category, PatternCategory::StateSynchronization);
-        assert!(metadata.required_capabilities.contains(&"state-synchronization".to_string()));
+        assert!(metadata
+            .required_capabilities
+            .contains(&"state-synchronization".to_string()));
     }
 
     #[test]
@@ -1168,4 +1250,4 @@ mod tests {
         let strategy = SyncStrategy::StrongConsistency;
         assert_eq!(strategy.to_string(), "strong-consistency");
     }
-} 
+}

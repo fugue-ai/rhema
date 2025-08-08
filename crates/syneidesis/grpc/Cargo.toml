@@ -1,0 +1,51 @@
+[package]
+name = "syneidesis-grpc"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "gRPC services for real-time agent coordination"
+license.workspace = true
+repository.workspace = true
+keywords = ["grpc", "agent", "coordination", "real-time", "communication"]
+categories = ["asynchronous", "network-programming", "api-bindings"]
+
+[dependencies]
+# Core dependencies
+syneidesis-core = { path = "../core" }
+syneidesis-agent = { path = "../agent" }
+syneidesis-config = { path = "../config" }
+
+# gRPC dependencies
+tonic.workspace = true
+prost.workspace = true
+prost-types.workspace = true
+
+# Async and runtime
+tokio.workspace = true
+tokio-stream.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# Time and UUID
+chrono.workspace = true
+uuid.workspace = true
+
+# Error handling
+thiserror.workspace = true
+
+# Logging
+tracing.workspace = true
+
+# Collections and utilities
+dashmap.workspace = true
+parking_lot.workspace = true
+
+# Validation
+validator = { version = "0.16", features = ["derive"] }
+
+[build-dependencies]
+tonic-build = "0.12" 

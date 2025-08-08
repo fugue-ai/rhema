@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-use crate::agent::{Agent, AgentId, AgentType, AgentCapability, AgentState, AgentConfig, AgentContext, AgentStatus, AgentMessage, AgentRequest, AgentResponse, AgentHeartbeat, CoordinationMessage, AgentErrorMessage, CustomMessage, ResourceUsage, HealthStatus};
+use crate::agent::{
+    Agent, AgentCapability, AgentConfig, AgentContext, AgentErrorMessage, AgentHeartbeat, AgentId,
+    AgentMessage, AgentRequest, AgentResponse, AgentState, AgentStatus, AgentType,
+    CoordinationMessage, CustomMessage, HealthStatus, ResourceUsage,
+};
 use crate::error::{AgentError, AgentResult};
+use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 
 /// Registry entry for an agent
 #[derive(Debug, Clone)]
@@ -45,7 +49,12 @@ pub struct RegistryEntry {
 }
 
 impl RegistryEntry {
-    pub fn new(agent_id: AgentId, name: String, agent_type: AgentType, capabilities: Vec<AgentCapability>) -> Self {
+    pub fn new(
+        agent_id: AgentId,
+        name: String,
+        agent_type: AgentType,
+        capabilities: Vec<AgentCapability>,
+    ) -> Self {
         let now = Utc::now();
         Self {
             agent_id,
@@ -215,11 +224,11 @@ impl AgentRegistry {
         self.type_index.clear();
         self.capability_index.clear();
         self.state_index.clear();
-        
+
         // Reset statistics
         let mut stats = self.stats.write().await;
         *stats = RegistryStats::default();
-        
+
         Ok(())
     }
 
@@ -243,7 +252,8 @@ impl AgentRegistry {
         };
 
         // Store agent and entry
-        self.agents.insert(agent_id.clone(), Arc::new(RwLock::new(agent)));
+        self.agents
+            .insert(agent_id.clone(), Arc::new(RwLock::new(agent)));
         self.entries.insert(agent_id.clone(), entry);
 
         // Update indices
@@ -278,7 +288,7 @@ impl AgentRegistry {
 
         // Update statistics
         self.update_stats().await;
-        
+
         Ok(())
     }
 
@@ -306,18 +316,18 @@ impl AgentRegistry {
     pub async fn start_agent(&self, agent_id: &AgentId) -> AgentResult<()> {
         let agent = self.get_agent(agent_id).await?;
         let mut agent_guard = agent.write().await;
-        
+
         // Start the agent
         agent_guard.start().await?;
-        
+
         // Update entry state
         if let Some(mut entry) = self.entries.get_mut(agent_id) {
             entry.update_state(AgentState::Ready);
         }
-        
+
         // Update state index
         self.update_state_index(agent_id, &AgentState::Ready).await;
-        
+
         Ok(())
     }
 
@@ -325,53 +335,54 @@ impl AgentRegistry {
     pub async fn stop_agent(&self, agent_id: &AgentId) -> AgentResult<()> {
         let agent = self.get_agent(agent_id).await?;
         let mut agent_guard = agent.write().await;
-        
+
         // Stop the agent
         agent_guard.stop().await?;
-        
+
         // Update entry state
         if let Some(mut entry) = self.entries.get_mut(agent_id) {
             entry.update_state(AgentState::Stopped);
         }
-        
+
         // Update state index
-        self.update_state_index(agent_id, &AgentState::Stopped).await;
-        
+        self.update_state_index(agent_id, &AgentState::Stopped)
+            .await;
+
         Ok(())
     }
 
     /// Query agents
     pub async fn query(&self, query: RegistryQuery) -> AgentResult<Vec<RegistryEntry>> {
         let mut results = Vec::new();
-        
+
         for entry in self.entries.iter() {
             let entry = entry.clone();
-            
+
             // Apply filters
             if let Some(ref agent_type) = query.agent_type {
                 if entry.agent_type != *agent_type {
                     continue;
                 }
             }
-            
+
             if let Some(ref state) = query.state {
                 if entry.state != *state {
                     continue;
                 }
             }
-            
+
             if let Some(ref capability) = query.capability {
                 if !entry.capabilities.contains(capability) {
                     continue;
                 }
             }
-            
+
             if let Some(ref pattern) = query.name_pattern {
                 if !entry.name.contains(pattern) {
                     continue;
                 }
             }
-            
+
             // Check metadata filters
             let mut matches_metadata = true;
             for (key, value) in &query.metadata {
@@ -380,14 +391,14 @@ impl AgentRegistry {
                     break;
                 }
             }
-            
+
             if !matches_metadata {
                 continue;
             }
-            
+
             results.push(entry);
         }
-        
+
         // Apply pagination
         if let Some(offset) = query.offset {
             if offset >= results.len() {
@@ -395,32 +406,41 @@ impl AgentRegistry {
             }
             results = results.into_iter().skip(offset).collect();
         }
-        
+
         if let Some(limit) = query.limit {
             if limit < results.len() {
                 results.truncate(limit);
             }
         }
-        
+
         Ok(results)
     }
 
     /// Get all agent IDs
     pub async fn get_all_agent_ids(&self) -> AgentResult<Vec<AgentId>> {
-        Ok(self.agents.iter().map(|entry| entry.key().clone()).collect())
+        Ok(self
+            .agents
+            .iter()
+            .map(|entry| entry.key().clone())
+            .collect())
     }
 
     /// Get agents by type
     pub async fn get_agents_by_type(&self, agent_type: &AgentType) -> AgentResult<Vec<AgentId>> {
-        Ok(self.type_index
+        Ok(self
+            .type_index
             .get(agent_type)
             .map(|entry| entry.clone())
             .unwrap_or_default())
     }
 
     /// Get agents by capability
-    pub async fn get_agents_by_capability(&self, capability: &AgentCapability) -> AgentResult<Vec<AgentId>> {
-        Ok(self.capability_index
+    pub async fn get_agents_by_capability(
+        &self,
+        capability: &AgentCapability,
+    ) -> AgentResult<Vec<AgentId>> {
+        Ok(self
+            .capability_index
             .get(capability)
             .map(|entry| entry.clone())
             .unwrap_or_default())
@@ -428,7 +448,8 @@ impl AgentRegistry {
 
     /// Get agents by state
     pub async fn get_agents_by_state(&self, state: &AgentState) -> AgentResult<Vec<AgentId>> {
-        Ok(self.state_index
+        Ok(self
+            .state_index
             .get(state)
             .map(|entry| entry.clone())
             .unwrap_or_default())
@@ -453,12 +474,16 @@ impl AgentRegistry {
     }
 
     /// Update agent state
-    pub async fn update_agent_state(&self, agent_id: &AgentId, state: AgentState) -> AgentResult<()> {
+    pub async fn update_agent_state(
+        &self,
+        agent_id: &AgentId,
+        state: AgentState,
+    ) -> AgentResult<()> {
         if let Some(mut entry) = self.entries.get_mut(agent_id) {
             entry.update_state(state.clone());
             self.update_state_index(agent_id, &state).await;
         }
-        
+
         Ok(())
     }
 
@@ -467,30 +492,34 @@ impl AgentRegistry {
         if let Some(mut entry) = self.entries.get_mut(agent_id) {
             entry.update_activity();
         }
-        
+
         Ok(())
     }
 
     /// Shutdown the registry
     pub async fn shutdown(&self) -> AgentResult<()> {
         // Stop all agents
-        let agent_ids: Vec<AgentId> = self.agents.iter().map(|entry| entry.key().clone()).collect();
-        
+        let agent_ids: Vec<AgentId> = self
+            .agents
+            .iter()
+            .map(|entry| entry.key().clone())
+            .collect();
+
         for agent_id in agent_ids {
             let _ = self.stop_agent(&agent_id).await;
         }
-        
+
         // Clear all data
         self.agents.clear();
         self.entries.clear();
         self.type_index.clear();
         self.capability_index.clear();
         self.state_index.clear();
-        
+
         // Reset statistics
         let mut stats = self.stats.write().await;
         *stats = RegistryStats::default();
-        
+
         Ok(())
     }
 
@@ -507,10 +536,13 @@ impl AgentRegistry {
 
     /// Update capability index
     async fn update_capability_index(&self, agent_id: &AgentId, capability: &AgentCapability) {
-        let mut capability_index = self.capability_index.get_mut(capability).unwrap_or_else(|| {
-            self.capability_index.insert(capability.clone(), Vec::new());
-            self.capability_index.get_mut(capability).unwrap()
-        });
+        let mut capability_index = self
+            .capability_index
+            .get_mut(capability)
+            .unwrap_or_else(|| {
+                self.capability_index.insert(capability.clone(), Vec::new());
+                self.capability_index.get_mut(capability).unwrap()
+            });
         if !capability_index.contains(agent_id) {
             capability_index.push(agent_id.clone());
         }
@@ -544,14 +576,14 @@ impl AgentRegistry {
         if let Some(mut type_list) = self.type_index.get_mut(&entry.agent_type) {
             type_list.retain(|id| id != agent_id);
         }
-        
+
         // Remove from capability index
         for capability in &entry.capabilities {
             if let Some(mut cap_list) = self.capability_index.get_mut(capability) {
                 cap_list.retain(|id| id != agent_id);
             }
         }
-        
+
         // Remove from state index
         if let Some(mut state_list) = self.state_index.get_mut(&entry.state) {
             state_list.retain(|id| id != agent_id);
@@ -561,27 +593,33 @@ impl AgentRegistry {
     /// Update registry statistics
     async fn update_stats(&self) {
         let mut stats = self.stats.write().await;
-        
+
         stats.total_agents = self.agents.len();
         stats.active_agents = self.count_active_agents().await;
         stats.last_update = Utc::now();
-        
+
         // Update agents by type
         stats.agents_by_type.clear();
         for entry in self.type_index.iter() {
-            stats.agents_by_type.insert(entry.key().to_string(), entry.len());
+            stats
+                .agents_by_type
+                .insert(entry.key().to_string(), entry.len());
         }
-        
+
         // Update agents by state
         stats.agents_by_state.clear();
         for entry in self.state_index.iter() {
-            stats.agents_by_state.insert(entry.key().to_string(), entry.len());
+            stats
+                .agents_by_state
+                .insert(entry.key().to_string(), entry.len());
         }
-        
+
         // Update agents by capability
         stats.agents_by_capability.clear();
         for entry in self.capability_index.iter() {
-            stats.agents_by_capability.insert(entry.key().to_string(), entry.len());
+            stats
+                .agents_by_capability
+                .insert(entry.key().to_string(), entry.len());
         }
     }
 }
@@ -589,7 +627,7 @@ impl AgentRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::{BaseAgent, AgentConfig, AgentType, AgentCapability};
+    use crate::agent::{AgentCapability, AgentConfig, AgentType, BaseAgent};
 
     #[tokio::test]
     async fn test_registry_creation() {
@@ -601,17 +639,17 @@ mod tests {
     async fn test_agent_registration() {
         let registry = AgentRegistry::new();
         registry.initialize().await.unwrap();
-        
+
         let config = AgentConfig {
             name: "Test Agent".to_string(),
             agent_type: AgentType::Development,
             capabilities: vec![AgentCapability::CodeExecution],
             ..Default::default()
         };
-        
+
         let agent = BaseAgent::new("test-agent".to_string(), config);
         assert!(registry.register(Box::new(agent)).await.is_ok());
-        
+
         assert_eq!(registry.count_agents().await, 1);
     }
 
@@ -619,20 +657,19 @@ mod tests {
     async fn test_agent_query() {
         let registry = AgentRegistry::new();
         registry.initialize().await.unwrap();
-        
+
         let config = AgentConfig {
             name: "Test Agent".to_string(),
             agent_type: AgentType::Development,
             capabilities: vec![AgentCapability::CodeExecution],
             ..Default::default()
         };
-        
+
         let agent = BaseAgent::new("test-agent".to_string(), config);
         registry.register(Box::new(agent)).await.unwrap();
-        
-        let query = RegistryQuery::default()
-            .with_agent_type(AgentType::Development);
-        
+
+        let query = RegistryQuery::default().with_agent_type(AgentType::Development);
+
         let results = registry.query(query).await.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "Test Agent");
@@ -642,20 +679,23 @@ mod tests {
     async fn test_agent_unregistration() {
         let registry = AgentRegistry::new();
         registry.initialize().await.unwrap();
-        
+
         let config = AgentConfig {
             name: "Test Agent".to_string(),
             agent_type: AgentType::Development,
             capabilities: vec![AgentCapability::CodeExecution],
             ..Default::default()
         };
-        
+
         let agent = BaseAgent::new("test-agent".to_string(), config);
         registry.register(Box::new(agent)).await.unwrap();
-        
+
         assert_eq!(registry.count_agents().await, 1);
-        
-        registry.unregister(&"test-agent".to_string()).await.unwrap();
+
+        registry
+            .unregister(&"test-agent".to_string())
+            .await
+            .unwrap();
         assert_eq!(registry.count_agents().await, 0);
     }
-} 
+}

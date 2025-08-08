@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-use rhema_core::RhemaResult;
 use rhema_api::Rhema;
-use tempfile::TempDir;
-use std::path::PathBuf;
-use std::fs;
+use rhema_core::RhemaResult;
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use tempfile::TempDir;
 
 // Mock implementations for rhema::commands::interactive_advanced
 mod rhema {
     pub mod commands {
         pub mod interactive_advanced {
             use super::super::super::*;
-            
+
             #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
             pub struct AdvancedInteractiveConfig {
                 pub enabled: bool,
@@ -41,7 +41,7 @@ mod rhema {
                 pub keybindings: HashMap<String, String>,
                 pub theme: AdvancedTheme,
             }
-            
+
             impl Default for AdvancedInteractiveConfig {
                 fn default() -> Self {
                     Self {
@@ -59,21 +59,21 @@ mod rhema {
                     }
                 }
             }
-            
+
             #[derive(Debug)]
             pub struct RhemaHelper {
                 pub config: AdvancedInteractiveConfig,
             }
-            
+
             impl RhemaHelper {
                 pub fn new(config: AdvancedInteractiveConfig) -> Self {
                     Self { config }
                 }
-                
+
                 pub fn run(&self) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn get_completions(&self, _input: &str) -> Vec<String> {
                     vec![
                         "init".to_string(),
@@ -85,7 +85,7 @@ mod rhema {
                         "sync".to_string(),
                     ]
                 }
-                
+
                 pub fn get_suggestions(&self, _input: &str) -> Vec<String> {
                     vec![
                         "help".to_string(),
@@ -98,14 +98,14 @@ mod rhema {
                     ]
                 }
             }
-            
+
             #[derive(Debug)]
             pub struct AdvancedInteractiveSession {
                 pub id: String,
                 pub config: AdvancedInteractiveConfig,
                 pub current_scope: Option<String>,
             }
-            
+
             impl AdvancedInteractiveSession {
                 pub fn new(config: AdvancedInteractiveConfig) -> Self {
                     Self {
@@ -114,76 +114,78 @@ mod rhema {
                         current_scope: None,
                     }
                 }
-                
+
                 pub fn start(&self) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_set(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_get(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_workflow(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_navigate(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_cache(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_explore(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_plugin(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_visualize(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_debug(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_profile(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_scopes(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_stats(&mut self) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn handle_health(&mut self, _args: &[&str]) -> RhemaResult<()> {
                     Ok(())
                 }
-                
+
                 pub fn execute_command(&mut self, _command: &str) -> RhemaResult<()> {
                     if _command == "invalid_command" {
-                        Err(rhema_core::RhemaError::InvalidInput("Invalid command".to_string()))
+                        Err(rhema_core::RhemaError::InvalidInput(
+                            "Invalid command".to_string(),
+                        ))
                     } else {
                         Ok(())
                     }
                 }
-                
+
                 pub fn show_history(&mut self) -> RhemaResult<()> {
                     Ok(())
                 }
             }
-            
+
             #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
             pub enum AdvancedTheme {
                 Dark,
@@ -197,13 +199,13 @@ mod rhema {
                     suggestion_color: String,
                 },
             }
-            
+
             impl Default for AdvancedTheme {
                 fn default() -> Self {
                     Self::Dark
                 }
             }
-            
+
             pub fn run_advanced_interactive(config: AdvancedInteractiveConfig) -> RhemaResult<()> {
                 let helper = RhemaHelper::new(config);
                 helper.run()
@@ -606,7 +608,9 @@ fn test_complete_interactive_mode() {
     // This test would normally run the interactive mode
     // For testing purposes, we just verify the function exists and can be called
     // In a real test environment, you might want to use a mock or test harness
-    let _result = run_advanced_interactive(rhema::commands::interactive_advanced::AdvancedInteractiveConfig::default());
+    let _result = run_advanced_interactive(
+        rhema::commands::interactive_advanced::AdvancedInteractiveConfig::default(),
+    );
     // Note: This would normally start an interactive session
     // In tests, we might want to test specific components instead
 }

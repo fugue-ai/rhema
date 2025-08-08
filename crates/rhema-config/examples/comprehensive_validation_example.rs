@@ -15,13 +15,13 @@
  */
 
 use rhema_config::{
-    ComprehensiveValidator, ComprehensiveValidationResult, ValidationLevel, ValidationCategory,
-    SchemaType, GlobalConfig, RepositoryConfig, ScopeConfig, Config, ConfigIssueSeverity,
-    RhemaResult,
+    ComprehensiveValidationResult, ComprehensiveValidator, Config, ConfigIssueSeverity,
+    GlobalConfig, RepositoryConfig, RhemaResult, SchemaType, ScopeConfig, ValidationCategory,
+    ValidationLevel,
 };
 use serde_json::json;
 use std::path::PathBuf;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 /// Example demonstrating comprehensive configuration validation
 #[tokio::main]
@@ -40,7 +40,8 @@ async fn main() -> RhemaResult<()> {
         300, // 5 minute cache TTL
         ValidationLevel::Strict,
         true, // Enable auto-fix
-    ).await?;
+    )
+    .await?;
 
     // Example 1: Validate a single configuration file
     validate_single_config(&validator).await?;
@@ -106,7 +107,11 @@ async fn validate_single_config(validator: &ComprehensiveValidator) -> RhemaResu
     });
 
     let result = validator
-        .validate_config_value(&config_value, &SchemaType::Scope, &PathBuf::from("config.yml"))
+        .validate_config_value(
+            &config_value,
+            &SchemaType::Scope,
+            &PathBuf::from("config.yml"),
+        )
         .await?;
 
     print_validation_result(&result, "Single Configuration");
@@ -168,7 +173,11 @@ async fn validate_cross_references(validator: &ComprehensiveValidator) -> RhemaR
     });
 
     let result = validator
-        .validate_config_value(&config_value, &SchemaType::Global, &PathBuf::from("global.yml"))
+        .validate_config_value(
+            &config_value,
+            &SchemaType::Global,
+            &PathBuf::from("global.yml"),
+        )
         .await?;
 
     print_validation_result(&result, "Cross-Reference Configuration");
@@ -208,7 +217,11 @@ async fn validate_with_custom_rules(validator: &ComprehensiveValidator) -> Rhema
     });
 
     let result = validator
-        .validate_config_value(&config_value, &SchemaType::Project, &PathBuf::from("Cargo.toml"))
+        .validate_config_value(
+            &config_value,
+            &SchemaType::Project,
+            &PathBuf::from("Cargo.toml"),
+        )
         .await?;
 
     print_validation_result(&result, "Custom Rules Configuration");
@@ -247,7 +260,11 @@ async fn validate_performance_config(validator: &ComprehensiveValidator) -> Rhem
     });
 
     let result = validator
-        .validate_config_value(&config_value, &SchemaType::Performance, &PathBuf::from("perf.yml"))
+        .validate_config_value(
+            &config_value,
+            &SchemaType::Performance,
+            &PathBuf::from("perf.yml"),
+        )
         .await?;
 
     print_validation_result(&result, "Performance Configuration");
@@ -290,7 +307,11 @@ async fn validate_security_config(validator: &ComprehensiveValidator) -> RhemaRe
     });
 
     let result = validator
-        .validate_config_value(&config_value, &SchemaType::Security, &PathBuf::from("security.yml"))
+        .validate_config_value(
+            &config_value,
+            &SchemaType::Security,
+            &PathBuf::from("security.yml"),
+        )
         .await?;
 
     print_validation_result(&result, "Security Configuration");
@@ -329,7 +350,11 @@ async fn validate_compliance_config(validator: &ComprehensiveValidator) -> Rhema
     });
 
     let result = validator
-        .validate_config_value(&config_value, &SchemaType::Compliance, &PathBuf::from("compliance.yml"))
+        .validate_config_value(
+            &config_value,
+            &SchemaType::Compliance,
+            &PathBuf::from("compliance.yml"),
+        )
         .await?;
 
     print_validation_result(&result, "Compliance Configuration");
@@ -369,7 +394,11 @@ async fn validate_dependencies(validator: &ComprehensiveValidator) -> RhemaResul
     });
 
     let result = validator
-        .validate_config_value(&config_value, &SchemaType::Dependencies, &PathBuf::from("deps.yml"))
+        .validate_config_value(
+            &config_value,
+            &SchemaType::Dependencies,
+            &PathBuf::from("deps.yml"),
+        )
         .await?;
 
     print_validation_result(&result, "Dependencies Configuration");
@@ -399,12 +428,16 @@ async fn demonstrate_auto_fix(validator: &ComprehensiveValidator) -> RhemaResult
     });
 
     let result = validator
-        .validate_config_value(&config_value, &SchemaType::Repository, &PathBuf::from("auto-fix.yml"))
+        .validate_config_value(
+            &config_value,
+            &SchemaType::Repository,
+            &PathBuf::from("auto-fix.yml"),
+        )
         .await?;
 
     info!("Auto-fix demonstration completed:");
     info!("  Original issues: {}", result.issues.len());
-    
+
     // Show auto-fixable issues
     let auto_fixable = result.issues.iter().filter(|i| i.auto_fixable).count();
     info!("  Auto-fixable issues: {}", auto_fixable);
@@ -426,16 +459,25 @@ async fn show_validation_statistics(validator: &ComprehensiveValidator) -> Rhema
     info!("=== Example 10: Validation Statistics ===");
 
     let stats = validator.get_statistics().await;
-    
+
     info!("Validation Statistics:");
     info!("  Cached results: {}", stats.cached_results);
     info!("  Cache TTL: {} seconds", stats.cache_ttl);
     info!("  Validation level: {:?}", stats.validation_level);
     info!("  Auto-fix enabled: {}", stats.auto_fix);
     info!("  Schema validation statistics:");
-    info!("    Loaded schemas: {}", stats.schema_statistics.loaded_schemas);
-    info!("    Cached results: {}", stats.schema_statistics.cached_results);
-    info!("    Cache TTL: {} seconds", stats.schema_statistics.cache_ttl);
+    info!(
+        "    Loaded schemas: {}",
+        stats.schema_statistics.loaded_schemas
+    );
+    info!(
+        "    Cached results: {}",
+        stats.schema_statistics.cached_results
+    );
+    info!(
+        "    Cache TTL: {} seconds",
+        stats.schema_statistics.cache_ttl
+    );
     info!("    Strict mode: {}", stats.schema_statistics.strict_mode);
 
     Ok(())
@@ -452,7 +494,7 @@ repository:
   name: "sample-repo"
   url: "https://github.com/user/sample-repo"
   branch: "main""#;
-    
+
     let repo_path = config_dir.join("repo.yml");
     let mut file = fs::File::create(&repo_path)?;
     file.write_all(repo_config.as_bytes())?;
@@ -462,7 +504,7 @@ repository:
 scope:
   include: ["src/**/*.rs"]
   exclude: ["target/"]"#;
-    
+
     let scope_path = config_dir.join("scope.yml");
     let mut file = fs::File::create(&scope_path)?;
     file.write_all(scope_config.as_bytes())?;
@@ -472,7 +514,7 @@ scope:
 repository:
   name: ""
   url: "not-a-url""#;
-    
+
     let invalid_path = config_dir.join("invalid.yml");
     let mut file = fs::File::create(&invalid_path)?;
     file.write_all(invalid_config.as_bytes())?;
@@ -499,7 +541,7 @@ fn print_validation_result(result: &ComprehensiveValidationResult, context: &str
                 ConfigIssueSeverity::Warning => "⚠️",
                 ConfigIssueSeverity::Info => "ℹ️",
             };
-            
+
             let category_icon = match issue.category {
                 ValidationCategory::Schema => "📋",
                 ValidationCategory::Business => "💼",
@@ -511,12 +553,17 @@ fn print_validation_result(result: &ComprehensiveValidationResult, context: &str
                 ValidationCategory::Custom => "🔧",
             };
 
-            info!("    {} {} {}: {} - {}", 
-                severity_icon, 
-                category_icon, 
-                issue.path, 
+            info!(
+                "    {} {} {}: {} - {}",
+                severity_icon,
+                category_icon,
+                issue.path,
                 issue.message,
-                if issue.auto_fixable { "(auto-fixable)" } else { "" }
+                if issue.auto_fixable {
+                    "(auto-fixable)"
+                } else {
+                    ""
+                }
             );
         }
     }
@@ -542,7 +589,9 @@ mod tests {
             300,
             ValidationLevel::Standard,
             false,
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
 
         // Test basic validation
         let config_value = json!({
@@ -554,10 +603,14 @@ mod tests {
         });
 
         let result = validator
-            .validate_config_value(&config_value, &SchemaType::Repository, &PathBuf::from("test.yml"))
+            .validate_config_value(
+                &config_value,
+                &SchemaType::Repository,
+                &PathBuf::from("test.yml"),
+            )
             .await
             .unwrap();
 
         assert!(result.valid);
     }
-} 
+}

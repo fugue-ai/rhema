@@ -16,7 +16,7 @@
 
 use crate::agent::lock_context::*;
 use crate::context_injection::{EnhancedContextInjector, LockFileContextRequirement};
-use rhema_core::{RhemaResult, PromptPattern, PromptInjectionMethod};
+use rhema_core::{PromptInjectionMethod, PromptPattern, RhemaResult};
 use std::path::PathBuf;
 
 /// Integration example for using lock file context with AI agents
@@ -31,7 +31,7 @@ impl LockFileAIIntegration {
         let lock_file_path = project_root.join("rhema.lock");
         let context_provider = LockFileContextProvider::new(lock_file_path);
         let context_injector = EnhancedContextInjector::new(project_root);
-        
+
         Self {
             context_provider,
             context_injector,
@@ -55,7 +55,11 @@ impl LockFileAIIntegration {
     }
 
     /// Generate AI prompt with lock file context for dependency updates
-    pub fn generate_dependency_update_prompt(&self, scope_path: &str, prompt_template: &str) -> RhemaResult<String> {
+    pub fn generate_dependency_update_prompt(
+        &self,
+        scope_path: &str,
+        prompt_template: &str,
+    ) -> RhemaResult<String> {
         let pattern = PromptPattern {
             id: "dependency_update".to_string(),
             name: "Dependency Update".to_string(),
@@ -77,13 +81,18 @@ impl LockFileAIIntegration {
         };
 
         // Use async runtime for the async method
-        tokio::runtime::Runtime::new()?.block_on(
-            self.context_injector.inject_lock_file_context(&pattern, scope_path, &lock_requirement)
-        )
+        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
+            &pattern,
+            scope_path,
+            &lock_requirement,
+        ))
     }
 
     /// Generate AI prompt with lock file context for conflict resolution
-    pub fn generate_conflict_resolution_prompt(&self, prompt_template: &str) -> RhemaResult<String> {
+    pub fn generate_conflict_resolution_prompt(
+        &self,
+        prompt_template: &str,
+    ) -> RhemaResult<String> {
         let pattern = PromptPattern {
             id: "conflict_resolution".to_string(),
             name: "Conflict Resolution".to_string(),
@@ -105,16 +114,22 @@ impl LockFileAIIntegration {
         };
 
         // Get the project root scope
-        let project_root = self.context_injector.get_lock_file_path()
+        let project_root = self
+            .context_injector
+            .get_lock_file_path()
             .ok_or_else(|| rhema_core::RhemaError::InvalidInput("No lock file found".to_string()))?
             .parent()
-            .ok_or_else(|| rhema_core::RhemaError::InvalidInput("Invalid lock file path".to_string()))?
+            .ok_or_else(|| {
+                rhema_core::RhemaError::InvalidInput("Invalid lock file path".to_string())
+            })?
             .to_string_lossy()
             .to_string();
 
-        tokio::runtime::Runtime::new()?.block_on(
-            self.context_injector.inject_lock_file_context(&pattern, &project_root, &lock_requirement)
-        )
+        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
+            &pattern,
+            &project_root,
+            &lock_requirement,
+        ))
     }
 
     /// Generate AI prompt with lock file context for health assessment
@@ -139,20 +154,30 @@ impl LockFileAIIntegration {
             include_transitive_deps: false,
         };
 
-        let project_root = self.context_injector.get_lock_file_path()
+        let project_root = self
+            .context_injector
+            .get_lock_file_path()
             .ok_or_else(|| rhema_core::RhemaError::InvalidInput("No lock file found".to_string()))?
             .parent()
-            .ok_or_else(|| rhema_core::RhemaError::InvalidInput("Invalid lock file path".to_string()))?
+            .ok_or_else(|| {
+                rhema_core::RhemaError::InvalidInput("Invalid lock file path".to_string())
+            })?
             .to_string_lossy()
             .to_string();
 
-        tokio::runtime::Runtime::new()?.block_on(
-            self.context_injector.inject_lock_file_context(&pattern, &project_root, &lock_requirement)
-        )
+        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
+            &pattern,
+            &project_root,
+            &lock_requirement,
+        ))
     }
 
     /// Generate AI prompt with lock file context for security review
-    pub fn generate_security_review_prompt(&self, scope_path: &str, prompt_template: &str) -> RhemaResult<String> {
+    pub fn generate_security_review_prompt(
+        &self,
+        scope_path: &str,
+        prompt_template: &str,
+    ) -> RhemaResult<String> {
         let pattern = PromptPattern {
             id: "security_review".to_string(),
             name: "Security Review".to_string(),
@@ -173,13 +198,19 @@ impl LockFileAIIntegration {
             include_transitive_deps: true,
         };
 
-        tokio::runtime::Runtime::new()?.block_on(
-            self.context_injector.inject_lock_file_context(&pattern, scope_path, &lock_requirement)
-        )
+        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
+            &pattern,
+            scope_path,
+            &lock_requirement,
+        ))
     }
 
     /// Generate AI prompt with lock file context for performance optimization
-    pub fn generate_performance_prompt(&self, scope_path: &str, prompt_template: &str) -> RhemaResult<String> {
+    pub fn generate_performance_prompt(
+        &self,
+        scope_path: &str,
+        prompt_template: &str,
+    ) -> RhemaResult<String> {
         let pattern = PromptPattern {
             id: "performance_optimization".to_string(),
             name: "Performance Optimization".to_string(),
@@ -200,13 +231,18 @@ impl LockFileAIIntegration {
             include_transitive_deps: true,
         };
 
-        tokio::runtime::Runtime::new()?.block_on(
-            self.context_injector.inject_lock_file_context(&pattern, scope_path, &lock_requirement)
-        )
+        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
+            &pattern,
+            scope_path,
+            &lock_requirement,
+        ))
     }
 
     /// Get dependency recommendations for AI agents
-    pub fn get_dependency_recommendations(&self, scope_path: &str) -> RhemaResult<Vec<Recommendation>> {
+    pub fn get_dependency_recommendations(
+        &self,
+        scope_path: &str,
+    ) -> RhemaResult<Vec<Recommendation>> {
         let context = self.context_provider.get_scope_context(scope_path)?;
         Ok(context.recommendations)
     }
@@ -344,28 +380,52 @@ pub mod utils {
     /// Convert lock file context to a format suitable for AI model input
     pub fn format_context_for_ai(context: &LockFileAIContext) -> String {
         let mut output = String::new();
-        
+
         // Summary
         output.push_str(&format!("## Lock File Summary\n"));
-        output.push_str(&format!("- Total Scopes: {}\n", context.summary.total_scopes));
-        output.push_str(&format!("- Total Dependencies: {}\n", context.summary.total_dependencies));
-        output.push_str(&format!("- Circular Dependencies: {}\n", context.summary.circular_dependencies));
-        output.push_str(&format!("- Validation Status: {}\n", context.summary.validation_status));
-        output.push_str(&format!("- Resolution Strategy: {}\n", context.summary.resolution_strategy));
-        output.push_str(&format!("- Conflict Resolution: {}\n\n", context.summary.conflict_resolution));
+        output.push_str(&format!(
+            "- Total Scopes: {}\n",
+            context.summary.total_scopes
+        ));
+        output.push_str(&format!(
+            "- Total Dependencies: {}\n",
+            context.summary.total_dependencies
+        ));
+        output.push_str(&format!(
+            "- Circular Dependencies: {}\n",
+            context.summary.circular_dependencies
+        ));
+        output.push_str(&format!(
+            "- Validation Status: {}\n",
+            context.summary.validation_status
+        ));
+        output.push_str(&format!(
+            "- Resolution Strategy: {}\n",
+            context.summary.resolution_strategy
+        ));
+        output.push_str(&format!(
+            "- Conflict Resolution: {}\n\n",
+            context.summary.conflict_resolution
+        ));
 
         // Health Assessment
         output.push_str(&format!("## Health Assessment\n"));
-        output.push_str(&format!("- Overall Score: {:.1}/100\n", context.health_assessment.overall_score));
-        output.push_str(&format!("- Status: {:?}\n", context.health_assessment.status));
-        
+        output.push_str(&format!(
+            "- Overall Score: {:.1}/100\n",
+            context.health_assessment.overall_score
+        ));
+        output.push_str(&format!(
+            "- Status: {:?}\n",
+            context.health_assessment.status
+        ));
+
         if !context.health_assessment.issues.is_empty() {
             output.push_str("- Issues:\n");
             for issue in &context.health_assessment.issues {
                 output.push_str(&format!("  - {}\n", issue));
             }
         }
-        
+
         if !context.health_assessment.warnings.is_empty() {
             output.push_str("- Warnings:\n");
             for warning in &context.health_assessment.warnings {
@@ -378,7 +438,12 @@ pub mod utils {
         if !context.recommendations.is_empty() {
             output.push_str("## Recommendations\n");
             for (i, rec) in context.recommendations.iter().enumerate() {
-                output.push_str(&format!("{}. **{}** ({:?} priority)\n", i + 1, rec.title, rec.priority));
+                output.push_str(&format!(
+                    "{}. **{}** ({:?} priority)\n",
+                    i + 1,
+                    rec.title,
+                    rec.priority
+                ));
                 output.push_str(&format!("   - {}\n", rec.description));
                 output.push_str(&format!("   - Action: {}\n", rec.action));
             }
@@ -387,13 +452,22 @@ pub mod utils {
 
         // Dependency Analysis
         output.push_str(&format!("## Dependency Analysis\n"));
-        output.push_str(&format!("- Direct Dependencies: {}\n", context.dependency_analysis.direct_dependencies));
-        output.push_str(&format!("- Transitive Dependencies: {}\n", context.dependency_analysis.transitive_dependencies));
-        
+        output.push_str(&format!(
+            "- Direct Dependencies: {}\n",
+            context.dependency_analysis.direct_dependencies
+        ));
+        output.push_str(&format!(
+            "- Transitive Dependencies: {}\n",
+            context.dependency_analysis.transitive_dependencies
+        ));
+
         if !context.dependency_analysis.outdated_dependencies.is_empty() {
             output.push_str("- Outdated Dependencies:\n");
             for dep in &context.dependency_analysis.outdated_dependencies {
-                output.push_str(&format!("  - {} ({}): {}\n", dep.name, dep.current_version, dep.reason));
+                output.push_str(&format!(
+                    "  - {} ({}): {}\n",
+                    dep.name, dep.current_version, dep.reason
+                ));
             }
         }
         output.push_str("\n");
@@ -402,9 +476,14 @@ pub mod utils {
         if !context.conflict_analysis.version_conflicts.is_empty() {
             output.push_str("## Version Conflicts\n");
             for conflict in &context.conflict_analysis.version_conflicts {
-                output.push_str(&format!("- **{}**: {} ({}) vs {} ({})\n", 
-                    conflict.dependency_name, conflict.scope1, conflict.version1, 
-                    conflict.scope2, conflict.version2));
+                output.push_str(&format!(
+                    "- **{}**: {} ({}) vs {} ({})\n",
+                    conflict.dependency_name,
+                    conflict.scope1,
+                    conflict.version1,
+                    conflict.scope2,
+                    conflict.version2
+                ));
             }
             output.push_str("\n");
         }
@@ -415,37 +494,69 @@ pub mod utils {
     /// Create a context-aware prompt template for AI agents
     pub fn create_context_aware_prompt(task: &str, scope_path: Option<&str>) -> String {
         let mut prompt = format!("You are an AI agent tasked with: {}\n\n", task);
-        
+
         if let Some(scope) = scope_path {
             prompt.push_str(&format!("Target scope: {}\n\n", scope));
         }
-        
-        prompt.push_str("Please analyze the provided lock file context and provide recommendations.\n");
+
+        prompt.push_str(
+            "Please analyze the provided lock file context and provide recommendations.\n",
+        );
         prompt.push_str("Consider:\n");
         prompt.push_str("1. Current dependency versions and constraints\n");
         prompt.push_str("2. Potential conflicts and circular dependencies\n");
         prompt.push_str("3. Security and performance implications\n");
         prompt.push_str("4. Best practices for dependency management\n\n");
         prompt.push_str("Provide specific, actionable recommendations with clear reasoning.\n");
-        
+
         prompt
     }
 
     /// Extract key metrics from lock file context for AI decision making
     pub fn extract_key_metrics(context: &LockFileAIContext) -> HashMap<String, f64> {
         let mut metrics = HashMap::new();
-        
-        metrics.insert("health_score".to_string(), context.health_assessment.overall_score);
-        metrics.insert("total_scopes".to_string(), context.summary.total_scopes as f64);
-        metrics.insert("total_dependencies".to_string(), context.summary.total_dependencies as f64);
-        metrics.insert("circular_dependencies".to_string(), context.summary.circular_dependencies as f64);
-        metrics.insert("direct_dependencies".to_string(), context.dependency_analysis.direct_dependencies as f64);
-        metrics.insert("transitive_dependencies".to_string(), context.dependency_analysis.transitive_dependencies as f64);
-        metrics.insert("outdated_dependencies".to_string(), context.dependency_analysis.outdated_dependencies.len() as f64);
-        metrics.insert("security_concerns".to_string(), context.dependency_analysis.security_concerns.len() as f64);
-        metrics.insert("version_conflicts".to_string(), context.conflict_analysis.version_conflicts.len() as f64);
-        metrics.insert("recommendations_count".to_string(), context.recommendations.len() as f64);
-        
+
+        metrics.insert(
+            "health_score".to_string(),
+            context.health_assessment.overall_score,
+        );
+        metrics.insert(
+            "total_scopes".to_string(),
+            context.summary.total_scopes as f64,
+        );
+        metrics.insert(
+            "total_dependencies".to_string(),
+            context.summary.total_dependencies as f64,
+        );
+        metrics.insert(
+            "circular_dependencies".to_string(),
+            context.summary.circular_dependencies as f64,
+        );
+        metrics.insert(
+            "direct_dependencies".to_string(),
+            context.dependency_analysis.direct_dependencies as f64,
+        );
+        metrics.insert(
+            "transitive_dependencies".to_string(),
+            context.dependency_analysis.transitive_dependencies as f64,
+        );
+        metrics.insert(
+            "outdated_dependencies".to_string(),
+            context.dependency_analysis.outdated_dependencies.len() as f64,
+        );
+        metrics.insert(
+            "security_concerns".to_string(),
+            context.dependency_analysis.security_concerns.len() as f64,
+        );
+        metrics.insert(
+            "version_conflicts".to_string(),
+            context.conflict_analysis.version_conflicts.len() as f64,
+        );
+        metrics.insert(
+            "recommendations_count".to_string(),
+            context.recommendations.len() as f64,
+        );
+
         metrics
     }
-} 
+}

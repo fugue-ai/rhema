@@ -16,18 +16,18 @@
 
 use crate::agent::{AgentId, AgentRequest, AgentResponse, AgentState};
 use crate::coordinator::AgentCoordinator;
-use crate::executor::AgentExecutor;
 use crate::error::{AgentError, AgentResult};
+use crate::executor::AgentExecutor;
 use crate::registry::AgentRegistry;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::time::Instant;
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
-use std::fmt;
 
 /// Workflow step types
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,13 +38,9 @@ pub enum WorkflowStepType {
         request: AgentRequest,
     },
     /// Execute multiple tasks in parallel
-    Parallel {
-        steps: Vec<WorkflowStep>,
-    },
+    Parallel { steps: Vec<WorkflowStep> },
     /// Execute steps sequentially
-    Sequential {
-        steps: Vec<WorkflowStep>,
-    },
+    Sequential { steps: Vec<WorkflowStep> },
     /// Conditional execution based on condition
     Conditional {
         condition: WorkflowCondition,
@@ -94,33 +90,19 @@ pub enum WorkflowCondition {
         value: serde_json::Value,
     },
     /// Check if a variable exists
-    VariableExists {
-        variable: String,
-    },
+    VariableExists { variable: String },
     /// Check if a task completed successfully
-    TaskSucceeded {
-        task_id: String,
-    },
+    TaskSucceeded { task_id: String },
     /// Check if a task failed
-    TaskFailed {
-        task_id: String,
-    },
+    TaskFailed { task_id: String },
     /// Check if all tasks in a group succeeded
-    AllTasksSucceeded {
-        task_ids: Vec<String>,
-    },
+    AllTasksSucceeded { task_ids: Vec<String> },
     /// Check if any task in a group succeeded
-    AnyTaskSucceeded {
-        task_ids: Vec<String>,
-    },
+    AnyTaskSucceeded { task_ids: Vec<String> },
     /// Check if all tasks in a group failed
-    AllTasksFailed {
-        task_ids: Vec<String>,
-    },
+    AllTasksFailed { task_ids: Vec<String> },
     /// Check if any task in a group failed
-    AnyTaskFailed {
-        task_ids: Vec<String>,
-    },
+    AnyTaskFailed { task_ids: Vec<String> },
     /// Custom condition
     Custom {
         condition_type: String,
@@ -383,7 +365,10 @@ pub struct WorkflowExecutionContext {
 }
 
 impl WorkflowExecutionContext {
-    pub fn new(definition: WorkflowDefinition, input_parameters: HashMap<String, serde_json::Value>) -> Self {
+    pub fn new(
+        definition: WorkflowDefinition,
+        input_parameters: HashMap<String, serde_json::Value>,
+    ) -> Self {
         Self {
             execution_id: Uuid::new_v4().to_string(),
             definition,
@@ -416,11 +401,17 @@ impl WorkflowExecutionContext {
     }
 
     pub fn is_completed(&self) -> bool {
-        matches!(self.status, WorkflowStatus::Completed | WorkflowStatus::Failed | WorkflowStatus::Cancelled)
+        matches!(
+            self.status,
+            WorkflowStatus::Completed | WorkflowStatus::Failed | WorkflowStatus::Cancelled
+        )
     }
 
     pub fn is_running(&self) -> bool {
-        matches!(self.status, WorkflowStatus::Running | WorkflowStatus::Waiting)
+        matches!(
+            self.status,
+            WorkflowStatus::Running | WorkflowStatus::Waiting
+        )
     }
 }
 
@@ -441,7 +432,11 @@ pub struct WorkflowEngine {
 }
 
 impl WorkflowEngine {
-    pub fn new(registry: AgentRegistry, coordinator: AgentCoordinator, executor: AgentExecutor) -> Self {
+    pub fn new(
+        registry: AgentRegistry,
+        coordinator: AgentCoordinator,
+        executor: AgentExecutor,
+    ) -> Self {
         Self {
             registry,
             coordinator,
@@ -477,10 +472,12 @@ impl WorkflowEngine {
         workflow_id: &str,
         input_parameters: HashMap<String, serde_json::Value>,
     ) -> AgentResult<String> {
-        let definition = self.get_workflow(workflow_id).await?
-            .ok_or_else(|| AgentError::WorkflowError {
-                reason: format!("Workflow '{}' not found", workflow_id),
-            })?;
+        let definition =
+            self.get_workflow(workflow_id)
+                .await?
+                .ok_or_else(|| AgentError::WorkflowError {
+                    reason: format!("Workflow '{}' not found", workflow_id),
+                })?;
 
         let mut context = WorkflowExecutionContext::new(definition, input_parameters);
         context.status = WorkflowStatus::Running;
@@ -488,13 +485,13 @@ impl WorkflowEngine {
         let execution_id = context.execution_id.clone();
         let engine = self.clone();
         let execution_id_clone = execution_id.clone();
-        
+
         tokio::spawn(async move {
             if let Err(e) = engine.execute_workflow(&execution_id_clone).await {
                 eprintln!("Workflow execution failed: {:?}", e);
             }
         });
-        
+
         Ok(execution_id)
     }
 
@@ -502,7 +499,8 @@ impl WorkflowEngine {
     async fn execute_workflow(&self, execution_id: &str) -> AgentResult<()> {
         let mut context = {
             let mut active_executions = self.active_executions.write().await;
-            active_executions.get_mut(execution_id)
+            active_executions
+                .get_mut(execution_id)
                 .ok_or_else(|| AgentError::WorkflowError {
                     reason: format!("Execution '{}' not found", execution_id),
                 })?
@@ -510,18 +508,19 @@ impl WorkflowEngine {
         };
 
         // Execute steps
-        while context.current_step_index < context.definition.steps.len() && !context.is_completed() {
+        while context.current_step_index < context.definition.steps.len() && !context.is_completed()
+        {
             let step = &context.definition.steps[context.current_step_index];
-            
+
             // Execute step
             let step_result = self.execute_step(&context, step).await?;
-            
+
             // Update context
             context.step_results.insert(step.id.clone(), step_result);
-            
+
             // Move to next step
             context.current_step_index += 1;
-            
+
             // Update active executions
             {
                 let mut active_executions = self.active_executions.write().await;
@@ -541,7 +540,7 @@ impl WorkflowEngine {
         {
             let mut active_executions = self.active_executions.write().await;
             active_executions.remove(execution_id);
-            
+
             let mut execution_history = self.execution_history.write().await;
             execution_history.push(context);
         }
@@ -550,10 +549,14 @@ impl WorkflowEngine {
     }
 
     /// Execute a workflow step
-    async fn execute_step(&self, context: &WorkflowExecutionContext, step: &WorkflowStep) -> AgentResult<WorkflowStepResult> {
+    async fn execute_step(
+        &self,
+        context: &WorkflowExecutionContext,
+        step: &WorkflowStep,
+    ) -> AgentResult<WorkflowStepResult> {
         let start_time = Utc::now();
         let start_instant = Instant::now();
-        
+
         let result = match &step.step_type {
             WorkflowStepType::Task { agent_id, request } => {
                 let task_result = self.execute_task_step(agent_id, request).await?;
@@ -584,7 +587,8 @@ impl WorkflowEngine {
                 }
             }
             WorkflowStepType::Sequential { steps } => {
-                let sequential_result = Box::pin(self.execute_sequential_steps(context, steps)).await?;
+                let sequential_result =
+                    Box::pin(self.execute_sequential_steps(context, steps)).await?;
                 WorkflowStepResult {
                     step_id: step.id.clone(),
                     status: WorkflowStepStatus::Completed,
@@ -597,8 +601,14 @@ impl WorkflowEngine {
                     metadata: step.metadata.clone(),
                 }
             }
-            WorkflowStepType::Conditional { condition, if_true, if_false } => {
-                let conditional_result = Box::pin(self.execute_conditional_steps(context, condition, if_true, if_false)).await?;
+            WorkflowStepType::Conditional {
+                condition,
+                if_true,
+                if_false,
+            } => {
+                let conditional_result =
+                    Box::pin(self.execute_conditional_steps(context, condition, if_true, if_false))
+                        .await?;
                 WorkflowStepResult {
                     step_id: step.id.clone(),
                     status: WorkflowStepStatus::Completed,
@@ -611,8 +621,14 @@ impl WorkflowEngine {
                     metadata: step.metadata.clone(),
                 }
             }
-            WorkflowStepType::Loop { condition, steps, max_iterations } => {
-                let loop_result = Box::pin(self.execute_loop_steps(context, condition, steps, *max_iterations)).await?;
+            WorkflowStepType::Loop {
+                condition,
+                steps,
+                max_iterations,
+            } => {
+                let loop_result =
+                    Box::pin(self.execute_loop_steps(context, condition, steps, *max_iterations))
+                        .await?;
                 WorkflowStepResult {
                     step_id: step.id.clone(),
                     status: WorkflowStepStatus::Completed,
@@ -639,8 +655,14 @@ impl WorkflowEngine {
                     metadata: step.metadata.clone(),
                 }
             }
-            WorkflowStepType::Message { agent_ids, message_type, payload } => {
-                let message_result = self.execute_message_step(agent_ids, message_type, payload).await?;
+            WorkflowStepType::Message {
+                agent_ids,
+                message_type,
+                payload,
+            } => {
+                let message_result = self
+                    .execute_message_step(agent_ids, message_type, payload)
+                    .await?;
                 WorkflowStepResult {
                     step_id: step.id.clone(),
                     status: WorkflowStepStatus::Completed,
@@ -653,8 +675,14 @@ impl WorkflowEngine {
                     metadata: step.metadata.clone(),
                 }
             }
-            WorkflowStepType::Coordinate { agent_ids, topic, policy } => {
-                let coordinate_result = self.execute_coordinate_step(agent_ids, topic, policy.as_ref()).await?;
+            WorkflowStepType::Coordinate {
+                agent_ids,
+                topic,
+                policy,
+            } => {
+                let coordinate_result = self
+                    .execute_coordinate_step(agent_ids, topic, policy.as_ref())
+                    .await?;
                 WorkflowStepResult {
                     step_id: step.id.clone(),
                     status: WorkflowStepStatus::Completed,
@@ -667,7 +695,10 @@ impl WorkflowEngine {
                     metadata: step.metadata.clone(),
                 }
             }
-            WorkflowStepType::Custom { step_type, parameters } => {
+            WorkflowStepType::Custom {
+                step_type,
+                parameters,
+            } => {
                 let custom_result = self.execute_custom_step(step_type, parameters).await?;
                 WorkflowStepResult {
                     step_id: step.id.clone(),
@@ -682,12 +713,16 @@ impl WorkflowEngine {
                 }
             }
         };
-        
+
         Ok(result)
     }
 
     /// Execute a workflow step internally
-    async fn execute_step_internal(&self, context: &WorkflowExecutionContext, step: &WorkflowStep) -> AgentResult<serde_json::Value> {
+    async fn execute_step_internal(
+        &self,
+        context: &WorkflowExecutionContext,
+        step: &WorkflowStep,
+    ) -> AgentResult<serde_json::Value> {
         match &step.step_type {
             WorkflowStepType::Task { agent_id, request } => {
                 self.execute_task_step(agent_id, request).await
@@ -698,40 +733,68 @@ impl WorkflowEngine {
             WorkflowStepType::Sequential { steps } => {
                 self.execute_sequential_steps(context, steps).await
             }
-            WorkflowStepType::Conditional { condition, if_true, if_false } => {
-                self.execute_conditional_steps(context, condition, if_true, if_false).await
+            WorkflowStepType::Conditional {
+                condition,
+                if_true,
+                if_false,
+            } => {
+                self.execute_conditional_steps(context, condition, if_true, if_false)
+                    .await
             }
-            WorkflowStepType::Loop { condition, steps, max_iterations } => {
-                self.execute_loop_steps(context, condition, steps, *max_iterations).await
+            WorkflowStepType::Loop {
+                condition,
+                steps,
+                max_iterations,
+            } => {
+                self.execute_loop_steps(context, condition, steps, *max_iterations)
+                    .await
             }
             WorkflowStepType::Wait { condition, timeout } => {
                 self.execute_wait_step(context, condition, *timeout).await
             }
-            WorkflowStepType::Message { agent_ids, message_type, payload } => {
-                self.execute_message_step(agent_ids, message_type, payload).await
+            WorkflowStepType::Message {
+                agent_ids,
+                message_type,
+                payload,
+            } => {
+                self.execute_message_step(agent_ids, message_type, payload)
+                    .await
             }
-            WorkflowStepType::Coordinate { agent_ids, topic, policy } => {
-                self.execute_coordinate_step(agent_ids, topic, policy.as_ref()).await
+            WorkflowStepType::Coordinate {
+                agent_ids,
+                topic,
+                policy,
+            } => {
+                self.execute_coordinate_step(agent_ids, topic, policy.as_ref())
+                    .await
             }
-            WorkflowStepType::Custom { step_type, parameters } => {
-                self.execute_custom_step(step_type, parameters).await
-            }
+            WorkflowStepType::Custom {
+                step_type,
+                parameters,
+            } => self.execute_custom_step(step_type, parameters).await,
         }
     }
 
     /// Execute a task step
-    async fn execute_task_step(&self, agent_id: &AgentId, request: &AgentRequest) -> AgentResult<serde_json::Value> {
+    async fn execute_task_step(
+        &self,
+        agent_id: &AgentId,
+        request: &AgentRequest,
+    ) -> AgentResult<serde_json::Value> {
         let response = self.executor.execute(agent_id, request.clone()).await?;
-        
+
         match response.status {
             crate::agent::ResponseStatus::Success => {
                 Ok(response.payload.unwrap_or(serde_json::Value::Null))
             }
-            _ => {
-                Err(AgentError::WorkflowError {
-                    reason: format!("Task failed: {}", response.error.unwrap_or_else(|| "Unknown error".to_string())),
-                })
-            }
+            _ => Err(AgentError::WorkflowError {
+                reason: format!(
+                    "Task failed: {}",
+                    response
+                        .error
+                        .unwrap_or_else(|| "Unknown error".to_string())
+                ),
+            }),
         }
     }
 
@@ -742,12 +805,12 @@ impl WorkflowEngine {
         steps: &[WorkflowStep],
     ) -> AgentResult<serde_json::Value> {
         let mut results = Vec::new();
-        
+
         for step in steps {
             let result = Box::pin(self.execute_step(context, step)).await?;
             results.push(result);
         }
-        
+
         Ok(serde_json::json!({
             "type": "parallel",
             "results": results,
@@ -761,7 +824,7 @@ impl WorkflowEngine {
         steps: &[WorkflowStep],
     ) -> AgentResult<serde_json::Value> {
         let mut results = Vec::new();
-        
+
         for step in steps {
             let result = self.execute_step(context, step).await?;
             results.push(result);
@@ -779,7 +842,7 @@ impl WorkflowEngine {
         if_false: &Option<Vec<WorkflowStep>>,
     ) -> AgentResult<serde_json::Value> {
         let condition_result = self.evaluate_condition(context, condition).await?;
-        
+
         let steps_to_execute = if condition_result {
             if_true
         } else {
@@ -789,8 +852,12 @@ impl WorkflowEngine {
         if steps_to_execute.is_empty() {
             Ok(serde_json::json!({ "condition": condition_result, "executed": false }))
         } else {
-            let result = self.execute_sequential_steps(context, steps_to_execute).await?;
-            Ok(serde_json::json!({ "condition": condition_result, "executed": true, "result": result }))
+            let result = self
+                .execute_sequential_steps(context, steps_to_execute)
+                .await?;
+            Ok(
+                serde_json::json!({ "condition": condition_result, "executed": true, "result": result }),
+            )
         }
     }
 
@@ -867,7 +934,7 @@ impl WorkflowEngine {
         payload: &serde_json::Value,
     ) -> AgentResult<serde_json::Value> {
         let mut results = Vec::new();
-        
+
         for agent_id in agent_ids {
             let message = crate::agent::AgentMessage::Custom(crate::agent::CustomMessage {
                 id: Uuid::new_v4().to_string(),
@@ -896,11 +963,10 @@ impl WorkflowEngine {
         policy: Option<&crate::coordinator::CoordinationPolicy>,
     ) -> AgentResult<serde_json::Value> {
         let policy = policy.cloned().unwrap_or_default();
-        let session_id = self.coordinator.create_session(
-            topic.to_string(),
-            agent_ids.to_vec(),
-            Some(policy),
-        ).await?;
+        let session_id = self
+            .coordinator
+            .create_session(topic.to_string(), agent_ids.to_vec(), Some(policy))
+            .await?;
 
         Ok(serde_json::json!({ "session_id": session_id }))
     }
@@ -920,7 +986,11 @@ impl WorkflowEngine {
     }
 
     /// Evaluate a workflow condition
-    async fn evaluate_condition(&self, context: &WorkflowExecutionContext, condition: &WorkflowCondition) -> AgentResult<bool> {
+    async fn evaluate_condition(
+        &self,
+        context: &WorkflowExecutionContext,
+        condition: &WorkflowCondition,
+    ) -> AgentResult<bool> {
         match condition {
             WorkflowCondition::Always => Ok(true),
             WorkflowCondition::Never => Ok(false),
@@ -946,33 +1016,40 @@ impl WorkflowEngine {
             }
             WorkflowCondition::AllTasksSucceeded { task_ids } => {
                 Ok(task_ids.iter().all(|task_id| {
-                    context.step_results.get(task_id)
+                    context
+                        .step_results
+                        .get(task_id)
                         .map(|result| result.status == WorkflowStepStatus::Completed)
                         .unwrap_or(false)
                 }))
             }
             WorkflowCondition::AnyTaskSucceeded { task_ids } => {
                 Ok(task_ids.iter().any(|task_id| {
-                    context.step_results.get(task_id)
+                    context
+                        .step_results
+                        .get(task_id)
                         .map(|result| result.status == WorkflowStepStatus::Completed)
                         .unwrap_or(false)
                 }))
             }
-            WorkflowCondition::AllTasksFailed { task_ids } => {
-                Ok(task_ids.iter().all(|task_id| {
-                    context.step_results.get(task_id)
-                        .map(|result| result.status == WorkflowStepStatus::Failed)
-                        .unwrap_or(false)
-                }))
-            }
-            WorkflowCondition::AnyTaskFailed { task_ids } => {
-                Ok(task_ids.iter().any(|task_id| {
-                    context.step_results.get(task_id)
-                        .map(|result| result.status == WorkflowStepStatus::Failed)
-                        .unwrap_or(false)
-                }))
-            }
-            WorkflowCondition::Custom { condition_type, parameters } => {
+            WorkflowCondition::AllTasksFailed { task_ids } => Ok(task_ids.iter().all(|task_id| {
+                context
+                    .step_results
+                    .get(task_id)
+                    .map(|result| result.status == WorkflowStepStatus::Failed)
+                    .unwrap_or(false)
+            })),
+            WorkflowCondition::AnyTaskFailed { task_ids } => Ok(task_ids.iter().any(|task_id| {
+                context
+                    .step_results
+                    .get(task_id)
+                    .map(|result| result.status == WorkflowStepStatus::Failed)
+                    .unwrap_or(false)
+            })),
+            WorkflowCondition::Custom {
+                condition_type,
+                parameters,
+            } => {
                 // This would be implemented by custom condition handlers
                 Ok(true) // Placeholder
             }
@@ -980,7 +1057,10 @@ impl WorkflowEngine {
     }
 
     /// Get workflow execution status
-    pub async fn get_execution_status(&self, execution_id: &str) -> AgentResult<Option<WorkflowExecutionContext>> {
+    pub async fn get_execution_status(
+        &self,
+        execution_id: &str,
+    ) -> AgentResult<Option<WorkflowExecutionContext>> {
         let active_executions = self.active_executions.read().await;
         Ok(active_executions.get(execution_id).cloned())
     }
@@ -992,10 +1072,18 @@ impl WorkflowEngine {
     }
 
     /// Get execution history
-    pub async fn get_execution_history(&self, limit: Option<usize>) -> Vec<WorkflowExecutionContext> {
+    pub async fn get_execution_history(
+        &self,
+        limit: Option<usize>,
+    ) -> Vec<WorkflowExecutionContext> {
         let execution_history = self.execution_history.read().await;
         let limit = limit.unwrap_or(execution_history.len());
-        execution_history.iter().rev().take(limit).cloned().collect()
+        execution_history
+            .iter()
+            .rev()
+            .take(limit)
+            .cloned()
+            .collect()
     }
 
     /// Cancel a workflow execution
@@ -1015,10 +1103,12 @@ impl WorkflowEngine {
 
         let total_executions = active_executions.len() + execution_history.len();
         let active_executions_count = active_executions.len();
-        let completed_executions = execution_history.iter()
+        let completed_executions = execution_history
+            .iter()
             .filter(|e| e.status == WorkflowStatus::Completed)
             .count();
-        let failed_executions = execution_history.iter()
+        let failed_executions = execution_history
+            .iter()
             .filter(|e| e.status == WorkflowStatus::Failed)
             .count();
 
@@ -1027,7 +1117,8 @@ impl WorkflowEngine {
             active_executions: active_executions_count,
             completed_executions,
             failed_executions,
-            cancelled_executions: execution_history.iter()
+            cancelled_executions: execution_history
+                .iter()
                 .filter(|e| e.status == WorkflowStatus::Cancelled)
                 .count(),
             last_update: Utc::now(),
@@ -1082,7 +1173,7 @@ impl std::fmt::Display for WorkflowStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::{AgentRequest, AgentType, AgentConfig};
+    use crate::agent::{AgentConfig, AgentRequest, AgentType};
 
     #[tokio::test]
     async fn test_workflow_step_creation() {
@@ -1101,16 +1192,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_workflow_definition_creation() {
-        let steps = vec![
-            WorkflowStep::new(
-                "step1".to_string(),
-                "Step 1".to_string(),
-                WorkflowStepType::Task {
-                    agent_id: "agent1".to_string(),
-                    request: AgentRequest::new("task1".to_string(), serde_json::json!({})),
-                },
-            ),
-        ];
+        let steps = vec![WorkflowStep::new(
+            "step1".to_string(),
+            "Step 1".to_string(),
+            WorkflowStepType::Task {
+                agent_id: "agent1".to_string(),
+                request: AgentRequest::new("task1".to_string(), serde_json::json!({})),
+            },
+        )];
 
         let definition = WorkflowDefinition::new(
             "test-workflow".to_string(),
@@ -1125,16 +1214,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_workflow_context_creation() {
-        let steps = vec![
-            WorkflowStep::new(
-                "step1".to_string(),
-                "Step 1".to_string(),
-                WorkflowStepType::Task {
-                    agent_id: "agent1".to_string(),
-                    request: AgentRequest::new("task1".to_string(), serde_json::json!({})),
-                },
-            ),
-        ];
+        let steps = vec![WorkflowStep::new(
+            "step1".to_string(),
+            "Step 1".to_string(),
+            WorkflowStepType::Task {
+                agent_id: "agent1".to_string(),
+                request: AgentRequest::new("task1".to_string(), serde_json::json!({})),
+            },
+        )];
 
         let definition = WorkflowDefinition::new(
             "test-workflow".to_string(),
@@ -1161,4 +1248,4 @@ mod tests {
         // Note: This would need a proper engine instance to test
         assert!(true); // Placeholder
     }
-} 
+}

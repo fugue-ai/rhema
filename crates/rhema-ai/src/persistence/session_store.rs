@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-use super::{PersistenceConfig, StoreStats, StorageBackend};
-use crate::agent::real_time_coordination::{CoordinationSession, AdvancedSession, SessionStatus};
+use super::{PersistenceConfig, StorageBackend, StoreStats};
+use crate::agent::real_time_coordination::{AdvancedSession, CoordinationSession, SessionStatus};
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -23,7 +24,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
-use chrono::{DateTime, Utc};
 
 /// Session store for persisting coordination sessions
 pub struct SessionStore {
@@ -60,16 +60,17 @@ impl SessionStore {
     pub async fn new(config: PersistenceConfig) -> RhemaResult<Self> {
         let file_path = match &config.backend {
             StorageBackend::File => {
-                let path = config.storage_path
+                let path = config
+                    .storage_path
                     .as_ref()
                     .map(|p| p.join("sessions"))
                     .unwrap_or_else(|| PathBuf::from("./data/sessions"));
-                
+
                 // Create directory if it doesn't exist
                 if let Some(parent) = path.parent() {
                     tokio::fs::create_dir_all(parent).await?;
                 }
-                
+
                 Some(path)
             }
             _ => None,
@@ -92,7 +93,7 @@ impl SessionStore {
     pub async fn store_session(&self, session: CoordinationSession) -> RhemaResult<()> {
         let size_bytes = serde_json::to_string(&session)?.len() as u64;
         let now = Utc::now();
-        
+
         let stored_session = StoredSession {
             session,
             created_at: now,
@@ -115,7 +116,7 @@ impl SessionStore {
     pub async fn store_advanced_session(&self, session: AdvancedSession) -> RhemaResult<()> {
         let size_bytes = serde_json::to_string(&session)?.len() as u64;
         let now = Utc::now();
-        
+
         let stored_session = StoredAdvancedSession {
             session,
             created_at: now,
@@ -137,7 +138,7 @@ impl SessionStore {
     /// Retrieve a coordination session
     pub async fn get_session(&self, session_id: &str) -> Option<CoordinationSession> {
         let mut sessions = self.sessions.write().await;
-        
+
         if let Some(stored_session) = sessions.get_mut(session_id) {
             stored_session.access_count += 1;
             stored_session.last_accessed = Utc::now();
@@ -150,7 +151,7 @@ impl SessionStore {
     /// Retrieve an advanced session
     pub async fn get_advanced_session(&self, session_id: &str) -> Option<AdvancedSession> {
         let mut sessions = self.advanced_sessions.write().await;
-        
+
         if let Some(stored_session) = sessions.get_mut(session_id) {
             stored_session.access_count += 1;
             stored_session.last_accessed = Utc::now();
@@ -164,15 +165,18 @@ impl SessionStore {
     pub async fn update_session(&self, session: CoordinationSession) -> RhemaResult<()> {
         let size_bytes = serde_json::to_string(&session)?.len() as u64;
         let now = Utc::now();
-        
+
         let mut sessions = self.sessions.write().await;
-        
+
         if let Some(stored_session) = sessions.get_mut(&session.id) {
             stored_session.session = session;
             stored_session.updated_at = now;
             stored_session.size_bytes = size_bytes;
         } else {
-            return Err(rhema_core::RhemaError::NotFound(format!("Session {} not found", session.id)));
+            return Err(rhema_core::RhemaError::NotFound(format!(
+                "Session {} not found",
+                session.id
+            )));
         }
 
         self.save().await?;
@@ -183,15 +187,18 @@ impl SessionStore {
     pub async fn update_advanced_session(&self, session: AdvancedSession) -> RhemaResult<()> {
         let size_bytes = serde_json::to_string(&session)?.len() as u64;
         let now = Utc::now();
-        
+
         let mut sessions = self.advanced_sessions.write().await;
-        
+
         if let Some(stored_session) = sessions.get_mut(&session.id) {
             stored_session.session = session;
             stored_session.updated_at = now;
             stored_session.size_bytes = size_bytes;
         } else {
-            return Err(rhema_core::RhemaError::NotFound(format!("Advanced session {} not found", session.id)));
+            return Err(rhema_core::RhemaError::NotFound(format!(
+                "Advanced session {} not found",
+                session.id
+            )));
         }
 
         self.save().await?;
@@ -204,7 +211,7 @@ impl SessionStore {
             let mut sessions = self.sessions.write().await;
             sessions.remove(session_id);
         }
-        
+
         {
             let mut advanced_sessions = self.advanced_sessions.write().await;
             advanced_sessions.remove(session_id);
@@ -254,15 +261,17 @@ impl SessionStore {
                     if path.exists() {
                         let data = tokio::fs::read_to_string(path).await?;
                         let stored_data: StoredSessionData = serde_json::from_str(&data)?;
-                        
+
                         let session_count = stored_data.sessions.len();
                         let advanced_session_count = stored_data.advanced_sessions.len();
-                        
+
                         *self.sessions.write().await = stored_data.sessions;
                         *self.advanced_sessions.write().await = stored_data.advanced_sessions;
-                        
-                        info!("Loaded {} sessions and {} advanced sessions from storage", 
-                              session_count, advanced_session_count);
+
+                        info!(
+                            "Loaded {} sessions and {} advanced sessions from storage",
+                            session_count, advanced_session_count
+                        );
                     }
                 }
             }
@@ -281,12 +290,12 @@ impl SessionStore {
                 if let Some(path) = &self.file_path {
                     let sessions = self.sessions.read().await;
                     let advanced_sessions = self.advanced_sessions.read().await;
-                    
+
                     let stored_data = StoredSessionData {
                         sessions: sessions.clone(),
                         advanced_sessions: advanced_sessions.clone(),
                     };
-                    
+
                     let data = serde_json::to_string_pretty(&stored_data)?;
                     tokio::fs::write(path, data).await?;
                 }
@@ -301,22 +310,23 @@ impl SessionStore {
     /// Perform backup
     pub async fn backup(&self) -> RhemaResult<()> {
         if self.config.enable_backups {
-            let backup_path = self.file_path
+            let backup_path = self
+                .file_path
                 .as_ref()
                 .map(|p| p.with_extension("backup"))
                 .unwrap_or_else(|| PathBuf::from("./data/sessions.backup"));
-            
+
             let sessions = self.sessions.read().await;
             let advanced_sessions = self.advanced_sessions.read().await;
-            
+
             let stored_data = StoredSessionData {
                 sessions: sessions.clone(),
                 advanced_sessions: advanced_sessions.clone(),
             };
-            
+
             let data = serde_json::to_string_pretty(&stored_data)?;
             tokio::fs::write(backup_path, data).await?;
-            
+
             info!("Session backup completed");
         }
         Ok(())
@@ -325,18 +335,20 @@ impl SessionStore {
     /// Perform cleanup
     pub async fn cleanup(&self) -> RhemaResult<()> {
         if self.config.enable_cleanup {
-            let cutoff_date = Utc::now() - chrono::Duration::days(self.config.data_retention_days as i64);
-            
+            let cutoff_date =
+                Utc::now() - chrono::Duration::days(self.config.data_retention_days as i64);
+
             {
                 let mut sessions = self.sessions.write().await;
                 sessions.retain(|_, stored_session| stored_session.updated_at > cutoff_date);
             }
-            
+
             {
                 let mut advanced_sessions = self.advanced_sessions.write().await;
-                advanced_sessions.retain(|_, stored_session| stored_session.updated_at > cutoff_date);
+                advanced_sessions
+                    .retain(|_, stored_session| stored_session.updated_at > cutoff_date);
             }
-            
+
             self.save().await?;
             info!("Session cleanup completed");
         }
@@ -348,19 +360,25 @@ impl SessionStore {
         if self.config.enable_validation {
             let sessions = self.sessions.read().await;
             let advanced_sessions = self.advanced_sessions.read().await;
-            
+
             for (id, stored_session) in sessions.iter() {
                 if stored_session.session.id != *id {
-                    return Err(rhema_core::RhemaError::Validation(format!("Session ID mismatch: {}", id)));
+                    return Err(rhema_core::RhemaError::Validation(format!(
+                        "Session ID mismatch: {}",
+                        id
+                    )));
                 }
             }
-            
+
             for (id, stored_session) in advanced_sessions.iter() {
                 if stored_session.session.id != *id {
-                    return Err(rhema_core::RhemaError::Validation(format!("Advanced session ID mismatch: {}", id)));
+                    return Err(rhema_core::RhemaError::Validation(format!(
+                        "Advanced session ID mismatch: {}",
+                        id
+                    )));
                 }
             }
-            
+
             info!("Session validation completed successfully");
         }
         Ok(())
@@ -370,16 +388,19 @@ impl SessionStore {
     pub async fn get_stats(&self) -> RhemaResult<StoreStats> {
         let sessions = self.sessions.read().await;
         let advanced_sessions = self.advanced_sessions.read().await;
-        
+
         let total_entries = sessions.len() + advanced_sessions.len();
-        let size_bytes = sessions.values().map(|s| s.size_bytes).sum::<u64>() +
-                        advanced_sessions.values().map(|s| s.size_bytes).sum::<u64>();
-        
+        let size_bytes = sessions.values().map(|s| s.size_bytes).sum::<u64>()
+            + advanced_sessions
+                .values()
+                .map(|s| s.size_bytes)
+                .sum::<u64>();
+
         Ok(StoreStats {
             total_entries,
             size_bytes,
-            last_backup: None, // TODO: Track backup timestamps
-            last_cleanup: None, // TODO: Track cleanup timestamps
+            last_backup: None,    // TODO: Track backup timestamps
+            last_cleanup: None,   // TODO: Track cleanup timestamps
             validation_errors: 0, // TODO: Track validation errors
         })
     }
@@ -390,4 +411,4 @@ impl SessionStore {
 struct StoredSessionData {
     sessions: HashMap<String, StoredSession>,
     advanced_sessions: HashMap<String, StoredAdvancedSession>,
-} 
+}

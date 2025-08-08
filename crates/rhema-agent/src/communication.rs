@@ -17,15 +17,15 @@
 use crate::agent::{AgentId, AgentMessage, AgentRequest, AgentResponse};
 use crate::error::{AgentError, AgentResult};
 use crate::registry::AgentRegistry;
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use tokio::time::{Duration, Instant};
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
-use async_trait::async_trait;
 
 /// Message types for agent communication
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -95,10 +95,10 @@ impl std::fmt::Display for MessagePriority {
 pub trait MessageHandler: Send + Sync {
     /// Handle a message
     async fn handle_message(&self, message: AgentMessage) -> AgentResult<Option<AgentMessage>>;
-    
+
     /// Get handler name
     fn name(&self) -> &str;
-    
+
     /// Get supported message types
     fn supported_message_types(&self) -> &[MessageType];
 }
@@ -197,7 +197,7 @@ impl MessageBroker {
     pub async fn initialize(&self) -> AgentResult<()> {
         // Start heartbeat monitoring
         self.start_heartbeat_monitoring().await;
-        
+
         Ok(())
     }
 
@@ -213,7 +213,8 @@ impl MessageBroker {
                 if let Some(message) = queue.pop_front() {
                     drop(queue);
 
-                    if let Err(error) = Self::process_message(&registry, &handlers, &message).await {
+                    if let Err(error) = Self::process_message(&registry, &handlers, &message).await
+                    {
                         eprintln!("Error processing message: {:?}", error);
                     }
                 } else {
@@ -240,7 +241,7 @@ impl MessageBroker {
                 timestamp: Utc::now(),
             }));
         }
-        
+
         Ok(())
     }
 
@@ -255,7 +256,7 @@ impl MessageBroker {
             resources: crate::agent::ResourceUsage::default(),
             timestamp: Utc::now(),
         }));
-        
+
         Ok(())
     }
 
@@ -282,21 +283,25 @@ impl MessageBroker {
     }
 
     /// Send a message to multiple agents
-    pub async fn send_to_multiple(&self, agent_ids: &[AgentId], message: AgentMessage) -> AgentResult<()> {
+    pub async fn send_to_multiple(
+        &self,
+        agent_ids: &[AgentId],
+        message: AgentMessage,
+    ) -> AgentResult<()> {
         let mut errors = Vec::new();
-        
+
         for agent_id in agent_ids {
             if let Err(_) = self.send_message(agent_id, message.clone()).await {
                 errors.push(agent_id.clone());
             }
         }
-        
+
         if !errors.is_empty() {
             return Err(AgentError::CommunicationFailed {
                 reason: format!("Failed to send message to agents: {:?}", errors),
             });
         }
-        
+
         Ok(())
     }
 
@@ -311,7 +316,7 @@ impl MessageBroker {
     pub async fn unregister_handler(&self, handler_name: &str) -> AgentResult<()> {
         let mut handlers = self.handlers.write().await;
         handlers.remove(handler_name);
-        
+
         Ok(())
     }
 
@@ -331,13 +336,13 @@ impl MessageBroker {
         let registry = self.registry.clone();
         let message_queue = self.message_queue.clone();
         let heartbeat_interval = self.config.heartbeat_interval;
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(heartbeat_interval));
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Send heartbeat to all agents
                 let mut queue = message_queue.write().await;
                 queue.push_back(AgentMessage::Heartbeat(crate::agent::AgentHeartbeat {
@@ -402,11 +407,11 @@ impl MessageBroker {
         // Clear all message queues
         let mut queues = self.message_queue.write().await;
         queues.clear();
-        
+
         // Clear all handlers
         let mut handlers = self.handlers.write().await;
         handlers.clear();
-        
+
         Ok(())
     }
 }
@@ -432,11 +437,11 @@ impl MessageHandler for DefaultMessageHandler {
         // Default implementation does nothing
         Ok(None)
     }
-    
+
     fn name(&self) -> &str {
         &self.name
     }
-    
+
     fn supported_message_types(&self) -> &[MessageType] {
         &self.supported_types
     }
@@ -445,13 +450,13 @@ impl MessageHandler for DefaultMessageHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::{BaseAgent, AgentConfig, AgentType, AgentCapability};
+    use crate::agent::{AgentCapability, AgentConfig, AgentType, BaseAgent};
 
     #[tokio::test]
     async fn test_message_broker_creation() {
         let registry = AgentRegistry::new();
         let broker = MessageBroker::new(registry);
-        
+
         assert_eq!(broker.get_message_count().await, 0);
     }
 
@@ -459,25 +464,32 @@ mod tests {
     async fn test_agent_registration() {
         let registry = AgentRegistry::new();
         let broker = MessageBroker::new(registry);
-        
+
         broker.initialize().await.unwrap();
-        assert!(broker.register_agent(&"test-agent".to_string()).await.is_ok());
+        assert!(broker
+            .register_agent(&"test-agent".to_string())
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
     async fn test_message_sending() {
         let registry = AgentRegistry::new();
         let broker = MessageBroker::new(registry);
-        
+
         broker.initialize().await.unwrap();
-        broker.register_agent(&"test-agent".to_string()).await.unwrap();
-        
-        let message = AgentMessage::TaskRequest(AgentRequest::new(
-            "test".to_string(),
-            serde_json::json!({}),
-        ));
-        
-        assert!(broker.send_message(&"test-agent".to_string(), message).await.is_ok());
+        broker
+            .register_agent(&"test-agent".to_string())
+            .await
+            .unwrap();
+
+        let message =
+            AgentMessage::TaskRequest(AgentRequest::new("test".to_string(), serde_json::json!({})));
+
+        assert!(broker
+            .send_message(&"test-agent".to_string(), message)
+            .await
+            .is_ok());
     }
 
     #[test]
@@ -491,4 +503,4 @@ mod tests {
         assert_eq!(MessageType::TaskRequest.to_string(), "TaskRequest");
         assert_eq!(MessageType::Heartbeat.to_string(), "Heartbeat");
     }
-} 
+}

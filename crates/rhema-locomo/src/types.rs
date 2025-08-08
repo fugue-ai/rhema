@@ -23,25 +23,25 @@ use thiserror::Error;
 pub enum LocomoError {
     #[error("Benchmark error: {0}")]
     BenchmarkError(String),
-    
+
     #[error("Quality assessment error: {0}")]
     QualityAssessmentError(String),
-    
+
     #[error("Metrics collection error: {0}")]
     MetricsCollectionError(String),
-    
+
     #[error("Validation error: {0}")]
     ValidationError(String),
-    
+
     #[error("Optimization error: {0}")]
     OptimizationError(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
-    
+
     #[error("Context error: {0}")]
     ContextError(String),
-    
+
     #[error("Performance error: {0}")]
     PerformanceError(String),
 }
@@ -321,4 +321,4 @@ impl Default for QualityMetrics {
             evolution_score: 0.0,
         }
     }
-} 
+}

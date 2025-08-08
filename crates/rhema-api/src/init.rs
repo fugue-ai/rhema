@@ -145,7 +145,9 @@ pub fn run(
 }
 
 /// Display repository analysis results
-fn display_analysis_results(analysis: &rhema_query::repo_analysis::RepoAnalysis) -> RhemaResult<()> {
+fn display_analysis_results(
+    analysis: &rhema_query::repo_analysis::RepoAnalysis,
+) -> RhemaResult<()> {
     println!("\n📊 Repository Analysis Results:");
     println!("{}", "─".repeat(50));
 
@@ -372,4 +374,4 @@ fn create_default_protocol_info(scope_type: &str) -> rhema_core::schema::Protoco
         troubleshooting: Some(troubleshooting),
         custom: std::collections::HashMap::new(),
     }
-} 
+}

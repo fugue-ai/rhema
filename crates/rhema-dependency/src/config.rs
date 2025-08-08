@@ -870,7 +870,12 @@ impl Default for CorsConfig {
         Self {
             enabled: true,
             allowed_origins: vec!["*".to_string()],
-            allowed_methods: vec!["GET".to_string(), "POST".to_string(), "PUT".to_string(), "DELETE".to_string()],
+            allowed_methods: vec![
+                "GET".to_string(),
+                "POST".to_string(),
+                "PUT".to_string(),
+                "DELETE".to_string(),
+            ],
             allowed_headers: vec!["*".to_string()],
             allow_credentials: false,
         }
@@ -1005,8 +1010,14 @@ mod tests {
         let config = Config::default();
         let serialized = serde_json::to_string(&config).unwrap();
         let deserialized: Config = serde_json::from_str(&serialized).unwrap();
-        
-        assert_eq!(config.database.database_type, deserialized.database.database_type);
-        assert_eq!(config.health_monitoring.health_check_interval, deserialized.health_monitoring.health_check_interval);
+
+        assert_eq!(
+            config.database.database_type,
+            deserialized.database.database_type
+        );
+        assert_eq!(
+            config.health_monitoring.health_check_interval,
+            deserialized.health_monitoring.health_check_interval
+        );
     }
-} 
+}

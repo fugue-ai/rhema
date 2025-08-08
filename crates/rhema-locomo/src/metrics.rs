@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
+use prometheus::{Counter, Gauge, Histogram, HistogramOpts};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use prometheus::{Counter, Gauge, Histogram, HistogramOpts};
 
-use crate::types::{LocomoError, BenchmarkMetrics, PerformanceMetrics, QualityMetrics};
+use crate::types::{BenchmarkMetrics, LocomoError, PerformanceMetrics, QualityMetrics};
 use rhema_core::RhemaResult;
 
 /// LOCOMO metrics structure
@@ -75,7 +75,7 @@ impl LocomoMetrics {
             self.context_quality_assessment,
             self.context_evolution_tracking,
         ];
-        
+
         scores.iter().sum::<f64>() / scores.len() as f64
     }
 }
@@ -153,10 +153,7 @@ impl LocomoMetricsCollector {
                 "locomo_context_evolution_tracking",
                 "Context evolution tracking (0-1)",
             )?,
-            overall_score: Gauge::new(
-                "locomo_overall_score",
-                "Overall LOCOMO score (0-1)",
-            )?,
+            overall_score: Gauge::new("locomo_overall_score", "Overall LOCOMO score (0-1)")?,
             benchmark_count: Counter::new(
                 "locomo_benchmark_count_total",
                 "Total number of benchmarks run",
@@ -171,7 +168,9 @@ impl LocomoMetricsCollector {
             context_retrieval_latency: prometheus_metrics.context_retrieval_latency.clone(),
             context_relevance_score: prometheus_metrics.context_relevance_score.clone(),
             context_compression_ratio: prometheus_metrics.context_compression_ratio.clone(),
-            cross_scope_integration_quality: prometheus_metrics.cross_scope_integration_quality.clone(),
+            cross_scope_integration_quality: prometheus_metrics
+                .cross_scope_integration_quality
+                .clone(),
             context_persistence_accuracy: prometheus_metrics.context_persistence_accuracy.clone(),
             ai_agent_optimization_score: prometheus_metrics.ai_agent_optimization_score.clone(),
             context_quality_assessment: prometheus_metrics.context_quality_assessment.clone(),
@@ -191,14 +190,30 @@ impl LocomoMetricsCollector {
         debug!("Recording LOCOMO metrics: {:?}", metrics);
 
         // Record Prometheus metrics
-        self.metrics.context_retrieval_latency.observe(metrics.context_retrieval_latency.as_secs_f64());
-        self.metrics.context_relevance_score.set(metrics.context_relevance_score);
-        self.metrics.context_compression_ratio.set(metrics.context_compression_ratio);
-        self.metrics.cross_scope_integration_quality.set(metrics.cross_scope_integration_quality);
-        self.metrics.context_persistence_accuracy.set(metrics.context_persistence_accuracy);
-        self.metrics.ai_agent_optimization_score.set(metrics.ai_agent_optimization_score);
-        self.metrics.context_quality_assessment.set(metrics.context_quality_assessment);
-        self.metrics.context_evolution_tracking.set(metrics.context_evolution_tracking);
+        self.metrics
+            .context_retrieval_latency
+            .observe(metrics.context_retrieval_latency.as_secs_f64());
+        self.metrics
+            .context_relevance_score
+            .set(metrics.context_relevance_score);
+        self.metrics
+            .context_compression_ratio
+            .set(metrics.context_compression_ratio);
+        self.metrics
+            .cross_scope_integration_quality
+            .set(metrics.cross_scope_integration_quality);
+        self.metrics
+            .context_persistence_accuracy
+            .set(metrics.context_persistence_accuracy);
+        self.metrics
+            .ai_agent_optimization_score
+            .set(metrics.ai_agent_optimization_score);
+        self.metrics
+            .context_quality_assessment
+            .set(metrics.context_quality_assessment);
+        self.metrics
+            .context_evolution_tracking
+            .set(metrics.context_evolution_tracking);
         self.metrics.overall_score.set(metrics.overall_score());
 
         // Increment benchmark count
@@ -265,17 +280,17 @@ impl LocomoPerformanceAnalyzer {
     pub async fn add_metric(&self, metric: HistoricalMetric) -> RhemaResult<()> {
         let mut metrics = self.historical_metrics.write().await;
         metrics.push(metric);
-        
+
         // Cleanup old metrics
         self.cleanup_old_metrics(&mut metrics).await;
-        
+
         Ok(())
     }
 
     pub async fn analyze_trends(&self) -> RhemaResult<TrendAnalysis> {
         let metrics = self.historical_metrics.read().await;
         let recent_metrics = self.get_recent_metrics(&metrics).await;
-        
+
         let trends = self.calculate_trends(&recent_metrics).await;
         let anomalies = if self.config.anomaly_detection_enabled {
             self.detect_anomalies(&recent_metrics).await
@@ -291,7 +306,10 @@ impl LocomoPerformanceAnalyzer {
         })
     }
 
-    async fn get_recent_metrics<'a>(&self, metrics: &'a [HistoricalMetric]) -> Vec<&'a HistoricalMetric> {
+    async fn get_recent_metrics<'a>(
+        &self,
+        metrics: &'a [HistoricalMetric],
+    ) -> Vec<&'a HistoricalMetric> {
         let cutoff = Utc::now() - chrono::Duration::hours(self.config.analysis_window_hours as i64);
         metrics.iter().filter(|m| m.timestamp >= cutoff).collect()
     }
@@ -302,17 +320,46 @@ impl LocomoPerformanceAnalyzer {
         }
 
         let mut trends = Vec::new();
-        
+
         // Calculate trends for each metric
-        trends.push(self.calculate_trend_for_metric(metrics, |m| m.context_relevance_score, "context_relevance_score").await);
-        trends.push(self.calculate_trend_for_metric(metrics, |m| m.context_compression_ratio, "context_compression_ratio").await);
-        trends.push(self.calculate_trend_for_metric(metrics, |m| m.ai_agent_optimization_score, "ai_agent_optimization_score").await);
-        trends.push(self.calculate_trend_for_metric(metrics, |m| m.overall_score(), "overall_score").await);
+        trends.push(
+            self.calculate_trend_for_metric(
+                metrics,
+                |m| m.context_relevance_score,
+                "context_relevance_score",
+            )
+            .await,
+        );
+        trends.push(
+            self.calculate_trend_for_metric(
+                metrics,
+                |m| m.context_compression_ratio,
+                "context_compression_ratio",
+            )
+            .await,
+        );
+        trends.push(
+            self.calculate_trend_for_metric(
+                metrics,
+                |m| m.ai_agent_optimization_score,
+                "ai_agent_optimization_score",
+            )
+            .await,
+        );
+        trends.push(
+            self.calculate_trend_for_metric(metrics, |m| m.overall_score(), "overall_score")
+                .await,
+        );
 
         trends
     }
 
-    async fn calculate_trend_for_metric<F>(&self, metrics: &[&HistoricalMetric], extractor: F, metric_name: &str) -> MetricTrend 
+    async fn calculate_trend_for_metric<F>(
+        &self,
+        metrics: &[&HistoricalMetric],
+        extractor: F,
+        metric_name: &str,
+    ) -> MetricTrend
     where
         F: Fn(&LocomoMetrics) -> f64,
     {
@@ -345,21 +392,27 @@ impl LocomoPerformanceAnalyzer {
 
     async fn detect_anomalies(&self, metrics: &[&HistoricalMetric]) -> Vec<MetricAnomaly> {
         let mut anomalies = Vec::new();
-        
+
         // Simple anomaly detection based on standard deviation
-        for metric_name in &["context_relevance_score", "ai_agent_optimization_score", "overall_score"] {
-            let values: Vec<f64> = metrics.iter().map(|m| {
-                match *metric_name {
+        for metric_name in &[
+            "context_relevance_score",
+            "ai_agent_optimization_score",
+            "overall_score",
+        ] {
+            let values: Vec<f64> = metrics
+                .iter()
+                .map(|m| match *metric_name {
                     "context_relevance_score" => m.metrics.context_relevance_score,
                     "ai_agent_optimization_score" => m.metrics.ai_agent_optimization_score,
                     "overall_score" => m.metrics.overall_score(),
                     _ => 0.0,
-                }
-            }).collect();
+                })
+                .collect();
 
             if values.len() > 1 {
                 let mean = values.iter().sum::<f64>() / values.len() as f64;
-                let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / values.len() as f64;
+                let variance =
+                    values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / values.len() as f64;
                 let std_dev = variance.sqrt();
 
                 for (i, &value) in values.iter().enumerate() {
@@ -470,4 +523,4 @@ pub struct LocomoBenchmarkMetrics {
     pub ai_optimization: AIOptimizationMetrics,
     pub overall_score: f64,
     pub timestamp: DateTime<Utc>,
-} 
+}

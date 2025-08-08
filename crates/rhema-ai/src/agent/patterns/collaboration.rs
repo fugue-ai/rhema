@@ -18,7 +18,7 @@ use super::*;
 use chrono::{DateTime, Utc};
 use serde_json::json;
 use std::collections::HashMap;
-use tracing::{info, error};
+use tracing::{error, info};
 use uuid::Uuid;
 
 /// Code review workflow pattern for multi-agent collaboration
@@ -100,52 +100,55 @@ impl CoordinationPattern for CodeReviewWorkflow {
         if self.config.enable_security_review {
             let review_id = review_state.review_id.clone();
             let file_paths = review_state.file_paths.clone();
-            let security_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> = tokio::spawn(async move {
-                // This is a placeholder - in a real implementation, this would call the actual method
-                // For now, we'll return a mock result
-                Ok(ReviewResult {
-                    reviewer_id: "security-agent".to_string(),
-                    review_type: ReviewType::Security,
-                    status: ReviewStatus::Completed,
-                    findings: vec![],
-                    comments: vec!["Security review completed".to_string()],
-                    review_time: 1.5,
-                })
-            });
+            let security_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> =
+                tokio::spawn(async move {
+                    // This is a placeholder - in a real implementation, this would call the actual method
+                    // For now, we'll return a mock result
+                    Ok(ReviewResult {
+                        reviewer_id: "security-agent".to_string(),
+                        review_type: ReviewType::Security,
+                        status: ReviewStatus::Completed,
+                        findings: vec![],
+                        comments: vec!["Security review completed".to_string()],
+                        review_time: 1.5,
+                    })
+                });
             review_tasks.push(("security".to_string(), security_task));
         }
 
         if self.config.enable_performance_review {
             let review_id = review_state.review_id.clone();
             let file_paths = review_state.file_paths.clone();
-            let performance_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> = tokio::spawn(async move {
-                // This is a placeholder - in a real implementation, this would call the actual method
-                Ok(ReviewResult {
-                    reviewer_id: "performance-agent".to_string(),
-                    review_type: ReviewType::Performance,
-                    status: ReviewStatus::Completed,
-                    findings: vec![],
-                    comments: vec!["Performance review completed".to_string()],
-                    review_time: 2.0,
-                })
-            });
+            let performance_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> =
+                tokio::spawn(async move {
+                    // This is a placeholder - in a real implementation, this would call the actual method
+                    Ok(ReviewResult {
+                        reviewer_id: "performance-agent".to_string(),
+                        review_type: ReviewType::Performance,
+                        status: ReviewStatus::Completed,
+                        findings: vec![],
+                        comments: vec!["Performance review completed".to_string()],
+                        review_time: 2.0,
+                    })
+                });
             review_tasks.push(("performance".to_string(), performance_task));
         }
 
         if self.config.enable_style_review {
             let review_id = review_state.review_id.clone();
             let file_paths = review_state.file_paths.clone();
-            let style_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> = tokio::spawn(async move {
-                // This is a placeholder - in a real implementation, this would call the actual method
-                Ok(ReviewResult {
-                    reviewer_id: "style-agent".to_string(),
-                    review_type: ReviewType::Style,
-                    status: ReviewStatus::Completed,
-                    findings: vec![],
-                    comments: vec!["Style review completed".to_string()],
-                    review_time: 1.0,
-                })
-            });
+            let style_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> =
+                tokio::spawn(async move {
+                    // This is a placeholder - in a real implementation, this would call the actual method
+                    Ok(ReviewResult {
+                        reviewer_id: "style-agent".to_string(),
+                        review_type: ReviewType::Style,
+                        status: ReviewStatus::Completed,
+                        findings: vec![],
+                        comments: vec!["Style review completed".to_string()],
+                        review_time: 1.0,
+                    })
+                });
             review_tasks.push(("style".to_string(), style_task));
         }
 
@@ -153,27 +156,32 @@ impl CoordinationPattern for CodeReviewWorkflow {
         let review_count = review_tasks.len();
         for (review_type, task) in review_tasks {
             match task.await {
-                Ok(Ok(review_result)) => {
-                    match review_type.as_str() {
-                        "security" => review_state.security_review = Some(review_result),
-                        "performance" => review_state.performance_review = Some(review_result),
-                        "style" => review_state.style_review = Some(review_result),
-                        _ => {}
-                    }
-                }
+                Ok(Ok(review_result)) => match review_type.as_str() {
+                    "security" => review_state.security_review = Some(review_result),
+                    "performance" => review_state.performance_review = Some(review_result),
+                    "style" => review_state.style_review = Some(review_result),
+                    _ => {}
+                },
                 Ok(Err(e)) => {
                     error!("{} review failed: {}", review_type, e);
-                    return Err(PatternError::ExecutionError(format!("{} review failed: {}", review_type, e)));
+                    return Err(PatternError::ExecutionError(format!(
+                        "{} review failed: {}",
+                        review_type, e
+                    )));
                 }
                 Err(e) => {
                     error!("{} review task failed: {}", review_type, e);
-                    return Err(PatternError::ExecutionError(format!("{} review task failed: {}", review_type, e)));
+                    return Err(PatternError::ExecutionError(format!(
+                        "{} review task failed: {}",
+                        review_type, e
+                    )));
                 }
             }
         }
 
         // Coordinator makes final decision
-        review_state.coordinator_decision = Some(self.make_coordinator_decision(&review_state).await?);
+        review_state.coordinator_decision =
+            Some(self.make_coordinator_decision(&review_state).await?);
         review_state.status = ReviewStatus::Completed;
         review_state.completed_at = Some(Utc::now());
 
@@ -182,16 +190,25 @@ impl CoordinationPattern for CodeReviewWorkflow {
         let performance_metrics = PatternPerformanceMetrics {
             total_execution_time_seconds: execution_time,
             coordination_overhead_seconds: execution_time * 0.1, // Estimate 10% overhead
-            resource_utilization: 0.8, // Estimate 80% utilization
-            agent_efficiency: 0.9, // Estimate 90% efficiency
-            communication_overhead: review_count * 3, // Estimate 3 messages per review
+            resource_utilization: 0.8,                           // Estimate 80% utilization
+            agent_efficiency: 0.9,                               // Estimate 90% efficiency
+            communication_overhead: review_count * 3,            // Estimate 3 messages per review
         };
 
         let result_data = HashMap::from([
             ("review_id".to_string(), json!(review_state.review_id)),
             ("status".to_string(), json!(review_state.status.to_string())),
-            ("decision".to_string(), json!(review_state.coordinator_decision.as_ref().map(|d| d.to_string()))),
-            ("file_count".to_string(), json!(review_state.file_paths.len())),
+            (
+                "decision".to_string(),
+                json!(review_state
+                    .coordinator_decision
+                    .as_ref()
+                    .map(|d| d.to_string())),
+            ),
+            (
+                "file_count".to_string(),
+                json!(review_state.file_paths.len()),
+            ),
         ]);
 
         Ok(PatternResult {
@@ -212,19 +229,22 @@ impl CoordinationPattern for CodeReviewWorkflow {
 
         // Check if required agents are available
         let agent_ids: Vec<String> = context.agents.iter().map(|a| a.id.clone()).collect();
-        
+
         if !agent_ids.contains(&self.security_agent) && self.config.enable_security_review {
             errors.push(format!("Security agent {} not found", self.security_agent));
         }
-        
+
         if !agent_ids.contains(&self.performance_agent) && self.config.enable_performance_review {
-            errors.push(format!("Performance agent {} not found", self.performance_agent));
+            errors.push(format!(
+                "Performance agent {} not found",
+                self.performance_agent
+            ));
         }
-        
+
         if !agent_ids.contains(&self.style_agent) && self.config.enable_style_review {
             errors.push(format!("Style agent {} not found", self.style_agent));
         }
-        
+
         if !agent_ids.contains(&self.coordinator) {
             errors.push(format!("Coordinator agent {} not found", self.coordinator));
         }
@@ -261,7 +281,8 @@ impl CoordinationPattern for CodeReviewWorkflow {
         PatternMetadata {
             id: "code-review-workflow".to_string(),
             name: "Code Review Workflow".to_string(),
-            description: "Multi-agent code review with security, performance, and style analysis".to_string(),
+            description: "Multi-agent code review with security, performance, and style analysis"
+                .to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::Collaboration,
             author: "CodeReviewWorkflow".to_string(),
@@ -300,103 +321,121 @@ impl CodeReviewWorkflow {
         }
     }
 
-    async fn start_security_review(&self, review_id: &str, file_paths: &[String]) -> Result<ReviewResult, PatternError> {
+    async fn start_security_review(
+        &self,
+        review_id: &str,
+        file_paths: &[String],
+    ) -> Result<ReviewResult, PatternError> {
         info!("Starting security review for review {}", review_id);
-        
+
         // Simulate security review process
         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-        
+
         Ok(ReviewResult {
             reviewer_id: self.security_agent.clone(),
             review_type: ReviewType::Security,
             status: ReviewStatus::Approved,
-            findings: vec![
-                Finding {
-                    severity: FindingSeverity::Low,
-                    description: "Potential SQL injection vulnerability".to_string(),
-                    location: "src/database.rs:45".to_string(),
-                    suggestion: "Use parameterized queries".to_string(),
-                }
-            ],
+            findings: vec![Finding {
+                severity: FindingSeverity::Low,
+                description: "Potential SQL injection vulnerability".to_string(),
+                location: "src/database.rs:45".to_string(),
+                suggestion: "Use parameterized queries".to_string(),
+            }],
             comments: vec!["Security review completed".to_string()],
             review_time: 10.0,
         })
     }
 
-    async fn start_performance_review(&self, review_id: &str, file_paths: &[String]) -> Result<ReviewResult, PatternError> {
+    async fn start_performance_review(
+        &self,
+        review_id: &str,
+        file_paths: &[String],
+    ) -> Result<ReviewResult, PatternError> {
         info!("Starting performance review for review {}", review_id);
-        
+
         // Simulate performance review process
         tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
-        
+
         Ok(ReviewResult {
             reviewer_id: self.performance_agent.clone(),
             review_type: ReviewType::Performance,
             status: ReviewStatus::Approved,
-            findings: vec![
-                Finding {
-                    severity: FindingSeverity::Medium,
-                    description: "Inefficient algorithm in sorting function".to_string(),
-                    location: "src/utils.rs:123".to_string(),
-                    suggestion: "Consider using quicksort instead of bubble sort".to_string(),
-                }
-            ],
+            findings: vec![Finding {
+                severity: FindingSeverity::Medium,
+                description: "Inefficient algorithm in sorting function".to_string(),
+                location: "src/utils.rs:123".to_string(),
+                suggestion: "Consider using quicksort instead of bubble sort".to_string(),
+            }],
             comments: vec!["Performance review completed".to_string()],
             review_time: 8.0,
         })
     }
 
-    async fn start_style_review(&self, review_id: &str, file_paths: &[String]) -> Result<ReviewResult, PatternError> {
+    async fn start_style_review(
+        &self,
+        review_id: &str,
+        file_paths: &[String],
+    ) -> Result<ReviewResult, PatternError> {
         info!("Starting style review for review {}", review_id);
-        
+
         // Simulate style review process
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-        
+
         Ok(ReviewResult {
             reviewer_id: self.style_agent.clone(),
             review_type: ReviewType::Style,
             status: ReviewStatus::Approved,
-            findings: vec![
-                Finding {
-                    severity: FindingSeverity::Low,
-                    description: "Inconsistent naming convention".to_string(),
-                    location: "src/main.rs:67".to_string(),
-                    suggestion: "Use snake_case for variable names".to_string(),
-                }
-            ],
+            findings: vec![Finding {
+                severity: FindingSeverity::Low,
+                description: "Inconsistent naming convention".to_string(),
+                location: "src/main.rs:67".to_string(),
+                suggestion: "Use snake_case for variable names".to_string(),
+            }],
             comments: vec!["Style review completed".to_string()],
             review_time: 5.0,
         })
     }
 
-    async fn make_coordinator_decision(&self, review_state: &CodeReviewState) -> Result<CoordinatorDecision, PatternError> {
-        info!("Coordinator making final decision for review {}", review_state.review_id);
-        
+    async fn make_coordinator_decision(
+        &self,
+        review_state: &CodeReviewState,
+    ) -> Result<CoordinatorDecision, PatternError> {
+        info!(
+            "Coordinator making final decision for review {}",
+            review_state.review_id
+        );
+
         // Analyze all review results
         let mut total_findings = 0;
         let mut critical_findings = 0;
-        
+
         if let Some(ref security) = review_state.security_review {
             total_findings += security.findings.len();
-            critical_findings += security.findings.iter()
+            critical_findings += security
+                .findings
+                .iter()
                 .filter(|f| f.severity == FindingSeverity::Critical)
                 .count();
         }
-        
+
         if let Some(ref performance) = review_state.performance_review {
             total_findings += performance.findings.len();
-            critical_findings += performance.findings.iter()
+            critical_findings += performance
+                .findings
+                .iter()
                 .filter(|f| f.severity == FindingSeverity::Critical)
                 .count();
         }
-        
+
         if let Some(ref style) = review_state.style_review {
             total_findings += style.findings.len();
-            critical_findings += style.findings.iter()
+            critical_findings += style
+                .findings
+                .iter()
                 .filter(|f| f.severity == FindingSeverity::Critical)
                 .count();
         }
-        
+
         // Make decision based on findings
         let decision = if critical_findings > 0 {
             CoordinatorDecision::Reject
@@ -405,7 +444,7 @@ impl CodeReviewWorkflow {
         } else {
             CoordinatorDecision::Approve
         };
-        
+
         Ok(decision)
     }
 }
@@ -486,21 +525,30 @@ impl CoordinationPattern for TestGenerationWorkflow {
         }
 
         // Generate test strategy
-        test_state.test_strategy = Some(self.generate_test_strategy(&test_state.target_files).await?);
+        test_state.test_strategy = Some(
+            self.generate_test_strategy(&test_state.target_files)
+                .await?,
+        );
 
         // Generate tests based on strategy
         if self.config.enable_unit_tests {
-            let unit_tests = self.generate_unit_tests(&test_state.test_strategy.as_ref().unwrap()).await?;
+            let unit_tests = self
+                .generate_unit_tests(&test_state.test_strategy.as_ref().unwrap())
+                .await?;
             test_state.unit_tests = unit_tests;
         }
 
         if self.config.enable_integration_tests {
-            let integration_tests = self.generate_integration_tests(&test_state.test_strategy.as_ref().unwrap()).await?;
+            let integration_tests = self
+                .generate_integration_tests(&test_state.test_strategy.as_ref().unwrap())
+                .await?;
             test_state.integration_tests = integration_tests;
         }
 
         if self.config.enable_performance_tests {
-            let performance_tests = self.generate_performance_tests(&test_state.test_strategy.as_ref().unwrap()).await?;
+            let performance_tests = self
+                .generate_performance_tests(&test_state.test_strategy.as_ref().unwrap())
+                .await?;
             test_state.performance_tests = performance_tests;
         }
 
@@ -527,7 +575,14 @@ impl CoordinationPattern for TestGenerationWorkflow {
             ("test_id".to_string(), json!(test_state.test_id)),
             ("status".to_string(), json!(test_state.status.to_string())),
             ("coverage".to_string(), json!(test_state.coverage)),
-            ("test_count".to_string(), json!(test_state.unit_tests.len() + test_state.integration_tests.len() + test_state.performance_tests.len())),
+            (
+                "test_count".to_string(),
+                json!(
+                    test_state.unit_tests.len()
+                        + test_state.integration_tests.len()
+                        + test_state.performance_tests.len()
+                ),
+            ),
         ]);
 
         Ok(PatternResult {
@@ -548,21 +603,31 @@ impl CoordinationPattern for TestGenerationWorkflow {
 
         // Check if required agents are available
         let agent_ids: Vec<String> = context.agents.iter().map(|a| a.id.clone()).collect();
-        
+
         if !agent_ids.contains(&self.strategy_agent) {
             errors.push(format!("Strategy agent {} not found", self.strategy_agent));
         }
-        
+
         if !agent_ids.contains(&self.unit_test_agent) && self.config.enable_unit_tests {
-            errors.push(format!("Unit test agent {} not found", self.unit_test_agent));
+            errors.push(format!(
+                "Unit test agent {} not found",
+                self.unit_test_agent
+            ));
         }
-        
-        if !agent_ids.contains(&self.integration_test_agent) && self.config.enable_integration_tests {
-            errors.push(format!("Integration test agent {} not found", self.integration_test_agent));
+
+        if !agent_ids.contains(&self.integration_test_agent) && self.config.enable_integration_tests
+        {
+            errors.push(format!(
+                "Integration test agent {} not found",
+                self.integration_test_agent
+            ));
         }
-        
+
         if !agent_ids.contains(&self.test_runner_agent) && self.config.auto_run_tests {
-            errors.push(format!("Test runner agent {} not found", self.test_runner_agent));
+            errors.push(format!(
+                "Test runner agent {} not found",
+                self.test_runner_agent
+            ));
         }
 
         // Check if target files are provided
@@ -628,12 +693,15 @@ impl TestGenerationWorkflow {
         }
     }
 
-    async fn generate_test_strategy(&self, target_files: &[String]) -> Result<TestStrategy, PatternError> {
+    async fn generate_test_strategy(
+        &self,
+        target_files: &[String],
+    ) -> Result<TestStrategy, PatternError> {
         info!("Generating test strategy for {} files", target_files.len());
-        
+
         // Simulate test strategy generation
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-        
+
         Ok(TestStrategy {
             strategy_id: Uuid::new_v4().to_string(),
             target_files: target_files.to_vec(),
@@ -648,12 +716,15 @@ impl TestGenerationWorkflow {
         })
     }
 
-    async fn generate_unit_tests(&self, strategy: &TestStrategy) -> Result<Vec<UnitTest>, PatternError> {
+    async fn generate_unit_tests(
+        &self,
+        strategy: &TestStrategy,
+    ) -> Result<Vec<UnitTest>, PatternError> {
         info!("Generating unit tests based on strategy");
-        
+
         // Simulate unit test generation
         tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-        
+
         Ok(vec![
             UnitTest {
                 test_id: Uuid::new_v4().to_string(),
@@ -666,12 +737,15 @@ impl TestGenerationWorkflow {
         ])
     }
 
-    async fn generate_integration_tests(&self, strategy: &TestStrategy) -> Result<Vec<IntegrationTest>, PatternError> {
+    async fn generate_integration_tests(
+        &self,
+        strategy: &TestStrategy,
+    ) -> Result<Vec<IntegrationTest>, PatternError> {
         info!("Generating integration tests based on strategy");
-        
+
         // Simulate integration test generation
         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-        
+
         Ok(vec![
             IntegrationTest {
                 test_id: Uuid::new_v4().to_string(),
@@ -684,12 +758,15 @@ impl TestGenerationWorkflow {
         ])
     }
 
-    async fn generate_performance_tests(&self, strategy: &TestStrategy) -> Result<Vec<PerformanceTest>, PatternError> {
+    async fn generate_performance_tests(
+        &self,
+        strategy: &TestStrategy,
+    ) -> Result<Vec<PerformanceTest>, PatternError> {
         info!("Generating performance tests based on strategy");
-        
+
         // Simulate performance test generation
         tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
-        
+
         Ok(vec![
             PerformanceTest {
                 test_id: Uuid::new_v4().to_string(),
@@ -705,29 +782,30 @@ impl TestGenerationWorkflow {
         ])
     }
 
-    async fn run_tests(&self, test_state: &TestGenerationState) -> Result<Vec<TestResult>, PatternError> {
+    async fn run_tests(
+        &self,
+        test_state: &TestGenerationState,
+    ) -> Result<Vec<TestResult>, PatternError> {
         info!("Running generated tests");
-        
+
         // Simulate test execution
         tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
-        
-        Ok(vec![
-            TestResult {
-                test_id: Uuid::new_v4().to_string(),
-                test_name: "test_calculate_total".to_string(),
-                status: TestResultStatus::Passed,
-                execution_time_ms: 15,
-                coverage_percentage: 85.5,
-                output: "Test passed successfully".to_string(),
-            }
-        ])
+
+        Ok(vec![TestResult {
+            test_id: Uuid::new_v4().to_string(),
+            test_name: "test_calculate_total".to_string(),
+            status: TestResultStatus::Passed,
+            execution_time_ms: 15,
+            coverage_percentage: 85.5,
+            output: "Test passed successfully".to_string(),
+        }])
     }
 
     fn calculate_coverage(&self, test_results: &[TestResult]) -> f64 {
         if test_results.is_empty() {
             return 0.0;
         }
-        
+
         let total_coverage: f64 = test_results.iter().map(|r| r.coverage_percentage).sum();
         total_coverage / test_results.len() as f64
     }
@@ -945,7 +1023,9 @@ mod tests {
         let metadata = workflow.metadata();
         assert_eq!(metadata.name, "Code Review Workflow");
         assert_eq!(metadata.category, PatternCategory::Collaboration);
-        assert!(metadata.required_capabilities.contains(&"code-review".to_string()));
+        assert!(metadata
+            .required_capabilities
+            .contains(&"code-review".to_string()));
     }
 
     #[tokio::test]
@@ -961,6 +1041,8 @@ mod tests {
         let metadata = workflow.metadata();
         assert_eq!(metadata.name, "Test Generation Workflow");
         assert_eq!(metadata.category, PatternCategory::Collaboration);
-        assert!(metadata.required_capabilities.contains(&"test-generation".to_string()));
+        assert!(metadata
+            .required_capabilities
+            .contains(&"test-generation".to_string()));
     }
-} 
+}

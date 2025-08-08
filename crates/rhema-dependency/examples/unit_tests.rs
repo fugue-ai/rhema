@@ -1,15 +1,18 @@
 //! Unit tests for Dependency crate functionality
-//! 
+//!
 //! This example demonstrates comprehensive unit testing for the Dependency crate,
 //! including performance features, advanced analysis, integrations, and user experience.
 
 use rhema_dependency::{
-    types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore},
-    performance::{DependencyCache, ParallelProcessor, QueryOptimizer},
     advanced_analysis::{AdvancedAnalyzer, DependencyCluster, DependencyScore, TrendAnalysis},
-    integrations::{PackageManagerIntegration, CiCdIntegration, IdeIntegration},
-    user_experience::{DependencyDashboard, DependencyReportGenerator, DependencyAlertSystem, DependencySearchEngine},
+    integrations::{CiCdIntegration, IdeIntegration, PackageManagerIntegration},
     manager::DependencyManager,
+    performance::{DependencyCache, ParallelProcessor, QueryOptimizer},
+    types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore},
+    user_experience::{
+        DependencyAlertSystem, DependencyDashboard, DependencyReportGenerator,
+        DependencySearchEngine,
+    },
     Error,
 };
 use std::collections::HashMap;
@@ -61,25 +64,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_performance_features() -> Result<(), Box<dyn std::error::Error>> {
     // Test caching
     let cache = DependencyCache::new();
-    cache.set("test_key".to_string(), "test_value".to_string(), None).await?;
+    cache
+        .set("test_key".to_string(), "test_value".to_string(), None)
+        .await?;
     let result: Option<String> = cache.get("test_key").await?;
     assert_eq!(result, Some("test_value".to_string()));
 
     // Test parallel processing
     let processor = ParallelProcessor::new();
     let dependencies = vec!["dep1".to_string(), "dep2".to_string(), "dep3".to_string()];
-    let results = processor.process_dependencies(dependencies, |dep| {
-        tokio::spawn(async move {
-            Ok::<String, Error>(format!("processed_{}", dep))
+    let results = processor
+        .process_dependencies(dependencies, |dep| {
+            tokio::spawn(async move { Ok::<String, Error>(format!("processed_{}", dep)) })
         })
-    }).await?;
+        .await?;
     assert_eq!(results.len(), 3);
 
     // Test query optimization
     let optimizer = QueryOptimizer::new();
-    let result: String = optimizer.optimize_query("test_query", || {
-        Ok("query_result".to_string())
-    }).await?;
+    let result: String = optimizer
+        .optimize_query("test_query", || Ok("query_result".to_string()))
+        .await?;
     assert_eq!(result, "query_result");
 
     Ok(())
@@ -178,7 +183,9 @@ async fn test_user_experience() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test report generator
     let generator = DependencyReportGenerator::new();
-    let report = generator.generate_report("overview", &dependencies, None).await?;
+    let report = generator
+        .generate_report("overview", &dependencies, None)
+        .await?;
     assert!(!report.content.is_empty());
 
     // Test alert system
@@ -201,25 +208,35 @@ async fn test_end_to_end_workflow() -> Result<(), Box<dyn std::error::Error>> {
     let mut manager = DependencyManager::new().await?;
 
     // Add dependencies
-    let dep1 = manager.add_dependency(
-        "api-dep".to_string(),
-        "API Dependency".to_string(),
-        DependencyType::ApiCall,
-        "https://api.example.com".to_string(),
-        vec!["GET".to_string(), "POST".to_string()],
-    ).await?;
+    let dep1 = manager
+        .add_dependency(
+            "api-dep".to_string(),
+            "API Dependency".to_string(),
+            DependencyType::ApiCall,
+            "https://api.example.com".to_string(),
+            vec!["GET".to_string(), "POST".to_string()],
+        )
+        .await?;
 
-    let dep2 = manager.add_dependency(
-        "db-dep".to_string(),
-        "Database Dependency".to_string(),
-        DependencyType::DataFlow,
-        "postgresql://localhost:5432/mydb".to_string(),
-        vec!["read".to_string(), "write".to_string()],
-    ).await?;
+    let dep2 = manager
+        .add_dependency(
+            "db-dep".to_string(),
+            "Database Dependency".to_string(),
+            DependencyType::DataFlow,
+            "postgresql://localhost:5432/mydb".to_string(),
+            vec!["read".to_string(), "write".to_string()],
+        )
+        .await?;
 
     // Test performance features
     let cache = DependencyCache::new();
-    cache.set("dep_analysis".to_string(), "analysis_result".to_string(), None).await?;
+    cache
+        .set(
+            "dep_analysis".to_string(),
+            "analysis_result".to_string(),
+            None,
+        )
+        .await?;
 
     // Test advanced analysis
     let analyzer = AdvancedAnalyzer::new();
@@ -232,7 +249,9 @@ async fn test_end_to_end_workflow() -> Result<(), Box<dyn std::error::Error>> {
     dashboard.update_data(&dependencies).await?;
 
     let generator = DependencyReportGenerator::new();
-    let report = generator.generate_report("overview", &dependencies, None).await?;
+    let report = generator
+        .generate_report("overview", &dependencies, None)
+        .await?;
 
     let search_engine = DependencySearchEngine::new();
     search_engine.index_dependencies(&dependencies).await?;
@@ -266,15 +285,13 @@ async fn test_error_handling() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test search with empty query
     let search_engine = DependencySearchEngine::new();
-    let dependencies = vec![
-        DependencyConfig::new(
-            "test-dep".to_string(),
-            "Test Dependency".to_string(),
-            DependencyType::ApiCall,
-            "https://api.example.com".to_string(),
-            vec!["GET".to_string()],
-        )?,
-    ];
+    let dependencies = vec![DependencyConfig::new(
+        "test-dep".to_string(),
+        "Test Dependency".to_string(),
+        DependencyType::ApiCall,
+        "https://api.example.com".to_string(),
+        vec!["GET".to_string()],
+    )?];
     search_engine.index_dependencies(&dependencies).await?;
     let results = search_engine.search("").await?;
     assert!(results.is_empty());
@@ -291,7 +308,9 @@ async fn test_concurrent_operations() -> Result<(), Box<dyn std::error::Error>> 
     for i in 0..10 {
         let cache_clone = cache.clone();
         let handle = tokio::spawn(async move {
-            cache_clone.set(format!("key_{}", i), format!("value_{}", i), None).await
+            cache_clone
+                .set(format!("key_{}", i), format!("value_{}", i), None)
+                .await
         });
         handles.push(handle);
     }
@@ -313,15 +332,13 @@ async fn test_memory_management() -> Result<(), Box<dyn std::error::Error>> {
     // Test that large datasets don't cause memory issues
     let mut dependencies = Vec::new();
     for i in 0..100 {
-        dependencies.push(
-            DependencyConfig::new(
-                format!("dep_{}", i),
-                format!("Dependency {}", i),
-                DependencyType::ApiCall,
-                format!("https://api{}.example.com", i),
-                vec!["GET".to_string(), "POST".to_string()],
-            )?
-        );
+        dependencies.push(DependencyConfig::new(
+            format!("dep_{}", i),
+            format!("Dependency {}", i),
+            DependencyType::ApiCall,
+            format!("https://api{}.example.com", i),
+            vec!["GET".to_string(), "POST".to_string()],
+        )?);
     }
 
     let analyzer = AdvancedAnalyzer::new();
@@ -368,4 +385,4 @@ async fn test_configuration_validation() -> Result<(), Box<dyn std::error::Error
     assert!(history.is_empty());
 
     Ok(())
-} 
+}

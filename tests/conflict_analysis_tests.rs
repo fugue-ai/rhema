@@ -1,26 +1,28 @@
-use chrono::{Utc, Duration};
+use chrono::{Duration, Utc};
 use rhema_ai::agent::conflict_analysis::{
-    ConflictAnalysisSystem, ConflictAnalysisConfig, ReportType, AnalysisPeriod,
-    PriorityLevel, EffortLevel, TrendDirection
+    AnalysisPeriod, ConflictAnalysisConfig, ConflictAnalysisSystem, EffortLevel, PriorityLevel,
+    ReportType, TrendDirection,
 };
 use rhema_ai::agent::conflict_prevention::{
-    Conflict, ConflictType, ConflictSeverity, ConflictStatus, ConflictDetails,
-    ConflictResolution, ResolutionStrategy, ResolutionAction, ResolutionMetrics
+    Conflict, ConflictDetails, ConflictResolution, ConflictSeverity, ConflictStatus, ConflictType,
+    ResolutionAction, ResolutionMetrics, ResolutionStrategy,
 };
 use rhema_ai::agent::ml_conflict_prediction::{
-    ConflictPredictionResult, MLConflictPredictionStats, LearningMetrics
+    ConflictPredictionResult, LearningMetrics, MLConflictPredictionStats,
 };
 use rhema_ai::agent::real_time_coordination::RealTimeCoordinationSystem;
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[tokio::test]
 async fn test_conflict_analysis_system_creation() {
     let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
     let config = ConflictAnalysisConfig::default();
-    
-    let analysis_system = ConflictAnalysisSystem::new(coordination_system, config).await.unwrap();
-    
+
+    let analysis_system = ConflictAnalysisSystem::new(coordination_system, config)
+        .await
+        .unwrap();
+
     assert!(analysis_system.get_reports().await.is_empty());
 }
 
@@ -28,8 +30,10 @@ async fn test_conflict_analysis_system_creation() {
 async fn test_conflict_analysis_basic_functionality() {
     let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
     let config = ConflictAnalysisConfig::default();
-    let analysis_system = ConflictAnalysisSystem::new(coordination_system, config).await.unwrap();
-    
+    let analysis_system = ConflictAnalysisSystem::new(coordination_system, config)
+        .await
+        .unwrap();
+
     // Add some test conflicts
     let conflict1 = Conflict {
         id: "conflict_1".to_string(),
@@ -51,7 +55,7 @@ async fn test_conflict_analysis_basic_functionality() {
         },
         metadata: HashMap::new(),
     };
-    
+
     let conflict2 = Conflict {
         id: "conflict_2".to_string(),
         conflict_type: ConflictType::Dependency,
@@ -72,25 +76,23 @@ async fn test_conflict_analysis_basic_functionality() {
         },
         metadata: HashMap::new(),
     };
-    
+
     analysis_system.add_conflict(conflict1).await.unwrap();
     analysis_system.add_conflict(conflict2).await.unwrap();
-    
+
     // Add test resolutions
     let resolution1 = ConflictResolution {
         conflict_id: "conflict_1".to_string(),
         strategy: ResolutionStrategy::Automatic,
         timestamp: Utc::now() - Duration::hours(1),
         description: "Auto-resolved conflict".to_string(),
-        actions: vec![
-            ResolutionAction {
-                action_type: "auto_resolve".to_string(),
-                description: "Automatic resolution".to_string(),
-                timestamp: Utc::now() - Duration::hours(1),
-                performed_by: "system".to_string(),
-                result: "success".to_string(),
-            }
-        ],
+        actions: vec![ResolutionAction {
+            action_type: "auto_resolve".to_string(),
+            description: "Automatic resolution".to_string(),
+            timestamp: Utc::now() - Duration::hours(1),
+            performed_by: "system".to_string(),
+            result: "success".to_string(),
+        }],
         successful: true,
         metrics: ResolutionMetrics {
             time_to_resolution_seconds: 300,
@@ -99,9 +101,9 @@ async fn test_conflict_analysis_basic_functionality() {
             satisfaction_score: 0.8,
         },
     };
-    
+
     analysis_system.add_resolution(resolution1).await.unwrap();
-    
+
     // Add test predictions
     let prediction1 = ConflictPredictionResult {
         id: "pred_1".to_string(),
@@ -116,9 +118,9 @@ async fn test_conflict_analysis_basic_functionality() {
         prevention_actions: vec![],
         timestamp: Utc::now() - Duration::hours(1),
     };
-    
+
     analysis_system.add_prediction(prediction1).await.unwrap();
-    
+
     // Update ML stats
     let ml_stats = MLConflictPredictionStats {
         total_models: 2,
@@ -134,32 +136,38 @@ async fn test_conflict_analysis_basic_functionality() {
         },
         last_retraining: Utc::now(),
     };
-    
+
     analysis_system.update_ml_stats(ml_stats).await.unwrap();
-    
+
     // Generate a comprehensive report
-    let report = analysis_system.generate_analysis_report(
-        ReportType::Detailed,
-        Utc::now() - Duration::hours(3),
-        Utc::now(),
-    ).await.unwrap();
-    
+    let report = analysis_system
+        .generate_analysis_report(
+            ReportType::Detailed,
+            Utc::now() - Duration::hours(3),
+            Utc::now(),
+        )
+        .await
+        .unwrap();
+
     // Verify the report was generated successfully
     assert_eq!(report.report_type, ReportType::Detailed);
     assert!(report.data.conflict_stats.total_conflicts > 0);
     assert!(report.data.resolution_stats.total_resolutions > 0);
     assert!(report.data.prediction_stats.total_predictions > 0);
     assert!(!report.data.recommendations.is_empty());
-    
+
     // Test report retrieval
     let retrieved_report = analysis_system.get_report(&report.id).await;
     assert!(retrieved_report.is_some());
     let retrieved_report = retrieved_report.unwrap();
     assert_eq!(retrieved_report.id, report.id);
     assert_eq!(retrieved_report.report_type, report.report_type);
-    
+
     // Test report export
-    let json_export = analysis_system.export_report_json(&report.id).await.unwrap();
+    let json_export = analysis_system
+        .export_report_json(&report.id)
+        .await
+        .unwrap();
     assert!(!json_export.is_empty());
     assert!(json_export.contains(&report.id));
     assert!(json_export.contains("conflict_stats"));
@@ -174,15 +182,15 @@ async fn test_analysis_period_duration() {
         end_time: Utc::now(),
         duration_hours: 24,
     };
-    
+
     assert_eq!(period.duration_days(), 1.0);
-    
+
     let period = AnalysisPeriod {
         start_time: Utc::now() - Duration::hours(48),
         end_time: Utc::now(),
         duration_hours: 48,
     };
-    
+
     assert_eq!(period.duration_days(), 2.0);
 }
 
@@ -190,36 +198,47 @@ async fn test_analysis_period_duration() {
 async fn test_report_management() {
     let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
     let config = ConflictAnalysisConfig::default();
-    let analysis_system = ConflictAnalysisSystem::new(coordination_system, config).await.unwrap();
-    
+    let analysis_system = ConflictAnalysisSystem::new(coordination_system, config)
+        .await
+        .unwrap();
+
     // Generate multiple reports
-    let report1 = analysis_system.generate_analysis_report(
-        ReportType::Summary,
-        Utc::now() - Duration::hours(1),
-        Utc::now(),
-    ).await.unwrap();
-    
-    let report2 = analysis_system.generate_analysis_report(
-        ReportType::Detailed,
-        Utc::now() - Duration::hours(1),
-        Utc::now(),
-    ).await.unwrap();
-    
+    let report1 = analysis_system
+        .generate_analysis_report(
+            ReportType::Summary,
+            Utc::now() - Duration::hours(1),
+            Utc::now(),
+        )
+        .await
+        .unwrap();
+
+    let report2 = analysis_system
+        .generate_analysis_report(
+            ReportType::Detailed,
+            Utc::now() - Duration::hours(1),
+            Utc::now(),
+        )
+        .await
+        .unwrap();
+
     // Get all reports
     let reports = analysis_system.get_reports().await;
     assert_eq!(reports.len(), 2);
-    
+
     // Get specific report
     let retrieved_report = analysis_system.get_report(&report1.id).await;
     assert!(retrieved_report.is_some());
     assert_eq!(retrieved_report.unwrap().id, report1.id);
-    
+
     // Test non-existent report
     let non_existent = analysis_system.get_report("non-existent-id").await;
     assert!(non_existent.is_none());
-    
+
     // Export report to JSON
-    let json_export = analysis_system.export_report_json(&report1.id).await.unwrap();
+    let json_export = analysis_system
+        .export_report_json(&report1.id)
+        .await
+        .unwrap();
     assert!(json_export.contains(&report1.id));
     assert!(json_export.contains("Summary"));
 }
@@ -228,8 +247,10 @@ async fn test_report_management() {
 async fn test_high_severity_conflict_analysis() {
     let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
     let config = ConflictAnalysisConfig::default();
-    let analysis_system = ConflictAnalysisSystem::new(coordination_system, config).await.unwrap();
-    
+    let analysis_system = ConflictAnalysisSystem::new(coordination_system, config)
+        .await
+        .unwrap();
+
     // Add high severity conflict to trigger recommendations
     let conflict = Conflict {
         id: "high_conflict".to_string(),
@@ -251,31 +272,30 @@ async fn test_high_severity_conflict_analysis() {
         },
         metadata: HashMap::new(),
     };
-    
+
     analysis_system.add_conflict(conflict).await.unwrap();
-    
+
     let period = AnalysisPeriod {
         start_time: Utc::now() - Duration::hours(2),
         end_time: Utc::now(),
         duration_hours: 2,
     };
-    
-    let report = analysis_system.generate_analysis_report(
-        ReportType::Detailed,
-        period.start_time,
-        period.end_time,
-    ).await.unwrap();
-    
+
+    let report = analysis_system
+        .generate_analysis_report(ReportType::Detailed, period.start_time, period.end_time)
+        .await
+        .unwrap();
+
     // Check that recommendations were generated
     assert!(!report.data.recommendations.is_empty());
-    
+
     let recommendation = &report.data.recommendations[0];
     assert!(!recommendation.id.is_empty());
     assert!(!recommendation.title.is_empty());
     assert!(!recommendation.description.is_empty());
     assert!(recommendation.priority >= PriorityLevel::Low);
     assert!(recommendation.implementation_effort >= EffortLevel::Minimal);
-    
+
     // Check impact assessment
     assert!(recommendation.expected_impact.conflict_reduction_impact >= 0.0);
     assert!(recommendation.expected_impact.conflict_reduction_impact <= 1.0);
@@ -285,4 +305,4 @@ async fn test_high_severity_conflict_analysis() {
     assert!(recommendation.expected_impact.prediction_accuracy_impact <= 1.0);
     assert!(recommendation.expected_impact.overall_impact >= 0.0);
     assert!(recommendation.expected_impact.overall_impact <= 1.0);
-} 
+}

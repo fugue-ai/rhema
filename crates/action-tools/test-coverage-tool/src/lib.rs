@@ -25,7 +25,7 @@ pub struct TestCoverageTool;
 impl SafetyTool for TestCoverageTool {
     async fn check(&self, intent: &ActionIntent) -> ActionResult<ToolResult> {
         // TODO: Implement actual test coverage check
-        
+
         Ok(ToolResult {
             success: true,
             changes: vec![],
@@ -35,16 +35,16 @@ impl SafetyTool for TestCoverageTool {
             duration: std::time::Duration::from_secs(1),
         })
     }
-    
+
     fn name(&self) -> &str {
         "test_coverage"
     }
-    
+
     fn version(&self) -> &str {
         "1.0.0"
     }
-    
+
     async fn is_available(&self) -> bool {
         true
     }
-} 
+}

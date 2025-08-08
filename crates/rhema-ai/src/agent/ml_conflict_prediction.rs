@@ -19,18 +19,13 @@ use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use thiserror::Error;
+use tokio::sync::RwLock;
+use tracing::{error, info, warn};
 use uuid::Uuid;
-use tracing::{info, warn, error};
 
-use super::conflict_prevention::{
-    ConflictType, ConflictSeverity, Conflict, ConflictStatus,
-};
-use super::real_time_coordination::{
-    MessagePriority,
-    RealTimeCoordinationSystem,
-};
+use super::conflict_prevention::{Conflict, ConflictSeverity, ConflictStatus, ConflictType};
+use super::real_time_coordination::{MessagePriority, RealTimeCoordinationSystem};
 
 /// ML-based conflict prediction model
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -368,7 +363,7 @@ impl MLConflictPredictionSystem {
     /// Initialize default feature extractors
     async fn initialize_feature_extractors(&self) -> RhemaResult<()> {
         let mut extractors = self.feature_extractors.write().await;
-        
+
         // File modification feature extractor
         extractors.insert(
             "file_modification".to_string(),
@@ -412,7 +407,10 @@ impl MLConflictPredictionSystem {
     }
 
     /// Predict potential conflicts
-    pub async fn predict_conflicts(&self, data: &serde_json::Value) -> RhemaResult<Vec<ConflictPredictionResult>> {
+    pub async fn predict_conflicts(
+        &self,
+        data: &serde_json::Value,
+    ) -> RhemaResult<Vec<ConflictPredictionResult>> {
         let mut predictions = Vec::new();
         let models = self.models.read().await;
 
@@ -437,13 +435,13 @@ impl MLConflictPredictionSystem {
         if !predictions.is_empty() {
             let mut history = self.prediction_history.write().await;
             history.extend(predictions.clone());
-            
+
             // Trim history if needed
             if history.len() > self.config.max_prediction_history {
                 let len = history.len();
-            if len > self.config.max_prediction_history {
-                history.drain(0..len - self.config.max_prediction_history);
-            }
+                if len > self.config.max_prediction_history {
+                    history.drain(0..len - self.config.max_prediction_history);
+                }
             }
         }
 
@@ -458,10 +456,10 @@ impl MLConflictPredictionSystem {
     ) -> RhemaResult<ConflictPredictionResult> {
         // Extract features
         let features = self.extract_features(data).await?;
-        
+
         // Run ML prediction (simplified for now)
         let prediction = self.simulate_ml_prediction(_model, &features).await?;
-        
+
         Ok(prediction)
     }
 
@@ -477,7 +475,7 @@ impl MLConflictPredictionSystem {
             + features.get("dependency_complexity").unwrap_or(&0.0) * 0.2;
 
         let confidence = (conflict_probability * 0.8 + 0.2).min(1.0);
-        
+
         let prediction = ConflictPredictionResult {
             id: Uuid::new_v4().to_string(),
             conflict_probability,
@@ -494,13 +492,18 @@ impl MLConflictPredictionSystem {
             },
             predicted_agents: vec!["agent1".to_string(), "agent2".to_string()],
             features_used: features.clone(),
-            prediction_reason: format!("High conflict probability ({:.2}) based on agent behavior patterns", conflict_probability),
+            prediction_reason: format!(
+                "High conflict probability ({:.2}) based on agent behavior patterns",
+                conflict_probability
+            ),
             mitigation_suggestions: vec![
                 "Coordinate file access between agents".to_string(),
                 "Use lock mechanisms for shared resources".to_string(),
                 "Implement conflict resolution protocols".to_string(),
             ],
-            prevention_actions: self.generate_prevention_actions(conflict_probability, confidence).await?,
+            prevention_actions: self
+                .generate_prevention_actions(conflict_probability, confidence)
+                .await?,
             timestamp: Utc::now(),
         };
 
@@ -555,7 +558,10 @@ impl MLConflictPredictionSystem {
     }
 
     /// Extract features from data
-    async fn extract_features(&self, data: &serde_json::Value) -> RhemaResult<HashMap<String, f64>> {
+    async fn extract_features(
+        &self,
+        data: &serde_json::Value,
+    ) -> RhemaResult<HashMap<String, f64>> {
         let mut all_features = HashMap::new();
         let extractors = self.feature_extractors.read().await;
 
@@ -576,13 +582,17 @@ impl MLConflictPredictionSystem {
     }
 
     /// Learn from conflict outcomes
-    pub async fn learn_from_conflict(&self, conflict: Conflict, prediction: Option<ConflictPredictionResult>) -> RhemaResult<()> {
+    pub async fn learn_from_conflict(
+        &self,
+        conflict: Conflict,
+        prediction: Option<ConflictPredictionResult>,
+    ) -> RhemaResult<()> {
         let mut learning_system = self.learning_system.write().await;
         let mut conflict_history = self.conflict_history.write().await;
 
         // Add to conflict history
         conflict_history.push(conflict.clone());
-        
+
         // Trim history if needed
         if conflict_history.len() > self.config.max_conflict_history {
             let len = conflict_history.len();
@@ -597,7 +607,8 @@ impl MLConflictPredictionSystem {
 
         // If we had a prediction, evaluate its accuracy
         if let Some(pred) = prediction {
-            let was_conflict = conflict.status == ConflictStatus::Resolved || conflict.status == ConflictStatus::UnderReview;
+            let was_conflict = conflict.status == ConflictStatus::Resolved
+                || conflict.status == ConflictStatus::UnderReview;
             let was_predicted = pred.conflict_probability > 0.5;
 
             if was_conflict == was_predicted {
@@ -619,7 +630,7 @@ impl MLConflictPredictionSystem {
     async fn should_retrain_models(&self, learning_system: &ConflictLearningSystem) -> bool {
         let now = Utc::now();
         let hours_since_retraining = (now - learning_system.last_retraining).num_hours() as u64;
-        
+
         learning_system.learning_metrics.total_samples >= learning_system.min_samples_for_retraining
             && hours_since_retraining >= learning_system.retraining_interval_hours
     }
@@ -627,7 +638,7 @@ impl MLConflictPredictionSystem {
     /// Retrain models
     async fn retrain_models(&self) -> RhemaResult<()> {
         info!("Retraining ML models...");
-        
+
         // Get training data from conflict history
         let conflict_history = self.conflict_history.read().await;
         let training_data = self.prepare_training_data(&conflict_history).await?;
@@ -647,13 +658,17 @@ impl MLConflictPredictionSystem {
     }
 
     /// Prepare training data from conflict history
-    async fn prepare_training_data(&self, conflicts: &[Conflict]) -> RhemaResult<Vec<ConflictTrainingData>> {
+    async fn prepare_training_data(
+        &self,
+        conflicts: &[Conflict],
+    ) -> RhemaResult<Vec<ConflictTrainingData>> {
         let mut training_data = Vec::new();
 
         for conflict in conflicts {
             // Convert conflict to training data
             let features = self.extract_features_from_conflict(conflict).await?;
-            let target = conflict.status == ConflictStatus::Resolved || conflict.status == ConflictStatus::UnderReview;
+            let target = conflict.status == ConflictStatus::Resolved
+                || conflict.status == ConflictStatus::UnderReview;
 
             training_data.push(ConflictTrainingData {
                 features,
@@ -669,19 +684,31 @@ impl MLConflictPredictionSystem {
     }
 
     /// Extract features from conflict
-    async fn extract_features_from_conflict(&self, conflict: &Conflict) -> RhemaResult<HashMap<String, f64>> {
+    async fn extract_features_from_conflict(
+        &self,
+        conflict: &Conflict,
+    ) -> RhemaResult<HashMap<String, f64>> {
         let mut features = HashMap::new();
 
         // Basic features
-        features.insert("agent_count".to_string(), conflict.involved_agents.len() as f64);
-        features.insert("severity_level".to_string(), conflict.severity.clone() as u8 as f64);
+        features.insert(
+            "agent_count".to_string(),
+            conflict.involved_agents.len() as f64,
+        );
+        features.insert(
+            "severity_level".to_string(),
+            conflict.severity.clone() as u8 as f64,
+        );
 
         // Conflict type features
         match &conflict.conflict_type {
             ConflictType::FileModification => {
                 features.insert("is_file_conflict".to_string(), 1.0);
                 if let Some(file_conflict) = &conflict.details.file_modification {
-                    features.insert("affected_lines".to_string(), file_conflict.affected_lines.len() as f64);
+                    features.insert(
+                        "affected_lines".to_string(),
+                        file_conflict.affected_lines.len() as f64,
+                    );
                 }
             }
             ConflictType::Dependency => {
@@ -697,10 +724,14 @@ impl MLConflictPredictionSystem {
     }
 
     /// Retrain specific model
-    async fn retrain_model(&self, model: &mut MLConflictPredictionModel, training_data: &[ConflictTrainingData]) -> RhemaResult<()> {
+    async fn retrain_model(
+        &self,
+        model: &mut MLConflictPredictionModel,
+        training_data: &[ConflictTrainingData],
+    ) -> RhemaResult<()> {
         // This is a simplified retraining - in production, this would use actual ML libraries
         info!("Retraining model: {}", model.id);
-        
+
         // Update model with new training data
         model.training_data.extend(training_data.to_vec());
         model.last_trained = Utc::now();
@@ -774,13 +805,19 @@ impl FeatureExtractor for FileModificationFeatureExtractor {
 
         if let Some(file_data) = data.get("file_modification") {
             features.insert("file_count".to_string(), 1.0);
-            
+
             if let Some(agent_count) = file_data.get("agent_count").and_then(|v| v.as_u64()) {
                 features.insert("agent_count".to_string(), agent_count as f64);
             }
-            
-            if let Some(modification_frequency) = file_data.get("modification_frequency").and_then(|v| v.as_f64()) {
-                features.insert("file_modification_frequency".to_string(), modification_frequency);
+
+            if let Some(modification_frequency) = file_data
+                .get("modification_frequency")
+                .and_then(|v| v.as_f64())
+            {
+                features.insert(
+                    "file_modification_frequency".to_string(),
+                    modification_frequency,
+                );
             }
         }
 
@@ -805,12 +842,14 @@ impl FeatureExtractor for DependencyConflictFeatureExtractor {
 
         if let Some(dep_data) = data.get("dependency") {
             features.insert("dependency_count".to_string(), 1.0);
-            
+
             if let Some(complexity) = dep_data.get("complexity").and_then(|v| v.as_f64()) {
                 features.insert("dependency_complexity".to_string(), complexity);
             }
-            
-            if let Some(version_conflicts) = dep_data.get("version_conflicts").and_then(|v| v.as_u64()) {
+
+            if let Some(version_conflicts) =
+                dep_data.get("version_conflicts").and_then(|v| v.as_u64())
+            {
                 features.insert("version_conflicts".to_string(), version_conflicts as f64);
             }
         }
@@ -836,8 +875,11 @@ impl FeatureExtractor for ResourceConflictFeatureExtractor {
 
         if let Some(resource_data) = data.get("resource") {
             features.insert("resource_count".to_string(), 1.0);
-            
-            if let Some(contention_level) = resource_data.get("contention_level").and_then(|v| v.as_f64()) {
+
+            if let Some(contention_level) = resource_data
+                .get("contention_level")
+                .and_then(|v| v.as_f64())
+            {
                 features.insert("resource_contention".to_string(), contention_level);
             }
         }
@@ -861,12 +903,18 @@ impl FeatureExtractor for AgentBehaviorFeatureExtractor {
         let mut features = HashMap::new();
 
         if let Some(agent_data) = data.get("agent_behavior") {
-            if let Some(activity_level) = agent_data.get("activity_level").and_then(|v| v.as_f64()) {
+            if let Some(activity_level) = agent_data.get("activity_level").and_then(|v| v.as_f64())
+            {
                 features.insert("agent_activity_level".to_string(), activity_level);
             }
-            
-            if let Some(conflict_history) = agent_data.get("conflict_history").and_then(|v| v.as_u64()) {
-                features.insert("agent_conflict_history".to_string(), conflict_history as f64);
+
+            if let Some(conflict_history) =
+                agent_data.get("conflict_history").and_then(|v| v.as_u64())
+            {
+                features.insert(
+                    "agent_conflict_history".to_string(),
+                    conflict_history as f64,
+                );
             }
         }
 
@@ -890,7 +938,7 @@ mod tests {
     async fn test_ml_conflict_prediction_system_creation() {
         let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
         let config = MLConflictPredictionConfig::default();
-        
+
         let system = MLConflictPredictionSystem::new(coordination_system, config).await;
         assert!(system.is_ok());
     }
@@ -899,9 +947,11 @@ mod tests {
     async fn test_conflict_prediction() {
         let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
         let config = MLConflictPredictionConfig::default();
-        
-        let system = MLConflictPredictionSystem::new(coordination_system, config).await.unwrap();
-        
+
+        let system = MLConflictPredictionSystem::new(coordination_system, config)
+            .await
+            .unwrap();
+
         // Add a test model
         let model = MLConflictPredictionModel {
             id: "test_model".to_string(),
@@ -925,9 +975,9 @@ mod tests {
             confidence_threshold: 0.7,
             active: true,
         };
-        
+
         system.add_model(model).await.unwrap();
-        
+
         // Test prediction
         let test_data = json!({
             "file_modification": {
@@ -935,10 +985,10 @@ mod tests {
                 "modification_frequency": 0.8
             }
         });
-        
+
         let predictions = system.predict_conflicts(&test_data).await.unwrap();
         // The system should return predictions even if models are not fully trained
         // since it has a fallback simulation mechanism
         assert!(predictions.len() >= 0); // Allow empty predictions for now
     }
-} 
+}

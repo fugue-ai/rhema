@@ -15,13 +15,13 @@
  */
 
 use rhema_config::{
-    SecurityManager, SecurityConfig, EncryptionSettings, AccessControlSettings, AuditSettings,
-    ComplianceSettings, GlobalConfig, RepositoryConfig, Config, RhemaResult, AccessDecision,
-    ComplianceReport, ComplianceStatus,
+    AccessControlSettings, AccessDecision, AuditSettings, ComplianceReport, ComplianceSettings,
+    ComplianceStatus, Config, EncryptionSettings, GlobalConfig, RepositoryConfig, RhemaResult,
+    SecurityConfig, SecurityManager,
 };
 use serde_json::json;
 use std::path::PathBuf;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 /// Example demonstrating security features for configuration management
 #[tokio::main]
@@ -100,10 +100,16 @@ async fn configuration_encryption(security_manager: &SecurityManager) -> RhemaRe
         .await?;
 
     info!("Configuration encrypted:");
-    info!("  Original size: {} bytes", serde_json::to_string(&sensitive_config)?.len());
+    info!(
+        "  Original size: {} bytes",
+        serde_json::to_string(&sensitive_config)?.len()
+    );
     info!("  Encrypted size: {} bytes", encrypted_data.len());
-    info!("  Encryption ratio: {:.2}%", 
-        (encrypted_data.len() as f64 / serde_json::to_string(&sensitive_config)?.len() as f64) * 100.0);
+    info!(
+        "  Encryption ratio: {:.2}%",
+        (encrypted_data.len() as f64 / serde_json::to_string(&sensitive_config)?.len() as f64)
+            * 100.0
+    );
 
     // Decrypt the configuration
     let decrypted_config: RepositoryConfig = security_manager
@@ -116,7 +122,10 @@ async fn configuration_encryption(security_manager: &SecurityManager) -> RhemaRe
 
     // Verify the decrypted configuration matches the original
     assert_eq!(sensitive_config.version(), decrypted_config.version());
-    assert_eq!(sensitive_config.repository.name, decrypted_config.repository.name);
+    assert_eq!(
+        sensitive_config.repository.name,
+        decrypted_config.repository.name
+    );
 
     Ok(())
 }
@@ -138,7 +147,10 @@ async fn access_control_permissions(security_manager: &SecurityManager) -> Rhema
             .check_access_permission(user, resource, action, context)
             .await?;
 
-        info!("Access check for {} on {}: {} -> {}", user, resource, action, access_decision.allowed);
+        info!(
+            "Access check for {} on {}: {} -> {}",
+            user, resource, action, access_decision.allowed
+        );
         info!("  Reason: {}", access_decision.reason);
         info!("  Permissions: {:?}", access_decision.permissions);
         info!("  Timestamp: {}", access_decision.timestamp);
@@ -162,10 +174,9 @@ async fn audit_logging(security_manager: &SecurityManager) -> RhemaResult<()> {
     ];
 
     for (event_type, details) in audit_events {
-        security_manager.audit_logger().log_event(
-            &event_type.parse().unwrap_or_default(),
-            details,
-        )?;
+        security_manager
+            .audit_logger()
+            .log_event(&event_type.parse().unwrap_or_default(), details)?;
 
         info!("Audit event logged: {} - {}", event_type, details);
     }
@@ -173,7 +184,13 @@ async fn audit_logging(security_manager: &SecurityManager) -> RhemaResult<()> {
     // Log access attempts
     let access_attempts = vec![
         ("admin", "config.yml", "read", true, "Valid permissions"),
-        ("hacker", "config.yml", "write", false, "Unauthorized access"),
+        (
+            "hacker",
+            "config.yml",
+            "write",
+            false,
+            "Unauthorized access",
+        ),
         ("developer", "config.yml", "read", true, "Valid permissions"),
     ];
 
@@ -183,8 +200,10 @@ async fn audit_logging(security_manager: &SecurityManager) -> RhemaResult<()> {
             .log_access_attempt(user, resource, action, allowed, reason)
             .await?;
 
-        info!("Access attempt logged: {} {} {} -> {} ({})", 
-            user, action, resource, allowed, reason);
+        info!(
+            "Access attempt logged: {} {} {} -> {} ({})",
+            user, action, resource, allowed, reason
+        );
     }
 
     Ok(())
@@ -212,11 +231,9 @@ async fn compliance_checking(security_manager: &SecurityManager) -> RhemaResult<
             ComplianceStatus::Exempt => "⚠️",
         };
 
-        info!("  {} {}: {:?} - {}", 
-            status_icon, 
-            result.check_name, 
-            result.status, 
-            result.details
+        info!(
+            "  {} {}: {:?} - {}",
+            status_icon, result.check_name, result.status, result.details
         );
     }
 
@@ -231,9 +248,7 @@ async fn integrity_verification(security_manager: &SecurityManager) -> RhemaResu
     let config = create_sample_config()?;
 
     // Verify integrity
-    let integrity_valid = security_manager
-        .verify_integrity(&config)
-        .await?;
+    let integrity_valid = security_manager.verify_integrity(&config).await?;
 
     info!("Configuration integrity verification: {}", integrity_valid);
 
@@ -248,9 +263,7 @@ async fn integrity_verification(security_manager: &SecurityManager) -> RhemaResu
     // In a real scenario, this would be actual modification
     info!("Simulating configuration modification...");
 
-    let modified_integrity = security_manager
-        .verify_integrity(&modified_config)
-        .await?;
+    let modified_integrity = security_manager.verify_integrity(&modified_config).await?;
 
     info!("Modified configuration integrity: {}", modified_integrity);
 
@@ -271,8 +284,10 @@ async fn security_policy_enforcement(security_manager: &SecurityManager) -> Rhem
         info!("    Rules: {}", policy.rules.len());
 
         for rule in &policy.rules {
-            info!("      Rule: {} - {} (priority: {})", 
-                rule.name, rule.description, rule.priority);
+            info!(
+                "      Rule: {} - {} (priority: {})",
+                rule.name, rule.description, rule.priority
+            );
             info!("        Condition: {}", rule.condition);
             info!("        Action: {:?}", rule.action);
         }
@@ -296,25 +311,64 @@ async fn key_management(security_manager: &SecurityManager) -> RhemaResult<()> {
 
     info!("Key management settings:");
     info!("  Key rotation:");
-    info!("    Enabled: {}", security_config.key_management.key_rotation.enabled);
-    info!("    Interval: {} days", security_config.key_management.key_rotation.interval);
-    info!("    Method: {:?}", security_config.key_management.key_rotation.method);
-    info!("    Notification: {}", security_config.key_management.key_rotation.notification);
+    info!(
+        "    Enabled: {}",
+        security_config.key_management.key_rotation.enabled
+    );
+    info!(
+        "    Interval: {} days",
+        security_config.key_management.key_rotation.interval
+    );
+    info!(
+        "    Method: {:?}",
+        security_config.key_management.key_rotation.method
+    );
+    info!(
+        "    Notification: {}",
+        security_config.key_management.key_rotation.notification
+    );
 
     info!("  Key storage:");
-    info!("    Type: {:?}", security_config.key_management.key_storage.storage_type);
-    info!("    Path: {:?}", security_config.key_management.key_storage.path);
+    info!(
+        "    Type: {:?}",
+        security_config.key_management.key_storage.storage_type
+    );
+    info!(
+        "    Path: {:?}",
+        security_config.key_management.key_storage.path
+    );
 
     info!("  Key backup:");
-    info!("    Enabled: {}", security_config.key_management.key_backup.enabled);
-    info!("    Location: {:?}", security_config.key_management.key_backup.location);
-    info!("    Encryption: {}", security_config.key_management.key_backup.encryption);
-    info!("    Frequency: {}", security_config.key_management.key_backup.frequency);
+    info!(
+        "    Enabled: {}",
+        security_config.key_management.key_backup.enabled
+    );
+    info!(
+        "    Location: {:?}",
+        security_config.key_management.key_backup.location
+    );
+    info!(
+        "    Encryption: {}",
+        security_config.key_management.key_backup.encryption
+    );
+    info!(
+        "    Frequency: {}",
+        security_config.key_management.key_backup.frequency
+    );
 
     info!("  Key recovery:");
-    info!("    Enabled: {}", security_config.key_management.key_recovery.enabled);
-    info!("    Method: {:?}", security_config.key_management.key_recovery.method);
-    info!("    Verification: {}", security_config.key_management.key_recovery.verification);
+    info!(
+        "    Enabled: {}",
+        security_config.key_management.key_recovery.enabled
+    );
+    info!(
+        "    Method: {:?}",
+        security_config.key_management.key_recovery.method
+    );
+    info!(
+        "    Verification: {}",
+        security_config.key_management.key_recovery.verification
+    );
 
     Ok(())
 }
@@ -335,7 +389,7 @@ async fn security_monitoring(security_manager: &SecurityManager) -> RhemaResult<
 
     for activity in monitoring_activities {
         info!("Security monitoring: {}", activity);
-        
+
         // In a real implementation, this would involve actual monitoring logic
         // For demonstration, we'll simulate monitoring results
         info!("  Status: Active");
@@ -360,10 +414,26 @@ async fn security_incident_response(security_manager: &SecurityManager) -> Rhema
 
     // Simulate security incident scenarios
     let incident_scenarios = vec![
-        ("Unauthorized access attempt", "High", "Block IP, notify admin"),
-        ("Configuration tampering detected", "Critical", "Isolate system, restore from backup"),
-        ("Failed authentication threshold exceeded", "Medium", "Lock account, investigate"),
-        ("Suspicious configuration changes", "High", "Review changes, rollback if needed"),
+        (
+            "Unauthorized access attempt",
+            "High",
+            "Block IP, notify admin",
+        ),
+        (
+            "Configuration tampering detected",
+            "Critical",
+            "Isolate system, restore from backup",
+        ),
+        (
+            "Failed authentication threshold exceeded",
+            "Medium",
+            "Lock account, investigate",
+        ),
+        (
+            "Suspicious configuration changes",
+            "High",
+            "Review changes, rollback if needed",
+        ),
     ];
 
     for (incident, severity, response) in incident_scenarios {
@@ -397,7 +467,11 @@ async fn security_assessment(security_manager: &SecurityManager) -> RhemaResult<
         ("Audit Logging", "Comprehensive audit trail", "Strong"),
         ("Compliance", "SOC2 and GDPR compliance", "Strong"),
         ("Key Management", "Automated key rotation", "Strong"),
-        ("Incident Response", "Automated detection and response", "Good"),
+        (
+            "Incident Response",
+            "Automated detection and response",
+            "Good",
+        ),
     ];
 
     info!("Security assessment results:");
@@ -525,4 +599,4 @@ mod tests {
 
         assert!(!compliance_report.results.is_empty());
     }
-} 
+}

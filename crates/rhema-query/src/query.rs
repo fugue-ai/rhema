@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+use crate::search::{SearchEngine, SearchFilter, SearchOptions, SearchType};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use regex::Regex;
 use rhema_core::{scope::Scope, RhemaError};
@@ -21,7 +22,6 @@ use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use crate::search::{SearchEngine, SearchOptions, SearchType, SearchFilter};
 
 /// Provenance information for query execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -240,7 +240,7 @@ pub enum TransformationType {
 pub struct CqlQuery {
     /// Query string
     pub query: String,
-    
+
     /// Target file or path
     pub target: String,
 
@@ -1317,20 +1317,18 @@ pub fn search_context_regex(
     file_filter: Option<&str>,
 ) -> Result<Vec<QueryResult>, RhemaError> {
     let start_time = std::time::Instant::now();
-    
+
     // Create search engine with optimized configuration
     let mut search_engine = SearchEngine::new();
-    
+
     // Discover scopes
     let scopes = rhema_core::scope::discover_scopes(repo_root)?;
-    
+
     // Build search index
     let runtime = tokio::runtime::Runtime::new()
         .map_err(|e| RhemaError::ConfigError(format!("Failed to create runtime: {}", e)))?;
-    
-    runtime.block_on(async {
-        search_engine.build_index(repo_root, &scopes).await
-    })?;
+
+    runtime.block_on(async { search_engine.build_index(repo_root, &scopes).await })?;
 
     // Create search options with filters
     let mut filters = Vec::new();
@@ -1354,42 +1352,69 @@ pub fn search_context_regex(
 
     // Perform regex search
     let search_results = runtime.block_on(async {
-        search_engine.regex_search(pattern, Some(search_options)).await
+        search_engine
+            .regex_search(pattern, Some(search_options))
+            .await
     })?;
 
     // Convert search results to query results
     let mut results = Vec::new();
     for search_result in search_results {
         // Parse YAML content if possible
-        let yaml_data = if search_result.path.ends_with(".yaml") || search_result.path.ends_with(".yml") {
-            serde_yaml::from_str(&search_result.content).unwrap_or_else(|_| {
+        let yaml_data =
+            if search_result.path.ends_with(".yaml") || search_result.path.ends_with(".yml") {
+                serde_yaml::from_str(&search_result.content)
+                    .unwrap_or_else(|_| serde_yaml::Value::String(search_result.content.clone()))
+            } else {
                 serde_yaml::Value::String(search_result.content.clone())
-            })
-        } else {
-            serde_yaml::Value::String(search_result.content.clone())
-        };
+            };
 
         // Extract scope from result ID
         let scope_name = search_result.id.split(':').next().unwrap_or("unknown");
-        
+
         let mut metadata = HashMap::new();
-        metadata.insert("search_score".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(search_result.score)));
-        metadata.insert("search_type".to_string(), serde_yaml::Value::String("regex".to_string()));
-        metadata.insert("match_count".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(search_result.match_positions.len())));
-        metadata.insert("file_size".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(search_result.file_size)));
-        metadata.insert("doc_type".to_string(), serde_yaml::Value::String(format!("{:?}", search_result.doc_type)));
-        
+        metadata.insert(
+            "search_score".to_string(),
+            serde_yaml::Value::Number(serde_yaml::Number::from(search_result.score)),
+        );
+        metadata.insert(
+            "search_type".to_string(),
+            serde_yaml::Value::String("regex".to_string()),
+        );
+        metadata.insert(
+            "match_count".to_string(),
+            serde_yaml::Value::Number(serde_yaml::Number::from(
+                search_result.match_positions.len(),
+            )),
+        );
+        metadata.insert(
+            "file_size".to_string(),
+            serde_yaml::Value::Number(serde_yaml::Number::from(search_result.file_size)),
+        );
+        metadata.insert(
+            "doc_type".to_string(),
+            serde_yaml::Value::String(format!("{:?}", search_result.doc_type)),
+        );
+
         if let Some(explanation) = search_result.relevance_explanation {
-            metadata.insert("relevance_explanation".to_string(), serde_yaml::Value::String(explanation));
+            metadata.insert(
+                "relevance_explanation".to_string(),
+                serde_yaml::Value::String(explanation),
+            );
         }
 
         // Add highlights as metadata
         if !search_result.highlights.is_empty() {
-            metadata.insert("highlights".to_string(), serde_yaml::Value::Sequence(
-                search_result.highlights.into_iter()
-                    .map(|h| serde_yaml::Value::String(h))
-                    .collect()
-            ));
+            metadata.insert(
+                "highlights".to_string(),
+                serde_yaml::Value::Sequence(
+                    search_result
+                        .highlights
+                        .into_iter()
+                        .map(|h| serde_yaml::Value::String(h))
+                        .collect(),
+                ),
+            );
         }
 
         results.push(QueryResult {
@@ -1405,17 +1430,27 @@ pub fn search_context_regex(
 
     // Sort by search score (highest first)
     results.sort_by(|a, b| {
-        let score_a = a.metadata.get("search_score")
+        let score_a = a
+            .metadata
+            .get("search_score")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0);
-        let score_b = b.metadata.get("search_score")
+        let score_b = b
+            .metadata
+            .get("search_score")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0);
-        score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
+        score_b
+            .partial_cmp(&score_a)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
     let search_time = start_time.elapsed();
-    tracing::debug!("Regex search completed in {:?} with {} results", search_time, results.len());
+    tracing::debug!(
+        "Regex search completed in {:?} with {} results",
+        search_time,
+        results.len()
+    );
 
     Ok(results)
 }

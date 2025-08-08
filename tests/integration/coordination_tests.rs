@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-use rhema_ai::{
-    ai_service::{AIService, AIServiceConfig}, CoordinationConfig,
-    agent::real_time_coordination::{AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority},
-};
 use rhema_ai::grpc::coordination_client::SyneidesisConfig;
+use rhema_ai::{
+    agent::real_time_coordination::{
+        AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType,
+    },
+    ai_service::{AIService, AIServiceConfig},
+    CoordinationConfig,
+};
 use rhema_core::RhemaResult;
 use std::path::PathBuf;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 #[tokio::test]
 async fn test_coordination_integration_creation() -> RhemaResult<()> {
     info!("🧪 Testing coordination integration creation");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -55,7 +58,7 @@ async fn test_coordination_integration_creation() -> RhemaResult<()> {
 
     let service = AIService::new(config).await?;
     assert!(service.has_coordination_integration());
-    
+
     info!("✅ Coordination integration creation test passed");
     Ok(())
 }
@@ -63,13 +66,13 @@ async fn test_coordination_integration_creation() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_syneidesis_integration_creation() -> RhemaResult<()> {
     info!("🧪 Testing Syneidesis integration creation");
-    
+
     let mut coordination_config = CoordinationConfig::default();
     coordination_config.syneidesis = Some(SyneidesisConfig {
         enabled: true,
         ..Default::default()
     });
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -98,11 +101,11 @@ async fn test_syneidesis_integration_creation() -> RhemaResult<()> {
 
     let service = AIService::new(config).await?;
     assert!(service.has_coordination_integration());
-    
+
     // Check Syneidesis status
     let status = service.get_syneidesis_status().await;
     assert!(status.is_some());
-    
+
     info!("✅ Syneidesis integration creation test passed");
     Ok(())
 }
@@ -110,7 +113,7 @@ async fn test_syneidesis_integration_creation() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_agent_registration_with_coordination() -> RhemaResult<()> {
     info!("🧪 Testing agent registration with coordination");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -149,12 +152,13 @@ async fn test_agent_registration_with_coordination() -> RhemaResult<()> {
         capabilities: vec!["test".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+        performance_metrics:
+            rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
     };
 
     let result = service.register_agent_with_coordination(agent_info).await;
     assert!(result.is_ok());
-    
+
     info!("✅ Agent registration with coordination test passed");
     Ok(())
 }
@@ -162,7 +166,7 @@ async fn test_agent_registration_with_coordination() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_message_sending_with_coordination() -> RhemaResult<()> {
     info!("🧪 Testing message sending with coordination");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -209,7 +213,7 @@ async fn test_message_sending_with_coordination() -> RhemaResult<()> {
 
     let result = service.send_message_with_coordination(message).await;
     assert!(result.is_ok());
-    
+
     info!("✅ Message sending with coordination test passed");
     Ok(())
 }
@@ -217,7 +221,7 @@ async fn test_message_sending_with_coordination() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_session_creation_with_coordination() -> RhemaResult<()> {
     info!("🧪 Testing session creation with coordination");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -246,13 +250,15 @@ async fn test_session_creation_with_coordination() -> RhemaResult<()> {
 
     let service = AIService::new(config).await?;
 
-    let session_id = service.create_session(
-        "Test Session".to_string(),
-        vec!["agent-1".to_string(), "agent-2".to_string()],
-    ).await?;
+    let session_id = service
+        .create_session(
+            "Test Session".to_string(),
+            vec!["agent-1".to_string(), "agent-2".to_string()],
+        )
+        .await?;
 
     assert!(!session_id.is_empty());
-    
+
     info!("✅ Session creation with coordination test passed");
     Ok(())
 }
@@ -260,7 +266,7 @@ async fn test_session_creation_with_coordination() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_session_join_and_message() -> RhemaResult<()> {
     info!("🧪 Testing session join and message sending");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -290,10 +296,12 @@ async fn test_session_join_and_message() -> RhemaResult<()> {
     let service = AIService::new(config).await?;
 
     // Create session
-    let session_id = service.create_session(
-        "Test Session".to_string(),
-        vec!["agent-1".to_string(), "agent-2".to_string()],
-    ).await?;
+    let session_id = service
+        .create_session(
+            "Test Session".to_string(),
+            vec!["agent-1".to_string(), "agent-2".to_string()],
+        )
+        .await?;
 
     // Join session
     let join_result = service.join_session(&session_id, "agent-1").await;
@@ -319,7 +327,7 @@ async fn test_session_join_and_message() -> RhemaResult<()> {
 
     let send_result = service.send_session_message(&session_id, message).await;
     assert!(send_result.is_ok());
-    
+
     info!("✅ Session join and message test passed");
     Ok(())
 }
@@ -327,7 +335,7 @@ async fn test_session_join_and_message() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_coordination_statistics() -> RhemaResult<()> {
     info!("🧪 Testing coordination statistics");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -367,7 +375,8 @@ async fn test_coordination_statistics() -> RhemaResult<()> {
         capabilities: vec!["test".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+        performance_metrics:
+            rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
     };
 
     service.register_agent_with_coordination(agent_info).await?;
@@ -392,11 +401,11 @@ async fn test_coordination_statistics() -> RhemaResult<()> {
     // Get statistics
     let stats = service.get_coordination_stats().await;
     assert!(stats.is_some());
-    
+
     let stats = stats.unwrap();
     assert!(stats.rhema_agents > 0);
     assert!(stats.bridge_messages_sent > 0);
-    
+
     info!("✅ Coordination statistics test passed");
     Ok(())
 }
@@ -404,7 +413,7 @@ async fn test_coordination_statistics() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_coordination_health_monitoring() -> RhemaResult<()> {
     info!("🧪 Testing coordination health monitoring");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -436,10 +445,10 @@ async fn test_coordination_health_monitoring() -> RhemaResult<()> {
     // Start health monitoring
     let health_result = service.start_coordination_health_monitoring().await;
     assert!(health_result.is_ok());
-    
+
     // Wait a bit for health monitoring to start
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-    
+
     info!("✅ Coordination health monitoring test passed");
     Ok(())
 }
@@ -447,7 +456,7 @@ async fn test_coordination_health_monitoring() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_coordination_shutdown() -> RhemaResult<()> {
     info!("🧪 Testing coordination shutdown");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -479,7 +488,7 @@ async fn test_coordination_shutdown() -> RhemaResult<()> {
     // Shutdown coordination
     let shutdown_result = service.shutdown_coordination().await;
     assert!(shutdown_result.is_ok());
-    
+
     info!("✅ Coordination shutdown test passed");
     Ok(())
 }
@@ -487,7 +496,7 @@ async fn test_coordination_shutdown() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_coordination_disabled() -> RhemaResult<()> {
     info!("🧪 Testing coordination disabled functionality");
-    
+
     let config = AIServiceConfig {
         api_key: "test-key".to_string(),
         base_url: "https://api.openai.com".to_string(),
@@ -530,7 +539,8 @@ async fn test_coordination_disabled() -> RhemaResult<()> {
         capabilities: vec!["test".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+        performance_metrics:
+            rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
     };
 
     let register_result = service.register_agent_with_coordination(agent_info).await;
@@ -557,7 +567,7 @@ async fn test_coordination_disabled() -> RhemaResult<()> {
     // Get statistics (should return None)
     let stats = service.get_coordination_stats().await;
     assert!(stats.is_none());
-    
+
     info!("✅ Coordination disabled test passed");
     Ok(())
-} 
+}

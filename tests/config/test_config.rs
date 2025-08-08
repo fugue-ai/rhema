@@ -1,8 +1,8 @@
 //! Test configuration and setup for Rhema CLI tests
 
+use env_logger;
 use std::env;
 use std::path::PathBuf;
-use env_logger;
 
 /// Test configuration
 #[derive(Debug, Clone)]
@@ -44,7 +44,10 @@ impl Default for TestConfig {
         Self {
             run_slow_tests: env::var("RHEMA_RUN_SLOW_TESTS").is_ok(),
             run_integration_tests: env::var("RHEMA_RUN_INTEGRATION_TESTS").is_ok(),
-            run_coordination_integration_tests: env::var("RHEMA_RUN_COORDINATION_INTEGRATION_TESTS").is_ok(),
+            run_coordination_integration_tests: env::var(
+                "RHEMA_RUN_COORDINATION_INTEGRATION_TESTS",
+            )
+            .is_ok(),
             run_performance_tests: env::var("RHEMA_RUN_PERFORMANCE_TESTS").is_ok(),
             run_coordination_benchmarks: env::var("RHEMA_RUN_COORDINATION_BENCHMARKS").is_ok(),
             run_security_tests: env::var("RHEMA_RUN_SECURITY_TESTS").is_ok(),

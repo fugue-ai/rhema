@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use rhema_agent::agent::{
-    Agent, AgentId, AgentConfig, AgentContext, AgentCapability, AgentType, AgentState,
-    AgentMessage, AgentRequest, AgentResponse, AgentStatus, HealthStatus, ResourceUsage,
-    BaseAgent
+    Agent, AgentCapability, AgentConfig, AgentContext, AgentId, AgentMessage, AgentRequest,
+    AgentResponse, AgentState, AgentStatus, AgentType, BaseAgent, HealthStatus, ResourceUsage,
 };
 use rhema_agent::error::{AgentError, AgentResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
-use tracing::{info, warn, error, debug};
 
 /// Test types
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -267,13 +266,17 @@ impl TestRunnerAgent {
                 AgentCapability::Analysis,
             ],
             max_concurrent_tasks: 10,
-            task_timeout: 600, // 10 minutes
+            task_timeout: 600,        // 10 minutes
             memory_limit: Some(1024), // 1 GB
-            cpu_limit: Some(75.0), // 75% CPU
+            cpu_limit: Some(75.0),    // 75% CPU
             retry_attempts: 2,
             retry_delay: 5,
             parameters: HashMap::new(),
-            tags: vec!["testing".to_string(), "test-generation".to_string(), "test-execution".to_string()],
+            tags: vec![
+                "testing".to_string(),
+                "test-generation".to_string(),
+                "test-execution".to_string(),
+            ],
         };
 
         let mut agent = Self {
@@ -356,7 +359,8 @@ mod tests {
         {assertion_code}
     }}
 }}
-"#.to_string(),
+"#
+            .to_string(),
         );
 
         // Python unit test template
@@ -382,7 +386,8 @@ class Test{class_name}(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-"#.to_string(),
+"#
+            .to_string(),
         );
 
         // JavaScript unit test template
@@ -407,31 +412,41 @@ describe('{class_name}', () => {{
         {assertion_code}
     }});
 }});
-"#.to_string(),
+"#
+            .to_string(),
         );
     }
 
     /// Generate tests for source code
-    async fn generate_tests(&mut self, request: TestGenerationRequest) -> AgentResult<serde_json::Value> {
+    async fn generate_tests(
+        &mut self,
+        request: TestGenerationRequest,
+    ) -> AgentResult<serde_json::Value> {
         info!("Starting test generation for path: {}", request.source_path);
 
-        let files = self.get_source_files(&request.source_path, &request.file_extensions).await?;
+        let files = self
+            .get_source_files(&request.source_path, &request.file_extensions)
+            .await?;
         let mut generated_tests = Vec::new();
 
         for file_path in &files {
             debug!("Analyzing file for test generation: {}", file_path);
-            
+
             let content = self.read_file_content(file_path).await?;
             let testable_functions = self.analyze_code_for_testing(&content, file_path).await?;
-            
+
             for function in testable_functions {
-                let test_code = self.generate_test_for_function(&function, &request.test_framework).await?;
+                let test_code = self
+                    .generate_test_for_function(&function, &request.test_framework)
+                    .await?;
                 generated_tests.push(test_code);
             }
         }
 
         // Write generated tests to output directory
-        let output_files = self.write_generated_tests(&generated_tests, &request.output_directory).await?;
+        let output_files = self
+            .write_generated_tests(&generated_tests, &request.output_directory)
+            .await?;
 
         let generation_result = serde_json::json!({
             "generation_id": Uuid::new_v4().to_string(),
@@ -443,25 +458,40 @@ describe('{class_name}', () => {{
         });
 
         // Store in generation history
-        self.generation_history.push(generation_result["generation_id"].as_str().unwrap().to_string());
+        self.generation_history.push(
+            generation_result["generation_id"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        );
 
-        info!("Test generation completed. Generated {} test files", output_files.len());
+        info!(
+            "Test generation completed. Generated {} test files",
+            output_files.len()
+        );
 
         Ok(generation_result)
     }
 
     /// Execute tests
-    async fn execute_tests(&mut self, request: TestExecutionRequest) -> AgentResult<serde_json::Value> {
+    async fn execute_tests(
+        &mut self,
+        request: TestExecutionRequest,
+    ) -> AgentResult<serde_json::Value> {
         info!("Starting test execution for path: {}", request.test_path);
 
         let framework = self.get_test_framework(&request.test_framework)?;
-        let test_suites = self.discover_test_suites(&request.test_path, &request.test_types).await?;
+        let test_suites = self
+            .discover_test_suites(&request.test_path, &request.test_types)
+            .await?;
         let mut execution_results = Vec::new();
 
         for suite in test_suites {
             debug!("Executing test suite: {}", suite.name);
-            
-            let suite_result = self.execute_test_suite(&suite, &framework, &request).await?;
+
+            let suite_result = self
+                .execute_test_suite(&suite, &framework, &request)
+                .await?;
             execution_results.push(suite_result);
         }
 
@@ -469,7 +499,10 @@ describe('{class_name}', () => {{
         let passed_tests = execution_results.iter().map(|s| s.passed_tests).sum();
         let failed_tests = execution_results.iter().map(|s| s.failed_tests).sum();
         let skipped_tests = execution_results.iter().map(|s| s.skipped_tests).sum();
-        let total_duration = execution_results.iter().map(|s| s.duration.unwrap_or(0)).sum();
+        let total_duration = execution_results
+            .iter()
+            .map(|s| s.duration.unwrap_or(0))
+            .sum();
 
         let overall_status = if failed_tests > 0 {
             TestStatus::Failed
@@ -488,21 +521,36 @@ describe('{class_name}', () => {{
             failed_tests,
             skipped_tests,
             total_duration,
-            summary: self.generate_execution_summary(passed_tests, failed_tests, skipped_tests, total_duration),
+            summary: self.generate_execution_summary(
+                passed_tests,
+                failed_tests,
+                skipped_tests,
+                total_duration,
+            ),
             executed_at: Utc::now(),
         };
 
         // Store in execution history
         self.execution_history.push(response.clone());
 
-        info!("Test execution completed. {} passed, {} failed, {} skipped",
-              passed_tests, failed_tests, skipped_tests);
+        info!(
+            "Test execution completed. {} passed, {} failed, {} skipped",
+            passed_tests, failed_tests, skipped_tests
+        );
 
-        Ok(serde_json::to_value(response).map_err(|e| AgentError::SerializationError { reason: e.to_string() })?)
+        Ok(
+            serde_json::to_value(response).map_err(|e| AgentError::SerializationError {
+                reason: e.to_string(),
+            })?,
+        )
     }
 
     /// Analyze code for testable functions
-    async fn analyze_code_for_testing(&self, code: &str, file_path: &str) -> AgentResult<Vec<TestableFunction>> {
+    async fn analyze_code_for_testing(
+        &self,
+        code: &str,
+        file_path: &str,
+    ) -> AgentResult<Vec<TestableFunction>> {
         let mut functions = Vec::new();
         let lines: Vec<&str> = code.lines().collect();
 
@@ -518,9 +566,17 @@ describe('{class_name}', () => {{
     }
 
     /// Extract function information from a line
-    fn extract_function_info(&self, line: &str, line_num: usize, file_path: &str) -> Option<TestableFunction> {
+    fn extract_function_info(
+        &self,
+        line: &str,
+        line_num: usize,
+        file_path: &str,
+    ) -> Option<TestableFunction> {
         // Rust function pattern
-        if let Some(caps) = regex::Regex::new(r"fn\s+(\w+)\s*\([^)]*\)\s*(?:->\s*[^{]+)?\s*\{").unwrap().captures(line) {
+        if let Some(caps) = regex::Regex::new(r"fn\s+(\w+)\s*\([^)]*\)\s*(?:->\s*[^{]+)?\s*\{")
+            .unwrap()
+            .captures(line)
+        {
             return Some(TestableFunction {
                 name: caps[1].to_string(),
                 line_number: line_num + 1,
@@ -532,7 +588,10 @@ describe('{class_name}', () => {{
         }
 
         // Python function pattern
-        if let Some(caps) = regex::Regex::new(r"def\s+(\w+)\s*\([^)]*\)\s*:").unwrap().captures(line) {
+        if let Some(caps) = regex::Regex::new(r"def\s+(\w+)\s*\([^)]*\)\s*:")
+            .unwrap()
+            .captures(line)
+        {
             return Some(TestableFunction {
                 name: caps[1].to_string(),
                 line_number: line_num + 1,
@@ -544,7 +603,10 @@ describe('{class_name}', () => {{
         }
 
         // JavaScript function pattern
-        if let Some(caps) = regex::Regex::new(r"(?:function\s+)?(\w+)\s*\([^)]*\)\s*\{").unwrap().captures(line) {
+        if let Some(caps) = regex::Regex::new(r"(?:function\s+)?(\w+)\s*\([^)]*\)\s*\{")
+            .unwrap()
+            .captures(line)
+        {
             return Some(TestableFunction {
                 name: caps[1].to_string(),
                 line_number: line_num + 1,
@@ -561,7 +623,8 @@ describe('{class_name}', () => {{
     /// Extract parameters from function signature
     fn extract_parameters(&self, line: &str) -> Vec<String> {
         if let Some(caps) = regex::Regex::new(r"\(([^)]*)\)").unwrap().captures(line) {
-            caps[1].split(',')
+            caps[1]
+                .split(',')
                 .map(|p| p.trim().split(':').next().unwrap_or("").trim().to_string())
                 .filter(|p| !p.is_empty())
                 .collect()
@@ -580,10 +643,18 @@ describe('{class_name}', () => {{
     }
 
     /// Generate test for a specific function
-    async fn generate_test_for_function(&self, function: &TestableFunction, framework: &str) -> AgentResult<GeneratedTest> {
+    async fn generate_test_for_function(
+        &self,
+        function: &TestableFunction,
+        framework: &str,
+    ) -> AgentResult<GeneratedTest> {
         let template_key = format!("{}_unit", framework);
-        let template = self.test_templates.get(&template_key)
-            .ok_or_else(|| AgentError::ValidationError { reason: format!("No template found for framework: {}", framework) })?;
+        let template =
+            self.test_templates
+                .get(&template_key)
+                .ok_or_else(|| AgentError::ValidationError {
+                    reason: format!("No template found for framework: {}", framework),
+                })?;
 
         let test_code = template
             .replace("{function_name}", &function.name)
@@ -591,8 +662,14 @@ describe('{class_name}', () => {{
             .replace("{method_name}", &function.name)
             .replace("{module_name}", "module")
             .replace("{setup_code}", "// TODO: Add setup code")
-            .replace("{function_call}", &format!("{}(/* TODO: Add parameters */)", function.name))
-            .replace("{method_call}", &format!("self.{}(/* TODO: Add parameters */)", function.name))
+            .replace(
+                "{function_call}",
+                &format!("{}(/* TODO: Add parameters */)", function.name),
+            )
+            .replace(
+                "{method_call}",
+                &format!("self.{}(/* TODO: Add parameters */)", function.name),
+            )
             .replace("{assertion_code}", "// TODO: Add assertions")
             .replace("{test_description}", &format!("test {}", function.name));
 
@@ -605,7 +682,11 @@ describe('{class_name}', () => {{
     }
 
     /// Write generated tests to files
-    async fn write_generated_tests(&self, tests: &[GeneratedTest], output_dir: &str) -> AgentResult<Vec<String>> {
+    async fn write_generated_tests(
+        &self,
+        tests: &[GeneratedTest],
+        output_dir: &str,
+    ) -> AgentResult<Vec<String>> {
         use std::fs;
         use std::path::Path;
 
@@ -613,17 +694,19 @@ describe('{class_name}', () => {{
 
         // Create output directory if it doesn't exist
         if !Path::new(output_dir).exists() {
-                    fs::create_dir_all(output_dir)
-            .map_err(|e| AgentError::StorageError { reason: format!("Failed to create output directory: {}", e) })?;
+            fs::create_dir_all(output_dir).map_err(|e| AgentError::StorageError {
+                reason: format!("Failed to create output directory: {}", e),
+            })?;
         }
 
         for test in tests {
             let filename = format!("test_{}.rs", test.function_name);
             let filepath = Path::new(output_dir).join(&filename);
-            
-            fs::write(&filepath, &test.test_code)
-                .map_err(|e| AgentError::StorageError { reason: format!("Failed to write test file: {}", e) })?;
-            
+
+            fs::write(&filepath, &test.test_code).map_err(|e| AgentError::StorageError {
+                reason: format!("Failed to write test file: {}", e),
+            })?;
+
             output_files.push(filepath.to_string_lossy().to_string());
         }
 
@@ -631,7 +714,12 @@ describe('{class_name}', () => {{
     }
 
     /// Execute a test suite
-    async fn execute_test_suite(&self, suite: &TestSuite, framework: &TestFramework, request: &TestExecutionRequest) -> AgentResult<TestSuite> {
+    async fn execute_test_suite(
+        &self,
+        suite: &TestSuite,
+        framework: &TestFramework,
+        request: &TestExecutionRequest,
+    ) -> AgentResult<TestSuite> {
         let start_time = std::time::Instant::now();
         let mut results = Vec::new();
 
@@ -641,9 +729,18 @@ describe('{class_name}', () => {{
         }
 
         let duration = start_time.elapsed().as_millis() as u64;
-        let passed_tests = results.iter().filter(|t| t.status == TestStatus::Passed).count();
-        let failed_tests = results.iter().filter(|t| t.status == TestStatus::Failed).count();
-        let skipped_tests = results.iter().filter(|t| t.status == TestStatus::Skipped).count();
+        let passed_tests = results
+            .iter()
+            .filter(|t| t.status == TestStatus::Passed)
+            .count();
+        let failed_tests = results
+            .iter()
+            .filter(|t| t.status == TestStatus::Failed)
+            .count();
+        let skipped_tests = results
+            .iter()
+            .filter(|t| t.status == TestStatus::Skipped)
+            .count();
 
         let status = if failed_tests > 0 {
             TestStatus::Failed
@@ -668,7 +765,12 @@ describe('{class_name}', () => {{
     }
 
     /// Execute a single test
-    async fn execute_single_test(&self, test: &TestResult, framework: &TestFramework, request: &TestExecutionRequest) -> AgentResult<TestResult> {
+    async fn execute_single_test(
+        &self,
+        test: &TestResult,
+        framework: &TestFramework,
+        request: &TestExecutionRequest,
+    ) -> AgentResult<TestResult> {
         let start_time = std::time::Instant::now();
         let mut result = test.clone();
         result.status = TestStatus::Running;
@@ -676,7 +778,9 @@ describe('{class_name}', () => {{
 
         // Simulate test execution
         // In a real implementation, you would actually run the test command
-        let execution_result = self.run_test_command(&framework.test_command, &test.name).await?;
+        let execution_result = self
+            .run_test_command(&framework.test_command, &test.name)
+            .await?;
 
         let duration = start_time.elapsed().as_millis() as u64;
         result.duration = Some(duration);
@@ -703,7 +807,9 @@ describe('{class_name}', () => {{
             .arg(format!("{} {}", command, test_name))
             .output()
             .await
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to execute test command: {}", e) })?;
+            .map_err(|e| AgentError::ExecutionFailed {
+                reason: format!("Failed to execute test command: {}", e),
+            })?;
 
         Ok(CommandResult {
             success: output.status.success(),
@@ -713,12 +819,16 @@ describe('{class_name}', () => {{
     }
 
     /// Get source files to analyze
-    async fn get_source_files(&self, source_path: &str, extensions: &[String]) -> AgentResult<Vec<String>> {
+    async fn get_source_files(
+        &self,
+        source_path: &str,
+        extensions: &[String],
+    ) -> AgentResult<Vec<String>> {
         use std::fs;
         use std::path::Path;
 
         let mut files = Vec::new();
-        
+
         if let Ok(entries) = fs::read_dir(source_path) {
             for entry in entries {
                 if let Ok(entry) = entry {
@@ -734,7 +844,9 @@ describe('{class_name}', () => {{
                         }
                     } else if path.is_dir() {
                         // Recursively scan subdirectories
-                        let sub_files = Box::pin(self.get_source_files(path.to_str().unwrap(), extensions)).await?;
+                        let sub_files =
+                            Box::pin(self.get_source_files(path.to_str().unwrap(), extensions))
+                                .await?;
                         files.extend(sub_files);
                     }
                 }
@@ -745,27 +857,29 @@ describe('{class_name}', () => {{
     }
 
     /// Discover test suites
-    async fn discover_test_suites(&self, test_path: &str, test_types: &[TestType]) -> AgentResult<Vec<TestSuite>> {
+    async fn discover_test_suites(
+        &self,
+        test_path: &str,
+        test_types: &[TestType],
+    ) -> AgentResult<Vec<TestSuite>> {
         // This is a simplified implementation
         // In a real scenario, you would scan for test files and parse them
         let suite = TestSuite {
             id: Uuid::new_v4().to_string(),
             name: "Default Test Suite".to_string(),
-            tests: vec![
-                TestResult {
-                    id: Uuid::new_v4().to_string(),
-                    name: "sample_test".to_string(),
-                    test_type: TestType::Unit,
-                    status: TestStatus::Pending,
-                    duration: None,
-                    output: None,
-                    error_message: None,
-                    stack_trace: None,
-                    metadata: HashMap::new(),
-                    started_at: Utc::now(),
-                    completed_at: None,
-                }
-            ],
+            tests: vec![TestResult {
+                id: Uuid::new_v4().to_string(),
+                name: "sample_test".to_string(),
+                test_type: TestType::Unit,
+                status: TestStatus::Pending,
+                duration: None,
+                output: None,
+                error_message: None,
+                stack_trace: None,
+                metadata: HashMap::new(),
+                started_at: Utc::now(),
+                completed_at: None,
+            }],
             status: TestStatus::Pending,
             total_tests: 1,
             passed_tests: 0,
@@ -780,8 +894,11 @@ describe('{class_name}', () => {{
 
     /// Get test framework
     fn get_test_framework(&self, framework_name: &str) -> AgentResult<&TestFramework> {
-        self.supported_frameworks.get(framework_name)
-            .ok_or_else(|| AgentError::ValidationError { reason: format!("Unsupported test framework: {}", framework_name) })
+        self.supported_frameworks
+            .get(framework_name)
+            .ok_or_else(|| AgentError::ValidationError {
+                reason: format!("Unsupported test framework: {}", framework_name),
+            })
     }
 
     /// Read file content
@@ -789,21 +906,34 @@ describe('{class_name}', () => {{
         use std::fs;
         use std::io::Read;
 
-        let mut file = fs::File::open(file_path)
-            .map_err(|e| AgentError::StorageError { reason: format!("Failed to open file {}: {}", file_path, e) })?;
-        
+        let mut file = fs::File::open(file_path).map_err(|e| AgentError::StorageError {
+            reason: format!("Failed to open file {}: {}", file_path, e),
+        })?;
+
         let mut content = String::new();
         file.read_to_string(&mut content)
-            .map_err(|e| AgentError::StorageError { reason: format!("Failed to read file {}: {}", file_path, e) })?;
-        
+            .map_err(|e| AgentError::StorageError {
+                reason: format!("Failed to read file {}: {}", file_path, e),
+            })?;
+
         Ok(content)
     }
 
     /// Generate execution summary
-    fn generate_execution_summary(&self, passed: usize, failed: usize, skipped: usize, duration: u64) -> String {
+    fn generate_execution_summary(
+        &self,
+        passed: usize,
+        failed: usize,
+        skipped: usize,
+        duration: u64,
+    ) -> String {
         let total = passed + failed + skipped;
-        let success_rate = if total > 0 { (passed as f64 / total as f64) * 100.0 } else { 0.0 };
-        
+        let success_rate = if total > 0 {
+            (passed as f64 / total as f64) * 100.0
+        } else {
+            0.0
+        };
+
         format!(
             "Test execution completed in {:.2}s. {} tests total: {} passed ({:.1}%), {} failed, {} skipped.",
             duration as f64 / 1000.0,
@@ -922,20 +1052,30 @@ impl Agent for TestRunnerAgent {
 
         let result = match request.request_type.as_str() {
             "generate_tests" => {
-                if let Ok(generation_request) = serde_json::from_value::<TestGenerationRequest>(request.payload) {
+                if let Ok(generation_request) =
+                    serde_json::from_value::<TestGenerationRequest>(request.payload)
+                {
                     self.generate_tests(generation_request).await
                 } else {
-                    Err(AgentError::ValidationError { reason: "Invalid test generation request format".to_string() })
+                    Err(AgentError::ValidationError {
+                        reason: "Invalid test generation request format".to_string(),
+                    })
                 }
             }
             "execute_tests" => {
-                if let Ok(execution_request) = serde_json::from_value::<TestExecutionRequest>(request.payload) {
+                if let Ok(execution_request) =
+                    serde_json::from_value::<TestExecutionRequest>(request.payload)
+                {
                     self.execute_tests(execution_request).await
                 } else {
-                    Err(AgentError::ValidationError { reason: "Invalid test execution request format".to_string() })
+                    Err(AgentError::ValidationError {
+                        reason: "Invalid test execution request format".to_string(),
+                    })
                 }
             }
-            _ => Err(AgentError::ValidationError { reason: format!("Unknown request type: {}", request.request_type) }),
+            _ => Err(AgentError::ValidationError {
+                reason: format!("Unknown request type: {}", request.request_type),
+            }),
         };
 
         let execution_time = start_time.elapsed().as_millis() as u64;
@@ -945,8 +1085,7 @@ impl Agent for TestRunnerAgent {
         match result {
             Ok(payload) => {
                 self.record_task_completion(true);
-                Ok(AgentResponse::success(request.id, payload)
-                    .with_execution_time(execution_time))
+                Ok(AgentResponse::success(request.id, payload).with_execution_time(execution_time))
             }
             Err(e) => {
                 self.record_task_completion(false);
@@ -958,7 +1097,7 @@ impl Agent for TestRunnerAgent {
 
     async fn get_status(&self) -> AgentResult<AgentStatus> {
         let base_status = self.base.get_status().await?;
-        
+
         Ok(AgentStatus {
             agent_id: base_status.agent_id,
             state: base_status.state,
@@ -981,8 +1120,8 @@ impl Agent for TestRunnerAgent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_test_runner_agent_creation() {
@@ -995,12 +1134,12 @@ mod tests {
     #[tokio::test]
     async fn test_function_extraction() {
         let agent = TestRunnerAgent::new("test-agent".to_string());
-        
+
         // Test Rust function extraction
         let rust_code = "fn calculate_sum(a: i32, b: i32) -> i32 {";
         let function = agent.extract_function_info(rust_code, 0, "test.rs");
         assert!(function.is_some());
-        
+
         let function = function.unwrap();
         assert_eq!(function.name, "calculate_sum");
         assert_eq!(function.parameters, vec!["a", "b"]);
@@ -1016,8 +1155,10 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let source_file = temp_dir.path().join("calculator.rs");
         let output_dir = temp_dir.path().join("tests");
-        
-        fs::write(&source_file, r#"
+
+        fs::write(
+            &source_file,
+            r#"
             pub fn add(a: i32, b: i32) -> i32 {
                 a + b
             }
@@ -1025,7 +1166,9 @@ mod tests {
             pub fn subtract(a: i32, b: i32) -> i32 {
                 a - b
             }
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let request = TestGenerationRequest {
             source_path: temp_dir.path().to_string_lossy().to_string(),
@@ -1068,14 +1211,14 @@ mod tests {
     #[tokio::test]
     async fn test_supported_frameworks() {
         let agent = TestRunnerAgent::new("test-agent".to_string());
-        
+
         // Test that supported frameworks are initialized
         assert!(agent.supported_frameworks.contains_key("rust"));
         assert!(agent.supported_frameworks.contains_key("pytest"));
         assert!(agent.supported_frameworks.contains_key("jest"));
-        
+
         let rust_framework = &agent.supported_frameworks["rust"];
         assert_eq!(rust_framework.name, "Rust Test Framework");
         assert!(rust_framework.supported_types.contains(&TestType::Unit));
     }
-} 
+}

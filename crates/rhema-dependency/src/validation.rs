@@ -1,12 +1,14 @@
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Utc};
 use jsonschema::JSONSchema;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::{HashMap, HashSet};
 
 use crate::error::{Error, Result, ValidationResult};
-use crate::types::{DependencyConfig, DependencyType, SecurityRequirements, PerformanceRequirements};
 use crate::graph::DependencyGraph;
+use crate::types::{
+    DependencyConfig, DependencyType, PerformanceRequirements, SecurityRequirements,
+};
 
 /// Validation rule
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,7 +93,11 @@ pub struct ValidationConfig {
 /// Custom validator trait
 pub trait CustomValidator {
     /// Validate a dependency configuration
-    fn validate(&self, config: &DependencyConfig, graph: &DependencyGraph) -> Result<Vec<ValidationIssue>>;
+    fn validate(
+        &self,
+        config: &DependencyConfig,
+        graph: &DependencyGraph,
+    ) -> Result<Vec<ValidationIssue>>;
 }
 
 /// Validation issue
@@ -152,14 +158,22 @@ impl ValidationEngine {
     }
 
     /// Add a custom validator
-    pub fn add_custom_validator(&mut self, name: String, validator: Box<dyn CustomValidator + Send + Sync>) {
+    pub fn add_custom_validator(
+        &mut self,
+        name: String,
+        validator: Box<dyn CustomValidator + Send + Sync>,
+    ) {
         self.custom_validators.insert(name, validator);
     }
 
     /// Validate a dependency configuration
-    pub fn validate_dependency(&self, config: &DependencyConfig, graph: &DependencyGraph) -> Result<ValidationResult> {
+    pub fn validate_dependency(
+        &self,
+        config: &DependencyConfig,
+        graph: &DependencyGraph,
+    ) -> Result<ValidationResult> {
         let cache_key = format!("dependency_{}", config.id);
-        
+
         // Check cache if enabled
         if self.config.enable_caching {
             if let Some(cached_result) = self.validation_cache.get(&cache_key) {
@@ -178,7 +192,13 @@ impl ValidationEngine {
 
             match rule.rule_type {
                 ValidationRuleType::CircularDependency => {
-                    self.validate_circular_dependencies(config, graph, rule, &mut errors, &mut warnings)?;
+                    self.validate_circular_dependencies(
+                        config,
+                        graph,
+                        rule,
+                        &mut errors,
+                        &mut warnings,
+                    )?;
                 }
                 ValidationRuleType::SchemaValidation => {
                     self.validate_schema(config, rule, &mut errors, &mut warnings)?;
@@ -196,13 +216,26 @@ impl ValidationEngine {
                     self.validate_configuration(config, rule, &mut errors, &mut warnings)?;
                 }
                 ValidationRuleType::DependencyDepth => {
-                    self.validate_dependency_depth(config, graph, rule, &mut errors, &mut warnings)?;
+                    self.validate_dependency_depth(
+                        config,
+                        graph,
+                        rule,
+                        &mut errors,
+                        &mut warnings,
+                    )?;
                 }
                 ValidationRuleType::HealthCheckValidation => {
                     self.validate_health_check(config, rule, &mut errors, &mut warnings)?;
                 }
                 ValidationRuleType::Custom(ref custom_type) => {
-                    self.validate_custom(config, graph, custom_type, rule, &mut errors, &mut warnings)?;
+                    self.validate_custom(
+                        config,
+                        graph,
+                        custom_type,
+                        rule,
+                        &mut errors,
+                        &mut warnings,
+                    )?;
                 }
             }
         }
@@ -342,7 +375,11 @@ impl ValidationEngine {
         if let Some(security_req) = &config.security_requirements {
             // Check authentication requirement
             if security_req.authentication_required {
-                if !config.operations.iter().any(|op| op.contains("auth") || op.contains("token")) {
+                if !config
+                    .operations
+                    .iter()
+                    .any(|op| op.contains("auth") || op.contains("token"))
+                {
                     let issue = ValidationIssue {
                         issue_type: "security_validation".to_string(),
                         message: "Authentication required but no auth operations found".to_string(),
@@ -369,7 +406,8 @@ impl ValidationEngine {
                 if !config.target.starts_with("https://") && !config.target.starts_with("wss://") {
                     let issue = ValidationIssue {
                         issue_type: "security_validation".to_string(),
-                        message: "Encryption required but target does not use secure protocol".to_string(),
+                        message: "Encryption required but target does not use secure protocol"
+                            .to_string(),
                         severity: rule.severity.clone(),
                         dependency_id: Some(config.id.clone()),
                         location: Some("target".to_string()),
@@ -465,7 +503,10 @@ impl ValidationEngine {
                 if !regex.is_match(&config.id) {
                     let issue = ValidationIssue {
                         issue_type: "naming_convention".to_string(),
-                        message: format!("ID '{}' does not match pattern '{}'", config.id, pattern_str),
+                        message: format!(
+                            "ID '{}' does not match pattern '{}'",
+                            config.id, pattern_str
+                        ),
                         severity: rule.severity.clone(),
                         dependency_id: Some(config.id.clone()),
                         location: Some("id".to_string()),
@@ -572,7 +613,8 @@ impl ValidationEngine {
         errors: &mut Vec<ValidationIssue>,
         warnings: &mut Vec<ValidationIssue>,
     ) -> Result<()> {
-        let max_depth = rule.config
+        let max_depth = rule
+            .config
             .get("max_depth")
             .and_then(|v| v.as_u64())
             .unwrap_or(5);
@@ -581,7 +623,11 @@ impl ValidationEngine {
         if dependents.len() > max_depth as usize {
             let issue = ValidationIssue {
                 issue_type: "dependency_depth".to_string(),
-                message: format!("Dependency has too many dependents: {} (max: {})", dependents.len(), max_depth),
+                message: format!(
+                    "Dependency has too many dependents: {} (max: {})",
+                    dependents.len(),
+                    max_depth
+                ),
                 severity: rule.severity.clone(),
                 dependency_id: Some(config.id.clone()),
                 location: None,
@@ -728,7 +774,9 @@ impl ValidationEngine {
                     severity: ValidationSeverity::Warning,
                     dependency_id: Some(config.id.clone()),
                     location: None,
-                    suggested_fix: Some("Connect the dependency or remove it if not needed".to_string()),
+                    suggested_fix: Some(
+                        "Connect the dependency or remove it if not needed".to_string(),
+                    ),
                     metadata: HashMap::new(),
                 };
                 warnings.push(issue);
@@ -823,7 +871,8 @@ mod tests {
             crate::types::DependencyType::ApiCall,
             "http://test.example.com".to_string(),
             vec!["GET".to_string()],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[test]
@@ -883,4 +932,4 @@ mod tests {
         assert_eq!(issue.severity, ValidationSeverity::Warning);
         assert_eq!(issue.dependency_id, Some("test_id".to_string()));
     }
-} 
+}

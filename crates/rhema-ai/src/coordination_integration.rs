@@ -15,15 +15,16 @@
  */
 
 use crate::agent::real_time_coordination::{
-    AgentInfo, AgentMessage, AgentStatus,
-    RealTimeCoordinationSystem
+    AgentInfo, AgentMessage, AgentStatus, RealTimeCoordinationSystem,
 };
-use crate::grpc::coordination_client::{SyneidesisCoordinationClient, SyneidesisConfig, ConnectionStatus};
+use crate::grpc::coordination_client::{
+    ConnectionStatus, SyneidesisConfig, SyneidesisCoordinationClient,
+};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 /// Integration layer between Rhema's coordination system and Syneidesis
 pub struct CoordinationIntegration {
@@ -88,8 +89,11 @@ impl CoordinationIntegration {
         config: Option<CoordinationConfig>,
     ) -> RhemaResult<Self> {
         let config = config.unwrap_or_default();
-        
-        info!("Initializing Coordination integration with config: {:?}", config);
+
+        info!(
+            "Initializing Coordination integration with config: {:?}",
+            config
+        );
 
         // Initialize Syneidesis client if configured
         let syneidesis_client = if let Some(syneidesis_config) = &config.syneidesis {
@@ -125,28 +129,41 @@ impl CoordinationIntegration {
     /// Register a Rhema agent with both Rhema and Syneidesis coordination
     pub async fn register_rhema_agent(&self, rhema_agent: &AgentInfo) -> RhemaResult<()> {
         // Register with Rhema coordination system
-        self.rhema_coordination.write().await.register_agent(rhema_agent.clone()).await?;
-        info!("✅ Registered Rhema agent '{}' with Rhema coordination", rhema_agent.id);
-        
+        self.rhema_coordination
+            .write()
+            .await
+            .register_agent(rhema_agent.clone())
+            .await?;
+        info!(
+            "✅ Registered Rhema agent '{}' with Rhema coordination",
+            rhema_agent.id
+        );
+
         // Register with Syneidesis if available
         if let Some(syneidesis_client) = &self.syneidesis_client {
             match syneidesis_client.register_agent(rhema_agent.clone()).await {
                 Ok(()) => {
-                    info!("✅ Registered Rhema agent '{}' with Syneidesis coordination", rhema_agent.id);
+                    info!(
+                        "✅ Registered Rhema agent '{}' with Syneidesis coordination",
+                        rhema_agent.id
+                    );
                 }
                 Err(e) => {
-                    warn!("Failed to register agent '{}' with Syneidesis: {}", rhema_agent.id, e);
+                    warn!(
+                        "Failed to register agent '{}' with Syneidesis: {}",
+                        rhema_agent.id, e
+                    );
                 }
             }
         }
-        
+
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.rhema_agents += 1;
         if self.syneidesis_client.is_some() {
             stats.syneidesis_agents += 1;
         }
-        
+
         Ok(())
     }
 
@@ -157,83 +174,129 @@ impl CoordinationIntegration {
         }
 
         // Send message via Rhema coordination system
-        self.rhema_coordination.write().await.send_message(message.clone()).await?;
-        info!("Bridged Rhema message to Rhema coordination: {:?}", message.message_type);
-        
+        self.rhema_coordination
+            .write()
+            .await
+            .send_message(message.clone())
+            .await?;
+        info!(
+            "Bridged Rhema message to Rhema coordination: {:?}",
+            message.message_type
+        );
+
         // Bridge message to Syneidesis if available
         if let Some(syneidesis_client) = &self.syneidesis_client {
             match syneidesis_client.send_message(message.clone()).await {
                 Ok(()) => {
-                    info!("✅ Bridged Rhema message to Syneidesis: {:?}", message.message_type);
+                    info!(
+                        "✅ Bridged Rhema message to Syneidesis: {:?}",
+                        message.message_type
+                    );
                 }
                 Err(e) => {
                     warn!("Failed to bridge message to Syneidesis: {}", e);
                 }
             }
         }
-        
+
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.bridge_messages_sent += 1;
-        
+
         Ok(())
     }
 
     /// Create a coordination session with both systems
-    pub async fn create_session(&self, topic: String, participants: Vec<String>) -> RhemaResult<String> {
+    pub async fn create_session(
+        &self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> RhemaResult<String> {
         // Create session in Rhema coordination system
-        let rhema_session_id = self.rhema_coordination.write().await.create_session(
-            topic.clone(),
-            participants.clone(),
-        ).await?;
-        
-        info!("✅ Created Rhema coordination session: {}", rhema_session_id);
-        
+        let rhema_session_id = self
+            .rhema_coordination
+            .write()
+            .await
+            .create_session(topic.clone(), participants.clone())
+            .await?;
+
+        info!(
+            "✅ Created Rhema coordination session: {}",
+            rhema_session_id
+        );
+
         // Create session in Syneidesis if available
         if let Some(syneidesis_client) = &self.syneidesis_client {
             match syneidesis_client.create_session(topic, participants).await {
                 Ok(syneidesis_session_id) => {
-                    info!("✅ Created Syneidesis coordination session: {}", syneidesis_session_id);
+                    info!(
+                        "✅ Created Syneidesis coordination session: {}",
+                        syneidesis_session_id
+                    );
                 }
                 Err(e) => {
                     warn!("Failed to create Syneidesis session: {}", e);
                 }
             }
         }
-        
+
         Ok(rhema_session_id)
     }
 
     /// Join a coordination session with both systems
     pub async fn join_session(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
         // Join session in Rhema coordination system
-        self.rhema_coordination.write().await.join_session(session_id, agent_id).await?;
-        info!("✅ Agent '{}' joined Rhema session: {}", agent_id, session_id);
-        
+        self.rhema_coordination
+            .write()
+            .await
+            .join_session(session_id, agent_id)
+            .await?;
+        info!(
+            "✅ Agent '{}' joined Rhema session: {}",
+            agent_id, session_id
+        );
+
         // Join session in Syneidesis if available
         if let Some(syneidesis_client) = &self.syneidesis_client {
             match syneidesis_client.join_session(session_id, agent_id).await {
                 Ok(()) => {
-                    info!("✅ Agent '{}' joined Syneidesis session: {}", agent_id, session_id);
+                    info!(
+                        "✅ Agent '{}' joined Syneidesis session: {}",
+                        agent_id, session_id
+                    );
                 }
                 Err(e) => {
                     warn!("Failed to join Syneidesis session: {}", e);
                 }
             }
         }
-        
+
         Ok(())
     }
 
     /// Send a session message with both systems
-    pub async fn send_session_message(&self, session_id: &str, message: AgentMessage) -> RhemaResult<()> {
+    pub async fn send_session_message(
+        &self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> RhemaResult<()> {
         // Send message in Rhema coordination system
-        self.rhema_coordination.write().await.send_session_message(session_id, message.clone()).await?;
-        info!("✅ Sent session message to Rhema coordination: {}", message.id);
-        
+        self.rhema_coordination
+            .write()
+            .await
+            .send_session_message(session_id, message.clone())
+            .await?;
+        info!(
+            "✅ Sent session message to Rhema coordination: {}",
+            message.id
+        );
+
         // Send message in Syneidesis if available
         if let Some(syneidesis_client) = &self.syneidesis_client {
-            match syneidesis_client.send_session_message(session_id, message.clone()).await {
+            match syneidesis_client
+                .send_session_message(session_id, message.clone())
+                .await
+            {
                 Ok(()) => {
                     info!("✅ Sent session message to Syneidesis: {}", message.id);
                 }
@@ -242,11 +305,11 @@ impl CoordinationIntegration {
                 }
             }
         }
-        
+
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.bridge_messages_sent += 1;
-        
+
         Ok(())
     }
 
@@ -254,7 +317,7 @@ impl CoordinationIntegration {
     pub async fn get_integration_stats(&self) -> IntegrationStats {
         let rhema_stats = self.rhema_coordination.read().await.get_stats();
         let bridge_stats = self.stats.read().await;
-        
+
         IntegrationStats {
             rhema_agents: rhema_stats.active_agents,
             rhema_messages: rhema_stats.total_messages,
@@ -287,15 +350,18 @@ impl CoordinationIntegration {
 
         let stats = self.stats.clone();
         let syneidesis_client = self.syneidesis_client.clone();
-        
+
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
-                
+
                 // Monitor integration health
                 let bridge_stats = stats.read().await;
-                info!("Coordination integration health check - Messages sent: {}", bridge_stats.bridge_messages_sent);
-                
+                info!(
+                    "Coordination integration health check - Messages sent: {}",
+                    bridge_stats.bridge_messages_sent
+                );
+
                 // Monitor Syneidesis health if available
                 if let Some(client) = &syneidesis_client {
                     match client.health_check().await {
@@ -317,38 +383,41 @@ impl CoordinationIntegration {
     /// Shutdown the integration
     pub async fn shutdown(&self) -> RhemaResult<()> {
         info!("Shutting down Coordination integration...");
-        
+
         // Shutdown Syneidesis client if available
         if let Some(syneidesis_client) = &self.syneidesis_client {
             if let Err(e) = syneidesis_client.shutdown().await {
                 warn!("Error shutting down Syneidesis client: {}", e);
             }
         }
-        
+
         info!("✅ Coordination integration shutdown complete");
         Ok(())
     }
 
     /// Send message with coordination integration
     pub async fn send_message_with_coordination(&self, message: AgentMessage) -> RhemaResult<()> {
-        info!("Sending message with coordination integration: {:?}", message);
-        
+        info!(
+            "Sending message with coordination integration: {:?}",
+            message
+        );
+
         // Send to Rhema coordination system
         let rhema_coordination = self.rhema_coordination.write().await;
         rhema_coordination.send_message(message.clone()).await?;
-        
+
         // Bridge to Syneidesis if available
         if let Some(client) = &self.syneidesis_client {
             if let Err(e) = self.bridge_rhema_message(&message).await {
                 warn!("Failed to bridge message to Syneidesis: {}", e);
             }
         }
-        
+
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.rhema_messages += 1;
         stats.bridge_messages_sent += 1;
-        
+
         info!("✅ Message sent with coordination integration");
         Ok(())
     }
@@ -386,20 +455,27 @@ impl std::fmt::Display for IntegrationStats {
         write!(f, "  Syneidesis Agents: {}\n", self.syneidesis_agents)?;
         write!(f, "  Syneidesis Tasks: {}\n", self.syneidesis_tasks)?;
         write!(f, "  Bridge Messages Sent: {}\n", self.bridge_messages_sent)?;
-        write!(f, "  Bridge Messages Received: {}", self.bridge_messages_received)
+        write!(
+            f,
+            "  Bridge Messages Received: {}",
+            self.bridge_messages_received
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::real_time_coordination::{CoordinationConfig as OldCoordinationConfig, RealTimeCoordinationSystem};
+    use crate::agent::real_time_coordination::{
+        CoordinationConfig as OldCoordinationConfig, RealTimeCoordinationSystem,
+    };
 
     #[tokio::test]
     async fn test_coordination_integration_creation() {
-        let rhema_coordination = RealTimeCoordinationSystem::with_config(OldCoordinationConfig::default());
+        let rhema_coordination =
+            RealTimeCoordinationSystem::with_config(OldCoordinationConfig::default());
         let config = CoordinationConfig::default();
-        
+
         let integration = CoordinationIntegration::new(rhema_coordination, Some(config)).await;
         assert!(integration.is_ok());
     }
@@ -407,7 +483,9 @@ mod tests {
     #[tokio::test]
     async fn test_agent_registration() {
         let rhema_coordination = RealTimeCoordinationSystem::new();
-        let integration = CoordinationIntegration::new(rhema_coordination, None).await.unwrap();
+        let integration = CoordinationIntegration::new(rhema_coordination, None)
+            .await
+            .unwrap();
 
         let rhema_agent = AgentInfo {
             id: "test-agent".to_string(),
@@ -419,7 +497,8 @@ mod tests {
             capabilities: vec!["test".to_string()],
             last_heartbeat: chrono::Utc::now(),
             is_online: true,
-            performance_metrics: crate::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            performance_metrics:
+                crate::agent::real_time_coordination::AgentPerformanceMetrics::default(),
         };
 
         let result = integration.register_rhema_agent(&rhema_agent).await;
@@ -434,10 +513,10 @@ mod tests {
             enabled: true,
             ..Default::default()
         });
-        
+
         let integration = CoordinationIntegration::new(rhema_coordination, Some(config)).await;
         assert!(integration.is_ok());
-        
+
         let integration = integration.unwrap();
         assert!(integration.has_syneidesis_integration());
     }

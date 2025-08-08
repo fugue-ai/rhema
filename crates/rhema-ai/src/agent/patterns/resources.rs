@@ -15,8 +15,8 @@
  */
 
 use super::{
-    PatternContext, PatternMetadata, PatternCategory, PatternResult, PatternError, ValidationResult,
-    FileLock, LockMode, PatternPerformanceMetrics
+    FileLock, LockMode, PatternCategory, PatternContext, PatternError, PatternMetadata,
+    PatternPerformanceMetrics, PatternResult, ValidationResult,
 };
 use crate::agent::CoordinationPattern;
 use chrono::{DateTime, Utc};
@@ -57,7 +57,9 @@ pub enum ResourceAllocationStrategy {
 impl std::fmt::Display for ResourceAllocationStrategy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ResourceAllocationStrategy::FirstComeFirstServed => write!(f, "first-come-first-served"),
+            ResourceAllocationStrategy::FirstComeFirstServed => {
+                write!(f, "first-come-first-served")
+            }
             ResourceAllocationStrategy::PriorityBased => write!(f, "priority-based"),
             ResourceAllocationStrategy::FairShare => write!(f, "fair-share"),
             ResourceAllocationStrategy::LoadBalanced => write!(f, "load-balanced"),
@@ -90,7 +92,9 @@ impl CoordinationPattern for ResourceManagementPattern {
         if let Some(requests) = context.state.data.get("resource_requests") {
             if let Some(request_array) = requests.as_array() {
                 for request in request_array {
-                    if let Ok(resource_request) = serde_json::from_value::<ResourceRequest>(request.clone()) {
+                    if let Ok(resource_request) =
+                        serde_json::from_value::<ResourceRequest>(request.clone())
+                    {
                         resource_state.resource_requests.push(resource_request);
                     }
                 }
@@ -98,7 +102,9 @@ impl CoordinationPattern for ResourceManagementPattern {
         }
 
         // Allocate resources based on strategy
-        resource_state.resource_allocations = self.allocate_resources(&resource_state.resource_requests, context).await?;
+        resource_state.resource_allocations = self
+            .allocate_resources(&resource_state.resource_requests, context)
+            .await?;
 
         // Monitor resource usage if enabled
         if self.enable_monitoring {
@@ -106,7 +112,9 @@ impl CoordinationPattern for ResourceManagementPattern {
         }
 
         // Handle resource conflicts
-        resource_state.conflicts = self.detect_conflicts(&resource_state.resource_allocations, context).await?;
+        resource_state.conflicts = self
+            .detect_conflicts(&resource_state.resource_allocations, context)
+            .await?;
         if !resource_state.conflicts.is_empty() {
             self.resolve_conflicts(&mut resource_state, context).await?;
         }
@@ -119,20 +127,33 @@ impl CoordinationPattern for ResourceManagementPattern {
         let performance_metrics = PatternPerformanceMetrics {
             total_execution_time_seconds: execution_time,
             coordination_overhead_seconds: execution_time * 0.05, // Estimate 5% overhead
-            resource_utilization: 0.95, // High resource utilization
+            resource_utilization: 0.95,                           // High resource utilization
             agent_efficiency: 0.88,
             communication_overhead: resource_state.resource_requests.len() * 2, // Estimate 2 messages per request
         };
 
         let result_data = HashMap::from([
             ("pattern_id".to_string(), json!(resource_state.pattern_id)),
-            ("status".to_string(), json!(resource_state.status.to_string())),
-            ("allocations".to_string(), json!(resource_state.resource_allocations.len())),
-            ("conflicts".to_string(), json!(resource_state.conflicts.len())),
-            ("strategy".to_string(), json!(self.allocation_strategy.to_string())),
+            (
+                "status".to_string(),
+                json!(resource_state.status.to_string()),
+            ),
+            (
+                "allocations".to_string(),
+                json!(resource_state.resource_allocations.len()),
+            ),
+            (
+                "conflicts".to_string(),
+                json!(resource_state.conflicts.len()),
+            ),
+            (
+                "strategy".to_string(),
+                json!(self.allocation_strategy.to_string()),
+            ),
         ]);
 
-        Ok(PatternResult { // TODO: Implement actual pattern execution logic
+        Ok(PatternResult {
+            // TODO: Implement actual pattern execution logic
             pattern_id: "resource-management".to_string(),
             success: resource_state.status == ResourceManagementStatus::Completed,
             data: result_data,
@@ -151,7 +172,10 @@ impl CoordinationPattern for ResourceManagementPattern {
         // Check if resource manager agent is available
         let agent_ids: Vec<String> = context.agents.iter().map(|a| a.id.clone()).collect();
         if !agent_ids.contains(&self.resource_manager) {
-            errors.push(format!("Resource manager agent {} not found", self.resource_manager));
+            errors.push(format!(
+                "Resource manager agent {} not found",
+                self.resource_manager
+            ));
         }
 
         // Check if resource requests are provided
@@ -160,9 +184,10 @@ impl CoordinationPattern for ResourceManagementPattern {
         }
 
         // Check resource availability
-        if context.resources.file_locks.is_empty() && 
-           context.resources.memory_pool.available_memory == 0 &&
-           context.resources.cpu_allocator.available_cores == 0 {
+        if context.resources.file_locks.is_empty()
+            && context.resources.memory_pool.available_memory == 0
+            && context.resources.cpu_allocator.available_cores == 0
+        {
             warnings.push("No resources available for allocation".to_string());
         }
 
@@ -177,22 +202,25 @@ impl CoordinationPattern for ResourceManagementPattern {
 
     async fn rollback(&self, context: &PatternContext) -> Result<(), PatternError> {
         info!("Rolling back resource management pattern");
-        
+
         // Release all allocated resources
         // This would typically involve:
         // - Releasing file locks
         // - Deallocating memory
         // - Releasing CPU cores
         // - Cleaning up network connections
-        
+
         Ok(())
     }
 
-    fn metadata(&self) -> PatternMetadata { // TODO: Implement actual metadata logic
-        PatternMetadata { // TODO: Implement actual metadata values
+    fn metadata(&self) -> PatternMetadata {
+        // TODO: Implement actual metadata logic
+        PatternMetadata {
+            // TODO: Implement actual metadata values
             id: "resource-management".to_string(),
             name: "Resource Management Pattern".to_string(),
-            description: "Coordinated resource allocation and management across multiple agents".to_string(),
+            description: "Coordinated resource allocation and management across multiple agents"
+                .to_string(),
             version: "1.0.0".to_string(),
             author: "Rhema Team".to_string(),
             category: PatternCategory::ResourceManagement,
@@ -235,13 +263,18 @@ impl ResourceManagementPattern {
         requests: &[ResourceRequest],
         context: &PatternContext,
     ) -> Result<HashMap<String, ResourceAllocation>, PatternError> {
-        info!("Allocating resources using strategy: {}", self.allocation_strategy.to_string());
-        
+        info!(
+            "Allocating resources using strategy: {}",
+            self.allocation_strategy.to_string()
+        );
+
         let mut allocations = HashMap::new();
-        
+
         match self.allocation_strategy {
             ResourceAllocationStrategy::FirstComeFirstServed => {
-                allocations = self.allocate_first_come_first_served(requests, context).await?;
+                allocations = self
+                    .allocate_first_come_first_served(requests, context)
+                    .await?;
             }
             ResourceAllocationStrategy::PriorityBased => {
                 allocations = self.allocate_priority_based(requests, context).await?;
@@ -256,7 +289,7 @@ impl ResourceManagementPattern {
                 allocations = self.allocate_custom(requests, context).await?;
             }
         }
-        
+
         Ok(allocations)
     }
 
@@ -266,17 +299,17 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<HashMap<String, ResourceAllocation>, PatternError> {
         let mut allocations = HashMap::new();
-        
+
         for request in requests {
             if allocations.len() >= self.max_concurrent_allocations {
                 break;
             }
-            
+
             if let Some(allocation) = self.try_allocate_resource(request, context).await? {
                 allocations.insert(request.request_id.clone(), allocation);
             }
         }
-        
+
         Ok(allocations)
     }
 
@@ -286,21 +319,21 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<HashMap<String, ResourceAllocation>, PatternError> {
         let mut allocations = HashMap::new();
-        
+
         // Sort requests by priority (highest first)
         let mut sorted_requests = requests.to_vec();
         sorted_requests.sort_by(|a, b| b.priority.cmp(&a.priority));
-        
+
         for request in sorted_requests {
             if allocations.len() >= self.max_concurrent_allocations {
                 break;
             }
-            
+
             if let Some(allocation) = self.try_allocate_resource(&request, context).await? {
                 allocations.insert(request.request_id.clone(), allocation);
             }
         }
-        
+
         Ok(allocations)
     }
 
@@ -310,33 +343,38 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<HashMap<String, ResourceAllocation>, PatternError> {
         let mut allocations = HashMap::new();
-        
+
         // Group requests by agent
         let mut agent_requests: HashMap<String, Vec<&ResourceRequest>> = HashMap::new();
         for request in requests {
-            agent_requests.entry(request.agent_id.clone()).or_default().push(request);
+            agent_requests
+                .entry(request.agent_id.clone())
+                .or_default()
+                .push(request);
         }
-        
+
         // Allocate resources fairly across agents
         let mut agent_allocation_counts: HashMap<String, usize> = HashMap::new();
-        
+
         for request in requests {
             if allocations.len() >= self.max_concurrent_allocations {
                 break;
             }
-            
+
             let agent_count = agent_allocation_counts.get(&request.agent_id).unwrap_or(&0);
             let other_agents_max = agent_allocation_counts.values().max().unwrap_or(&0);
-            
+
             // Only allocate if this agent doesn't have more than others
             if agent_count <= other_agents_max {
                 if let Some(allocation) = self.try_allocate_resource(request, context).await? {
                     allocations.insert(request.request_id.clone(), allocation);
-                    *agent_allocation_counts.entry(request.agent_id.clone()).or_default() += 1;
+                    *agent_allocation_counts
+                        .entry(request.agent_id.clone())
+                        .or_default() += 1;
                 }
             }
         }
-        
+
         Ok(allocations)
     }
 
@@ -346,31 +384,33 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<HashMap<String, ResourceAllocation>, PatternError> {
         let mut allocations = HashMap::new();
-        
+
         // Calculate agent workloads
         let mut agent_workloads: HashMap<String, f64> = HashMap::new();
         for agent in &context.agents {
             agent_workloads.insert(agent.id.clone(), agent.current_workload);
         }
-        
+
         // Sort requests by agent workload (lowest first)
         let mut sorted_requests = requests.to_vec();
         sorted_requests.sort_by(|a, b| {
             let a_workload = agent_workloads.get(&a.agent_id).unwrap_or(&0.0);
             let b_workload = agent_workloads.get(&b.agent_id).unwrap_or(&0.0);
-            a_workload.partial_cmp(b_workload).unwrap_or(std::cmp::Ordering::Equal)
+            a_workload
+                .partial_cmp(b_workload)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
-        
+
         for request in sorted_requests {
             if allocations.len() >= self.max_concurrent_allocations {
                 break;
             }
-            
+
             if let Some(allocation) = self.try_allocate_resource(&request, context).await? {
                 allocations.insert(request.request_id.clone(), allocation);
             }
         }
-        
+
         Ok(allocations)
     }
 
@@ -390,21 +430,11 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<Option<ResourceAllocation>, PatternError> {
         match request.resource_type {
-            ResourceType::FileLock => {
-                self.allocate_file_lock(request, context).await
-            }
-            ResourceType::Memory => {
-                self.allocate_memory(request, context).await
-            }
-            ResourceType::Cpu => {
-                self.allocate_cpu(request, context).await
-            }
-            ResourceType::Network => {
-                self.allocate_network(request, context).await
-            }
-            ResourceType::Custom(_) => {
-                self.allocate_custom_resource(request, context).await
-            }
+            ResourceType::FileLock => self.allocate_file_lock(request, context).await,
+            ResourceType::Memory => self.allocate_memory(request, context).await,
+            ResourceType::Cpu => self.allocate_cpu(request, context).await,
+            ResourceType::Network => self.allocate_network(request, context).await,
+            ResourceType::Custom(_) => self.allocate_custom_resource(request, context).await,
         }
     }
 
@@ -414,14 +444,14 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<Option<ResourceAllocation>, PatternError> {
         let file_path = request.resource_id.clone();
-        
+
         // Check if file is already locked
         if let Some(existing_lock) = context.resources.file_locks.get(&file_path) {
             if existing_lock.owner != request.agent_id {
                 return Ok(None); // Resource not available
             }
         }
-        
+
         // Create file lock
         let file_lock = FileLock {
             lock_id: Uuid::new_v4().to_string(),
@@ -429,10 +459,12 @@ impl ResourceManagementPattern {
             owner: request.agent_id.clone(),
             mode: LockMode::Exclusive,
             locked_at: Utc::now(),
-            timeout: Some(Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64)),
+            timeout: Some(
+                Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64),
+            ),
             metadata: HashMap::new(),
         };
-        
+
         let allocation = ResourceAllocation {
             allocation_id: Uuid::new_v4().to_string(),
             request_id: request.request_id.clone(),
@@ -440,12 +472,12 @@ impl ResourceManagementPattern {
             resource_type: ResourceType::FileLock,
             resource_id: file_path,
             allocated_at: Utc::now(),
-            timeout: Some(Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64)),
-            metadata: HashMap::from([
-                ("lock_mode".to_string(), "exclusive".to_string()),
-            ]),
+            timeout: Some(
+                Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64),
+            ),
+            metadata: HashMap::from([("lock_mode".to_string(), "exclusive".to_string())]),
         };
-        
+
         Ok(Some(allocation))
     }
 
@@ -455,11 +487,11 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<Option<ResourceAllocation>, PatternError> {
         let memory_amount = request.amount.unwrap_or(1024 * 1024); // Default 1MB
-        
+
         if context.resources.memory_pool.available_memory < memory_amount {
             return Ok(None); // Not enough memory available
         }
-        
+
         let allocation = ResourceAllocation {
             allocation_id: Uuid::new_v4().to_string(),
             request_id: request.request_id.clone(),
@@ -467,12 +499,12 @@ impl ResourceManagementPattern {
             resource_type: ResourceType::Memory,
             resource_id: format!("memory:{}", Uuid::new_v4()),
             allocated_at: Utc::now(),
-            timeout: Some(Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64)),
-            metadata: HashMap::from([
-                ("memory_amount".to_string(), memory_amount.to_string()),
-            ]),
+            timeout: Some(
+                Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64),
+            ),
+            metadata: HashMap::from([("memory_amount".to_string(), memory_amount.to_string())]),
         };
-        
+
         Ok(Some(allocation))
     }
 
@@ -482,11 +514,11 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<Option<ResourceAllocation>, PatternError> {
         let cpu_cores = request.amount.unwrap_or(1) as u32;
-        
+
         if context.resources.cpu_allocator.available_cores < cpu_cores {
             return Ok(None); // Not enough CPU cores available
         }
-        
+
         let allocation = ResourceAllocation {
             allocation_id: Uuid::new_v4().to_string(),
             request_id: request.request_id.clone(),
@@ -494,12 +526,12 @@ impl ResourceManagementPattern {
             resource_type: ResourceType::Cpu,
             resource_id: format!("cpu:{}", Uuid::new_v4()),
             allocated_at: Utc::now(),
-            timeout: Some(Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64)),
-            metadata: HashMap::from([
-                ("cpu_cores".to_string(), cpu_cores.to_string()),
-            ]),
+            timeout: Some(
+                Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64),
+            ),
+            metadata: HashMap::from([("cpu_cores".to_string(), cpu_cores.to_string())]),
         };
-        
+
         Ok(Some(allocation))
     }
 
@@ -509,11 +541,11 @@ impl ResourceManagementPattern {
         context: &PatternContext,
     ) -> Result<Option<ResourceAllocation>, PatternError> {
         let bandwidth = request.amount.unwrap_or(100); // Default 100 Mbps
-        
+
         if context.resources.network_resources.available_bandwidth < bandwidth {
             return Ok(None); // Not enough bandwidth available
         }
-        
+
         let allocation = ResourceAllocation {
             allocation_id: Uuid::new_v4().to_string(),
             request_id: request.request_id.clone(),
@@ -521,12 +553,12 @@ impl ResourceManagementPattern {
             resource_type: ResourceType::Network,
             resource_id: format!("network:{}", Uuid::new_v4()),
             allocated_at: Utc::now(),
-            timeout: Some(Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64)),
-            metadata: HashMap::from([
-                ("bandwidth_mbps".to_string(), bandwidth.to_string()),
-            ]),
+            timeout: Some(
+                Utc::now() + chrono::Duration::seconds(self.resource_timeout_seconds as i64),
+            ),
+            metadata: HashMap::from([("bandwidth_mbps".to_string(), bandwidth.to_string())]),
         };
-        
+
         Ok(Some(allocation))
     }
 
@@ -546,16 +578,16 @@ impl ResourceManagementPattern {
         _context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Monitoring resource usage");
-        
+
         // Simulate resource monitoring
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        
+
         // Update resource state with monitoring data
         // This would typically involve:
         // - Checking resource utilization
         // - Detecting resource leaks
         // - Monitoring performance metrics
-        
+
         Ok(())
     }
 
@@ -565,17 +597,17 @@ impl ResourceManagementPattern {
         _context: &PatternContext,
     ) -> Result<Vec<ResourceConflict>, PatternError> {
         let mut conflicts = Vec::new();
-        
+
         // Check for resource conflicts
         let mut resource_usage: HashMap<String, Vec<String>> = HashMap::new();
-        
+
         for allocation in allocations.values() {
             resource_usage
                 .entry(allocation.resource_id.clone())
                 .or_default()
                 .push(allocation.agent_id.clone());
         }
-        
+
         // Detect conflicts (multiple agents using same resource)
         for (resource_id, agents) in resource_usage {
             if agents.len() > 1 {
@@ -589,7 +621,7 @@ impl ResourceManagementPattern {
                 });
             }
         }
-        
+
         Ok(conflicts)
     }
 
@@ -598,8 +630,11 @@ impl ResourceManagementPattern {
         resource_state: &mut ResourceManagementState,
         _context: &PatternContext,
     ) -> Result<(), PatternError> {
-        info!("Resolving {} resource conflicts", resource_state.conflicts.len());
-        
+        info!(
+            "Resolving {} resource conflicts",
+            resource_state.conflicts.len()
+        );
+
         for conflict in &resource_state.conflicts {
             match conflict.conflict_type {
                 ConflictType::ResourceContention => {
@@ -607,7 +642,8 @@ impl ResourceManagementPattern {
                     if let Some(first_agent) = conflict.conflicting_agents.first() {
                         // Remove allocations for other agents
                         resource_state.resource_allocations.retain(|_, allocation| {
-                            allocation.agent_id == *first_agent || allocation.resource_id != conflict.resource_id
+                            allocation.agent_id == *first_agent
+                                || allocation.resource_id != conflict.resource_id
                         });
                     }
                 }
@@ -635,7 +671,7 @@ impl ResourceManagementPattern {
                 }
             }
         }
-        
+
         Ok(())
     }
 }
@@ -675,7 +711,8 @@ impl CoordinationPattern for FileLockManagementPattern {
         if let Some(requests) = context.state.data.get("lock_requests") {
             if let Some(request_array) = requests.as_array() {
                 for request in request_array {
-                    if let Ok(lock_request) = serde_json::from_value::<LockRequest>(request.clone()) {
+                    if let Ok(lock_request) = serde_json::from_value::<LockRequest>(request.clone())
+                    {
                         lock_state.lock_requests.push(lock_request);
                     }
                 }
@@ -705,7 +742,7 @@ impl CoordinationPattern for FileLockManagementPattern {
         let performance_metrics = PatternPerformanceMetrics {
             total_execution_time_seconds: execution_time,
             coordination_overhead_seconds: execution_time * 0.03, // Estimate 3% overhead
-            resource_utilization: 0.98, // Very high resource utilization
+            resource_utilization: 0.98,                           // Very high resource utilization
             agent_efficiency: 0.95,
             communication_overhead: lock_state.lock_requests.len() * 2, // Estimate 2 messages per request
         };
@@ -713,11 +750,15 @@ impl CoordinationPattern for FileLockManagementPattern {
         let result_data = HashMap::from([
             ("pattern_id".to_string(), json!(lock_state.pattern_id)),
             ("status".to_string(), json!(lock_state.status.to_string())),
-            ("active_locks".to_string(), json!(lock_state.active_locks.len())),
+            (
+                "active_locks".to_string(),
+                json!(lock_state.active_locks.len()),
+            ),
             ("deadlocks".to_string(), json!(lock_state.deadlocks.len())),
         ]);
 
-        Ok(PatternResult { // TODO: Implement actual pattern execution logic
+        Ok(PatternResult {
+            // TODO: Implement actual pattern execution logic
             pattern_id: "file-lock-management".to_string(),
             success: lock_state.status == LockManagementStatus::Completed,
             data: result_data,
@@ -736,7 +777,10 @@ impl CoordinationPattern for FileLockManagementPattern {
         // Check if lock manager agent is available
         let agent_ids: Vec<String> = context.agents.iter().map(|a| a.id.clone()).collect();
         if !agent_ids.contains(&self.lock_manager) {
-            errors.push(format!("Lock manager agent {} not found", self.lock_manager));
+            errors.push(format!(
+                "Lock manager agent {} not found",
+                self.lock_manager
+            ));
         }
 
         // Check if lock requests are provided
@@ -758,11 +802,14 @@ impl CoordinationPattern for FileLockManagementPattern {
         Ok(())
     }
 
-    fn metadata(&self) -> PatternMetadata { // TODO: Implement actual metadata logic
-        PatternMetadata { // TODO: Implement actual metadata values
+    fn metadata(&self) -> PatternMetadata {
+        // TODO: Implement actual metadata logic
+        PatternMetadata {
+            // TODO: Implement actual metadata values
             id: "file-lock-management".to_string(),
             name: "File Lock Management Pattern".to_string(),
-            description: "Coordinated file locking with deadlock detection and resolution".to_string(),
+            description: "Coordinated file locking with deadlock detection and resolution"
+                .to_string(),
             version: "1.0.0".to_string(),
             category: PatternCategory::ResourceManagement,
             required_capabilities: vec![
@@ -805,7 +852,7 @@ impl FileLockManagementPattern {
     ) -> Result<Option<FileLock>, PatternError> {
         // Simulate lock processing
         tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-        
+
         let lock = FileLock {
             lock_id: Uuid::new_v4().to_string(),
             path: request.file_path.clone(),
@@ -815,7 +862,7 @@ impl FileLockManagementPattern {
             timeout: Some(Utc::now() + chrono::Duration::seconds(self.lock_timeout_seconds as i64)),
             metadata: HashMap::new(),
         };
-        
+
         Ok(Some(lock))
     }
 
@@ -825,7 +872,7 @@ impl FileLockManagementPattern {
     ) -> Result<Vec<Deadlock>, PatternError> {
         // Simulate deadlock detection
         tokio::time::sleep(tokio::time::Duration::from_millis(5)).await;
-        
+
         // This would implement a proper deadlock detection algorithm
         // For now, return empty vector
         Ok(vec![])
@@ -1017,22 +1064,21 @@ mod tests {
         let metadata = pattern.metadata();
         assert_eq!(metadata.name, "Resource Management Pattern");
         assert_eq!(metadata.category, PatternCategory::ResourceManagement);
-        assert!(metadata.required_capabilities.contains(&"resource-management".to_string()));
+        assert!(metadata
+            .required_capabilities
+            .contains(&"resource-management".to_string()));
     }
 
     #[tokio::test]
     async fn test_file_lock_management_pattern_metadata() {
-        let pattern = FileLockManagementPattern::new(
-            "lock-manager".to_string(),
-            60,
-            true,
-            true,
-        );
+        let pattern = FileLockManagementPattern::new("lock-manager".to_string(), 60, true, true);
 
         let metadata = pattern.metadata();
         assert_eq!(metadata.name, "File Lock Management Pattern");
         assert_eq!(metadata.category, PatternCategory::ResourceManagement);
-        assert!(metadata.required_capabilities.contains(&"file-lock-management".to_string()));
+        assert!(metadata
+            .required_capabilities
+            .contains(&"file-lock-management".to_string()));
     }
 
     #[test]
@@ -1040,4 +1086,4 @@ mod tests {
         let strategy = ResourceAllocationStrategy::PriorityBased;
         assert_eq!(strategy.to_string(), "priority-based");
     }
-} 
+}

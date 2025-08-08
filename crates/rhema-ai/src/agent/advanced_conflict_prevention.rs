@@ -15,22 +15,20 @@
  */
 
 use chrono::{DateTime, Utc};
-use rhema_core::{RhemaResult, RhemaError};
+use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
 use thiserror::Error;
+use tokio::sync::{mpsc, RwLock};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
-use tracing::{info, warn, error, debug};
 
 use super::conflict_prevention::{
-    ConflictType, ConflictSeverity, ResolutionStrategy,
-    ConflictPreventionSystem,
+    ConflictPreventionSystem, ConflictSeverity, ConflictType, ResolutionStrategy,
 };
 use super::real_time_coordination::{
-    AgentMessage, MessagePriority, MessageType,
-    RealTimeCoordinationSystem,
+    AgentMessage, MessagePriority, MessageType, RealTimeCoordinationSystem,
 };
 use crate::grpc::coordination_client::SyneidesisCoordinationClient;
 
@@ -409,9 +407,9 @@ impl AdvancedConflictPreventionSystem {
         info!("Initializing Advanced Conflict Prevention System");
 
         let (message_sender, message_receiver) = mpsc::channel(1000);
-        
+
         let base_system = ConflictPreventionSystem::new();
-        
+
         let system = Self {
             base_system,
             syneidesis_client: None,
@@ -434,7 +432,9 @@ impl AdvancedConflictPreventionSystem {
         // Start message processing
         let system_clone = Arc::new(system.clone());
         tokio::spawn(async move {
-            system_clone.process_coordination_messages(message_receiver).await;
+            system_clone
+                .process_coordination_messages(message_receiver)
+                .await;
         });
 
         Ok(system)
@@ -443,7 +443,7 @@ impl AdvancedConflictPreventionSystem {
     /// Initialize Syneidesis coordination client
     async fn initialize_syneidesis_client(mut self) -> RhemaResult<Self> {
         info!("Initializing Syneidesis coordination client");
-        
+
         // Create Syneidesis configuration
         let syneidesis_config = crate::grpc::coordination_client::SyneidesisConfig {
             enabled: true,
@@ -500,7 +500,10 @@ impl AdvancedConflictPreventionSystem {
                 self.handle_session_message(message).await?;
             }
             _ => {
-                debug!("Ignoring coordination message of type: {:?}", message.message_type);
+                debug!(
+                    "Ignoring coordination message of type: {:?}",
+                    message.message_type
+                );
             }
         }
         Ok(())
@@ -509,86 +512,112 @@ impl AdvancedConflictPreventionSystem {
     /// Handle conflict detection message
     async fn handle_conflict_detection_message(&self, message: AgentMessage) -> RhemaResult<()> {
         info!("Handling conflict detection message: {}", message.id);
-        
+
         // Extract conflict information from message
-        let conflict_data = message.payload
-            .ok_or_else(|| AdvancedConflictPreventionError::SyneidesisNotAvailable("No payload in conflict detection message".to_string()))
+        let conflict_data = message
+            .payload
+            .ok_or_else(|| {
+                AdvancedConflictPreventionError::SyneidesisNotAvailable(
+                    "No payload in conflict detection message".to_string(),
+                )
+            })
             .map_err(|e| RhemaError::ConfigError(e.to_string()))?;
-        
+
         // Predict potential conflicts
         if self.config.enable_predictive_prevention {
             self.predict_potential_conflicts(&conflict_data).await?;
         }
-        
+
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.total_conflicts += 1;
-        
+
         Ok(())
     }
 
     /// Handle consensus request message
     async fn handle_consensus_request_message(&self, message: AgentMessage) -> RhemaResult<()> {
         info!("Handling consensus request message: {}", message.id);
-        
+
         // Extract consensus request data
-        let consensus_data = message.payload
-            .ok_or_else(|| AdvancedConflictPreventionError::SyneidesisNotAvailable("No payload in consensus request message".to_string()))
+        let consensus_data = message
+            .payload
+            .ok_or_else(|| {
+                AdvancedConflictPreventionError::SyneidesisNotAvailable(
+                    "No payload in consensus request message".to_string(),
+                )
+            })
             .map_err(|e| RhemaError::ConfigError(e.to_string()))?;
-        
+
         // Start consensus process
         if self.config.enable_consensus_resolution {
             self.start_consensus_process(&consensus_data).await?;
         }
-        
+
         Ok(())
     }
 
     /// Handle negotiation request message
     async fn handle_negotiation_request_message(&self, message: AgentMessage) -> RhemaResult<()> {
         info!("Handling negotiation request message: {}", message.id);
-        
+
         // Extract negotiation request data
-        let negotiation_data = message.payload
-            .ok_or_else(|| AdvancedConflictPreventionError::SyneidesisNotAvailable("No payload in negotiation request message".to_string()))
+        let negotiation_data = message
+            .payload
+            .ok_or_else(|| {
+                AdvancedConflictPreventionError::SyneidesisNotAvailable(
+                    "No payload in negotiation request message".to_string(),
+                )
+            })
             .map_err(|e| RhemaError::ConfigError(e.to_string()))?;
-        
+
         // Start real-time negotiation
         if self.config.enable_real_time_negotiation {
             self.start_real_time_negotiation(&negotiation_data).await?;
         }
-        
+
         Ok(())
     }
 
     /// Handle session message
     async fn handle_session_message(&self, message: AgentMessage) -> RhemaResult<()> {
         debug!("Handling session message: {}", message.id);
-        
+
         // Extract session data
-        let session_data = message.payload
-            .ok_or_else(|| AdvancedConflictPreventionError::SyneidesisNotAvailable("No payload in session message".to_string()))
+        let session_data = message
+            .payload
+            .ok_or_else(|| {
+                AdvancedConflictPreventionError::SyneidesisNotAvailable(
+                    "No payload in session message".to_string(),
+                )
+            })
             .map_err(|e| RhemaError::ConfigError(e.to_string()))?;
-        
+
         // Process session message
         self.process_session_message(&session_data).await?;
-        
+
         Ok(())
     }
 
     /// Predict potential conflicts using ML models
-    async fn predict_potential_conflicts(&self, conflict_data: &serde_json::Value) -> RhemaResult<()> {
+    async fn predict_potential_conflicts(
+        &self,
+        conflict_data: &serde_json::Value,
+    ) -> RhemaResult<()> {
         info!("Predicting potential conflicts using ML models");
-        
+
         // Get available prediction models
         let models = self.prediction_models.read().await;
-        
+
         for (model_id, model) in models.iter() {
             if model.confidence_threshold <= self.config.prediction_confidence_threshold {
                 match self.run_prediction_model(model, conflict_data).await {
                     Ok(prediction) => {
-                        info!("Model {} predicted conflict with confidence: {}", model_id, prediction.confidence);
-                        
+                        info!(
+                            "Model {} predicted conflict with confidence: {}",
+                            model_id, prediction.confidence
+                        );
+
                         if prediction.confidence >= model.confidence_threshold {
                             self.handle_predicted_conflict(&prediction).await?;
                         }
@@ -599,7 +628,7 @@ impl AdvancedConflictPreventionSystem {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -623,29 +652,35 @@ impl AdvancedConflictPreventionSystem {
                 "Use file locking".to_string(),
             ],
         };
-        
+
         Ok(prediction)
     }
 
     /// Handle predicted conflict
     async fn handle_predicted_conflict(&self, prediction: &ConflictPrediction) -> RhemaResult<()> {
-        info!("Handling predicted conflict with probability: {}", prediction.conflict_probability);
-        
+        info!(
+            "Handling predicted conflict with probability: {}",
+            prediction.conflict_probability
+        );
+
         // Create preventive action
         let preventive_action = self.create_preventive_action(prediction).await?;
-        
+
         // Send preventive action to relevant agents
         self.send_preventive_action(&preventive_action).await?;
-        
+
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.conflicts_prevented += 1;
-        
+
         Ok(())
     }
 
     /// Create preventive action
-    async fn create_preventive_action(&self, prediction: &ConflictPrediction) -> RhemaResult<PreventiveAction> {
+    async fn create_preventive_action(
+        &self,
+        prediction: &ConflictPrediction,
+    ) -> RhemaResult<PreventiveAction> {
         let action = PreventiveAction {
             id: Uuid::new_v4().to_string(),
             action_type: "coordinate_file_access".to_string(),
@@ -655,7 +690,7 @@ impl AdvancedConflictPreventionSystem {
             timeout_seconds: 60,
             action_parameters: HashMap::new(),
         };
-        
+
         Ok(action)
     }
 
@@ -678,61 +713,76 @@ impl AdvancedConflictPreventionSystem {
             expires_at: Some(Utc::now() + chrono::Duration::seconds(action.timeout_seconds as i64)),
             metadata: HashMap::new(),
         };
-        
+
         // Send via coordination system
         self.coordination_system.send_message(message).await?;
-        
+
         Ok(())
     }
 
     /// Start consensus process
     async fn start_consensus_process(&self, consensus_data: &serde_json::Value) -> RhemaResult<()> {
         info!("Starting consensus process");
-        
+
         // Create coordination session
-        let session_id = self.create_coordination_session("Consensus Resolution".to_string()).await?;
-        
+        let session_id = self
+            .create_coordination_session("Consensus Resolution".to_string())
+            .await?;
+
         // Add participants
-        if let Some(participants) = consensus_data.get("participants").and_then(|p| p.as_array()) {
+        if let Some(participants) = consensus_data
+            .get("participants")
+            .and_then(|p| p.as_array())
+        {
             for participant in participants {
                 if let Some(agent_id) = participant.as_str() {
                     self.add_session_participant(&session_id, agent_id).await?;
                 }
             }
         }
-        
+
         // Send consensus request to participants
-        self.send_consensus_request(&session_id, consensus_data).await?;
-        
+        self.send_consensus_request(&session_id, consensus_data)
+            .await?;
+
         Ok(())
     }
 
     /// Start real-time negotiation
-    async fn start_real_time_negotiation(&self, negotiation_data: &serde_json::Value) -> RhemaResult<()> {
+    async fn start_real_time_negotiation(
+        &self,
+        negotiation_data: &serde_json::Value,
+    ) -> RhemaResult<()> {
         info!("Starting real-time negotiation");
-        
+
         // Create negotiation session
-        let session_id = self.create_coordination_session("Real-time Negotiation".to_string()).await?;
-        
+        let session_id = self
+            .create_coordination_session("Real-time Negotiation".to_string())
+            .await?;
+
         // Add participants
-        if let Some(participants) = negotiation_data.get("participants").and_then(|p| p.as_array()) {
+        if let Some(participants) = negotiation_data
+            .get("participants")
+            .and_then(|p| p.as_array())
+        {
             for participant in participants {
                 if let Some(agent_id) = participant.as_str() {
                     self.add_session_participant(&session_id, agent_id).await?;
                 }
             }
         }
-        
+
         // Start negotiation process
-        self.start_negotiation_process(&session_id, negotiation_data).await?;
-        
+        self.start_negotiation_process(&session_id, negotiation_data)
+            .await?;
+
         Ok(())
     }
 
     /// Create coordination session
     pub async fn create_coordination_session(&self, topic: String) -> RhemaResult<String> {
         let session_id = Uuid::new_v4().to_string();
-        
+
         let session = CoordinationSession {
             id: session_id.clone(),
             topic,
@@ -743,38 +793,46 @@ impl AdvancedConflictPreventionSystem {
             messages: Vec::new(),
             decisions: Vec::new(),
         };
-        
+
         // Add to active sessions
         let mut sessions = self.active_sessions.write().await;
         sessions.insert(session_id.clone(), session);
-        
+
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.sessions_created += 1;
-        
+
         info!("Created coordination session: {}", session_id);
-        
+
         Ok(session_id)
     }
 
     /// Add session participant
-    pub async fn add_session_participant(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
+    pub async fn add_session_participant(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> RhemaResult<()> {
         let mut sessions = self.active_sessions.write().await;
-        
+
         if let Some(session) = sessions.get_mut(session_id) {
             if !session.participants.contains(&agent_id.to_string()) {
                 session.participants.push(agent_id.to_string());
                 info!("Added participant {} to session {}", agent_id, session_id);
             }
         }
-        
+
         Ok(())
     }
 
     /// Send consensus request
-    async fn send_consensus_request(&self, session_id: &str, consensus_data: &serde_json::Value) -> RhemaResult<()> {
+    async fn send_consensus_request(
+        &self,
+        session_id: &str,
+        consensus_data: &serde_json::Value,
+    ) -> RhemaResult<()> {
         let sessions = self.active_sessions.read().await;
-        
+
         if let Some(session) = sessions.get(session_id) {
             let message = AgentMessage {
                 id: Uuid::new_v4().to_string(),
@@ -786,21 +844,28 @@ impl AdvancedConflictPreventionSystem {
                 payload: Some(consensus_data.clone()),
                 timestamp: Utc::now(),
                 requires_ack: true,
-                expires_at: Some(Utc::now() + chrono::Duration::seconds(self.config.session_timeout_seconds as i64)),
+                expires_at: Some(
+                    Utc::now()
+                        + chrono::Duration::seconds(self.config.session_timeout_seconds as i64),
+                ),
                 metadata: HashMap::new(),
             };
-            
+
             // Send via coordination system
             self.coordination_system.send_message(message).await?;
         }
-        
+
         Ok(())
     }
 
     /// Start negotiation process
-    async fn start_negotiation_process(&self, session_id: &str, negotiation_data: &serde_json::Value) -> RhemaResult<()> {
+    async fn start_negotiation_process(
+        &self,
+        session_id: &str,
+        negotiation_data: &serde_json::Value,
+    ) -> RhemaResult<()> {
         let sessions = self.active_sessions.read().await;
-        
+
         if let Some(session) = sessions.get(session_id) {
             let message = AgentMessage {
                 id: Uuid::new_v4().to_string(),
@@ -812,14 +877,17 @@ impl AdvancedConflictPreventionSystem {
                 payload: Some(negotiation_data.clone()),
                 timestamp: Utc::now(),
                 requires_ack: true,
-                expires_at: Some(Utc::now() + chrono::Duration::seconds(self.config.session_timeout_seconds as i64)),
+                expires_at: Some(
+                    Utc::now()
+                        + chrono::Duration::seconds(self.config.session_timeout_seconds as i64),
+                ),
                 metadata: HashMap::new(),
             };
-            
+
             // Send via coordination system
             self.coordination_system.send_message(message).await?;
         }
-        
+
         Ok(())
     }
 
@@ -831,7 +899,7 @@ impl AdvancedConflictPreventionSystem {
             session_data.get("content").and_then(|s| s.as_str()),
         ) {
             let mut sessions = self.active_sessions.write().await;
-            
+
             if let Some(session) = sessions.get_mut(session_id) {
                 let message = SessionMessage {
                     id: Uuid::new_v4().to_string(),
@@ -841,12 +909,12 @@ impl AdvancedConflictPreventionSystem {
                     message_type: SessionMessageType::Discussion,
                     payload: session_data.get("payload").cloned(),
                 };
-                
+
                 session.messages.push(message);
                 debug!("Added message to session {}: {}", session_id, content);
             }
         }
-        
+
         Ok(())
     }
 
@@ -948,7 +1016,7 @@ mod tests {
     async fn test_advanced_conflict_prevention_system_creation() {
         let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
         let config = AdvancedConflictPreventionConfig::default();
-        
+
         let system = AdvancedConflictPreventionSystem::new(coordination_system, config).await;
         assert!(system.is_ok());
     }
@@ -957,10 +1025,12 @@ mod tests {
     async fn test_prediction_model_management() {
         let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
         let config = AdvancedConflictPreventionConfig::default();
-        
-        let system = AdvancedConflictPreventionSystem::new(coordination_system, config).await.unwrap();
+
+        let system = AdvancedConflictPreventionSystem::new(coordination_system, config)
+            .await
+            .unwrap();
         let system = Arc::new(system);
-        
+
         let model = ConflictPredictionModel {
             id: "test-model".to_string(),
             name: "Test Model".to_string(),
@@ -977,10 +1047,10 @@ mod tests {
             },
             last_updated: Utc::now(),
         };
-        
+
         let result = system.add_prediction_model(model).await;
         assert!(result.is_ok());
-        
+
         let models = system.get_prediction_models().await;
         assert_eq!(models.len(), 1);
         assert_eq!(models[0].id, "test-model");
@@ -990,15 +1060,19 @@ mod tests {
     async fn test_coordination_session_creation() {
         let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
         let config = AdvancedConflictPreventionConfig::default();
-        
-        let system = AdvancedConflictPreventionSystem::new(coordination_system, config).await.unwrap();
+
+        let system = AdvancedConflictPreventionSystem::new(coordination_system, config)
+            .await
+            .unwrap();
         let system = Arc::new(system);
-        
-        let session_id = system.create_coordination_session("Test Session".to_string()).await;
+
+        let session_id = system
+            .create_coordination_session("Test Session".to_string())
+            .await;
         assert!(session_id.is_ok());
-        
+
         let sessions = system.get_active_sessions().await;
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].topic, "Test Session");
     }
-} 
+}

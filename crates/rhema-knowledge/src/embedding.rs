@@ -19,30 +19,28 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
-use tracing::{error};
+use tracing::error;
 
-use crate::types::{
-    ContentType, KnowledgeResult, SemanticInfo,
-};
+use crate::types::{ContentType, KnowledgeResult, SemanticInfo};
 
 /// Error types for embedding operations
 #[derive(Error, Debug)]
 pub enum EmbeddingError {
     #[error("Model loading error: {0}")]
     ModelLoadingError(String),
-    
+
     #[error("Embedding generation error: {0}")]
     EmbeddingGenerationError(String),
-    
+
     #[error("Invalid input: {0}")]
     InvalidInput(String),
-    
+
     #[error("Model not initialized: {0}")]
     ModelNotInitialized(String),
-    
+
     #[error("Batch processing error: {0}")]
     BatchProcessingError(String),
-    
+
     #[error("Dimension mismatch: expected {expected}, got {actual}")]
     DimensionMismatch { expected: usize, actual: usize },
 }
@@ -87,7 +85,7 @@ pub trait EmbeddingModel: Send + Sync {
     async fn similarity(&self, embedding1: &[f32], embedding2: &[f32]) -> KnowledgeResult<f32>;
     async fn dimension(&self) -> usize;
     async fn model_info(&self) -> EmbeddingModelInfo;
-    
+
     /// Get type information for downcasting
     fn as_any(&self) -> &dyn std::any::Any;
 }
@@ -111,26 +109,31 @@ pub struct SimpleHashEmbeddingModel {
 
 impl SimpleHashEmbeddingModel {
     pub fn new(config: EmbeddingModelConfig) -> Self {
-        let cache_size = if config.enable_caching { config.cache_size } else { 0 };
-        let cache = if cache_size > 0 {
-            Arc::new(RwLock::new(lru::LruCache::new(std::num::NonZeroUsize::new(cache_size).unwrap())))
+        let cache_size = if config.enable_caching {
+            config.cache_size
         } else {
-            Arc::new(RwLock::new(lru::LruCache::new(std::num::NonZeroUsize::new(1).unwrap())))
+            0
         };
-        Self {
-            config,
-            cache,
-        }
+        let cache = if cache_size > 0 {
+            Arc::new(RwLock::new(lru::LruCache::new(
+                std::num::NonZeroUsize::new(cache_size).unwrap(),
+            )))
+        } else {
+            Arc::new(RwLock::new(lru::LruCache::new(
+                std::num::NonZeroUsize::new(1).unwrap(),
+            )))
+        };
+        Self { config, cache }
     }
 
     fn simple_hash_embed(&self, text: &str) -> Vec<f32> {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         text.hash(&mut hasher);
         let hash = hasher.finish();
-        
+
         // Generate a vector based on the hash
         let mut embedding = vec![0.0; self.config.dimension];
         for i in 0..self.config.dimension {
@@ -138,7 +141,7 @@ impl SimpleHashEmbeddingModel {
             let bit = (hash >> shift) & 1;
             embedding[i] = if bit == 1 { 1.0 } else { -1.0 };
         }
-        
+
         embedding
     }
 }
@@ -149,7 +152,7 @@ impl EmbeddingModel for SimpleHashEmbeddingModel {
         if text.trim().is_empty() {
             return Err(EmbeddingError::InvalidInput("Text cannot be empty".to_string()).into());
         }
-        
+
         // Check cache first
         {
             let cache = self.cache.read().await;
@@ -157,58 +160,63 @@ impl EmbeddingModel for SimpleHashEmbeddingModel {
                 return Ok(cached_embedding.clone());
             }
         }
-        
+
         // Generate embedding
         let embedding = self.simple_hash_embed(text);
-        
+
         // Cache the result
         {
             let mut cache = self.cache.write().await;
             cache.put(text.to_string(), embedding.clone());
         }
-        
+
         Ok(embedding)
     }
-    
+
     async fn embed_batch(&self, texts: &[String]) -> KnowledgeResult<Vec<Vec<f32>>> {
         if texts.is_empty() {
             return Err(EmbeddingError::InvalidInput("Texts cannot be empty".to_string()).into());
         }
-        
+
         let mut embeddings = Vec::with_capacity(texts.len());
-        
+
         for text in texts {
             let embedding = self.embed(text).await?;
             embeddings.push(embedding);
         }
-        
+
         Ok(embeddings)
     }
-    
+
     async fn similarity(&self, embedding1: &[f32], embedding2: &[f32]) -> KnowledgeResult<f32> {
         if embedding1.len() != embedding2.len() {
             return Err(EmbeddingError::DimensionMismatch {
                 expected: embedding1.len(),
                 actual: embedding2.len(),
-            }.into());
+            }
+            .into());
         }
-        
+
         // Calculate cosine similarity
-        let dot_product: f32 = embedding1.iter().zip(embedding2.iter()).map(|(a, b)| a * b).sum();
+        let dot_product: f32 = embedding1
+            .iter()
+            .zip(embedding2.iter())
+            .map(|(a, b)| a * b)
+            .sum();
         let norm1: f32 = embedding1.iter().map(|x| x * x).sum::<f32>().sqrt();
         let norm2: f32 = embedding2.iter().map(|x| x * x).sum::<f32>().sqrt();
-        
+
         if norm1 == 0.0 || norm2 == 0.0 {
             return Ok(0.0);
         }
-        
+
         Ok(dot_product / (norm1 * norm2))
     }
-    
+
     async fn dimension(&self) -> usize {
         self.config.dimension
     }
-    
+
     async fn model_info(&self) -> EmbeddingModelInfo {
         EmbeddingModelInfo {
             name: self.config.model_name.clone(),
@@ -219,7 +227,7 @@ impl EmbeddingModel for SimpleHashEmbeddingModel {
             device: self.config.device.clone(),
         }
     }
-    
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -238,18 +246,21 @@ impl SentenceTransformersModel {
         Ok(Self {
             config: config.clone(),
             cache: Arc::new(RwLock::new(lru::LruCache::new(
-                config.cache_size.try_into().unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
+                config
+                    .cache_size
+                    .try_into()
+                    .unwrap_or(std::num::NonZeroUsize::new(1000).unwrap()),
             ))),
         })
     }
-    
+
     fn simple_hash_embed(&self, text: &str) -> Vec<f32> {
         // Simple hash-based embedding for testing
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         use std::hash::{Hash, Hasher};
         text.hash(&mut hasher);
         let hash = hasher.finish();
-        
+
         let mut embedding = vec![0.0; self.config.dimension];
         for i in 0..self.config.dimension {
             embedding[i] = ((hash >> (i * 8)) & 0xFF) as f32 / 255.0 * 2.0 - 1.0;
@@ -265,7 +276,7 @@ impl EmbeddingModel for SentenceTransformersModel {
         // In a real implementation, this would use the actual sentence-transformers model
         Ok(self.simple_hash_embed(text))
     }
-    
+
     async fn embed_batch(&self, texts: &[String]) -> KnowledgeResult<Vec<Vec<f32>>> {
         let mut embeddings = Vec::with_capacity(texts.len());
         for text in texts {
@@ -273,24 +284,28 @@ impl EmbeddingModel for SentenceTransformersModel {
         }
         Ok(embeddings)
     }
-    
+
     async fn similarity(&self, embedding1: &[f32], embedding2: &[f32]) -> KnowledgeResult<f32> {
         // Calculate cosine similarity
-        let dot_product: f32 = embedding1.iter().zip(embedding2.iter()).map(|(a, b)| a * b).sum();
+        let dot_product: f32 = embedding1
+            .iter()
+            .zip(embedding2.iter())
+            .map(|(a, b)| a * b)
+            .sum();
         let norm1: f32 = embedding1.iter().map(|x| x * x).sum::<f32>().sqrt();
         let norm2: f32 = embedding2.iter().map(|x| x * x).sum::<f32>().sqrt();
-        
+
         if norm1 == 0.0 || norm2 == 0.0 {
             return Ok(0.0);
         }
-        
+
         Ok(dot_product / (norm1 * norm2))
     }
-    
+
     async fn dimension(&self) -> usize {
         self.config.dimension
     }
-    
+
     async fn model_info(&self) -> EmbeddingModelInfo {
         EmbeddingModelInfo {
             name: self.config.model_name.clone(),
@@ -301,7 +316,7 @@ impl EmbeddingModel for SentenceTransformersModel {
             device: self.config.device.clone(),
         }
     }
-    
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -339,7 +354,7 @@ impl Default for EmbeddingManagerConfig {
 impl EmbeddingManager {
     pub fn new_dummy() -> Self {
         let mut models = std::collections::HashMap::new();
-        
+
         // Initialize default model for testing
         let default_model_config = EmbeddingModelConfig {
             model_name: "simple-hash".to_string(),
@@ -351,20 +366,21 @@ impl EmbeddingManager {
             enable_caching: true,
             cache_size: 1000,
         };
-        
-        let default_model = Arc::new(SimpleHashEmbeddingModel::new(default_model_config)) as Arc<dyn EmbeddingModel>;
+
+        let default_model = Arc::new(SimpleHashEmbeddingModel::new(default_model_config))
+            as Arc<dyn EmbeddingModel>;
         models.insert("simple-hash".to_string(), default_model);
-        
+
         Self {
             models: Arc::new(RwLock::new(models)),
             default_model: "simple-hash".to_string(),
             config: EmbeddingManagerConfig::default(),
         }
     }
-    
+
     pub async fn new(config: EmbeddingManagerConfig) -> KnowledgeResult<Self> {
         let models = Arc::new(RwLock::new(std::collections::HashMap::new()));
-        
+
         // Initialize default model (use SimpleHash for now)
         let default_model_config = EmbeddingModelConfig {
             model_name: "simple-hash".to_string(),
@@ -376,35 +392,34 @@ impl EmbeddingManager {
             enable_caching: config.enable_caching,
             cache_size: config.cache_size,
         };
-        
-        let default_model = Arc::new(SimpleHashEmbeddingModel::new(default_model_config)) as Arc<dyn EmbeddingModel>;
+
+        let default_model = Arc::new(SimpleHashEmbeddingModel::new(default_model_config))
+            as Arc<dyn EmbeddingModel>;
         {
             let mut models_guard = models.write().await;
             models_guard.insert("simple-hash".to_string(), default_model);
         }
-        
+
         Ok(Self {
             models,
             default_model: "simple-hash".to_string(),
             config,
         })
     }
-    
+
     pub async fn add_model(&self, name: String, model: Arc<dyn EmbeddingModel>) {
         let mut models = self.models.write().await;
         models.insert(name, model);
     }
-    
+
     pub async fn get_model(&self, name: Option<&str>) -> KnowledgeResult<Arc<dyn EmbeddingModel>> {
         let model_name = name.unwrap_or(&self.default_model);
         let models = self.models.read().await;
-        models.get(model_name)
-            .cloned()
-            .ok_or_else(|| EmbeddingError::ModelNotInitialized(
-                format!("Model not found: {}", model_name)
-            ).into())
+        models.get(model_name).cloned().ok_or_else(|| {
+            EmbeddingError::ModelNotInitialized(format!("Model not found: {}", model_name)).into()
+        })
     }
-    
+
     pub async fn embed(&self, text: &str, model_name: Option<&str>) -> KnowledgeResult<Vec<f32>> {
         let model = self.get_model(model_name).await?;
         model.embed(text).await
@@ -413,21 +428,34 @@ impl EmbeddingManager {
     pub async fn generate_embedding(&self, text: &str) -> KnowledgeResult<Vec<f32>> {
         self.embed(text, None).await
     }
-    
-    pub async fn embed_batch(&self, texts: &[String], model_name: Option<&str>) -> KnowledgeResult<Vec<Vec<f32>>> {
+
+    pub async fn embed_batch(
+        &self,
+        texts: &[String],
+        model_name: Option<&str>,
+    ) -> KnowledgeResult<Vec<Vec<f32>>> {
         let model = self.get_model(model_name).await?;
         model.embed_batch(texts).await
     }
-    
-    pub async fn similarity(&self, embedding1: &[f32], embedding2: &[f32], model_name: Option<&str>) -> KnowledgeResult<f32> {
+
+    pub async fn similarity(
+        &self,
+        embedding1: &[f32],
+        embedding2: &[f32],
+        model_name: Option<&str>,
+    ) -> KnowledgeResult<f32> {
         let model = self.get_model(model_name).await?;
         model.similarity(embedding1, embedding2).await
     }
-    
-    pub async fn generate_semantic_info(&self, content: &str, content_type: ContentType) -> KnowledgeResult<SemanticInfo> {
+
+    pub async fn generate_semantic_info(
+        &self,
+        content: &str,
+        content_type: ContentType,
+    ) -> KnowledgeResult<SemanticInfo> {
         let embedding = self.embed(content, None).await?;
         let semantic_tags = self.extract_semantic_tags(content, &content_type).await?;
-        
+
         Ok(SemanticInfo {
             embedding: Some(embedding),
             semantic_tags,
@@ -437,15 +465,22 @@ impl EmbeddingManager {
             chunk_id: None,
         })
     }
-    
-    async fn extract_semantic_tags(&self, content: &str, content_type: &ContentType) -> KnowledgeResult<Vec<String>> {
+
+    async fn extract_semantic_tags(
+        &self,
+        content: &str,
+        content_type: &ContentType,
+    ) -> KnowledgeResult<Vec<String>> {
         // Simple keyword extraction based on content type
         let mut tags = vec![];
-        
+
         match content_type {
             ContentType::Code => {
                 // Extract programming language keywords
-                let code_keywords = ["function", "class", "struct", "enum", "trait", "impl", "pub", "fn", "let", "const"];
+                let code_keywords = [
+                    "function", "class", "struct", "enum", "trait", "impl", "pub", "fn", "let",
+                    "const",
+                ];
                 for keyword in &code_keywords {
                     if content.to_lowercase().contains(keyword) {
                         tags.push(keyword.to_string());
@@ -480,39 +515,52 @@ impl EmbeddingManager {
                 }
             }
         }
-        
+
         Ok(tags)
     }
-    
+
     /// Cache embedding for reuse
-    pub async fn cache_embedding(&self, key: &str, embedding: &[f32], model_name: Option<&str>) -> KnowledgeResult<()> {
+    pub async fn cache_embedding(
+        &self,
+        key: &str,
+        embedding: &[f32],
+        model_name: Option<&str>,
+    ) -> KnowledgeResult<()> {
         let model = self.get_model(model_name).await?;
-        
+
         // For now, we'll use the model's internal cache
         // In a full implementation, this would use a separate cache manager
         if let Some(simple_hash_model) = model.as_any().downcast_ref::<SimpleHashEmbeddingModel>() {
             simple_hash_model.cache_embedding(key, embedding).await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Get cached embedding if available
-    pub async fn get_cached_embedding(&self, key: &str, model_name: Option<&str>) -> KnowledgeResult<Option<Vec<f32>>> {
+    pub async fn get_cached_embedding(
+        &self,
+        key: &str,
+        model_name: Option<&str>,
+    ) -> KnowledgeResult<Option<Vec<f32>>> {
         let model = self.get_model(model_name).await?;
-        
+
         if let Some(simple_hash_model) = model.as_any().downcast_ref::<SimpleHashEmbeddingModel>() {
             return simple_hash_model.get_cached_embedding(key).await;
         }
-        
+
         Ok(None)
     }
-    
+
     /// Validate embedding quality
-    pub async fn validate_embedding(&self, embedding: &[f32], model_name: Option<&str>) -> KnowledgeResult<EmbeddingValidationResult> {
+    pub async fn validate_embedding(
+        &self,
+        embedding: &[f32],
+        model_name: Option<&str>,
+    ) -> KnowledgeResult<EmbeddingValidationResult> {
         let model = self.get_model(model_name).await?;
         let expected_dimension = model.dimension().await;
-        
+
         let mut validation_result = EmbeddingValidationResult {
             is_valid: true,
             dimension_match: embedding.len() == expected_dimension,
@@ -522,22 +570,26 @@ impl EmbeddingManager {
             quality_score: 1.0,
             issues: Vec::new(),
         };
-        
+
         // Check for NaN values
         for &value in embedding {
             if value.is_nan() {
                 validation_result.has_nan_values = true;
                 validation_result.is_valid = false;
-                validation_result.issues.push("Contains NaN values".to_string());
+                validation_result
+                    .issues
+                    .push("Contains NaN values".to_string());
             }
-            
+
             if value.is_infinite() {
                 validation_result.has_infinite_values = true;
                 validation_result.is_valid = false;
-                validation_result.issues.push("Contains infinite values".to_string());
+                validation_result
+                    .issues
+                    .push("Contains infinite values".to_string());
             }
         }
-        
+
         // Check dimension match
         if !validation_result.dimension_match {
             validation_result.is_valid = false;
@@ -547,56 +599,61 @@ impl EmbeddingManager {
                 embedding.len()
             ));
         }
-        
+
         // Check magnitude (embeddings should typically be normalized)
         let magnitude: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
         if magnitude < 0.1 || magnitude > 10.0 {
             validation_result.magnitude_check = false;
             validation_result.quality_score *= 0.8;
-            validation_result.issues.push(format!("Unusual magnitude: {}", magnitude));
+            validation_result
+                .issues
+                .push(format!("Unusual magnitude: {}", magnitude));
         }
-        
+
         // Calculate quality score based on various factors
         validation_result.quality_score = self.calculate_quality_score(embedding).await;
-        
+
         Ok(validation_result)
     }
-    
+
     /// Compress embedding for storage efficiency
-    pub async fn compress_embedding(&self, embedding: &[f32], compression_type: EmbeddingCompressionType) -> KnowledgeResult<CompressedEmbedding> {
+    pub async fn compress_embedding(
+        &self,
+        embedding: &[f32],
+        compression_type: EmbeddingCompressionType,
+    ) -> KnowledgeResult<CompressedEmbedding> {
         match compression_type {
-            EmbeddingCompressionType::Quantization => {
-                self.quantize_embedding(embedding).await
-            }
+            EmbeddingCompressionType::Quantization => self.quantize_embedding(embedding).await,
             EmbeddingCompressionType::DimensionalityReduction => {
                 self.reduce_dimensionality(embedding).await
             }
-            EmbeddingCompressionType::Sparse => {
-                self.sparsify_embedding(embedding).await
-            }
+            EmbeddingCompressionType::Sparse => self.sparsify_embedding(embedding).await,
         }
     }
-    
+
     /// Decompress embedding
-    pub async fn decompress_embedding(&self, compressed: &CompressedEmbedding) -> KnowledgeResult<Vec<f32>> {
+    pub async fn decompress_embedding(
+        &self,
+        compressed: &CompressedEmbedding,
+    ) -> KnowledgeResult<Vec<f32>> {
         match &compressed.compression_type {
-            EmbeddingCompressionType::Quantization => {
-                self.dequantize_embedding(compressed).await
-            }
+            EmbeddingCompressionType::Quantization => self.dequantize_embedding(compressed).await,
             EmbeddingCompressionType::DimensionalityReduction => {
                 self.expand_dimensionality(compressed).await
             }
-            EmbeddingCompressionType::Sparse => {
-                self.desparsify_embedding(compressed).await
-            }
+            EmbeddingCompressionType::Sparse => self.desparsify_embedding(compressed).await,
         }
     }
-    
+
     /// Version embeddings for compatibility
-    pub async fn version_embedding(&self, embedding: &[f32], version: &str) -> KnowledgeResult<VersionedEmbedding> {
+    pub async fn version_embedding(
+        &self,
+        embedding: &[f32],
+        version: &str,
+    ) -> KnowledgeResult<VersionedEmbedding> {
         let model = self.get_model(None).await?;
         let model_info = model.model_info().await;
-        
+
         Ok(VersionedEmbedding {
             embedding: embedding.to_vec(),
             version: version.to_string(),
@@ -606,45 +663,50 @@ impl EmbeddingManager {
             created_at: chrono::Utc::now(),
         })
     }
-    
+
     /// Migrate embeddings between versions
-    pub async fn migrate_embedding(&self, versioned_embedding: &VersionedEmbedding, target_version: &str) -> KnowledgeResult<VersionedEmbedding> {
+    pub async fn migrate_embedding(
+        &self,
+        versioned_embedding: &VersionedEmbedding,
+        target_version: &str,
+    ) -> KnowledgeResult<VersionedEmbedding> {
         // For now, we'll just update the version
         // In a full implementation, this would handle actual migration logic
         let mut migrated = versioned_embedding.clone();
         migrated.version = target_version.to_string();
         migrated.created_at = chrono::Utc::now();
-        
+
         Ok(migrated)
     }
-    
+
     /// Calculate embedding quality score
     async fn calculate_quality_score(&self, embedding: &[f32]) -> f32 {
         let mut score: f32 = 1.0;
-        
+
         // Check for zero vectors
         let magnitude: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
         if magnitude < 0.001 {
             score *= 0.1; // Very low score for zero vectors
         }
-        
+
         // Check for uniform distributions (might indicate poor quality)
         let mean = embedding.iter().sum::<f32>() / embedding.len() as f32;
-        let variance = embedding.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / embedding.len() as f32;
-        
+        let variance =
+            embedding.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / embedding.len() as f32;
+
         if variance < 0.01 {
             score *= 0.7; // Penalize very uniform embeddings
         }
-        
+
         // Check for extreme values
         let max_abs = embedding.iter().map(|x| x.abs()).fold(0.0, f32::max);
         if max_abs > 10.0 {
             score *= 0.8; // Penalize extreme values
         }
-        
+
         score.max(0.0).min(1.0)
     }
-    
+
     /// Quantize embedding to reduce precision
     async fn quantize_embedding(&self, embedding: &[f32]) -> KnowledgeResult<CompressedEmbedding> {
         let quantized: Vec<u8> = embedding
@@ -655,20 +717,23 @@ impl EmbeddingManager {
                 (normalized * 255.0).round() as u8
             })
             .collect();
-        
+
         Ok(CompressedEmbedding {
             data: quantized,
             compression_type: EmbeddingCompressionType::Quantization,
             original_dimension: embedding.len(),
             metadata: CompressedEmbeddingMetadata {
                 compression_ratio: 4.0, // 32-bit to 8-bit = 4x compression
-                quality_loss: 0.1, // Estimated quality loss
+                quality_loss: 0.1,      // Estimated quality loss
             },
         })
     }
-    
+
     /// Dequantize embedding
-    async fn dequantize_embedding(&self, compressed: &CompressedEmbedding) -> KnowledgeResult<Vec<f32>> {
+    async fn dequantize_embedding(
+        &self,
+        compressed: &CompressedEmbedding,
+    ) -> KnowledgeResult<Vec<f32>> {
         let dequantized: Vec<f32> = compressed
             .data
             .iter()
@@ -678,33 +743,36 @@ impl EmbeddingManager {
                 normalized * 2.0 - 1.0 // Map [0, 1] back to [-1, 1]
             })
             .collect();
-        
+
         Ok(dequantized)
     }
-    
+
     /// Reduce dimensionality using PCA-like approach
-    async fn reduce_dimensionality(&self, embedding: &[f32]) -> KnowledgeResult<CompressedEmbedding> {
+    async fn reduce_dimensionality(
+        &self,
+        embedding: &[f32],
+    ) -> KnowledgeResult<CompressedEmbedding> {
         // Simple dimensionality reduction: keep top 50% of dimensions by magnitude
         let mut indexed: Vec<(usize, f32)> = embedding
             .iter()
             .enumerate()
             .map(|(i, &x)| (i, x.abs()))
             .collect();
-        
+
         indexed.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         let keep_count = embedding.len() / 2;
         let mut reduced = vec![0.0; embedding.len()];
-        
+
         for (i, _) in indexed.iter().take(keep_count) {
             reduced[*i] = embedding[*i];
         }
-        
+
         let compressed_data: Vec<u8> = reduced
             .into_iter()
             .map(|x| ((x * 1000.0) as i16) as u8)
             .collect();
-        
+
         Ok(CompressedEmbedding {
             data: compressed_data,
             compression_type: EmbeddingCompressionType::DimensionalityReduction,
@@ -715,18 +783,17 @@ impl EmbeddingManager {
             },
         })
     }
-    
+
     /// Expand dimensionality back
-    async fn expand_dimensionality(&self, compressed: &CompressedEmbedding) -> KnowledgeResult<Vec<f32>> {
-        let expanded: Vec<f32> = compressed
-            .data
-            .iter()
-            .map(|&x| x as f32 / 1000.0)
-            .collect();
-        
+    async fn expand_dimensionality(
+        &self,
+        compressed: &CompressedEmbedding,
+    ) -> KnowledgeResult<Vec<f32>> {
+        let expanded: Vec<f32> = compressed.data.iter().map(|&x| x as f32 / 1000.0).collect();
+
         Ok(expanded)
     }
-    
+
     /// Sparsify embedding (keep only top values)
     async fn sparsify_embedding(&self, embedding: &[f32]) -> KnowledgeResult<CompressedEmbedding> {
         let mut indexed: Vec<(usize, f32)> = embedding
@@ -734,17 +801,17 @@ impl EmbeddingManager {
             .enumerate()
             .map(|(i, &x)| (i, x.abs()))
             .collect();
-        
+
         indexed.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         let keep_count = embedding.len() / 4; // Keep top 25%
         let mut sparse_data = Vec::new();
-        
+
         for (i, _) in indexed.iter().take(keep_count) {
             sparse_data.push(*i as u8);
             sparse_data.push((embedding[*i] * 1000.0) as u8);
         }
-        
+
         Ok(CompressedEmbedding {
             data: sparse_data,
             compression_type: EmbeddingCompressionType::Sparse,
@@ -755,11 +822,14 @@ impl EmbeddingManager {
             },
         })
     }
-    
+
     /// Desparsify embedding
-    async fn desparsify_embedding(&self, compressed: &CompressedEmbedding) -> KnowledgeResult<Vec<f32>> {
+    async fn desparsify_embedding(
+        &self,
+        compressed: &CompressedEmbedding,
+    ) -> KnowledgeResult<Vec<f32>> {
         let mut result = vec![0.0; compressed.original_dimension];
-        
+
         let mut i = 0;
         while i < compressed.data.len() {
             if i + 1 < compressed.data.len() {
@@ -773,7 +843,7 @@ impl EmbeddingManager {
                 break;
             }
         }
-        
+
         Ok(result)
     }
 }
@@ -785,7 +855,7 @@ impl SimpleHashEmbeddingModel {
         cache.put(key.to_string(), embedding.to_vec());
         Ok(())
     }
-    
+
     /// Get cached embedding if available
     pub async fn get_cached_embedding(&self, key: &str) -> KnowledgeResult<Option<Vec<f32>>> {
         let cache = self.cache.read().await;
@@ -863,4 +933,4 @@ pub fn default_embedding_manager_config() -> EmbeddingManagerConfig {
         batch_size: 32,
         max_concurrent_requests: 100,
     }
-} 
+}

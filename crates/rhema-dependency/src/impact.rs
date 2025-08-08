@@ -1,10 +1,10 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use chrono::{DateTime, Utc};
 
-use crate::error::{Error, Result, RiskLevel, ImpactAnalysisResult};
-use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore, HealthMetrics};
+use crate::error::{Error, ImpactAnalysisResult, Result, RiskLevel};
 use crate::graph::DependencyGraph;
+use crate::types::{DependencyConfig, DependencyType, HealthMetrics, HealthStatus, ImpactScore};
 
 /// Business impact metrics configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,10 +93,7 @@ impl ImpactAnalysis {
     }
 
     /// Create a new impact analysis engine with custom configuration
-    pub fn with_config(
-        business_metrics: BusinessImpactMetrics,
-        risk_factors: RiskFactors,
-    ) -> Self {
+    pub fn with_config(business_metrics: BusinessImpactMetrics, risk_factors: RiskFactors) -> Self {
         Self {
             business_metrics,
             risk_factors,
@@ -137,19 +134,19 @@ impl ImpactAnalysis {
         graph: &DependencyGraph,
     ) -> Result<ImpactAnalysisResult> {
         let config = graph.get_dependency_config(dependency_id)?;
-        
+
         // Calculate business impact score
         let business_impact_score = self.calculate_business_impact_score(dependency_id, graph)?;
-        
+
         // Calculate risk level
         let risk_level = self.calculate_risk_level(dependency_id, graph)?;
-        
+
         // Find affected services
         let affected_services = self.find_affected_services(dependency_id, graph)?;
-        
+
         // Estimate downtime
         let estimated_downtime = self.estimate_downtime(dependency_id, graph)?;
-        
+
         // Calculate cost impact
         let cost_impact = self.calculate_cost_impact(dependency_id, estimated_downtime, graph)?;
 
@@ -215,24 +212,22 @@ impl ImpactAnalysis {
         graph: &DependencyGraph,
     ) -> Result<f64> {
         let config = graph.get_dependency_config(dependency_id)?;
-        
+
         // Base impact based on dependency type
         let base_impact = self.get_base_impact_for_type(&config.dependency_type);
-        
+
         // Critical functions impact
         let critical_impact = self.calculate_critical_functions_impact(dependency_id);
-        
+
         // Dependency depth impact (how many services depend on this)
         let depth_impact = self.calculate_dependency_depth_impact(dependency_id, graph)?;
-        
+
         // Health status impact
         let health_impact = self.calculate_health_impact(dependency_id, graph)?;
-        
+
         // Weighted combination
-        let total_impact = base_impact * 0.3
-            + critical_impact * 0.3
-            + depth_impact * 0.2
-            + health_impact * 0.2;
+        let total_impact =
+            base_impact * 0.3 + critical_impact * 0.3 + depth_impact * 0.2 + health_impact * 0.2;
 
         Ok(total_impact.min(1.0))
     }
@@ -244,22 +239,22 @@ impl ImpactAnalysis {
         graph: &DependencyGraph,
     ) -> Result<RiskLevel> {
         let config = graph.get_dependency_config(dependency_id)?;
-        
+
         // Availability risk
         let availability_risk = self.calculate_availability_risk(dependency_id, graph)?;
-        
+
         // Performance risk
         let performance_risk = self.calculate_performance_risk(dependency_id, graph)?;
-        
+
         // Security risk
         let security_risk = self.calculate_security_risk(dependency_id, graph)?;
-        
+
         // Scalability risk
         let scalability_risk = self.calculate_scalability_risk(dependency_id, graph)?;
-        
+
         // Maintainability risk
         let maintainability_risk = self.calculate_maintainability_risk(dependency_id, graph)?;
-        
+
         // Compliance risk
         let compliance_risk = self.calculate_compliance_risk(dependency_id, graph)?;
 
@@ -311,17 +306,17 @@ impl ImpactAnalysis {
         graph: &DependencyGraph,
     ) -> Result<std::time::Duration> {
         let config = graph.get_dependency_config(dependency_id)?;
-        
+
         // Base downtime based on dependency type
         let base_downtime = match config.dependency_type {
             DependencyType::DataFlow => std::time::Duration::from_secs(300), // 5 minutes
             DependencyType::ApiCall => std::time::Duration::from_secs(60),   // 1 minute
             DependencyType::Infrastructure => std::time::Duration::from_secs(1800), // 30 minutes
-            DependencyType::BusinessLogic => std::time::Duration::from_secs(600),   // 10 minutes
-            DependencyType::Security => std::time::Duration::from_secs(120),        // 2 minutes
-            DependencyType::Monitoring => std::time::Duration::from_secs(300),      // 5 minutes
-            DependencyType::Configuration => std::time::Duration::from_secs(60),    // 1 minute
-            DependencyType::Deployment => std::time::Duration::from_secs(900),      // 15 minutes
+            DependencyType::BusinessLogic => std::time::Duration::from_secs(600), // 10 minutes
+            DependencyType::Security => std::time::Duration::from_secs(120), // 2 minutes
+            DependencyType::Monitoring => std::time::Duration::from_secs(300), // 5 minutes
+            DependencyType::Configuration => std::time::Duration::from_secs(60), // 1 minute
+            DependencyType::Deployment => std::time::Duration::from_secs(900), // 15 minutes
         };
 
         // Adjust based on health status
@@ -345,8 +340,11 @@ impl ImpactAnalysis {
         graph: &DependencyGraph,
     ) -> Result<f64> {
         let config = graph.get_dependency_config(dependency_id)?;
-        let cost_per_hour = self.downtime_costs.get(&config.dependency_type).unwrap_or(&1000.0);
-        
+        let cost_per_hour = self
+            .downtime_costs
+            .get(&config.dependency_type)
+            .unwrap_or(&1000.0);
+
         let hours = downtime.as_secs_f64() / 3600.0;
         Ok(cost_per_hour * hours)
     }
@@ -387,16 +385,12 @@ impl ImpactAnalysis {
     ) -> Result<f64> {
         let dependents = graph.get_dependents(dependency_id)?;
         let depth = dependents.len();
-        
+
         Ok((depth as f64 * 0.05).min(0.5))
     }
 
     /// Calculate health impact
-    fn calculate_health_impact(
-        &self,
-        dependency_id: &str,
-        graph: &DependencyGraph,
-    ) -> Result<f64> {
+    fn calculate_health_impact(&self, dependency_id: &str, graph: &DependencyGraph) -> Result<f64> {
         // This would need access to health status from the graph
         // For now, return a default value
         Ok(0.5)
@@ -425,13 +419,9 @@ impl ImpactAnalysis {
     }
 
     /// Calculate security risk
-    fn calculate_security_risk(
-        &self,
-        dependency_id: &str,
-        graph: &DependencyGraph,
-    ) -> Result<f64> {
+    fn calculate_security_risk(&self, dependency_id: &str, graph: &DependencyGraph) -> Result<f64> {
         let config = graph.get_dependency_config(dependency_id)?;
-        
+
         match config.dependency_type {
             DependencyType::Security => Ok(0.8),
             DependencyType::DataFlow => Ok(0.6),
@@ -469,7 +459,7 @@ impl ImpactAnalysis {
         graph: &DependencyGraph,
     ) -> Result<f64> {
         let config = graph.get_dependency_config(dependency_id)?;
-        
+
         match config.dependency_type {
             DependencyType::Security => Ok(0.7),
             DependencyType::DataFlow => Ok(0.5),
@@ -515,19 +505,29 @@ impl ImpactAnalysis {
     /// Get trend analysis
     pub fn get_trend_analysis(&self, dependency_id: &str) -> Result<TrendAnalysis> {
         let impacts = self.get_historical_impacts(dependency_id);
-        
+
         if impacts.len() < 2 {
-            return Err(Error::ImpactAnalysisFailed("Insufficient historical data".to_string()));
+            return Err(Error::ImpactAnalysisFailed(
+                "Insufficient historical data".to_string(),
+            ));
         }
 
         let recent_impacts: Vec<_> = impacts.iter().rev().take(10).collect();
-        let avg_recent_impact = recent_impacts.iter().map(|i| i.business_impact_score).sum::<f64>() / recent_impacts.len() as f64;
-        
+        let avg_recent_impact = recent_impacts
+            .iter()
+            .map(|i| i.business_impact_score)
+            .sum::<f64>()
+            / recent_impacts.len() as f64;
+
         let older_impacts: Vec<_> = impacts.iter().rev().skip(10).take(10).collect();
         let avg_older_impact = if older_impacts.is_empty() {
             avg_recent_impact
         } else {
-            older_impacts.iter().map(|i| i.business_impact_score).sum::<f64>() / older_impacts.len() as f64
+            older_impacts
+                .iter()
+                .map(|i| i.business_impact_score)
+                .sum::<f64>()
+                / older_impacts.len() as f64
         };
 
         let trend = if avg_recent_impact > avg_older_impact * 1.1 {
@@ -582,14 +582,19 @@ mod tests {
     use super::*;
     use crate::types::DependencyConfig;
 
-    fn create_test_config(id: &str, name: &str, dependency_type: DependencyType) -> DependencyConfig {
+    fn create_test_config(
+        id: &str,
+        name: &str,
+        dependency_type: DependencyType,
+    ) -> DependencyConfig {
         DependencyConfig::new(
             id.to_string(),
             name.to_string(),
             dependency_type,
             "test-target".to_string(),
             vec!["test-operation".to_string()],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[test]
@@ -627,31 +632,46 @@ mod tests {
     #[test]
     fn test_get_base_impact_for_type() {
         let analysis = ImpactAnalysis::new();
-        
-        assert_eq!(analysis.get_base_impact_for_type(&DependencyType::Infrastructure), 0.9);
-        assert_eq!(analysis.get_base_impact_for_type(&DependencyType::Security), 0.9);
-        assert_eq!(analysis.get_base_impact_for_type(&DependencyType::DataFlow), 0.8);
-        assert_eq!(analysis.get_base_impact_for_type(&DependencyType::ApiCall), 0.7);
+
+        assert_eq!(
+            analysis.get_base_impact_for_type(&DependencyType::Infrastructure),
+            0.9
+        );
+        assert_eq!(
+            analysis.get_base_impact_for_type(&DependencyType::Security),
+            0.9
+        );
+        assert_eq!(
+            analysis.get_base_impact_for_type(&DependencyType::DataFlow),
+            0.8
+        );
+        assert_eq!(
+            analysis.get_base_impact_for_type(&DependencyType::ApiCall),
+            0.7
+        );
     }
 
     #[test]
     fn test_calculate_critical_functions_impact() {
         let analysis = ImpactAnalysis::new();
-        
+
         // No critical functions
         assert_eq!(analysis.calculate_critical_functions_impact("test"), 0.3);
-        
+
         // With critical functions
-        let analysis = analysis.add_critical_functions("test".to_string(), vec!["func1".to_string(), "func2".to_string()]);
+        let analysis = analysis.add_critical_functions(
+            "test".to_string(),
+            vec!["func1".to_string(), "func2".to_string()],
+        );
         assert_eq!(analysis.calculate_critical_functions_impact("test"), 0.5);
     }
 
     #[test]
     fn test_default_downtime_costs() {
         let costs = ImpactAnalysis::default_downtime_costs();
-        
+
         assert_eq!(costs.get(&DependencyType::Infrastructure), Some(&10000.0));
         assert_eq!(costs.get(&DependencyType::Security), Some(&15000.0));
         assert_eq!(costs.get(&DependencyType::DataFlow), Some(&5000.0));
     }
-} 
+}

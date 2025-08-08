@@ -19,7 +19,7 @@ pub mod coordination_service;
 pub mod server;
 
 // Re-export main types
-pub use coordination_client::{GrpcCoordinationClient, GrpcClientConfig};
+pub use coordination_client::{GrpcClientConfig, GrpcCoordinationClient};
 pub use coordination_service::CoordinationService;
 pub use server::{GrpcCoordinationServer, GrpcServerConfig};
 
@@ -66,26 +66,26 @@ impl Default for GrpcCoordinationConfig {
 /// Example of creating a simple coordination setup
 pub async fn create_example_setup() -> Result<(), Box<dyn std::error::Error>> {
     use crate::agent::real_time_coordination::RealTimeCoordinationSystem;
-    
+
     // Create coordination system
     let coordination_system = RealTimeCoordinationSystem::new();
-    
+
     // Create server configuration
     let server_config = GrpcServerConfig::default();
-    
+
     // Create server
     let server = GrpcCoordinationServer::new(coordination_system, server_config);
-    
+
     // Start server (for now, just log)
     println!("Would start gRPC coordination server");
-    
+
     // Create client configuration
     let client_config = GrpcClientConfig::default();
-    
+
     // Create client
     let client = GrpcCoordinationClient::new(client_config).await?;
-    
+
     println!("✅ Example gRPC coordination setup created successfully");
-    
+
     Ok(())
-} 
+}

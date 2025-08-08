@@ -52,14 +52,14 @@ enum BatchSubcommands {
         include_all: bool,
     },
 }
+use std::collections::HashMap;
 use std::path::Path;
 use tempfile::TempDir;
-use std::collections::HashMap;
 
 // Mock implementations for commands module
 mod commands {
     use super::*;
-    
+
     pub mod batch {
         use super::*;
         pub fn run(_rhema: &Rhema, _subcommand: &BatchSubcommands) -> RhemaResult<()> {

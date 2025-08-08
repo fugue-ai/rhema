@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use super::{ClusterConfig, NodeInfo, ClusterHealth, ClusterStatus};
+use super::{ClusterConfig, ClusterHealth, ClusterStatus, NodeInfo};
 use rhema_core::RhemaResult;
 
 /// Cluster manager
@@ -75,4 +75,4 @@ impl ClusterManager {
         // TODO: Implement all nodes retrieval
         Ok(vec![self.get_node_info().await?])
     }
-} 
+}

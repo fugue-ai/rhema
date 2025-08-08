@@ -15,12 +15,12 @@
  */
 
 use crate::error::{AgentError, AgentResult};
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use async_trait::async_trait;
 
 /// Unique identifier for an agent
 pub type AgentId = String;
@@ -678,7 +678,10 @@ impl Agent for BaseAgent {
         Ok(())
     }
 
-    async fn handle_message(&mut self, _message: AgentMessage) -> AgentResult<Option<AgentMessage>> {
+    async fn handle_message(
+        &mut self,
+        _message: AgentMessage,
+    ) -> AgentResult<Option<AgentMessage>> {
         // Default implementation returns None (no response)
         Ok(None)
     }
@@ -726,11 +729,11 @@ mod tests {
     fn test_agent_context() {
         let agent_id = "test-agent".to_string();
         let mut context = AgentContext::new(agent_id.clone());
-        
+
         assert_eq!(context.agent_id, agent_id);
         assert_eq!(context.state, AgentState::Initializing);
         assert_eq!(context.task_count, 0);
-        
+
         context.increment_task_count();
         context.increment_success_count();
         assert_eq!(context.task_count, 1);
@@ -743,7 +746,7 @@ mod tests {
         let request = AgentRequest::new("test".to_string(), payload)
             .with_priority(10)
             .with_timeout(60);
-        
+
         assert_eq!(request.request_type, "test");
         assert_eq!(request.priority, 10);
         assert_eq!(request.timeout, Some(60));
@@ -754,7 +757,7 @@ mod tests {
         let request_id = "test-request".to_string();
         let payload = serde_json::json!({"result": "success"});
         let response = AgentResponse::success(request_id.clone(), payload.clone());
-        
+
         assert_eq!(response.request_id, request_id);
         assert_eq!(response.status, ResponseStatus::Success);
         assert_eq!(response.payload, Some(payload));
@@ -764,12 +767,12 @@ mod tests {
     async fn test_base_agent() {
         let config = AgentConfig::default();
         let mut agent = BaseAgent::new("test-agent".to_string(), config);
-        
+
         assert!(agent.initialize().await.is_ok());
         assert!(agent.start().await.is_ok());
         assert_eq!(agent.context().state, AgentState::Ready);
-        
+
         let status = agent.get_status().await.unwrap();
         assert_eq!(status.state, AgentState::Ready);
     }
-} 
+}

@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use rhema_agent::agent::AgentCapability;
 use rhema_agent::agent::{
     Agent, AgentConfig, AgentContext, AgentId, AgentMessage, AgentRequest, AgentResponse,
     AgentType, BaseAgent, HealthStatus,
 };
-use rhema_agent::agent::AgentCapability;
 use rhema_agent::error::{AgentError, AgentResult};
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::process::Command;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::Duration;
-use chrono::{DateTime, Utc};
-use std::process::Command;
 
 /// Monitoring configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -418,9 +418,9 @@ impl MonitoringAgent {
                 AgentCapability::Communication,
             ],
             max_concurrent_tasks: 10,
-            task_timeout: 300, // 5 minutes
+            task_timeout: 300,       // 5 minutes
             memory_limit: Some(512), // 512 MB
-            cpu_limit: Some(25.0), // 25% CPU
+            cpu_limit: Some(25.0),   // 25% CPU
             retry_attempts: 3,
             retry_delay: 5,
             parameters: HashMap::new(),
@@ -458,9 +458,12 @@ impl MonitoringAgent {
     }
 
     /// Start monitoring
-    async fn start_monitoring(&mut self, request: MonitoringRequest) -> AgentResult<MonitoringResult> {
+    async fn start_monitoring(
+        &mut self,
+        request: MonitoringRequest,
+    ) -> AgentResult<MonitoringResult> {
         let monitoring_id = uuid::Uuid::new_v4().to_string();
-        
+
         // Update configuration
         self.config = request.config;
         self.targets = request.targets;
@@ -476,7 +479,10 @@ impl MonitoringAgent {
                 status: SessionStatus::Active,
             };
 
-            self.active_sessions.write().await.insert(session.session_id.clone(), session);
+            self.active_sessions
+                .write()
+                .await
+                .insert(session.session_id.clone(), session);
         }
 
         // Start monitoring task
@@ -488,10 +494,10 @@ impl MonitoringAgent {
         let monitoring_id_clone = monitoring_id.clone();
         let task = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(config.interval));
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Collect metrics from all active sessions
                 let sessions = active_sessions.read().await;
                 for (_session_id, session) in sessions.iter() {
@@ -499,7 +505,7 @@ impl MonitoringAgent {
                         // Collect metrics (simplified for this example)
                         let metrics = Self::collect_system_metrics().await;
                         let alerts = Self::check_thresholds(&metrics, &config.thresholds).await;
-                        
+
                         let result = MonitoringResult {
                             monitoring_id: monitoring_id_clone.clone(),
                             timestamp: Utc::now(),
@@ -511,7 +517,7 @@ impl MonitoringAgent {
 
                         // Store results
                         metrics_history.write().await.push(result);
-                        
+
                         // Store alerts
                         for alert in alerts {
                             alert_history.write().await.push(alert);
@@ -540,7 +546,7 @@ impl MonitoringAgent {
         // CPU metrics
         let cpu_usage = Self::get_cpu_usage().await;
         let load_average = Self::get_load_average().await;
-        
+
         let cpu_metrics = CpuMetrics {
             usage_percentage: cpu_usage,
             load_average,
@@ -573,9 +579,7 @@ impl MonitoringAgent {
     async fn get_cpu_usage() -> f64 {
         // Simplified CPU usage calculation
         // In a real implementation, this would read from /proc/stat or use system APIs
-        let output = Command::new("top")
-            .args(&["-l", "1", "-n", "0"])
-            .output();
+        let output = Command::new("top").args(&["-l", "1", "-n", "0"]).output();
 
         match output {
             Ok(output) => {
@@ -608,8 +612,8 @@ impl MonitoringAgent {
         // Simplified memory metrics
         // In a real implementation, this would read from /proc/meminfo or use system APIs
         let total = 16 * 1024 * 1024 * 1024; // 16 GB
-        let used = 8 * 1024 * 1024 * 1024;   // 8 GB
-        let free = 4 * 1024 * 1024 * 1024;   // 4 GB
+        let used = 8 * 1024 * 1024 * 1024; // 8 GB
+        let free = 4 * 1024 * 1024 * 1024; // 4 GB
         let available = 6 * 1024 * 1024 * 1024; // 6 GB
 
         MemoryMetrics {
@@ -625,8 +629,8 @@ impl MonitoringAgent {
     async fn get_disk_metrics() -> DiskMetrics {
         // Simplified disk metrics
         let total = 500 * 1024 * 1024 * 1024; // 500 GB
-        let used = 200 * 1024 * 1024 * 1024;  // 200 GB
-        let free = 300 * 1024 * 1024 * 1024;  // 300 GB
+        let used = 200 * 1024 * 1024 * 1024; // 200 GB
+        let free = 300 * 1024 * 1024 * 1024; // 300 GB
 
         DiskMetrics {
             total,
@@ -644,7 +648,7 @@ impl MonitoringAgent {
         // Simplified network metrics
         NetworkMetrics {
             interface: "eth0".to_string(),
-            bytes_received: 1024 * 1024 * 100, // 100 MB
+            bytes_received: 1024 * 1024 * 100,   // 100 MB
             bytes_transmitted: 1024 * 1024 * 50, // 50 MB
             packets_received: 1000,
             packets_transmitted: 500,
@@ -687,7 +691,10 @@ impl MonitoringAgent {
     }
 
     /// Check thresholds and generate alerts
-    async fn check_thresholds(metrics: &SystemMetrics, thresholds: &HashMap<String, Threshold>) -> Vec<Alert> {
+    async fn check_thresholds(
+        metrics: &SystemMetrics,
+        thresholds: &HashMap<String, Threshold>,
+    ) -> Vec<Alert> {
         let mut alerts = Vec::new();
 
         for (metric_name, threshold) in thresholds {
@@ -729,29 +736,38 @@ impl MonitoringAgent {
         let mut map = HashMap::new();
         let timestamp = Utc::now();
 
-        map.insert("cpu_usage".to_string(), MetricValue {
-            name: "cpu_usage".to_string(),
-            value: metrics.cpu.usage_percentage,
-            unit: "%".to_string(),
-            timestamp,
-            metadata: HashMap::new(),
-        });
+        map.insert(
+            "cpu_usage".to_string(),
+            MetricValue {
+                name: "cpu_usage".to_string(),
+                value: metrics.cpu.usage_percentage,
+                unit: "%".to_string(),
+                timestamp,
+                metadata: HashMap::new(),
+            },
+        );
 
-        map.insert("memory_usage".to_string(), MetricValue {
-            name: "memory_usage".to_string(),
-            value: metrics.memory.usage_percentage,
-            unit: "%".to_string(),
-            timestamp,
-            metadata: HashMap::new(),
-        });
+        map.insert(
+            "memory_usage".to_string(),
+            MetricValue {
+                name: "memory_usage".to_string(),
+                value: metrics.memory.usage_percentage,
+                unit: "%".to_string(),
+                timestamp,
+                metadata: HashMap::new(),
+            },
+        );
 
-        map.insert("disk_usage".to_string(), MetricValue {
-            name: "disk_usage".to_string(),
-            value: metrics.disk.usage_percentage,
-            unit: "%".to_string(),
-            timestamp,
-            metadata: HashMap::new(),
-        });
+        map.insert(
+            "disk_usage".to_string(),
+            MetricValue {
+                name: "disk_usage".to_string(),
+                value: metrics.disk.usage_percentage,
+                unit: "%".to_string(),
+                timestamp,
+                metadata: HashMap::new(),
+            },
+        );
 
         map
     }
@@ -778,7 +794,10 @@ impl MonitoringAgent {
             cpu_usage: metrics.cpu.usage_percentage,
             memory_usage: metrics.memory.usage_percentage,
             disk_usage: metrics.disk.usage_percentage,
-            network_usage: (metrics.network.bytes_received + metrics.network.bytes_transmitted) as f64 / 1024.0 / 1024.0,
+            network_usage: (metrics.network.bytes_received + metrics.network.bytes_transmitted)
+                as f64
+                / 1024.0
+                / 1024.0,
             active_processes: metrics.process.running_processes,
             load_average: metrics.cpu.load_average,
         }
@@ -849,30 +868,44 @@ impl Agent for MonitoringAgent {
         match request.request_type.as_str() {
             "start_monitoring" => {
                 let monitoring_request: MonitoringRequest = serde_json::from_value(request.payload)
-                    .map_err(|e| AgentError::SerializationError { reason: e.to_string() })?;
+                    .map_err(|e| AgentError::SerializationError {
+                        reason: e.to_string(),
+                    })?;
 
                 let start_time = std::time::Instant::now();
                 let result = self.start_monitoring(monitoring_request).await?;
                 let execution_time = start_time.elapsed().as_millis() as u64;
 
-                Ok(AgentResponse::success(request.id, serde_json::to_value(result).unwrap())
-                    .with_execution_time(execution_time))
+                Ok(
+                    AgentResponse::success(request.id, serde_json::to_value(result).unwrap())
+                        .with_execution_time(execution_time),
+                )
             }
             "get_monitoring_history" => {
                 let history = self.get_monitoring_history().await;
-                Ok(AgentResponse::success(request.id, serde_json::to_value(history).unwrap()))
+                Ok(AgentResponse::success(
+                    request.id,
+                    serde_json::to_value(history).unwrap(),
+                ))
             }
             "get_alert_history" => {
                 let alerts = self.get_alert_history().await;
-                Ok(AgentResponse::success(request.id, serde_json::to_value(alerts).unwrap()))
+                Ok(AgentResponse::success(
+                    request.id,
+                    serde_json::to_value(alerts).unwrap(),
+                ))
             }
             "get_active_sessions" => {
                 let sessions = self.get_active_sessions().await;
-                Ok(AgentResponse::success(request.id, serde_json::to_value(sessions).unwrap()))
+                Ok(AgentResponse::success(
+                    request.id,
+                    serde_json::to_value(sessions).unwrap(),
+                ))
             }
-            _ => {
-                Ok(AgentResponse::error(request.id, "Unknown task type".to_string()))
-            }
+            _ => Ok(AgentResponse::error(
+                request.id,
+                "Unknown task type".to_string(),
+            )),
         }
     }
 
@@ -953,12 +986,15 @@ mod tests {
     #[tokio::test]
     async fn test_threshold_checking() {
         let mut thresholds = HashMap::new();
-        thresholds.insert("cpu_usage".to_string(), Threshold {
-            value: 80.0,
-            operator: ThresholdOperator::GreaterThan,
-            severity: AlertSeverity::Warning,
-            message: "CPU usage is high".to_string(),
-        });
+        thresholds.insert(
+            "cpu_usage".to_string(),
+            Threshold {
+                value: 80.0,
+                operator: ThresholdOperator::GreaterThan,
+                severity: AlertSeverity::Warning,
+                message: "CPU usage is high".to_string(),
+            },
+        );
 
         let metrics = SystemMetrics {
             cpu: CpuMetrics {
@@ -1007,4 +1043,4 @@ mod tests {
         assert_eq!(alerts.len(), 1);
         assert_eq!(alerts[0].severity, AlertSeverity::Warning);
     }
-} 
+}

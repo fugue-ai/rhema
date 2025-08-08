@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
+use lazy_static::lazy_static;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
-use tracing::{info, warn, instrument};
-use regex::Regex;
-use lazy_static::lazy_static;
+use tracing::{info, instrument, warn};
 
 lazy_static! {
-    static ref SQL_INJECTION_PATTERN: Regex = Regex::new(r#"(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)"#).unwrap();
-    static ref XSS_PATTERN: Regex = Regex::new(r#"(?i)(<script|javascript:|vbscript:|onload=|onerror=|onclick=)"#).unwrap();
+    static ref SQL_INJECTION_PATTERN: Regex =
+        Regex::new(r#"(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)"#)
+            .unwrap();
+    static ref XSS_PATTERN: Regex =
+        Regex::new(r#"(?i)(<script|javascript:|vbscript:|onload=|onerror=|onclick=)"#).unwrap();
     static ref PATH_TRAVERSAL_PATTERN: Regex = Regex::new(r#"(\.\./|\.\.\\)"#).unwrap();
 }
 
@@ -33,22 +36,22 @@ lazy_static! {
 pub struct SecurityConfig {
     /// Enable input sanitization
     pub enable_input_sanitization: bool,
-    
+
     /// Enable access control
     pub enable_access_control: bool,
-    
+
     /// Enable audit logging
     pub enable_audit_logging: bool,
-    
+
     /// Allowed file extensions
     pub allowed_file_extensions: Vec<String>,
-    
+
     /// Maximum file size in bytes
     pub max_file_size: usize,
-    
+
     /// Allowed query patterns
     pub allowed_query_patterns: Vec<String>,
-    
+
     /// Blocked query patterns
     pub blocked_query_patterns: Vec<String>,
 }
@@ -60,8 +63,11 @@ impl Default for SecurityConfig {
             enable_access_control: true,
             enable_audit_logging: true,
             allowed_file_extensions: vec![
-                "yaml".to_string(), "yml".to_string(), "json".to_string(),
-                "md".to_string(), "txt".to_string()
+                "yaml".to_string(),
+                "yml".to_string(),
+                "json".to_string(),
+                "md".to_string(),
+                "txt".to_string(),
             ],
             max_file_size: 10 * 1024 * 1024, // 10 MB
             allowed_query_patterns: vec![
@@ -102,21 +108,21 @@ impl InputSanitizer {
         // Remove SQL injection patterns
         if SQL_INJECTION_PATTERN.is_match(&sanitized) {
             return Err(RhemaError::SecurityError(
-                "Potential SQL injection detected".to_string()
+                "Potential SQL injection detected".to_string(),
             ));
         }
 
         // Remove XSS patterns
         if XSS_PATTERN.is_match(&sanitized) {
             return Err(RhemaError::SecurityError(
-                "Potential XSS attack detected".to_string()
+                "Potential XSS attack detected".to_string(),
             ));
         }
 
         // Remove path traversal patterns
         if PATH_TRAVERSAL_PATTERN.is_match(&sanitized) {
             return Err(RhemaError::SecurityError(
-                "Path traversal attack detected".to_string()
+                "Path traversal attack detected".to_string(),
             ));
         }
 
@@ -139,17 +145,22 @@ impl InputSanitizer {
         // Check for path traversal
         if sanitized.contains("..") {
             return Err(RhemaError::SecurityError(
-                "Path traversal not allowed".to_string()
+                "Path traversal not allowed".to_string(),
             ));
         }
 
         // Check file extension
         if let Some(extension) = std::path::Path::new(&sanitized).extension() {
             let ext = extension.to_string_lossy().to_lowercase();
-            if !self.config.allowed_file_extensions.contains(&ext.to_string()) {
-                return Err(RhemaError::SecurityError(
-                    format!("File extension '{}' not allowed", ext)
-                ));
+            if !self
+                .config
+                .allowed_file_extensions
+                .contains(&ext.to_string())
+            {
+                return Err(RhemaError::SecurityError(format!(
+                    "File extension '{}' not allowed",
+                    ext
+                )));
             }
         }
 
@@ -165,9 +176,10 @@ impl InputSanitizer {
         for pattern in &self.config.blocked_query_patterns {
             if let Ok(regex) = Regex::new(pattern) {
                 if regex.is_match(&sanitized) {
-                    return Err(RhemaError::SecurityError(
-                        format!("Query pattern '{}' is blocked", pattern)
-                    ));
+                    return Err(RhemaError::SecurityError(format!(
+                        "Query pattern '{}' is blocked",
+                        pattern
+                    )));
                 }
             }
         }
@@ -214,7 +226,7 @@ impl AccessControl {
         let user_permissions = permissions
             .entry(user_id.to_string())
             .or_insert_with(Vec::new);
-        
+
         if !user_permissions.contains(&operation.to_string()) {
             user_permissions.push(operation.to_string());
         }
@@ -241,28 +253,28 @@ impl AccessControl {
 pub struct AuditLogEntry {
     /// Timestamp
     pub timestamp: chrono::DateTime<chrono::Utc>,
-    
+
     /// User ID
     pub user_id: String,
-    
+
     /// Operation performed
     pub operation: String,
-    
+
     /// Resource accessed
     pub resource: String,
-    
+
     /// Success status
     pub success: bool,
-    
+
     /// Error message if failed
     pub error_message: Option<String>,
-    
+
     /// IP address
     pub ip_address: Option<String>,
-    
+
     /// User agent
     pub user_agent: Option<String>,
-    
+
     /// Additional metadata
     pub metadata: HashMap<String, serde_yaml::Value>,
 }
@@ -298,18 +310,25 @@ impl AuditLogger {
             entries.remove(0);
         }
 
-        info!("Audit log: {} performed {} on {} (success: {})", 
-            entry.user_id, entry.operation, entry.resource, entry.success);
+        info!(
+            "Audit log: {} performed {} on {} (success: {})",
+            entry.user_id, entry.operation, entry.resource, entry.success
+        );
 
         Ok(())
     }
 
     /// Get audit log entries
     #[instrument(skip_all)]
-    pub async fn get_entries(&self, user_id: Option<&str>, operation: Option<&str>) -> Vec<AuditLogEntry> {
+    pub async fn get_entries(
+        &self,
+        user_id: Option<&str>,
+        operation: Option<&str>,
+    ) -> Vec<AuditLogEntry> {
         let entries = self.log_entries.read().await;
-        
-        entries.iter()
+
+        entries
+            .iter()
             .filter(|entry| {
                 if let Some(uid) = user_id {
                     if entry.user_id != uid {
@@ -363,58 +382,81 @@ impl SecurityManager {
 
     /// Validate and sanitize input
     #[instrument(skip_all)]
-    pub async fn validate_input(&self, user_id: &str, operation: &str, input: &str) -> RhemaResult<String> {
+    pub async fn validate_input(
+        &self,
+        user_id: &str,
+        operation: &str,
+        input: &str,
+    ) -> RhemaResult<String> {
         // Check permissions
-        if !self.access_control.check_permission(user_id, operation).await? {
-            return Err(RhemaError::AuthorizationError(
-                format!("User '{}' not authorized for operation '{}'", user_id, operation)
-            ));
+        if !self
+            .access_control
+            .check_permission(user_id, operation)
+            .await?
+        {
+            return Err(RhemaError::AuthorizationError(format!(
+                "User '{}' not authorized for operation '{}'",
+                user_id, operation
+            )));
         }
 
         // Sanitize input
         let sanitized = self.sanitizer.sanitize_string(input)?;
 
         // Log the event
-        self.audit_logger.log_event(AuditLogEntry {
-            timestamp: chrono::Utc::now(),
-            user_id: user_id.to_string(),
-            operation: operation.to_string(),
-            resource: "input".to_string(),
-            success: true,
-            error_message: None,
-            ip_address: None,
-            user_agent: None,
-            metadata: HashMap::new(),
-        }).await?;
+        self.audit_logger
+            .log_event(AuditLogEntry {
+                timestamp: chrono::Utc::now(),
+                user_id: user_id.to_string(),
+                operation: operation.to_string(),
+                resource: "input".to_string(),
+                success: true,
+                error_message: None,
+                ip_address: None,
+                user_agent: None,
+                metadata: HashMap::new(),
+            })
+            .await?;
 
         Ok(sanitized)
     }
 
     /// Validate file access
     #[instrument(skip_all)]
-    pub async fn validate_file_access(&self, user_id: &str, file_path: &str) -> RhemaResult<String> {
+    pub async fn validate_file_access(
+        &self,
+        user_id: &str,
+        file_path: &str,
+    ) -> RhemaResult<String> {
         // Check permissions
-        if !self.access_control.check_permission(user_id, "file_access").await? {
-            return Err(RhemaError::AuthorizationError(
-                format!("User '{}' not authorized for file access", user_id)
-            ));
+        if !self
+            .access_control
+            .check_permission(user_id, "file_access")
+            .await?
+        {
+            return Err(RhemaError::AuthorizationError(format!(
+                "User '{}' not authorized for file access",
+                user_id
+            )));
         }
 
         // Sanitize file path
         let sanitized_path = self.sanitizer.sanitize_file_path(file_path)?;
 
         // Log the event
-        self.audit_logger.log_event(AuditLogEntry {
-            timestamp: chrono::Utc::now(),
-            user_id: user_id.to_string(),
-            operation: "file_access".to_string(),
-            resource: sanitized_path.clone(),
-            success: true,
-            error_message: None,
-            ip_address: None,
-            user_agent: None,
-            metadata: HashMap::new(),
-        }).await?;
+        self.audit_logger
+            .log_event(AuditLogEntry {
+                timestamp: chrono::Utc::now(),
+                user_id: user_id.to_string(),
+                operation: "file_access".to_string(),
+                resource: sanitized_path.clone(),
+                success: true,
+                error_message: None,
+                ip_address: None,
+                user_agent: None,
+                metadata: HashMap::new(),
+            })
+            .await?;
 
         Ok(sanitized_path)
     }
@@ -423,33 +465,41 @@ impl SecurityManager {
     #[instrument(skip_all)]
     pub async fn validate_query(&self, user_id: &str, query: &str) -> RhemaResult<String> {
         // Check permissions
-        if !self.access_control.check_permission(user_id, "query_execution").await? {
-            return Err(RhemaError::AuthorizationError(
-                format!("User '{}' not authorized for query execution", user_id)
-            ));
+        if !self
+            .access_control
+            .check_permission(user_id, "query_execution")
+            .await?
+        {
+            return Err(RhemaError::AuthorizationError(format!(
+                "User '{}' not authorized for query execution",
+                user_id
+            )));
         }
 
         // Sanitize query
         let sanitized_query = self.sanitizer.sanitize_query(query)?;
 
         // Log the event
-        self.audit_logger.log_event(AuditLogEntry {
-            timestamp: chrono::Utc::now(),
-            user_id: user_id.to_string(),
-            operation: "query_execution".to_string(),
-            resource: "query".to_string(),
-            success: true,
-            error_message: None,
-            ip_address: None,
-            user_agent: None,
-            metadata: HashMap::from([
-                ("query".to_string(), serde_yaml::Value::String(sanitized_query.clone())),
-            ]),
-        }).await?;
+        self.audit_logger
+            .log_event(AuditLogEntry {
+                timestamp: chrono::Utc::now(),
+                user_id: user_id.to_string(),
+                operation: "query_execution".to_string(),
+                resource: "query".to_string(),
+                success: true,
+                error_message: None,
+                ip_address: None,
+                user_agent: None,
+                metadata: HashMap::from([(
+                    "query".to_string(),
+                    serde_yaml::Value::String(sanitized_query.clone()),
+                )]),
+            })
+            .await?;
 
         Ok(sanitized_query)
     }
 }
 
 // Import RhemaError and RhemaResult
-use crate::{RhemaError, RhemaResult}; 
+use crate::{RhemaError, RhemaResult};

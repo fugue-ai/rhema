@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
+use rhema_cli::Rhema;
 use rhema_core::lock::LockFileOps;
-use rhema_core::schema::{RhemaLock, LockedScope, LockedDependency, DependencyType};
 use rhema_core::schema::RhemaScope;
 use rhema_core::schema::ScopeDependency;
-use std::collections::HashMap;
-use tempfile::tempdir;
-use std::fs;
+use rhema_core::schema::{DependencyType, LockedDependency, LockedScope, RhemaLock};
 use rhema_core::RhemaResult;
-use rhema_cli::Rhema;
-use tempfile::TempDir;
+use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
+use tempfile::tempdir;
+use tempfile::TempDir;
 
 // Mock implementations for health module functions
 mod health {
     use super::*;
-    
+
     pub fn run(_rhema: &Rhema, _scope_path: Option<&str>) -> RhemaResult<()> {
         Ok(())
     }
-    
+
     pub fn calculate_scope_checksum(_scope_dir: &PathBuf) -> RhemaResult<String> {
         Ok("mock-checksum".to_string())
     }
@@ -47,10 +47,13 @@ fn test_lock_file_health_checks() {
     // Test 1: Missing lock file
     let rhema = rhema_cli::Rhema::new_from_path(repo_root.to_path_buf()).unwrap();
     let scopes = rhema.discover_scopes().unwrap();
-    
+
     // This should not panic and should handle missing lock file gracefully
     let result = health::run(&rhema, None);
-    assert!(result.is_ok(), "Health check should not fail with missing lock file");
+    assert!(
+        result.is_ok(),
+        "Health check should not fail with missing lock file"
+    );
 }
 
 #[test]
@@ -73,7 +76,11 @@ fn test_lock_file_validation() {
         custom: HashMap::new(),
     };
 
-    fs::write(scope_dir.join("rhema.yaml"), serde_yaml::to_string(&scope_def).unwrap()).unwrap();
+    fs::write(
+        scope_dir.join("rhema.yaml"),
+        serde_yaml::to_string(&scope_def).unwrap(),
+    )
+    .unwrap();
     fs::write(scope_dir.join("todos.yaml"), "todos: []").unwrap();
     fs::write(scope_dir.join("knowledge.yaml"), "entries: []").unwrap();
     fs::write(scope_dir.join("patterns.yaml"), "patterns: []").unwrap();
@@ -89,7 +96,10 @@ fn test_lock_file_validation() {
 
     let rhema = rhema_cli::Rhema::new_from_path(repo_root.to_path_buf()).unwrap();
     let result = health::run(&rhema, None);
-    assert!(result.is_ok(), "Health check should pass with valid lock file");
+    assert!(
+        result.is_ok(),
+        "Health check should pass with valid lock file"
+    );
 }
 
 #[test]
@@ -112,7 +122,11 @@ fn test_lock_file_with_invalid_content() {
         custom: HashMap::new(),
     };
 
-    fs::write(scope_dir.join("rhema.yaml"), serde_yaml::to_string(&scope_def).unwrap()).unwrap();
+    fs::write(
+        scope_dir.join("rhema.yaml"),
+        serde_yaml::to_string(&scope_def).unwrap(),
+    )
+    .unwrap();
     fs::write(scope_dir.join("todos.yaml"), "todos: []").unwrap();
     fs::write(scope_dir.join("knowledge.yaml"), "entries: []").unwrap();
     fs::write(scope_dir.join("patterns.yaml"), "patterns: []").unwrap();
@@ -123,7 +137,10 @@ fn test_lock_file_with_invalid_content() {
 
     let rhema = rhema_cli::Rhema::new_from_path(repo_root.to_path_buf()).unwrap();
     let result = health::run(&rhema, None);
-    assert!(result.is_ok(), "Health check should handle invalid lock file gracefully");
+    assert!(
+        result.is_ok(),
+        "Health check should handle invalid lock file gracefully"
+    );
 }
 
 #[test]
@@ -146,7 +163,11 @@ fn test_lock_file_version_mismatch() {
         custom: HashMap::new(),
     };
 
-    fs::write(scope_dir.join("rhema.yaml"), serde_yaml::to_string(&scope_def).unwrap()).unwrap();
+    fs::write(
+        scope_dir.join("rhema.yaml"),
+        serde_yaml::to_string(&scope_def).unwrap(),
+    )
+    .unwrap();
     fs::write(scope_dir.join("todos.yaml"), "todos: []").unwrap();
     fs::write(scope_dir.join("knowledge.yaml"), "entries: []").unwrap();
     fs::write(scope_dir.join("patterns.yaml"), "patterns: []").unwrap();
@@ -162,7 +183,10 @@ fn test_lock_file_version_mismatch() {
 
     let rhema = rhema_cli::Rhema::new_from_path(repo_root.to_path_buf()).unwrap();
     let result = health::run(&rhema, None);
-    assert!(result.is_ok(), "Health check should handle version mismatch gracefully");
+    assert!(
+        result.is_ok(),
+        "Health check should handle version mismatch gracefully"
+    );
 }
 
 #[test]
@@ -180,18 +204,20 @@ fn test_lock_file_with_dependencies() {
         version: "1.0.0".to_string(),
         description: Some("Test scope".to_string()),
         schema_version: Some("1.0.0".to_string()),
-        dependencies: Some(vec![
-            ScopeDependency {
-                path: "../other-scope".to_string(),
-                dependency_type: "required".to_string(),
-                version: Some("1.0.0".to_string()),
-            }
-        ]),
+        dependencies: Some(vec![ScopeDependency {
+            path: "../other-scope".to_string(),
+            dependency_type: "required".to_string(),
+            version: Some("1.0.0".to_string()),
+        }]),
         protocol_info: None,
         custom: HashMap::new(),
     };
 
-    fs::write(scope_dir.join("rhema.yaml"), serde_yaml::to_string(&scope_def).unwrap()).unwrap();
+    fs::write(
+        scope_dir.join("rhema.yaml"),
+        serde_yaml::to_string(&scope_def).unwrap(),
+    )
+    .unwrap();
     fs::write(scope_dir.join("todos.yaml"), "todos: []").unwrap();
     fs::write(scope_dir.join("knowledge.yaml"), "entries: []").unwrap();
     fs::write(scope_dir.join("patterns.yaml"), "patterns: []").unwrap();
@@ -200,7 +226,11 @@ fn test_lock_file_with_dependencies() {
     // Create dependency scope
     let dep_scope_dir = repo_root.join("other-scope");
     fs::create_dir_all(&dep_scope_dir).unwrap();
-    fs::write(dep_scope_dir.join("rhema.yaml"), serde_yaml::to_string(&scope_def).unwrap()).unwrap();
+    fs::write(
+        dep_scope_dir.join("rhema.yaml"),
+        serde_yaml::to_string(&scope_def).unwrap(),
+    )
+    .unwrap();
 
     // Create lock file with dependency
     let mut lock_data = RhemaLock::new("test");
@@ -214,7 +244,10 @@ fn test_lock_file_with_dependencies() {
 
     let rhema = rhema_cli::Rhema::new_from_path(repo_root.to_path_buf()).unwrap();
     let result = health::run(&rhema, None);
-    assert!(result.is_ok(), "Health check should handle dependencies correctly");
+    assert!(
+        result.is_ok(),
+        "Health check should handle dependencies correctly"
+    );
 }
 
 #[test]
@@ -237,7 +270,11 @@ fn test_lock_file_staleness_check() {
         custom: HashMap::new(),
     };
 
-    fs::write(scope_dir.join("rhema.yaml"), serde_yaml::to_string(&scope_def).unwrap()).unwrap();
+    fs::write(
+        scope_dir.join("rhema.yaml"),
+        serde_yaml::to_string(&scope_def).unwrap(),
+    )
+    .unwrap();
     fs::write(scope_dir.join("todos.yaml"), "todos: []").unwrap();
     fs::write(scope_dir.join("knowledge.yaml"), "entries: []").unwrap();
     fs::write(scope_dir.join("patterns.yaml"), "patterns: []").unwrap();
@@ -255,7 +292,10 @@ fn test_lock_file_staleness_check() {
 
     let rhema = rhema_cli::Rhema::new_from_path(repo_root.to_path_buf()).unwrap();
     let result = health::run(&rhema, None);
-    assert!(result.is_ok(), "Health check should handle stale lock file gracefully");
+    assert!(
+        result.is_ok(),
+        "Health check should handle stale lock file gracefully"
+    );
 }
 
 #[test]
@@ -278,7 +318,11 @@ fn test_checksum_validation() {
         custom: HashMap::new(),
     };
 
-    fs::write(scope_dir.join("rhema.yaml"), serde_yaml::to_string(&scope_def).unwrap()).unwrap();
+    fs::write(
+        scope_dir.join("rhema.yaml"),
+        serde_yaml::to_string(&scope_def).unwrap(),
+    )
+    .unwrap();
     fs::write(scope_dir.join("todos.yaml"), "todos: []").unwrap();
     fs::write(scope_dir.join("knowledge.yaml"), "entries: []").unwrap();
     fs::write(scope_dir.join("patterns.yaml"), "patterns: []").unwrap();
@@ -287,11 +331,11 @@ fn test_checksum_validation() {
     // Create lock file with source checksum
     let mut lock_data = RhemaLock::new("test");
     let mut locked_scope = LockedScope::new("1.0.0", "test-scope");
-    
+
     // Calculate checksum for the scope
     let scope_checksum = health::calculate_scope_checksum(&scope_dir).unwrap();
     locked_scope.source_checksum = Some(scope_checksum);
-    
+
     lock_data.add_scope("test-scope".to_string(), locked_scope);
 
     let lock_file_path = repo_root.join("rhema.lock");
@@ -299,5 +343,8 @@ fn test_checksum_validation() {
 
     let rhema = rhema_cli::Rhema::new_from_path(repo_root.to_path_buf()).unwrap();
     let result = health::run(&rhema, None);
-    assert!(result.is_ok(), "Health check should validate checksums correctly");
-} 
+    assert!(
+        result.is_ok(),
+        "Health check should validate checksums correctly"
+    );
+}

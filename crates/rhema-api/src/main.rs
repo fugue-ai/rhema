@@ -43,19 +43,19 @@ enum Commands {
 
 fn main() -> RhemaResult<()> {
     let cli = Cli::parse();
-    
+
     let rhema = Rhema::new()?;
-    
+
     match &cli.command {
         Some(Commands::Info) => {
             println!("Rhema API v{}", env!("CARGO_PKG_VERSION"));
             println!("Repository: {}", rhema.repo_root().display());
             Ok(())
         }
-        
+
         None => {
             println!("Rhema API - Use --help to see available commands");
             Ok(())
         }
     }
-} 
+}

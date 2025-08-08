@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Datelike, Duration as ChronoDuration, Timelike, Utc};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc, Duration as ChronoDuration, Timelike, Datelike};
 
-use crate::types::{LocomoError, Context, BenchmarkType};
+use crate::benchmark_engine::{BenchmarkSummary, LocomoBenchmarkResult};
 use crate::metrics::{LocomoMetrics, LocomoMetricsCollector};
-use crate::benchmark_engine::{LocomoBenchmarkResult, BenchmarkSummary};
+use crate::optimization::{OptimizationAction, OptimizationResult};
+use crate::types::{BenchmarkType, Context, LocomoError};
 use crate::validation::{ValidationReport, ValidationSummary};
-use crate::optimization::{OptimizationResult, OptimizationAction};
 use rhema_core::RhemaResult;
 
 /// LOCOMO reporting system
@@ -231,31 +231,36 @@ impl LocomoReportingSystem {
 
     /// Generate comprehensive LOCOMO report
     pub async fn generate_comprehensive_report(&self, days: u64) -> RhemaResult<LocomoReport> {
-        info!("Generating comprehensive LOCOMO report for the last {} days", days);
-        
+        info!(
+            "Generating comprehensive LOCOMO report for the last {} days",
+            days
+        );
+
         let start_time = std::time::Instant::now();
         let timestamp = Utc::now();
-        
+
         // Collect metrics for the specified period
         let metrics = self.collect_metrics_for_period(days).await?;
-        
+
         // Generate trend analysis
         let trends = self.trend_analyzer.analyze_trends(&metrics, days).await?;
-        
+
         // Generate detailed metrics
         let detailed_metrics = self.generate_detailed_metrics(&metrics).await?;
-        
+
         // Calculate scores
         let performance_score = self.calculate_performance_score(&detailed_metrics).await?;
         let quality_score = self.calculate_quality_score(&detailed_metrics).await?;
         let optimization_score = self.calculate_optimization_score(&detailed_metrics).await?;
-        
+
         // Generate summary
         let summary = self.generate_report_summary(&detailed_metrics).await?;
-        
+
         // Generate recommendations
-        let recommendations = self.generate_recommendations(&detailed_metrics, &trends).await?;
-        
+        let recommendations = self
+            .generate_recommendations(&detailed_metrics, &trends)
+            .await?;
+
         let report = LocomoReport {
             report_id: self.generate_report_id(),
             report_type: ReportType::Comprehensive,
@@ -269,31 +274,34 @@ impl LocomoReportingSystem {
             quality_score,
             optimization_score,
         };
-        
+
         // Store report
         self.store_report(report.clone()).await?;
-        
+
         Ok(report)
     }
 
     /// Generate benchmark report
-    pub async fn generate_benchmark_report(&self, benchmark_result: &LocomoBenchmarkResult) -> RhemaResult<LocomoReport> {
+    pub async fn generate_benchmark_report(
+        &self,
+        benchmark_result: &LocomoBenchmarkResult,
+    ) -> RhemaResult<LocomoReport> {
         info!("Generating benchmark report");
-        
+
         let start_time = std::time::Instant::now();
         let timestamp = Utc::now();
-        
+
         // Extract metrics from benchmark result
         let detailed_metrics = self.extract_benchmark_metrics(benchmark_result).await?;
-        
+
         // Calculate scores
         let performance_score = self.calculate_performance_score(&detailed_metrics).await?;
         let quality_score = self.calculate_quality_score(&detailed_metrics).await?;
         let optimization_score = self.calculate_optimization_score(&detailed_metrics).await?;
-        
+
         // Generate summary
         let summary = self.generate_benchmark_summary(benchmark_result).await?;
-        
+
         // Generate trends (empty for single benchmark)
         let trends = TrendAnalysis {
             period_days: 1,
@@ -304,10 +312,12 @@ impl LocomoReportingSystem {
             areas_of_concern: Vec::new(),
             predictions: Vec::new(),
         };
-        
+
         // Generate recommendations
-        let recommendations = self.generate_benchmark_recommendations(benchmark_result).await?;
-        
+        let recommendations = self
+            .generate_benchmark_recommendations(benchmark_result)
+            .await?;
+
         let report = LocomoReport {
             report_id: self.generate_report_id(),
             report_type: ReportType::Benchmark,
@@ -321,41 +331,44 @@ impl LocomoReportingSystem {
             quality_score,
             optimization_score,
         };
-        
+
         // Store report
         self.store_report(report.clone()).await?;
-        
+
         Ok(report)
     }
 
     /// Generate trend report
     pub async fn generate_trend_report(&self, days: u64) -> RhemaResult<LocomoReport> {
         info!("Generating trend report for the last {} days", days);
-        
+
         let start_time = std::time::Instant::now();
         let timestamp = Utc::now();
-        
+
         // Collect historical data
         let historical_metrics = self.collect_historical_metrics(days).await?;
-        
+
         // Analyze trends
-        let trends = self.trend_analyzer.analyze_trends(&historical_metrics, days).await?;
-        
+        let trends = self
+            .trend_analyzer
+            .analyze_trends(&historical_metrics, days)
+            .await?;
+
         // Generate detailed metrics from latest data
         let latest_metrics = self.collect_metrics_for_period(1).await?;
         let detailed_metrics = self.generate_detailed_metrics(&latest_metrics).await?;
-        
+
         // Calculate scores
         let performance_score = self.calculate_performance_score(&detailed_metrics).await?;
         let quality_score = self.calculate_quality_score(&detailed_metrics).await?;
         let optimization_score = self.calculate_optimization_score(&detailed_metrics).await?;
-        
+
         // Generate summary
         let summary = self.generate_trend_summary(&trends).await?;
-        
+
         // Generate recommendations
         let recommendations = self.generate_trend_recommendations(&trends).await?;
-        
+
         let report = LocomoReport {
             report_id: self.generate_report_id(),
             report_type: ReportType::Trend,
@@ -369,20 +382,20 @@ impl LocomoReportingSystem {
             quality_score,
             optimization_score,
         };
-        
+
         // Store report
         self.store_report(report.clone()).await?;
-        
+
         Ok(report)
     }
 
     /// Generate dashboard data
     pub async fn generate_dashboard_data(&self) -> RhemaResult<DashboardData> {
         info!("Generating dashboard data");
-        
+
         let current_metrics = self.generate_synthetic_metrics(chrono::Utc::now()).await?;
         let recent_reports = self.get_recent_reports(7).await?;
-        
+
         let dashboard_data = DashboardData {
             current_metrics: current_metrics.clone(),
             recent_reports: recent_reports.clone(),
@@ -391,50 +404,57 @@ impl LocomoReportingSystem {
             optimization_chart: self.generate_optimization_chart(&recent_reports).await?,
             alerts: self.generate_alerts(&current_metrics).await?,
         };
-        
+
         Ok(dashboard_data)
     }
 
     async fn collect_metrics_for_period(&self, days: u64) -> RhemaResult<Vec<LocomoMetrics>> {
         let end_time = Utc::now();
         let start_time = end_time - ChronoDuration::days(days as i64);
-        
+
         // In a real implementation, this would query the metrics storage
         // For now, we'll generate synthetic data
         let mut metrics = Vec::new();
         let mut current_time = start_time;
-        
+
         while current_time <= end_time {
             let metric = self.generate_synthetic_metrics(current_time).await?;
             metrics.push(metric);
             current_time = current_time + ChronoDuration::hours(1);
         }
-        
+
         Ok(metrics)
     }
 
-    async fn generate_synthetic_metrics(&self, timestamp: DateTime<Utc>) -> RhemaResult<LocomoMetrics> {
+    async fn generate_synthetic_metrics(
+        &self,
+        timestamp: DateTime<Utc>,
+    ) -> RhemaResult<LocomoMetrics> {
         // Generate synthetic metrics for demonstration
         let mut metrics = LocomoMetrics::new();
-        
+
         // Add some variation based on time
         let hour = timestamp.hour() as f64;
         let day_factor = (timestamp.weekday().num_days_from_monday() as f64) / 7.0;
-        
+
         metrics.context_retrieval_latency = std::time::Duration::from_millis(
-            (100.0 + 50.0 * (hour / 24.0).sin() + 20.0 * day_factor) as u64
+            (100.0 + 50.0 * (hour / 24.0).sin() + 20.0 * day_factor) as u64,
         );
         metrics.context_relevance_score = 0.7 + 0.2 * (hour / 24.0).sin() + 0.1 * day_factor;
-        metrics.context_compression_ratio = 0.6 + 0.3 * ((hour + 6.0) / 24.0).sin() + 0.1 * day_factor;
+        metrics.context_compression_ratio =
+            0.6 + 0.3 * ((hour + 6.0) / 24.0).sin() + 0.1 * day_factor;
         metrics.ai_agent_optimization_score = 0.8 + 0.15 * (hour / 24.0).sin() + 0.05 * day_factor;
-        
+
         Ok(metrics)
     }
 
-    async fn generate_detailed_metrics(&self, metrics: &[LocomoMetrics]) -> RhemaResult<DetailedMetrics> {
+    async fn generate_detailed_metrics(
+        &self,
+        metrics: &[LocomoMetrics],
+    ) -> RhemaResult<DetailedMetrics> {
         let default_metrics = LocomoMetrics::new();
         let latest = metrics.last().unwrap_or(&default_metrics);
-        
+
         let context_retrieval = ContextRetrievalMetrics {
             average_latency_ms: latest.context_retrieval_latency.as_millis() as f64,
             success_rate: 0.95,
@@ -445,7 +465,7 @@ impl LocomoReportingSystem {
             successful_queries: 950,
             failed_queries: 50,
         };
-        
+
         let context_compression = ContextCompressionMetrics {
             compression_ratio: latest.context_compression_ratio,
             quality_preservation: 0.85,
@@ -454,7 +474,7 @@ impl LocomoReportingSystem {
             memory_usage_reduction: 0.35,
             semantic_preservation: 0.90,
         };
-        
+
         let ai_optimization = AIOptimizationMetrics {
             token_reduction_percentage: 0.25,
             quality_improvement: latest.ai_agent_optimization_score,
@@ -463,7 +483,7 @@ impl LocomoReportingSystem {
             semantic_enhancement: 0.85,
             structure_optimization: 0.88,
         };
-        
+
         let quality_assessment = QualityAssessmentMetrics {
             overall_quality_score: 0.87,
             relevance_score: latest.context_relevance_score,
@@ -472,7 +492,7 @@ impl LocomoReportingSystem {
             consistency_score: 0.85,
             freshness_score: 0.88,
         };
-        
+
         let validation_metrics = ValidationMetrics {
             total_validations: 100,
             passed_validations: 85,
@@ -481,7 +501,7 @@ impl LocomoReportingSystem {
             success_rate: 0.85,
             improvement_rate: 0.12,
         };
-        
+
         Ok(DetailedMetrics {
             context_retrieval,
             context_compression,
@@ -495,7 +515,7 @@ impl LocomoReportingSystem {
         let latency_score = 1.0 - (metrics.context_retrieval.average_latency_ms / 1000.0).min(1.0);
         let compression_score = metrics.context_compression.compression_ratio;
         let optimization_score = metrics.ai_optimization.quality_improvement;
-        
+
         let performance_score = (latency_score + compression_score + optimization_score) / 3.0;
         Ok(performance_score)
     }
@@ -504,7 +524,7 @@ impl LocomoReportingSystem {
         let relevance_score = metrics.context_retrieval.relevance_score;
         let quality_preservation = metrics.context_compression.quality_preservation;
         let overall_quality = metrics.quality_assessment.overall_quality_score;
-        
+
         let quality_score = (relevance_score + quality_preservation + overall_quality) / 3.0;
         Ok(quality_score)
     }
@@ -513,39 +533,56 @@ impl LocomoReportingSystem {
         let token_reduction = metrics.ai_optimization.token_reduction_percentage;
         let quality_improvement = metrics.ai_optimization.quality_improvement;
         let consumption_reduction = metrics.ai_optimization.ai_consumption_reduction;
-        
-        let optimization_score = (token_reduction + quality_improvement + consumption_reduction) / 3.0;
+
+        let optimization_score =
+            (token_reduction + quality_improvement + consumption_reduction) / 3.0;
         Ok(optimization_score)
     }
 
-    async fn generate_report_summary(&self, metrics: &DetailedMetrics) -> RhemaResult<ReportSummary> {
+    async fn generate_report_summary(
+        &self,
+        metrics: &DetailedMetrics,
+    ) -> RhemaResult<ReportSummary> {
         let total_benchmarks = 100;
         let successful_benchmarks = 85;
         let failed_benchmarks = 15;
-        
+
         let average_performance_score = self.calculate_performance_score(metrics).await?;
         let average_quality_score = self.calculate_quality_score(metrics).await?;
         let average_optimization_score = self.calculate_optimization_score(metrics).await?;
-        
-        let best_performing_area = if average_performance_score > average_quality_score && average_performance_score > average_optimization_score {
+
+        let best_performing_area = if average_performance_score > average_quality_score
+            && average_performance_score > average_optimization_score
+        {
             "Performance".to_string()
         } else if average_quality_score > average_optimization_score {
             "Quality".to_string()
         } else {
             "Optimization".to_string()
         };
-        
-        let worst_performing_area = if average_performance_score < average_quality_score && average_performance_score < average_optimization_score {
+
+        let worst_performing_area = if average_performance_score < average_quality_score
+            && average_performance_score < average_optimization_score
+        {
             "Performance".to_string()
         } else if average_quality_score < average_optimization_score {
             "Quality".to_string()
         } else {
             "Optimization".to_string()
         };
-        
-        let overall_score = (average_performance_score + average_quality_score + average_optimization_score) / 3.0;
-        let overall_grade = if overall_score >= 0.9 { "A" } else if overall_score >= 0.8 { "B" } else if overall_score >= 0.7 { "C" } else { "D" };
-        
+
+        let overall_score =
+            (average_performance_score + average_quality_score + average_optimization_score) / 3.0;
+        let overall_grade = if overall_score >= 0.9 {
+            "A"
+        } else if overall_score >= 0.8 {
+            "B"
+        } else if overall_score >= 0.7 {
+            "C"
+        } else {
+            "D"
+        };
+
         Ok(ReportSummary {
             total_benchmarks,
             successful_benchmarks,
@@ -559,72 +596,92 @@ impl LocomoReportingSystem {
         })
     }
 
-    async fn generate_recommendations(&self, metrics: &DetailedMetrics, trends: &TrendAnalysis) -> RhemaResult<Vec<String>> {
+    async fn generate_recommendations(
+        &self,
+        metrics: &DetailedMetrics,
+        trends: &TrendAnalysis,
+    ) -> RhemaResult<Vec<String>> {
         let mut recommendations = Vec::new();
-        
+
         // Performance recommendations
         if metrics.context_retrieval.average_latency_ms > 500.0 {
-            recommendations.push("Consider implementing caching strategies to reduce context retrieval latency".to_string());
+            recommendations.push(
+                "Consider implementing caching strategies to reduce context retrieval latency"
+                    .to_string(),
+            );
         }
-        
+
         if metrics.context_compression.compression_ratio < 0.5 {
-            recommendations.push("Optimize compression algorithms to achieve better compression ratios".to_string());
+            recommendations.push(
+                "Optimize compression algorithms to achieve better compression ratios".to_string(),
+            );
         }
-        
+
         // Quality recommendations
         if metrics.context_retrieval.relevance_score < 0.8 {
-            recommendations.push("Improve relevance scoring algorithms to enhance context retrieval quality".to_string());
+            recommendations.push(
+                "Improve relevance scoring algorithms to enhance context retrieval quality"
+                    .to_string(),
+            );
         }
-        
+
         if metrics.quality_assessment.overall_quality_score < 0.85 {
-            recommendations.push("Enhance quality assessment metrics and validation processes".to_string());
+            recommendations
+                .push("Enhance quality assessment metrics and validation processes".to_string());
         }
-        
+
         // Optimization recommendations
         if metrics.ai_optimization.token_reduction_percentage < 0.2 {
-            recommendations.push("Implement more aggressive token optimization strategies".to_string());
+            recommendations
+                .push("Implement more aggressive token optimization strategies".to_string());
         }
-        
+
         // Trend-based recommendations
         match trends.performance_trend {
             TrendDirection::Declining => {
                 recommendations.push("Performance is declining - investigate recent changes and optimize bottlenecks".to_string());
             }
             TrendDirection::Improving => {
-                recommendations.push("Performance is improving - continue current optimization strategies".to_string());
+                recommendations.push(
+                    "Performance is improving - continue current optimization strategies"
+                        .to_string(),
+                );
             }
             _ => {}
         }
-        
+
         if recommendations.is_empty() {
-            recommendations.push("All metrics are performing well - maintain current optimization strategies".to_string());
+            recommendations.push(
+                "All metrics are performing well - maintain current optimization strategies"
+                    .to_string(),
+            );
         }
-        
+
         Ok(recommendations)
     }
 
     async fn store_report(&self, report: LocomoReport) -> RhemaResult<()> {
         let mut history = self.report_history.write().await;
         history.push(report);
-        
+
         // Keep only the last 100 reports
         if history.len() > 100 {
             history.remove(0);
         }
-        
+
         Ok(())
     }
 
     async fn get_recent_reports(&self, days: u64) -> RhemaResult<Vec<LocomoReport>> {
         let history = self.report_history.read().await;
         let cutoff_time = Utc::now() - ChronoDuration::days(days as i64);
-        
+
         let recent_reports: Vec<LocomoReport> = history
             .iter()
             .filter(|report| report.timestamp >= cutoff_time)
             .cloned()
             .collect();
-        
+
         Ok(recent_reports)
     }
 
@@ -633,7 +690,10 @@ impl LocomoReportingSystem {
     }
 
     // Placeholder methods for chart generation
-    async fn generate_performance_chart(&self, _reports: &[LocomoReport]) -> RhemaResult<ChartData> {
+    async fn generate_performance_chart(
+        &self,
+        _reports: &[LocomoReport],
+    ) -> RhemaResult<ChartData> {
         Ok(ChartData {
             chart_type: "line".to_string(),
             data: serde_json::Value::Null,
@@ -647,7 +707,10 @@ impl LocomoReportingSystem {
         })
     }
 
-    async fn generate_optimization_chart(&self, _reports: &[LocomoReport]) -> RhemaResult<ChartData> {
+    async fn generate_optimization_chart(
+        &self,
+        _reports: &[LocomoReport],
+    ) -> RhemaResult<ChartData> {
         Ok(ChartData {
             chart_type: "line".to_string(),
             data: serde_json::Value::Null,
@@ -659,24 +722,51 @@ impl LocomoReportingSystem {
     }
 
     // Placeholder methods for benchmark-specific functionality
-    async fn extract_benchmark_metrics(&self, _benchmark_result: &LocomoBenchmarkResult) -> RhemaResult<DetailedMetrics> {
-        self.generate_detailed_metrics(&[LocomoMetrics::new()]).await
+    async fn extract_benchmark_metrics(
+        &self,
+        _benchmark_result: &LocomoBenchmarkResult,
+    ) -> RhemaResult<DetailedMetrics> {
+        self.generate_detailed_metrics(&[LocomoMetrics::new()])
+            .await
     }
 
-    async fn generate_benchmark_summary(&self, _benchmark_result: &LocomoBenchmarkResult) -> RhemaResult<ReportSummary> {
-        self.generate_report_summary(&self.generate_detailed_metrics(&[LocomoMetrics::new()]).await?).await
+    async fn generate_benchmark_summary(
+        &self,
+        _benchmark_result: &LocomoBenchmarkResult,
+    ) -> RhemaResult<ReportSummary> {
+        self.generate_report_summary(
+            &self
+                .generate_detailed_metrics(&[LocomoMetrics::new()])
+                .await?,
+        )
+        .await
     }
 
-    async fn generate_benchmark_recommendations(&self, _benchmark_result: &LocomoBenchmarkResult) -> RhemaResult<Vec<String>> {
-        Ok(vec!["Review benchmark results and optimize based on findings".to_string()])
+    async fn generate_benchmark_recommendations(
+        &self,
+        _benchmark_result: &LocomoBenchmarkResult,
+    ) -> RhemaResult<Vec<String>> {
+        Ok(vec![
+            "Review benchmark results and optimize based on findings".to_string(),
+        ])
     }
 
     async fn generate_trend_summary(&self, _trends: &TrendAnalysis) -> RhemaResult<ReportSummary> {
-        self.generate_report_summary(&self.generate_detailed_metrics(&[LocomoMetrics::new()]).await?).await
+        self.generate_report_summary(
+            &self
+                .generate_detailed_metrics(&[LocomoMetrics::new()])
+                .await?,
+        )
+        .await
     }
 
-    async fn generate_trend_recommendations(&self, _trends: &TrendAnalysis) -> RhemaResult<Vec<String>> {
-        Ok(vec!["Monitor trends and adjust optimization strategies accordingly".to_string()])
+    async fn generate_trend_recommendations(
+        &self,
+        _trends: &TrendAnalysis,
+    ) -> RhemaResult<Vec<String>> {
+        Ok(vec![
+            "Monitor trends and adjust optimization strategies accordingly".to_string(),
+        ])
     }
 
     async fn collect_historical_metrics(&self, _days: u64) -> RhemaResult<Vec<LocomoMetrics>> {
@@ -708,7 +798,7 @@ impl DashboardGenerator {
             },
             alerts: Vec::new(),
         };
-        
+
         Ok(dashboard_data)
     }
 }
@@ -718,12 +808,16 @@ impl TrendAnalyzer {
         Self { config }
     }
 
-    pub async fn analyze_trends(&self, metrics: &[LocomoMetrics], _days: u64) -> RhemaResult<TrendAnalysis> {
+    pub async fn analyze_trends(
+        &self,
+        metrics: &[LocomoMetrics],
+        _days: u64,
+    ) -> RhemaResult<TrendAnalysis> {
         // Simple trend analysis based on metrics
         let performance_trend = if metrics.len() > 1 {
             let first = &metrics[0];
             let last = &metrics[metrics.len() - 1];
-            
+
             if last.context_retrieval_latency < first.context_retrieval_latency {
                 TrendDirection::Improving
             } else if last.context_retrieval_latency > first.context_retrieval_latency {
@@ -734,14 +828,14 @@ impl TrendAnalyzer {
         } else {
             TrendDirection::Stable
         };
-        
+
         let quality_trend = TrendDirection::Stable;
         let optimization_trend = TrendDirection::Stable;
-        
+
         let key_improvements = vec!["Context retrieval latency improved".to_string()];
         let areas_of_concern = vec!["Monitor compression ratios".to_string()];
         let predictions = vec!["Continued performance improvements expected".to_string()];
-        
+
         Ok(TrendAnalysis {
             period_days: self.config.analysis_period_days,
             performance_trend,
@@ -796,8 +890,11 @@ mod tests {
     async fn test_comprehensive_report_generation() {
         let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
         let reporting_system = LocomoReportingSystem::new(metrics_collector);
-        
-        let report = reporting_system.generate_comprehensive_report(7).await.unwrap();
+
+        let report = reporting_system
+            .generate_comprehensive_report(7)
+            .await
+            .unwrap();
         assert_eq!(report.report_type, ReportType::Comprehensive);
         assert!(report.performance_score >= 0.0 && report.performance_score <= 1.0);
         assert!(report.quality_score >= 0.0 && report.quality_score <= 1.0);
@@ -808,7 +905,7 @@ mod tests {
     async fn test_trend_report_generation() {
         let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
         let reporting_system = LocomoReportingSystem::new(metrics_collector);
-        
+
         let report = reporting_system.generate_trend_report(30).await.unwrap();
         assert_eq!(report.report_type, ReportType::Trend);
         assert!(report.trends.period_days == 30);
@@ -818,8 +915,8 @@ mod tests {
     async fn test_dashboard_generation() {
         let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
         let reporting_system = LocomoReportingSystem::new(metrics_collector);
-        
+
         let dashboard_data = reporting_system.generate_dashboard_data().await.unwrap();
         assert!(!dashboard_data.alerts.is_empty() || dashboard_data.alerts.is_empty());
     }
-} 
+}

@@ -1,12 +1,12 @@
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
+use std::f64::consts::PI;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc, Duration};
-use std::f64::consts::PI;
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, HealthStatus, HealthMetrics, ImpactScore};
+use crate::types::{DependencyConfig, HealthMetrics, HealthStatus, ImpactScore};
 
 /// Prediction model types
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -193,11 +193,11 @@ pub struct AnomalyThresholds {
 impl Default for AnomalyThresholds {
     fn default() -> Self {
         Self {
-            response_time_threshold: 2.0, // 2 standard deviations
-            availability_threshold: 0.95, // 95%
-            error_rate_threshold: 0.05,   // 5%
-            cpu_usage_threshold: 0.8,     // 80%
-            memory_usage_threshold: 0.85, // 85%
+            response_time_threshold: 2.0,   // 2 standard deviations
+            availability_threshold: 0.95,   // 95%
+            error_rate_threshold: 0.05,     // 5%
+            cpu_usage_threshold: 0.8,       // 80%
+            memory_usage_threshold: 0.85,   // 85%
             network_latency_threshold: 2.0, // 2 standard deviations
         }
     }
@@ -207,32 +207,41 @@ impl PredictiveAnalytics {
     /// Create a new predictive analytics engine
     pub fn new() -> Self {
         let mut models = HashMap::new();
-        models.insert(PredictionModel::MovingAverage, ModelConfig {
-            model_type: PredictionModel::MovingAverage,
-            parameters: {
-                let mut params = HashMap::new();
-                params.insert("window_size".to_string(), 10.0);
-                params
+        models.insert(
+            PredictionModel::MovingAverage,
+            ModelConfig {
+                model_type: PredictionModel::MovingAverage,
+                parameters: {
+                    let mut params = HashMap::new();
+                    params.insert("window_size".to_string(), 10.0);
+                    params
+                },
+                enabled: true,
+                weight: 0.3,
             },
-            enabled: true,
-            weight: 0.3,
-        });
-        models.insert(PredictionModel::ExponentialSmoothing, ModelConfig {
-            model_type: PredictionModel::ExponentialSmoothing,
-            parameters: {
-                let mut params = HashMap::new();
-                params.insert("alpha".to_string(), 0.3);
-                params
+        );
+        models.insert(
+            PredictionModel::ExponentialSmoothing,
+            ModelConfig {
+                model_type: PredictionModel::ExponentialSmoothing,
+                parameters: {
+                    let mut params = HashMap::new();
+                    params.insert("alpha".to_string(), 0.3);
+                    params
+                },
+                enabled: true,
+                weight: 0.3,
             },
-            enabled: true,
-            weight: 0.3,
-        });
-        models.insert(PredictionModel::AnomalyDetection, ModelConfig {
-            model_type: PredictionModel::AnomalyDetection,
-            parameters: HashMap::new(),
-            enabled: true,
-            weight: 0.4,
-        });
+        );
+        models.insert(
+            PredictionModel::AnomalyDetection,
+            ModelConfig {
+                model_type: PredictionModel::AnomalyDetection,
+                parameters: HashMap::new(),
+                enabled: true,
+                weight: 0.4,
+            },
+        );
 
         Self {
             historical_data: Arc::new(RwLock::new(HashMap::new())),
@@ -246,17 +255,21 @@ impl PredictiveAnalytics {
     }
 
     /// Add health metrics data point
-    pub async fn add_data_point(&self, dependency_id: String, metrics: HealthMetrics) -> Result<()> {
+    pub async fn add_data_point(
+        &self,
+        dependency_id: String,
+        metrics: HealthMetrics,
+    ) -> Result<()> {
         let mut data = self.historical_data.write().await;
         let entry = data.entry(dependency_id).or_insert_with(VecDeque::new);
-        
+
         entry.push_back(metrics);
-        
+
         // Keep only the most recent data points
         while entry.len() > self.max_data_points {
             entry.pop_front();
         }
-        
+
         Ok(())
     }
 
@@ -273,7 +286,8 @@ impl PredictiveAnalytics {
         }
 
         let data = self.historical_data.read().await;
-        let metrics_history = data.get(dependency_id)
+        let metrics_history = data
+            .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?;
 
         if metrics_history.len() < 5 {
@@ -301,9 +315,11 @@ impl PredictiveAnalytics {
 
         // Ensemble prediction
         let ensemble_prediction = self.ensemble_predictions(&predictions, &weights);
-        
+
         // Detect anomalies
-        let anomalies = self.detect_anomalies(dependency_id, metrics_history).await?;
+        let anomalies = self
+            .detect_anomalies(dependency_id, metrics_history)
+            .await?;
         let risk_factors = self.identify_risk_factors(&anomalies);
 
         let result = PredictionResult {
@@ -334,9 +350,15 @@ impl PredictiveAnalytics {
         metrics_history: &VecDeque<HealthMetrics>,
     ) -> Result<ModelPrediction> {
         match model_type {
-            PredictionModel::MovingAverage => self.moving_average_prediction(config, metrics_history),
-            PredictionModel::ExponentialSmoothing => self.exponential_smoothing_prediction(config, metrics_history),
-            PredictionModel::AnomalyDetection => self.anomaly_detection_prediction(config, metrics_history),
+            PredictionModel::MovingAverage => {
+                self.moving_average_prediction(config, metrics_history)
+            }
+            PredictionModel::ExponentialSmoothing => {
+                self.exponential_smoothing_prediction(config, metrics_history)
+            }
+            PredictionModel::AnomalyDetection => {
+                self.anomaly_detection_prediction(config, metrics_history)
+            }
             _ => Err(Error::UnsupportedModel(format!("{:?}", model_type))),
         }
     }
@@ -351,17 +373,28 @@ impl PredictiveAnalytics {
         let window_size = window_size.min(metrics_history.len());
 
         if window_size == 0 {
-            return Err(Error::InvalidModelParameters("window_size must be > 0".to_string()));
+            return Err(Error::InvalidModelParameters(
+                "window_size must be > 0".to_string(),
+            ));
         }
 
-        let recent_metrics: Vec<&HealthMetrics> = metrics_history.iter().rev().take(window_size).collect();
-        
+        let recent_metrics: Vec<&HealthMetrics> =
+            metrics_history.iter().rev().take(window_size).collect();
+
         // Calculate moving averages
-        let avg_response_time = recent_metrics.iter().map(|m| m.response_time_ms).sum::<f64>() / window_size as f64;
-        let avg_availability = recent_metrics.iter().map(|m| m.availability).sum::<f64>() / window_size as f64;
-        let avg_error_rate = recent_metrics.iter().map(|m| m.error_rate).sum::<f64>() / window_size as f64;
-        let avg_cpu_usage = recent_metrics.iter().map(|m| m.cpu_usage).sum::<f64>() / window_size as f64;
-        let avg_memory_usage = recent_metrics.iter().map(|m| m.memory_usage).sum::<f64>() / window_size as f64;
+        let avg_response_time = recent_metrics
+            .iter()
+            .map(|m| m.response_time_ms)
+            .sum::<f64>()
+            / window_size as f64;
+        let avg_availability =
+            recent_metrics.iter().map(|m| m.availability).sum::<f64>() / window_size as f64;
+        let avg_error_rate =
+            recent_metrics.iter().map(|m| m.error_rate).sum::<f64>() / window_size as f64;
+        let avg_cpu_usage =
+            recent_metrics.iter().map(|m| m.cpu_usage).sum::<f64>() / window_size as f64;
+        let avg_memory_usage =
+            recent_metrics.iter().map(|m| m.memory_usage).sum::<f64>() / window_size as f64;
 
         let predicted_metrics = HealthMetrics::new(
             avg_response_time,
@@ -371,7 +404,7 @@ impl PredictiveAnalytics {
             avg_cpu_usage,
             avg_memory_usage,
             recent_metrics[0].network_latency_ms, // Use latest network latency
-            recent_metrics[0].disk_usage, // Use latest disk usage
+            recent_metrics[0].disk_usage,         // Use latest disk usage
         )?;
 
         let health_status = HealthStatus::from(predicted_metrics.health_score());
@@ -392,7 +425,7 @@ impl PredictiveAnalytics {
         metrics_history: &VecDeque<HealthMetrics>,
     ) -> Result<ModelPrediction> {
         let alpha = config.parameters.get("alpha").unwrap_or(&0.3);
-        
+
         if metrics_history.is_empty() {
             return Err(Error::InsufficientData("No metrics history".to_string()));
         }
@@ -404,11 +437,14 @@ impl PredictiveAnalytics {
         let mut smoothed_memory_usage = metrics_history[0].memory_usage;
 
         for metrics in metrics_history.iter().skip(1) {
-            smoothed_response_time = alpha * metrics.response_time_ms + (1.0 - alpha) * smoothed_response_time;
-            smoothed_availability = alpha * metrics.availability + (1.0 - alpha) * smoothed_availability;
+            smoothed_response_time =
+                alpha * metrics.response_time_ms + (1.0 - alpha) * smoothed_response_time;
+            smoothed_availability =
+                alpha * metrics.availability + (1.0 - alpha) * smoothed_availability;
             smoothed_error_rate = alpha * metrics.error_rate + (1.0 - alpha) * smoothed_error_rate;
             smoothed_cpu_usage = alpha * metrics.cpu_usage + (1.0 - alpha) * smoothed_cpu_usage;
-            smoothed_memory_usage = alpha * metrics.memory_usage + (1.0 - alpha) * smoothed_memory_usage;
+            smoothed_memory_usage =
+                alpha * metrics.memory_usage + (1.0 - alpha) * smoothed_memory_usage;
         }
 
         let predicted_metrics = HealthMetrics::new(
@@ -440,11 +476,13 @@ impl PredictiveAnalytics {
         metrics_history: &VecDeque<HealthMetrics>,
     ) -> Result<ModelPrediction> {
         if metrics_history.len() < 10 {
-            return Err(Error::InsufficientData("Need at least 10 data points for anomaly detection".to_string()));
+            return Err(Error::InsufficientData(
+                "Need at least 10 data points for anomaly detection".to_string(),
+            ));
         }
 
         let recent_metrics = metrics_history.iter().rev().take(10).collect::<Vec<_>>();
-        
+
         // Calculate statistics for anomaly detection
         let response_times: Vec<f64> = recent_metrics.iter().map(|m| m.response_time_ms).collect();
         let mean_response_time = response_times.iter().sum::<f64>() / response_times.len() as f64;
@@ -454,7 +492,8 @@ impl PredictiveAnalytics {
         let response_time_z_score = (latest_response_time - mean_response_time) / std_response_time;
 
         // Check for anomalies
-        let is_anomaly = response_time_z_score.abs() > self.anomaly_thresholds.response_time_threshold;
+        let is_anomaly =
+            response_time_z_score.abs() > self.anomaly_thresholds.response_time_threshold;
 
         let predicted_metrics = recent_metrics[0].clone();
         let health_status = if is_anomaly {
@@ -485,30 +524,48 @@ impl PredictiveAnalytics {
 
         // Weighted average of health scores
         let total_weight: f64 = weights.iter().sum();
-        let weighted_health_score = predictions.iter().zip(weights.iter())
+        let weighted_health_score = predictions
+            .iter()
+            .zip(weights.iter())
             .map(|(pred, weight)| pred.metrics.health_score() * weight)
-            .sum::<f64>() / total_weight;
+            .sum::<f64>()
+            / total_weight;
 
         // Weighted average of metrics
-        let weighted_response_time = predictions.iter().zip(weights.iter())
+        let weighted_response_time = predictions
+            .iter()
+            .zip(weights.iter())
             .map(|(pred, weight)| pred.metrics.response_time_ms * weight)
-            .sum::<f64>() / total_weight;
+            .sum::<f64>()
+            / total_weight;
 
-        let weighted_availability = predictions.iter().zip(weights.iter())
+        let weighted_availability = predictions
+            .iter()
+            .zip(weights.iter())
             .map(|(pred, weight)| pred.metrics.availability * weight)
-            .sum::<f64>() / total_weight;
+            .sum::<f64>()
+            / total_weight;
 
-        let weighted_error_rate = predictions.iter().zip(weights.iter())
+        let weighted_error_rate = predictions
+            .iter()
+            .zip(weights.iter())
             .map(|(pred, weight)| pred.metrics.error_rate * weight)
-            .sum::<f64>() / total_weight;
+            .sum::<f64>()
+            / total_weight;
 
-        let weighted_cpu_usage = predictions.iter().zip(weights.iter())
+        let weighted_cpu_usage = predictions
+            .iter()
+            .zip(weights.iter())
             .map(|(pred, weight)| pred.metrics.cpu_usage * weight)
-            .sum::<f64>() / total_weight;
+            .sum::<f64>()
+            / total_weight;
 
-        let weighted_memory_usage = predictions.iter().zip(weights.iter())
+        let weighted_memory_usage = predictions
+            .iter()
+            .zip(weights.iter())
             .map(|(pred, weight)| pred.metrics.memory_usage * weight)
-            .sum::<f64>() / total_weight;
+            .sum::<f64>()
+            / total_weight;
 
         // Use the first prediction for other metrics (they should be similar)
         let first_prediction = &predictions[0];
@@ -521,12 +578,16 @@ impl PredictiveAnalytics {
             weighted_memory_usage,
             first_prediction.metrics.network_latency_ms,
             first_prediction.metrics.disk_usage,
-        ).unwrap();
+        )
+        .unwrap();
 
         let ensemble_health_status = HealthStatus::from(weighted_health_score);
-        let ensemble_confidence = predictions.iter().zip(weights.iter())
+        let ensemble_confidence = predictions
+            .iter()
+            .zip(weights.iter())
             .map(|(pred, weight)| pred.confidence * weight)
-            .sum::<f64>() / total_weight;
+            .sum::<f64>()
+            / total_weight;
 
         ModelPrediction {
             health_status: ensemble_health_status,
@@ -587,7 +648,11 @@ impl PredictiveAnalytics {
                 anomaly_score: z_score.abs().min(1.0),
                 anomaly_type: AnomalyType::ResponseTimeSpike,
                 affected_metrics: vec!["response_time_ms".to_string()],
-                severity: if z_score.abs() > 3.0 { AnomalySeverity::Critical } else { AnomalySeverity::High },
+                severity: if z_score.abs() > 3.0 {
+                    AnomalySeverity::Critical
+                } else {
+                    AnomalySeverity::High
+                },
                 timestamp: Utc::now(),
             })
         } else {
@@ -602,7 +667,7 @@ impl PredictiveAnalytics {
         metrics: &[&HealthMetrics],
     ) -> Option<AnomalyResult> {
         let latest_availability = metrics[0].availability;
-        
+
         if latest_availability < self.anomaly_thresholds.availability_threshold {
             Some(AnomalyResult {
                 dependency_id: dependency_id.to_string(),
@@ -610,7 +675,11 @@ impl PredictiveAnalytics {
                 anomaly_score: 1.0 - latest_availability,
                 anomaly_type: AnomalyType::AvailabilityDrop,
                 affected_metrics: vec!["availability".to_string()],
-                severity: if latest_availability < 0.8 { AnomalySeverity::Critical } else { AnomalySeverity::High },
+                severity: if latest_availability < 0.8 {
+                    AnomalySeverity::Critical
+                } else {
+                    AnomalySeverity::High
+                },
                 timestamp: Utc::now(),
             })
         } else {
@@ -625,7 +694,7 @@ impl PredictiveAnalytics {
         metrics: &[&HealthMetrics],
     ) -> Option<AnomalyResult> {
         let latest_error_rate = metrics[0].error_rate;
-        
+
         if latest_error_rate > self.anomaly_thresholds.error_rate_threshold {
             Some(AnomalyResult {
                 dependency_id: dependency_id.to_string(),
@@ -633,7 +702,11 @@ impl PredictiveAnalytics {
                 anomaly_score: latest_error_rate,
                 anomaly_type: AnomalyType::ErrorRateAnomaly,
                 affected_metrics: vec!["error_rate".to_string()],
-                severity: if latest_error_rate > 0.1 { AnomalySeverity::Critical } else { AnomalySeverity::High },
+                severity: if latest_error_rate > 0.1 {
+                    AnomalySeverity::Critical
+                } else {
+                    AnomalySeverity::High
+                },
                 timestamp: Utc::now(),
             })
         } else {
@@ -643,37 +716,43 @@ impl PredictiveAnalytics {
 
     /// Identify risk factors from anomalies
     fn identify_risk_factors(&self, anomalies: &[AnomalyResult]) -> Vec<RiskFactor> {
-        anomalies.iter().map(|anomaly| {
-            let mitigation = match anomaly.anomaly_type {
-                AnomalyType::ResponseTimeSpike => vec![
-                    "Check for resource bottlenecks".to_string(),
-                    "Review recent deployments".to_string(),
-                    "Monitor upstream dependencies".to_string(),
-                ],
-                AnomalyType::AvailabilityDrop => vec![
-                    "Check service health endpoints".to_string(),
-                    "Review infrastructure status".to_string(),
-                    "Verify network connectivity".to_string(),
-                ],
-                AnomalyType::ErrorRateAnomaly => vec![
-                    "Review application logs".to_string(),
-                    "Check for recent code changes".to_string(),
-                    "Verify external service dependencies".to_string(),
-                ],
-                _ => vec![
-                    "Investigate root cause".to_string(),
-                    "Review monitoring alerts".to_string(),
-                ],
-            };
+        anomalies
+            .iter()
+            .map(|anomaly| {
+                let mitigation = match anomaly.anomaly_type {
+                    AnomalyType::ResponseTimeSpike => vec![
+                        "Check for resource bottlenecks".to_string(),
+                        "Review recent deployments".to_string(),
+                        "Monitor upstream dependencies".to_string(),
+                    ],
+                    AnomalyType::AvailabilityDrop => vec![
+                        "Check service health endpoints".to_string(),
+                        "Review infrastructure status".to_string(),
+                        "Verify network connectivity".to_string(),
+                    ],
+                    AnomalyType::ErrorRateAnomaly => vec![
+                        "Review application logs".to_string(),
+                        "Check for recent code changes".to_string(),
+                        "Verify external service dependencies".to_string(),
+                    ],
+                    _ => vec![
+                        "Investigate root cause".to_string(),
+                        "Review monitoring alerts".to_string(),
+                    ],
+                };
 
-            RiskFactor {
-                name: format!("{:?}", anomaly.anomaly_type),
-                description: format!("Anomaly detected in {}", anomaly.affected_metrics.join(", ")),
-                risk_level: anomaly.anomaly_score,
-                contributing_metrics: anomaly.affected_metrics.clone(),
-                mitigation_suggestions: mitigation,
-            }
-        }).collect()
+                RiskFactor {
+                    name: format!("{:?}", anomaly.anomaly_type),
+                    description: format!(
+                        "Anomaly detected in {}",
+                        anomaly.affected_metrics.join(", ")
+                    ),
+                    risk_level: anomaly.anomaly_score,
+                    contributing_metrics: anomaly.affected_metrics.clone(),
+                    mitigation_suggestions: mitigation,
+                }
+            })
+            .collect()
     }
 
     /// Calculate standard deviation
@@ -682,17 +761,17 @@ impl PredictiveAnalytics {
             return 0.0;
         }
 
-        let variance = values.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / (values.len() - 1) as f64;
-        
+        let variance =
+            values.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / (values.len() - 1) as f64;
+
         variance.sqrt()
     }
 
     /// Analyze trends for a dependency
     pub async fn analyze_trends(&self, dependency_id: &str) -> Result<TrendAnalysis> {
         let data = self.historical_data.read().await;
-        let metrics_history = data.get(dependency_id)
+        let metrics_history = data
+            .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?;
 
         if metrics_history.len() < 10 {
@@ -700,7 +779,7 @@ impl PredictiveAnalytics {
         }
 
         let recent_metrics: Vec<&HealthMetrics> = metrics_history.iter().rev().take(20).collect();
-        
+
         // Calculate trend for health scores
         let health_scores: Vec<f64> = recent_metrics.iter().map(|m| m.health_score()).collect();
         let trend = self.calculate_trend(&health_scores);
@@ -731,25 +810,35 @@ impl PredictiveAnalytics {
     fn calculate_trend(&self, values: &[f64]) -> TrendResult {
         let n = values.len() as f64;
         let x_values: Vec<f64> = (0..values.len()).map(|i| i as f64).collect();
-        
+
         let sum_x: f64 = x_values.iter().sum();
         let sum_y: f64 = values.iter().sum();
         let sum_xy: f64 = x_values.iter().zip(values.iter()).map(|(x, y)| x * y).sum();
         let sum_x2: f64 = x_values.iter().map(|x| x * x).sum();
-        
+
         let slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x);
         let intercept = (sum_y - slope * sum_x) / n;
-        
+
         // Calculate R-squared
         let mean_y = sum_y / n;
         let ss_tot: f64 = values.iter().map(|y| (y - mean_y).powi(2)).sum();
-        let ss_res: f64 = x_values.iter().zip(values.iter())
+        let ss_res: f64 = x_values
+            .iter()
+            .zip(values.iter())
             .map(|(x, y)| (y - (slope * x + intercept)).powi(2))
             .sum();
-        
-        let r_squared = if ss_tot > 0.0 { 1.0 - (ss_res / ss_tot) } else { 0.0 };
-        
-        TrendResult { slope, intercept, r_squared }
+
+        let r_squared = if ss_tot > 0.0 {
+            1.0 - (ss_res / ss_tot)
+        } else {
+            0.0
+        };
+
+        TrendResult {
+            slope,
+            intercept,
+            r_squared,
+        }
     }
 
     /// Clear expired cache entries
@@ -763,7 +852,7 @@ impl PredictiveAnalytics {
     pub async fn get_statistics(&self) -> PredictionStatistics {
         let data = self.historical_data.read().await;
         let cache = self.prediction_cache.read().await;
-        
+
         PredictionStatistics {
             total_dependencies: data.len(),
             total_data_points: data.values().map(|v| v.len()).sum(),
@@ -822,7 +911,8 @@ mod tests {
             0.6,   // memory_usage
             50.0,  // network_latency
             0.4,   // disk_usage
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[tokio::test]
@@ -835,9 +925,12 @@ mod tests {
     async fn test_add_data_point() {
         let analytics = PredictiveAnalytics::new();
         let metrics = create_test_metrics(100.0, 0.99, 0.01);
-        
-        analytics.add_data_point("test-dep".to_string(), metrics).await.unwrap();
-        
+
+        analytics
+            .add_data_point("test-dep".to_string(), metrics)
+            .await
+            .unwrap();
+
         let data = analytics.historical_data.read().await;
         assert_eq!(data.get("test-dep").unwrap().len(), 1);
     }
@@ -846,13 +939,13 @@ mod tests {
     async fn test_moving_average_prediction() {
         let analytics = PredictiveAnalytics::new();
         let mut metrics_history = VecDeque::new();
-        
+
         // Add some test data
         for i in 0..10 {
             let response_time = 100.0 + (i as f64 * 10.0);
             metrics_history.push_back(create_test_metrics(response_time, 0.99, 0.01));
         }
-        
+
         let config = ModelConfig {
             model_type: PredictionModel::MovingAverage,
             parameters: {
@@ -863,8 +956,10 @@ mod tests {
             enabled: true,
             weight: 1.0,
         };
-        
-        let prediction = analytics.moving_average_prediction(&config, &metrics_history).unwrap();
+
+        let prediction = analytics
+            .moving_average_prediction(&config, &metrics_history)
+            .unwrap();
         assert!(prediction.confidence > 0.0);
     }
 
@@ -885,4 +980,4 @@ mod tests {
         assert!((trend.slope - 1.0).abs() < 0.001);
         assert!(trend.r_squared > 0.99);
     }
-} 
+}

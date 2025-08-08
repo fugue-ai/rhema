@@ -1,7 +1,7 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use validator::Validate;
-use chrono::{DateTime, Utc};
 
 use crate::error::{Error, Result, RiskLevel};
 
@@ -122,7 +122,10 @@ impl ImpactScore {
 
         for score in scores {
             if !(0.0..=1.0).contains(&score) {
-                return Err(Error::InvalidImpactScore(format!("Score {} is not between 0.0 and 1.0", score)));
+                return Err(Error::InvalidImpactScore(format!(
+                    "Score {} is not between 0.0 and 1.0",
+                    score
+                )));
             }
         }
 
@@ -188,16 +191,27 @@ impl HealthMetrics {
         disk_usage: f64,
     ) -> Result<Self> {
         // Validate percentages are between 0.0 and 1.0
-        let percentages = [availability, error_rate, cpu_usage, memory_usage, disk_usage];
+        let percentages = [
+            availability,
+            error_rate,
+            cpu_usage,
+            memory_usage,
+            disk_usage,
+        ];
         for percentage in percentages {
             if !(0.0..=1.0).contains(&percentage) {
-                return Err(Error::InvalidHealthStatus(format!("Percentage {} is not between 0.0 and 1.0", percentage)));
+                return Err(Error::InvalidHealthStatus(format!(
+                    "Percentage {} is not between 0.0 and 1.0",
+                    percentage
+                )));
             }
         }
 
         // Validate positive values
         if response_time_ms < 0.0 || throughput < 0.0 || network_latency_ms < 0.0 {
-            return Err(Error::InvalidHealthStatus("Negative values not allowed".to_string()));
+            return Err(Error::InvalidHealthStatus(
+                "Negative values not allowed".to_string(),
+            ));
         }
 
         Ok(Self {
@@ -468,7 +482,8 @@ mod tests {
             DependencyType::ApiCall,
             "http://api.example.com".to_string(),
             vec!["GET".to_string(), "POST".to_string()],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(config.id, "test-id");
         assert_eq!(config.name, "Test Dependency");
     }
@@ -479,4 +494,4 @@ mod tests {
         let score = metrics.health_score();
         assert!(score > 0.9); // Should be high for good metrics
     }
-} 
+}

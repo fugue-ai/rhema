@@ -1,15 +1,15 @@
-use prometheus::{
-    Counter, Gauge, Histogram, HistogramOpts, IntCounter, IntGauge, Registry,
-    Opts, HistogramVec, GaugeVec, IntGaugeVec, IntCounterVec,
-};
+use chrono::{DateTime, Utc};
 use prometheus::core::Collector;
+use prometheus::{
+    Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounter, IntCounterVec,
+    IntGauge, IntGaugeVec, Opts, Registry,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 
-use crate::types::{DependencyType, HealthStatus, ImpactScore};
 use crate::graph::DependencyGraph;
+use crate::types::{DependencyType, HealthStatus, ImpactScore};
 
 /// Metrics collector for the dependency management system
 pub struct MetricsCollector {
@@ -85,19 +85,13 @@ impl MetricsCollector {
 
         // Dependency error rate metric
         let dependency_error_rate = GaugeVec::new(
-            Opts::new(
-                "dependency_error_rate",
-                "Error rate of dependencies",
-            ),
+            Opts::new("dependency_error_rate", "Error rate of dependencies"),
             &["dependency_id"],
         )?;
 
         // Impact analysis score metric
         let impact_analysis_score = GaugeVec::new(
-            Opts::new(
-                "impact_analysis_score",
-                "Business impact scores",
-            ),
+            Opts::new("impact_analysis_score", "Business impact scores"),
             &["dependency_id"],
         )?;
 
@@ -124,18 +118,12 @@ impl MetricsCollector {
 
         // Health check success rate metric
         let health_check_success_rate = GaugeVec::new(
-            Opts::new(
-                "health_check_success_rate",
-                "Success rate of health checks",
-            ),
+            Opts::new("health_check_success_rate", "Success rate of health checks"),
             &["dependency_id"],
         )?;
 
         // Dependency count metric
-        let dependency_count = IntGauge::new(
-            "dependency_count",
-            "Total number of dependencies",
-        )?;
+        let dependency_count = IntGauge::new("dependency_count", "Total number of dependencies")?;
 
         // Dependency relationship count metric
         let dependency_relationship_count = IntGauge::new(
@@ -168,17 +156,11 @@ impl MetricsCollector {
         )?;
 
         // Alert count metric
-        let alert_count = IntCounter::new(
-            "alert_count_total",
-            "Total number of alerts generated",
-        )?;
+        let alert_count = IntCounter::new("alert_count_total", "Total number of alerts generated")?;
 
         // Alert severity metric
         let alert_severity = IntCounterVec::new(
-            Opts::new(
-                "alert_severity_total",
-                "Total number of alerts by severity",
-            ),
+            Opts::new("alert_severity_total", "Total number of alerts by severity"),
             &["severity"],
         )?;
 
@@ -223,7 +205,11 @@ impl MetricsCollector {
     }
 
     /// Record dependency health status
-    pub fn record_dependency_health_status(&self, dependency_id: &str, health_status: HealthStatus) {
+    pub fn record_dependency_health_status(
+        &self,
+        dependency_id: &str,
+        health_status: HealthStatus,
+    ) {
         let status_value = match health_status {
             HealthStatus::Unknown => 0,
             HealthStatus::Healthy => 1,
@@ -272,7 +258,8 @@ impl MetricsCollector {
 
     /// Record validation warnings
     pub fn record_validation_warnings(&self, count: i64) {
-        self.validation_warnings.inc_by(count.try_into().unwrap_or(0));
+        self.validation_warnings
+            .inc_by(count.try_into().unwrap_or(0));
     }
 
     /// Record health check duration
@@ -328,9 +315,7 @@ impl MetricsCollector {
     /// Record alert
     pub fn record_alert(&self, severity: &str) {
         self.alert_count.inc();
-        self.alert_severity
-            .with_label_values(&[severity])
-            .inc();
+        self.alert_severity.with_label_values(&[severity]).inc();
     }
 
     /// Add custom metric
@@ -366,10 +351,10 @@ impl MetricsCollector {
     pub async fn update_from_graph(&self, graph: &DependencyGraph) -> Result<(), crate::Error> {
         // Update dependency count
         self.update_dependency_count(graph.node_count() as i64);
-        
+
         // Update relationship count
         self.update_dependency_relationship_count(graph.edge_count() as i64);
-        
+
         // Update circular dependency count
         let circular_count = if graph.has_circular_dependencies()? {
             graph.find_circular_dependencies()?.len() as i64
@@ -383,7 +368,10 @@ impl MetricsCollector {
             if let Ok(config) = graph.get_dependency_config(&dependency_id) {
                 // Note: We can't access health status directly from the graph
                 // This would need to be updated when health monitoring is implemented
-                self.record_dependency_health_status(&dependency_id, crate::types::HealthStatus::Unknown);
+                self.record_dependency_health_status(
+                    &dependency_id,
+                    crate::types::HealthStatus::Unknown,
+                );
             }
         }
 
@@ -402,21 +390,14 @@ impl MetricsCollector {
     }
 
     /// Update metrics from impact analysis
-    pub fn update_from_impact_analysis(
-        &self,
-        dependency_id: &str,
-        impact_score: &ImpactScore,
-    ) {
+    pub fn update_from_impact_analysis(&self, dependency_id: &str, impact_score: &ImpactScore) {
         self.record_impact_analysis_score(dependency_id, impact_score.business_impact);
         self.record_business_impact_score(dependency_id, impact_score.business_impact);
         self.record_risk_level(dependency_id, impact_score.risk_level);
     }
 
     /// Update metrics from validation results
-    pub fn update_from_validation_results(
-        &self,
-        validation_result: &crate::ValidationResult,
-    ) {
+    pub fn update_from_validation_results(&self, validation_result: &crate::ValidationResult) {
         self.record_validation_errors(validation_result.errors.len() as i64);
         self.record_validation_warnings(validation_result.warnings.len() as i64);
     }
@@ -456,11 +437,11 @@ impl MetricsCollector {
         let encoder = prometheus::TextEncoder::new();
         let mut buffer = Vec::new();
         encoder.encode(&self.registry.gather(), &mut buffer)?;
-        
+
         // Convert to JSON format
         let metrics_text = String::from_utf8(buffer).unwrap_or_default();
         let json_metrics = self.parse_metrics_to_json(&metrics_text);
-        
+
         serde_json::to_string_pretty(&json_metrics)
             .map_err(|e| prometheus::Error::Msg(e.to_string()))
     }
@@ -468,12 +449,12 @@ impl MetricsCollector {
     /// Parse metrics text to JSON format
     fn parse_metrics_to_json(&self, metrics_text: &str) -> serde_json::Value {
         let mut metrics = Vec::new();
-        
+
         for line in metrics_text.lines() {
             if line.starts_with('#') || line.is_empty() {
                 continue;
             }
-            
+
             if let Some((name, value)) = line.split_once(' ') {
                 let metric = serde_json::json!({
                     "name": name,
@@ -483,7 +464,7 @@ impl MetricsCollector {
                 metrics.push(metric);
             }
         }
-        
+
         serde_json::json!({
             "metrics": metrics,
             "timestamp": Utc::now().to_rfc3339()
@@ -562,7 +543,10 @@ mod tests {
 
     #[test]
     fn test_metrics_format() {
-        assert!(matches!(MetricsFormat::Prometheus, MetricsFormat::Prometheus));
+        assert!(matches!(
+            MetricsFormat::Prometheus,
+            MetricsFormat::Prometheus
+        ));
         assert!(matches!(MetricsFormat::Json, MetricsFormat::Json));
     }
 
@@ -579,4 +563,4 @@ mod tests {
         assert_eq!(stats.custom_metrics_count, 5);
         assert_eq!(stats.registry_metrics, 10);
     }
-} 
+}

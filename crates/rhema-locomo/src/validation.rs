@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 
-use crate::types::LocomoError;
 use crate::metrics::LocomoMetrics;
+use crate::types::LocomoError;
 use rhema_core::RhemaResult;
 
 /// LOCOMO validation framework
@@ -46,12 +46,12 @@ pub struct LocomoImprovementThresholds {
 impl Default for LocomoImprovementThresholds {
     fn default() -> Self {
         Self {
-            retrieval_improvement: 0.1,    // 10% improvement
-            compression_improvement: 0.15,  // 15% improvement
+            retrieval_improvement: 0.1,       // 10% improvement
+            compression_improvement: 0.15,    // 15% improvement
             ai_optimization_improvement: 0.2, // 20% improvement
-            overall_improvement: 0.1,       // 10% improvement
-            relevance_improvement: 0.1,     // 10% improvement
-            persistence_improvement: 0.05,  // 5% improvement
+            overall_improvement: 0.1,         // 10% improvement
+            relevance_improvement: 0.1,       // 10% improvement
+            persistence_improvement: 0.05,    // 5% improvement
         }
     }
 }
@@ -125,15 +125,21 @@ impl LocomoValidationFramework {
         let mut results = Vec::new();
 
         // Validate context retrieval improvements
-        let retrieval_validation = self.validate_retrieval_improvement(&current_metrics).await?;
+        let retrieval_validation = self
+            .validate_retrieval_improvement(&current_metrics)
+            .await?;
         results.push(retrieval_validation);
 
         // Validate compression improvements
-        let compression_validation = self.validate_compression_improvement(&current_metrics).await?;
+        let compression_validation = self
+            .validate_compression_improvement(&current_metrics)
+            .await?;
         results.push(compression_validation);
 
         // Validate AI optimization improvements
-        let ai_optimization_validation = self.validate_ai_optimization_improvement(&current_metrics).await?;
+        let ai_optimization_validation = self
+            .validate_ai_optimization_improvement(&current_metrics)
+            .await?;
         results.push(ai_optimization_validation);
 
         // Validate overall improvements
@@ -141,11 +147,15 @@ impl LocomoValidationFramework {
         results.push(overall_validation);
 
         // Validate relevance improvements
-        let relevance_validation = self.validate_relevance_improvement(&current_metrics).await?;
+        let relevance_validation = self
+            .validate_relevance_improvement(&current_metrics)
+            .await?;
         results.push(relevance_validation);
 
         // Validate persistence improvements
-        let persistence_validation = self.validate_persistence_improvement(&current_metrics).await?;
+        let persistence_validation = self
+            .validate_persistence_improvement(&current_metrics)
+            .await?;
         results.push(persistence_validation);
 
         // Store validation results
@@ -154,10 +164,16 @@ impl LocomoValidationFramework {
         Ok(results)
     }
 
-    async fn validate_retrieval_improvement(&self, current: &LocomoMetrics) -> RhemaResult<ValidationResult> {
-        let baseline_latency = self.baseline_metrics.context_retrieval_latency.as_secs_f64();
+    async fn validate_retrieval_improvement(
+        &self,
+        current: &LocomoMetrics,
+    ) -> RhemaResult<ValidationResult> {
+        let baseline_latency = self
+            .baseline_metrics
+            .context_retrieval_latency
+            .as_secs_f64();
         let current_latency = current.context_retrieval_latency.as_secs_f64();
-        
+
         let improvement = if baseline_latency > 0.0 {
             (baseline_latency - current_latency) / baseline_latency
         } else {
@@ -165,13 +181,23 @@ impl LocomoValidationFramework {
         };
 
         let meets_threshold = improvement >= self.improvement_thresholds.retrieval_improvement;
-        let status = if meets_threshold { ValidationStatus::Passed } else { ValidationStatus::Failed };
+        let status = if meets_threshold {
+            ValidationStatus::Passed
+        } else {
+            ValidationStatus::Failed
+        };
 
         let message = if meets_threshold {
-            format!("Context retrieval latency improved by {:.1}%", improvement * 100.0)
+            format!(
+                "Context retrieval latency improved by {:.1}%",
+                improvement * 100.0
+            )
         } else {
-            format!("Context retrieval latency improvement of {:.1}% below threshold of {:.1}%", 
-                   improvement * 100.0, self.improvement_thresholds.retrieval_improvement * 100.0)
+            format!(
+                "Context retrieval latency improvement of {:.1}% below threshold of {:.1}%",
+                improvement * 100.0,
+                self.improvement_thresholds.retrieval_improvement * 100.0
+            )
         };
 
         Ok(ValidationResult {
@@ -187,10 +213,13 @@ impl LocomoValidationFramework {
         })
     }
 
-    async fn validate_compression_improvement(&self, current: &LocomoMetrics) -> RhemaResult<ValidationResult> {
+    async fn validate_compression_improvement(
+        &self,
+        current: &LocomoMetrics,
+    ) -> RhemaResult<ValidationResult> {
         let baseline_ratio = self.baseline_metrics.context_compression_ratio;
         let current_ratio = current.context_compression_ratio;
-        
+
         // Lower compression ratio is better (more compression)
         let improvement = if baseline_ratio > 0.0 {
             (baseline_ratio - current_ratio) / baseline_ratio
@@ -199,13 +228,23 @@ impl LocomoValidationFramework {
         };
 
         let meets_threshold = improvement >= self.improvement_thresholds.compression_improvement;
-        let status = if meets_threshold { ValidationStatus::Passed } else { ValidationStatus::Failed };
+        let status = if meets_threshold {
+            ValidationStatus::Passed
+        } else {
+            ValidationStatus::Failed
+        };
 
         let message = if meets_threshold {
-            format!("Context compression improved by {:.1}%", improvement * 100.0)
+            format!(
+                "Context compression improved by {:.1}%",
+                improvement * 100.0
+            )
         } else {
-            format!("Context compression improvement of {:.1}% below threshold of {:.1}%", 
-                   improvement * 100.0, self.improvement_thresholds.compression_improvement * 100.0)
+            format!(
+                "Context compression improvement of {:.1}% below threshold of {:.1}%",
+                improvement * 100.0,
+                self.improvement_thresholds.compression_improvement * 100.0
+            )
         };
 
         Ok(ValidationResult {
@@ -221,24 +260,38 @@ impl LocomoValidationFramework {
         })
     }
 
-    async fn validate_ai_optimization_improvement(&self, current: &LocomoMetrics) -> RhemaResult<ValidationResult> {
+    async fn validate_ai_optimization_improvement(
+        &self,
+        current: &LocomoMetrics,
+    ) -> RhemaResult<ValidationResult> {
         let baseline_score = self.baseline_metrics.ai_agent_optimization_score;
         let current_score = current.ai_agent_optimization_score;
-        
+
         let improvement = if baseline_score > 0.0 {
             (current_score - baseline_score) / baseline_score
         } else {
             0.0
         };
 
-        let meets_threshold = improvement >= self.improvement_thresholds.ai_optimization_improvement;
-        let status = if meets_threshold { ValidationStatus::Passed } else { ValidationStatus::Failed };
+        let meets_threshold =
+            improvement >= self.improvement_thresholds.ai_optimization_improvement;
+        let status = if meets_threshold {
+            ValidationStatus::Passed
+        } else {
+            ValidationStatus::Failed
+        };
 
         let message = if meets_threshold {
-            format!("AI optimization score improved by {:.1}%", improvement * 100.0)
+            format!(
+                "AI optimization score improved by {:.1}%",
+                improvement * 100.0
+            )
         } else {
-            format!("AI optimization improvement of {:.1}% below threshold of {:.1}%", 
-                   improvement * 100.0, self.improvement_thresholds.ai_optimization_improvement * 100.0)
+            format!(
+                "AI optimization improvement of {:.1}% below threshold of {:.1}%",
+                improvement * 100.0,
+                self.improvement_thresholds.ai_optimization_improvement * 100.0
+            )
         };
 
         Ok(ValidationResult {
@@ -254,10 +307,13 @@ impl LocomoValidationFramework {
         })
     }
 
-    async fn validate_overall_improvement(&self, current: &LocomoMetrics) -> RhemaResult<ValidationResult> {
+    async fn validate_overall_improvement(
+        &self,
+        current: &LocomoMetrics,
+    ) -> RhemaResult<ValidationResult> {
         let baseline_overall = self.baseline_metrics.overall_score();
         let current_overall = current.overall_score();
-        
+
         let improvement = if baseline_overall > 0.0 {
             (current_overall - baseline_overall) / baseline_overall
         } else {
@@ -265,13 +321,23 @@ impl LocomoValidationFramework {
         };
 
         let meets_threshold = improvement >= self.improvement_thresholds.overall_improvement;
-        let status = if meets_threshold { ValidationStatus::Passed } else { ValidationStatus::Failed };
+        let status = if meets_threshold {
+            ValidationStatus::Passed
+        } else {
+            ValidationStatus::Failed
+        };
 
         let message = if meets_threshold {
-            format!("Overall LOCOMO score improved by {:.1}%", improvement * 100.0)
+            format!(
+                "Overall LOCOMO score improved by {:.1}%",
+                improvement * 100.0
+            )
         } else {
-            format!("Overall improvement of {:.1}% below threshold of {:.1}%", 
-                   improvement * 100.0, self.improvement_thresholds.overall_improvement * 100.0)
+            format!(
+                "Overall improvement of {:.1}% below threshold of {:.1}%",
+                improvement * 100.0,
+                self.improvement_thresholds.overall_improvement * 100.0
+            )
         };
 
         Ok(ValidationResult {
@@ -287,10 +353,13 @@ impl LocomoValidationFramework {
         })
     }
 
-    async fn validate_relevance_improvement(&self, current: &LocomoMetrics) -> RhemaResult<ValidationResult> {
+    async fn validate_relevance_improvement(
+        &self,
+        current: &LocomoMetrics,
+    ) -> RhemaResult<ValidationResult> {
         let baseline_relevance = self.baseline_metrics.context_relevance_score;
         let current_relevance = current.context_relevance_score;
-        
+
         let improvement = if baseline_relevance > 0.0 {
             (current_relevance - baseline_relevance) / baseline_relevance
         } else {
@@ -298,13 +367,20 @@ impl LocomoValidationFramework {
         };
 
         let meets_threshold = improvement >= self.improvement_thresholds.relevance_improvement;
-        let status = if meets_threshold { ValidationStatus::Passed } else { ValidationStatus::Failed };
+        let status = if meets_threshold {
+            ValidationStatus::Passed
+        } else {
+            ValidationStatus::Failed
+        };
 
         let message = if meets_threshold {
             format!("Context relevance improved by {:.1}%", improvement * 100.0)
         } else {
-            format!("Relevance improvement of {:.1}% below threshold of {:.1}%", 
-                   improvement * 100.0, self.improvement_thresholds.relevance_improvement * 100.0)
+            format!(
+                "Relevance improvement of {:.1}% below threshold of {:.1}%",
+                improvement * 100.0,
+                self.improvement_thresholds.relevance_improvement * 100.0
+            )
         };
 
         Ok(ValidationResult {
@@ -320,10 +396,13 @@ impl LocomoValidationFramework {
         })
     }
 
-    async fn validate_persistence_improvement(&self, current: &LocomoMetrics) -> RhemaResult<ValidationResult> {
+    async fn validate_persistence_improvement(
+        &self,
+        current: &LocomoMetrics,
+    ) -> RhemaResult<ValidationResult> {
         let baseline_persistence = self.baseline_metrics.context_persistence_accuracy;
         let current_persistence = current.context_persistence_accuracy;
-        
+
         let improvement = if baseline_persistence > 0.0 {
             (current_persistence - baseline_persistence) / baseline_persistence
         } else {
@@ -331,13 +410,23 @@ impl LocomoValidationFramework {
         };
 
         let meets_threshold = improvement >= self.improvement_thresholds.persistence_improvement;
-        let status = if meets_threshold { ValidationStatus::Passed } else { ValidationStatus::Failed };
+        let status = if meets_threshold {
+            ValidationStatus::Passed
+        } else {
+            ValidationStatus::Failed
+        };
 
         let message = if meets_threshold {
-            format!("Context persistence improved by {:.1}%", improvement * 100.0)
+            format!(
+                "Context persistence improved by {:.1}%",
+                improvement * 100.0
+            )
         } else {
-            format!("Persistence improvement of {:.1}% below threshold of {:.1}%", 
-                   improvement * 100.0, self.improvement_thresholds.persistence_improvement * 100.0)
+            format!(
+                "Persistence improvement of {:.1}% below threshold of {:.1}%",
+                improvement * 100.0,
+                self.improvement_thresholds.persistence_improvement * 100.0
+            )
         };
 
         Ok(ValidationResult {
@@ -356,37 +445,46 @@ impl LocomoValidationFramework {
     async fn store_validation_results(&self, results: &[ValidationResult]) -> RhemaResult<()> {
         let mut history = self.validation_history.write().await;
         history.extend(results.iter().cloned());
-        
+
         // Keep only the last 1000 validation results
         if history.len() > 1000 {
             let len = history.len();
             history.drain(0..len - 1000);
         }
-        
+
         Ok(())
     }
 
     pub async fn get_validation_history(&self, hours: u64) -> RhemaResult<Vec<ValidationResult>> {
         let history = self.validation_history.read().await;
         let cutoff = Utc::now() - chrono::Duration::hours(hours as i64);
-        
+
         let recent_results: Vec<ValidationResult> = history
             .iter()
             .filter(|result| result.timestamp >= cutoff)
             .cloned()
             .collect();
-        
+
         Ok(recent_results)
     }
 
     pub async fn get_validation_summary(&self) -> RhemaResult<ValidationSummary> {
         let history = self.validation_history.read().await;
-        
+
         let total_validations = history.len();
-        let passed_validations = history.iter().filter(|r| matches!(r.status, ValidationStatus::Passed)).count();
-        let failed_validations = history.iter().filter(|r| matches!(r.status, ValidationStatus::Failed)).count();
-        let warning_validations = history.iter().filter(|r| matches!(r.status, ValidationStatus::Warning)).count();
-        
+        let passed_validations = history
+            .iter()
+            .filter(|r| matches!(r.status, ValidationStatus::Passed))
+            .count();
+        let failed_validations = history
+            .iter()
+            .filter(|r| matches!(r.status, ValidationStatus::Failed))
+            .count();
+        let warning_validations = history
+            .iter()
+            .filter(|r| matches!(r.status, ValidationStatus::Warning))
+            .count();
+
         let success_rate = if total_validations > 0 {
             passed_validations as f64 / total_validations as f64
         } else {
@@ -406,7 +504,7 @@ impl LocomoValidationFramework {
     pub async fn generate_validation_report(&self) -> RhemaResult<ValidationReport> {
         let summary = self.get_validation_summary().await?;
         let recent_results = self.get_validation_history(24).await?;
-        
+
         let mut report = ValidationReport {
             summary,
             recent_results: recent_results.clone(),
@@ -420,44 +518,73 @@ impl LocomoValidationFramework {
         Ok(report)
     }
 
-    async fn generate_recommendations(&self, results: &[ValidationResult]) -> RhemaResult<Vec<String>> {
+    async fn generate_recommendations(
+        &self,
+        results: &[ValidationResult],
+    ) -> RhemaResult<Vec<String>> {
         let mut recommendations = Vec::new();
 
         // Analyze failed validations and generate recommendations
-        let failed_retrieval = results.iter()
-            .filter(|r| matches!(r.validation_type, ValidationType::RetrievalImprovement) && !r.meets_threshold)
+        let failed_retrieval = results
+            .iter()
+            .filter(|r| {
+                matches!(r.validation_type, ValidationType::RetrievalImprovement)
+                    && !r.meets_threshold
+            })
             .count();
-        
+
         if failed_retrieval > 0 {
-            recommendations.push("Consider optimizing context retrieval algorithms and caching strategies".to_string());
+            recommendations.push(
+                "Consider optimizing context retrieval algorithms and caching strategies"
+                    .to_string(),
+            );
         }
 
-        let failed_compression = results.iter()
-            .filter(|r| matches!(r.validation_type, ValidationType::CompressionImprovement) && !r.meets_threshold)
+        let failed_compression = results
+            .iter()
+            .filter(|r| {
+                matches!(r.validation_type, ValidationType::CompressionImprovement)
+                    && !r.meets_threshold
+            })
             .count();
-        
+
         if failed_compression > 0 {
-            recommendations.push("Implement more efficient compression algorithms or adjust compression targets".to_string());
+            recommendations.push(
+                "Implement more efficient compression algorithms or adjust compression targets"
+                    .to_string(),
+            );
         }
 
-        let failed_ai_optimization = results.iter()
-            .filter(|r| matches!(r.validation_type, ValidationType::AIOptimizationImprovement) && !r.meets_threshold)
+        let failed_ai_optimization = results
+            .iter()
+            .filter(|r| {
+                matches!(r.validation_type, ValidationType::AIOptimizationImprovement)
+                    && !r.meets_threshold
+            })
             .count();
-        
+
         if failed_ai_optimization > 0 {
-            recommendations.push("Enhance AI optimization strategies and context structuring".to_string());
+            recommendations
+                .push("Enhance AI optimization strategies and context structuring".to_string());
         }
 
-        let failed_relevance = results.iter()
-            .filter(|r| matches!(r.validation_type, ValidationType::RelevanceImprovement) && !r.meets_threshold)
+        let failed_relevance = results
+            .iter()
+            .filter(|r| {
+                matches!(r.validation_type, ValidationType::RelevanceImprovement)
+                    && !r.meets_threshold
+            })
             .count();
-        
+
         if failed_relevance > 0 {
-            recommendations.push("Improve relevance scoring algorithms and semantic understanding".to_string());
+            recommendations.push(
+                "Improve relevance scoring algorithms and semantic understanding".to_string(),
+            );
         }
 
         if recommendations.is_empty() {
-            recommendations.push("All validation metrics are meeting improvement thresholds".to_string());
+            recommendations
+                .push("All validation metrics are meeting improvement thresholds".to_string());
         }
 
         Ok(recommendations)
@@ -482,4 +609,4 @@ pub struct ValidationReport {
     pub recent_results: Vec<ValidationResult>,
     pub recommendations: Vec<String>,
     pub timestamp: DateTime<Utc>,
-} 
+}

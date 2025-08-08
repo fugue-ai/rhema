@@ -17,14 +17,14 @@
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::fs;
 use tokio::time::interval;
-use tracing::{info, error, debug};
+use tracing::{debug, error, info};
 
 use rhema_core::{RhemaError, RhemaResult};
 
@@ -142,11 +142,11 @@ pub struct CacheStatistics {
 /// Cache eviction policies
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EvictionPolicy {
-    LRU,           // Least Recently Used
-    LFU,           // Least Frequently Used
-    TTL,           // Time To Live
-    FIFO,          // First In First Out
-    Adaptive,      // Adaptive policy that switches based on performance
+    LRU,      // Least Recently Used
+    LFU,      // Least Frequently Used
+    TTL,      // Time To Live
+    FIFO,     // First In First Out
+    Adaptive, // Adaptive policy that switches based on performance
 }
 
 /// Cache warming strategy
@@ -185,8 +185,8 @@ impl Default for MonitoringConfig {
     fn default() -> Self {
         Self {
             enabled: true,
-            metrics_interval_seconds: 60, // 1 minute
-            alert_threshold_hit_rate: 0.8, // 80%
+            metrics_interval_seconds: 60,      // 1 minute
+            alert_threshold_hit_rate: 0.8,     // 80%
             alert_threshold_memory_usage: 0.9, // 90%
             enable_alerts: true,
         }
@@ -209,8 +209,8 @@ impl Default for OptimizationConfig {
             enabled: true,
             auto_optimize: true,
             optimization_interval_seconds: 300, // 5 minutes
-            target_hit_rate: 0.9, // 90%
-            target_memory_usage: 0.8, // 80%
+            target_hit_rate: 0.9,               // 90%
+            target_memory_usage: 0.8,           // 80%
         }
     }
 }
@@ -341,10 +341,10 @@ impl Default for PartitioningConfig {
 /// Partition strategies
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PartitionStrategy {
-    Hash,           // Hash-based partitioning
-    Range,          // Range-based partitioning
-    Consistent,     // Consistent hashing
-    RoundRobin,     // Round-robin partitioning
+    Hash,       // Hash-based partitioning
+    Range,      // Range-based partitioning
+    Consistent, // Consistent hashing
+    RoundRobin, // Round-robin partitioning
 }
 
 /// Cache coherency configuration
@@ -370,10 +370,10 @@ impl Default for CoherencyConfig {
 /// Coherency protocols
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoherencyProtocol {
-    Strong,         // Strong consistency
-    Eventual,       // Eventual consistency
-    Causal,         // Causal consistency
-    Sequential,     // Sequential consistency
+    Strong,     // Strong consistency
+    Eventual,   // Eventual consistency
+    Causal,     // Causal consistency
+    Sequential, // Sequential consistency
 }
 
 /// Conflict resolution strategies
@@ -408,10 +408,10 @@ impl Default for PrefetchingConfig {
 /// Prefetch strategies
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrefetchStrategy {
-    Sequential,     // Sequential prefetching
-    Pattern,        // Pattern-based prefetching
-    Predictive,     // Predictive prefetching
-    Adaptive,       // Adaptive prefetching
+    Sequential, // Sequential prefetching
+    Pattern,    // Pattern-based prefetching
+    Predictive, // Predictive prefetching
+    Adaptive,   // Adaptive prefetching
 }
 
 /// Cache analytics configuration
@@ -488,19 +488,19 @@ impl Default for HealthThresholds {
 pub struct CacheConfig {
     /// Enable in-memory caching
     pub memory_enabled: bool,
-    
+
     /// Enable Redis caching
     pub redis_enabled: bool,
-    
+
     /// Redis connection URL
     pub redis_url: Option<String>,
-    
+
     /// Cache TTL in seconds
     pub ttl_seconds: u64,
-    
+
     /// Maximum cache size in bytes
     pub max_size: usize,
-    
+
     /// Enable compression
     pub compression_enabled: bool,
 
@@ -547,7 +547,7 @@ impl Default for CacheConfig {
             memory_enabled: true,
             redis_enabled: false,
             redis_url: None,
-            ttl_seconds: 3600, // 1 hour
+            ttl_seconds: 3600,           // 1 hour
             max_size: 100 * 1024 * 1024, // 100 MB
             compression_enabled: false,
             eviction_policy: EvictionPolicy::LRU,
@@ -572,20 +572,20 @@ pub struct CacheManager {
     redis_client: Option<Arc<redis::Client>>,
     config: CacheConfig,
     stats: Arc<RwLock<CacheStats>>,
-    
+
     // Enhanced features
     performance_metrics: Arc<RwLock<PerformanceMetrics>>,
     alerts: Arc<RwLock<Vec<CacheAlert>>>,
     access_patterns: Arc<RwLock<HashMap<String, u64>>>,
     warming_cache: Arc<RwLock<HashMap<String, Value>>>,
-    
+
     // Advanced features
     partitions: Arc<RwLock<HashMap<usize, Arc<DashMap<String, CacheEntry<Value>>>>>>,
     coherency_state: Arc<RwLock<HashMap<String, Value>>>,
     prefetch_queue: Arc<RwLock<Vec<String>>>,
     analytics_data: Arc<RwLock<Vec<AnalyticsRecord>>>,
     health_status: Arc<RwLock<HealthStatus>>,
-    
+
     // Background tasks - removed Clone derive since JoinHandle doesn't implement Clone
     monitoring_task: Option<tokio::task::JoinHandle<()>>,
     optimization_task: Option<tokio::task::JoinHandle<()>>,
@@ -647,16 +647,16 @@ impl Clone for CacheManager {
             prefetch_queue: self.prefetch_queue.clone(),
             analytics_data: self.analytics_data.clone(),
             health_status: self.health_status.clone(),
-            monitoring_task: None, // JoinHandle cannot be cloned
+            monitoring_task: None,   // JoinHandle cannot be cloned
             optimization_task: None, // JoinHandle cannot be cloned
-            persistence_task: None, // JoinHandle cannot be cloned
-            validation_task: None, // JoinHandle cannot be cloned
-            warming_task: None, // JoinHandle cannot be cloned
+            persistence_task: None,  // JoinHandle cannot be cloned
+            validation_task: None,   // JoinHandle cannot be cloned
+            warming_task: None,      // JoinHandle cannot be cloned
             partitioning_task: None, // JoinHandle cannot be cloned
-            coherency_task: None, // JoinHandle cannot be cloned
-            prefetching_task: None, // JoinHandle cannot be cloned
-            analytics_task: None, // JoinHandle cannot be cloned
-            health_task: None, // JoinHandle cannot be cloned
+            coherency_task: None,    // JoinHandle cannot be cloned
+            prefetching_task: None,  // JoinHandle cannot be cloned
+            analytics_task: None,    // JoinHandle cannot be cloned
+            health_task: None,       // JoinHandle cannot be cloned
         }
     }
 }
@@ -783,30 +783,35 @@ impl CacheManager {
             let stats = self.stats.clone();
             let performance_metrics = self.performance_metrics.clone();
             let alerts = self.alerts.clone();
-            
+
             self.monitoring_task = Some(tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(monitoring_config.metrics_interval_seconds));
+                let mut interval = interval(Duration::from_secs(
+                    monitoring_config.metrics_interval_seconds,
+                ));
                 loop {
                     interval.tick().await;
-                    
+
                     // Update performance metrics
                     let stats_guard = stats.read().await;
                     let mut metrics_guard = performance_metrics.write().await;
-                    
+
                     // Calculate performance metrics (simplified)
                     metrics_guard.memory_efficiency = if stats_guard.total_entries > 0 {
                         stats_guard.hit_count as f64 / stats_guard.total_entries as f64
                     } else {
                         0.0
                     };
-                    
+
                     // Check for alerts
                     if monitoring_config.enable_alerts {
                         if stats_guard.hit_rate < monitoring_config.alert_threshold_hit_rate {
                             let alert = CacheAlert {
                                 alert_type: "low_hit_rate".to_string(),
-                                message: format!("Cache hit rate {} is below threshold {}", 
-                                    stats_guard.hit_rate, monitoring_config.alert_threshold_hit_rate),
+                                message: format!(
+                                    "Cache hit rate {} is below threshold {}",
+                                    stats_guard.hit_rate,
+                                    monitoring_config.alert_threshold_hit_rate
+                                ),
                                 severity: AlertSeverity::Warning,
                                 timestamp: chrono::Utc::now(),
                                 metrics: HashMap::new(),
@@ -846,12 +851,14 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.optimization_task = Some(tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(optimization_config.optimization_interval_seconds));
+                let mut interval = interval(Duration::from_secs(
+                    optimization_config.optimization_interval_seconds,
+                ));
                 loop {
                     interval.tick().await;
-                    
+
                     if optimization_config.auto_optimize {
                         if let Err(e) = cache_manager.optimize_cache().await {
                             error!("Cache optimization failed: {}", e);
@@ -889,12 +896,14 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.persistence_task = Some(tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(persistence_config.save_interval_seconds));
+                let mut interval = interval(Duration::from_secs(
+                    persistence_config.save_interval_seconds,
+                ));
                 loop {
                     interval.tick().await;
-                    
+
                     if let Err(e) = cache_manager.save_persisted_cache().await {
                         error!("Cache persistence failed: {}", e);
                     }
@@ -930,12 +939,14 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.validation_task = Some(tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(validation_config.integrity_check_interval_seconds));
+                let mut interval = interval(Duration::from_secs(
+                    validation_config.integrity_check_interval_seconds,
+                ));
                 loop {
                     interval.tick().await;
-                    
+
                     if let Err(e) = cache_manager.validate_cache_integrity().await {
                         error!("Cache validation failed: {}", e);
                     }
@@ -971,12 +982,13 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.warming_task = Some(tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(warming_config.warm_interval_seconds));
+                let mut interval =
+                    interval(Duration::from_secs(warming_config.warm_interval_seconds));
                 loop {
                     interval.tick().await;
-                    
+
                     if let Err(e) = cache_manager.warm_cache().await {
                         error!("Cache warming failed: {}", e);
                     }
@@ -1012,7 +1024,7 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.partitioning_task = Some(tokio::spawn(async move {
                 let mut interval = interval(Duration::from_secs(1)); // Check partitioning every second
                 loop {
@@ -1052,9 +1064,10 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.coherency_task = Some(tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(coherency_config.sync_interval_seconds));
+                let mut interval =
+                    interval(Duration::from_secs(coherency_config.sync_interval_seconds));
                 loop {
                     interval.tick().await;
                     if let Err(e) = cache_manager.resolve_conflicts().await {
@@ -1092,7 +1105,7 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.prefetching_task = Some(tokio::spawn(async move {
                 let mut interval = interval(Duration::from_secs(1)); // Check prefetching every second
                 loop {
@@ -1132,9 +1145,11 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.analytics_task = Some(tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(analytics_config.analytics_interval_seconds));
+                let mut interval = interval(Duration::from_secs(
+                    analytics_config.analytics_interval_seconds,
+                ));
                 loop {
                     interval.tick().await;
                     if let Err(e) = cache_manager.export_analytics().await {
@@ -1172,9 +1187,11 @@ impl CacheManager {
                 analytics_task: None,
                 health_task: None,
             });
-            
+
             self.health_task = Some(tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(health_config.health_check_interval_seconds));
+                let mut interval = interval(Duration::from_secs(
+                    health_config.health_check_interval_seconds,
+                ));
                 loop {
                     interval.tick().await;
                     if let Err(e) = cache_manager.check_health().await {
@@ -1214,16 +1231,16 @@ impl CacheManager {
 
                 entry.touch();
                 self.update_stats_hit().await;
-                
+
                 // Decompress value if it's compressed
                 let decompressed_value = self.decompress_value(&entry.data).await?;
-                
+
                 // Update performance metrics
                 self.update_performance_metrics(start_time.elapsed()).await;
-                
+
                 // Warm cache on access
                 self.warm_cache_on_access(key).await?;
-                
+
                 return Ok(Some(decompressed_value));
             }
         }
@@ -1234,7 +1251,7 @@ impl CacheManager {
                 if let Ok(value) = self.get_from_redis(client, key).await {
                     // Decompress value if it's compressed
                     let decompressed_value = self.decompress_value(&value).await?;
-                    
+
                     // Store in memory cache for faster access
                     if self.config.memory_enabled {
                         self.set_in_memory(key, value).await;
@@ -1267,7 +1284,9 @@ impl CacheManager {
         // Validate value if enabled
         if self.config.validation.validate_on_write {
             if !self.validate_value(&processed_value).await? {
-                return Err(RhemaError::ValidationError("Value validation failed".to_string()));
+                return Err(RhemaError::ValidationError(
+                    "Value validation failed".to_string(),
+                ));
             }
         }
 
@@ -1432,7 +1451,7 @@ impl CacheManager {
         if self.memory_cache.len() > self.config.max_size {
             let mut entries: Vec<_> = self.memory_cache.iter().collect();
             entries.sort_by(|a, b| a.value().accessed_at.cmp(&b.value().accessed_at));
-            
+
             // Remove the oldest entries to get back under max_size
             let to_evict = self.memory_cache.len() - self.config.max_size;
             for entry in entries.iter().take(to_evict) {
@@ -1458,7 +1477,7 @@ impl CacheManager {
         if self.memory_cache.len() > self.config.max_size {
             let mut entries: Vec<_> = self.memory_cache.iter().collect();
             entries.sort_by(|a, b| a.value().access_count.cmp(&b.value().access_count));
-            
+
             // Remove the least frequently used entries to get back under max_size
             let to_evict = self.memory_cache.len() - self.config.max_size;
             for entry in entries.iter().take(to_evict) {
@@ -1484,7 +1503,7 @@ impl CacheManager {
         if self.memory_cache.len() > self.config.max_size {
             let mut entries: Vec<_> = self.memory_cache.iter().collect();
             entries.sort_by(|a, b| a.value().created_at.cmp(&b.value().created_at));
-            
+
             // Remove the oldest entries to get back under max_size
             let to_evict = self.memory_cache.len() - self.config.max_size;
             for entry in entries.iter().take(to_evict) {
@@ -1504,7 +1523,7 @@ impl CacheManager {
     /// Adaptive eviction
     async fn evict_adaptive(&self) -> RhemaResult<usize> {
         let hit_rate = self.hit_rate().await;
-        
+
         if hit_rate > 0.8 {
             // High hit rate, use TTL eviction
             self.evict_expired().await
@@ -1548,10 +1567,10 @@ impl CacheManager {
 
         // Analyze access patterns and prefetch related keys
         let access_patterns = self.access_patterns.read().await;
-        
+
         // Find keys that are frequently accessed together with the current key
         let related_keys = self.find_related_keys(key, &access_patterns).await;
-        
+
         for related_key in related_keys {
             if !self.memory_cache.contains_key(&related_key) {
                 // Add to prefetch queue
@@ -1563,16 +1582,20 @@ impl CacheManager {
     }
 
     /// Find keys that are frequently accessed together
-    async fn find_related_keys(&self, key: &str, access_patterns: &HashMap<String, u64>) -> Vec<String> {
+    async fn find_related_keys(
+        &self,
+        key: &str,
+        access_patterns: &HashMap<String, u64>,
+    ) -> Vec<String> {
         let mut related_keys = Vec::new();
-        
+
         // Simple heuristic: find keys with similar prefixes or patterns
         for (pattern, _) in access_patterns {
             if pattern != key && (pattern.starts_with(key) || key.starts_with(pattern)) {
                 related_keys.push(pattern.clone());
             }
         }
-        
+
         // Limit to top 5 related keys
         related_keys.truncate(5);
         related_keys
@@ -1594,7 +1617,10 @@ impl CacheManager {
         let hit_rate = self.hit_rate().await;
         if hit_rate < self.config.optimization.target_hit_rate {
             // Increase TTL for better hit rate
-            info!("Hit rate {} below target {}, adjusting TTL", hit_rate, self.config.optimization.target_hit_rate);
+            info!(
+                "Hit rate {} below target {}, adjusting TTL",
+                hit_rate, self.config.optimization.target_hit_rate
+            );
         }
 
         // Compress large entries if compression is enabled
@@ -1635,7 +1661,10 @@ impl CacheManager {
             }
         }
 
-        info!("Cache validation completed: {} valid, {} invalid entries", valid_entries, invalid_entries);
+        info!(
+            "Cache validation completed: {} valid, {} invalid entries",
+            valid_entries, invalid_entries
+        );
         Ok(invalid_entries == 0)
     }
 
@@ -1660,19 +1689,25 @@ impl CacheManager {
             // Check for duplicate keys
             if !seen_keys.insert(entry.key().clone()) {
                 report.duplicate_keys += 1;
-                report.issues.push(format!("Duplicate key found: {}", entry.key()));
+                report
+                    .issues
+                    .push(format!("Duplicate key found: {}", entry.key()));
             }
 
             // Check for expired entries
             if entry.value().is_expired() {
                 report.expired_entries += 1;
-                report.issues.push(format!("Expired entry found: {}", entry.key()));
+                report
+                    .issues
+                    .push(format!("Expired entry found: {}", entry.key()));
             }
 
             // Validate entry data
             if !self.validate_entry(entry.value()).await? {
                 report.corrupted_entries += 1;
-                report.issues.push(format!("Corrupted entry found: {}", entry.key()));
+                report
+                    .issues
+                    .push(format!("Corrupted entry found: {}", entry.key()));
             }
         }
 
@@ -1692,7 +1727,7 @@ impl CacheManager {
         for pattern in patterns {
             // Find keys that match the pattern
             let matching_keys = self.find_keys_matching_pattern(pattern).await;
-            
+
             for key in matching_keys {
                 if let Some(value) = self.warming_cache.read().await.get(&key) {
                     self.set(&key, value.clone()).await?;
@@ -1708,14 +1743,14 @@ impl CacheManager {
     /// Find keys matching a pattern
     async fn find_keys_matching_pattern(&self, pattern: &str) -> Vec<String> {
         let mut matching_keys = Vec::new();
-        
+
         // Simple pattern matching - can be enhanced with regex
         for entry in self.memory_cache.iter() {
             if entry.key().contains(pattern) || pattern.contains(entry.key()) {
                 matching_keys.push(entry.key().clone());
             }
         }
-        
+
         matching_keys
     }
 
@@ -1723,7 +1758,7 @@ impl CacheManager {
     pub async fn get_warming_stats(&self) -> WarmingStats {
         let warming_cache = self.warming_cache.read().await;
         let access_patterns = self.access_patterns.read().await;
-        
+
         WarmingStats {
             warming_cache_size: warming_cache.len(),
             access_patterns_count: access_patterns.len(),
@@ -1739,8 +1774,9 @@ impl CacheManager {
         let access_patterns = self.access_patterns.read().await;
         let mut patterns: Vec<_> = access_patterns.iter().collect();
         patterns.sort_by(|a, b| b.1.cmp(a.1));
-        
-        patterns.into_iter()
+
+        patterns
+            .into_iter()
             .take(10)
             .map(|(k, v)| (k.clone(), *v))
             .collect()
@@ -1804,10 +1840,7 @@ impl CacheManager {
         let cache_data: Vec<serde_json::Value> = serde_json::from_str(&json_data)?;
 
         for entry_data in cache_data {
-            if let (Some(key), Some(data)) = (
-                entry_data["key"].as_str(),
-                entry_data.get("data")
-            ) {
+            if let (Some(key), Some(data)) = (entry_data["key"].as_str(), entry_data.get("data")) {
                 let ttl = Duration::from_secs(entry_data["ttl"].as_u64().unwrap_or(3600));
                 let entry = CacheEntry::new(data.clone(), ttl);
                 self.memory_cache.insert(key.to_string(), entry);
@@ -1843,11 +1876,14 @@ impl CacheManager {
         use flate2::Compression;
         use std::io::Write;
 
-        let mut encoder = GzEncoder::new(Vec::new(), Compression::new(self.config.compression.compression_level as u32));
+        let mut encoder = GzEncoder::new(
+            Vec::new(),
+            Compression::new(self.config.compression.compression_level as u32),
+        );
         encoder.write_all(data.as_bytes())?;
         let compressed = encoder.finish()?;
         let compressed_size = compressed.len();
-        
+
         Ok(serde_json::json!({
             "compressed": true,
             "algorithm": "gzip",
@@ -1861,7 +1897,7 @@ impl CacheManager {
     async fn compress_lz4(&self, data: &str) -> RhemaResult<Value> {
         let compressed = lz4::block::compress(data.as_bytes(), None, true)?;
         let compressed_size = compressed.len();
-        
+
         Ok(serde_json::json!({
             "compressed": true,
             "algorithm": "lz4",
@@ -1873,9 +1909,12 @@ impl CacheManager {
 
     /// Compress using Zstd
     async fn compress_zstd(&self, data: &str) -> RhemaResult<Value> {
-        let compressed = zstd::bulk::compress(data.as_bytes(), self.config.compression.compression_level.into())?;
+        let compressed = zstd::bulk::compress(
+            data.as_bytes(),
+            self.config.compression.compression_level.into(),
+        )?;
         let compressed_size = compressed.len();
-        
+
         Ok(serde_json::json!({
             "compressed": true,
             "algorithm": "zstd",
@@ -1887,10 +1926,13 @@ impl CacheManager {
 
     /// Compress using Snappy
     async fn compress_snappy(&self, data: &str) -> RhemaResult<Value> {
-        let compressed = snap::raw::Encoder::new().compress_vec(data.as_bytes())
-            .map_err(|e| RhemaError::SerializationError(format!("Snappy compression failed: {}", e)))?;
+        let compressed = snap::raw::Encoder::new()
+            .compress_vec(data.as_bytes())
+            .map_err(|e| {
+                RhemaError::SerializationError(format!("Snappy compression failed: {}", e))
+            })?;
         let compressed_size = compressed.len();
-        
+
         Ok(serde_json::json!({
             "compressed": true,
             "algorithm": "snappy",
@@ -1908,23 +1950,38 @@ impl CacheManager {
                     value.get("algorithm").and_then(|a| a.as_str()),
                     value.get("data").and_then(|d| d.as_str()),
                 ) {
-                    let compressed_data = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, data)
-                        .map_err(|e| RhemaError::SerializationError(format!("Failed to decode base64: {}", e)))?;
-                    
+                    let compressed_data =
+                        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, data)
+                            .map_err(|e| {
+                                RhemaError::SerializationError(format!(
+                                    "Failed to decode base64: {}",
+                                    e
+                                ))
+                            })?;
+
                     let decompressed = match algorithm {
                         "gzip" => self.decompress_gzip(&compressed_data).await?,
                         "lz4" => self.decompress_lz4(&compressed_data).await?,
                         "zstd" => self.decompress_zstd(&compressed_data).await?,
                         "snappy" => self.decompress_snappy(&compressed_data).await?,
-                        _ => return Err(RhemaError::InvalidInput(format!("Unknown compression algorithm: {}", algorithm))),
+                        _ => {
+                            return Err(RhemaError::InvalidInput(format!(
+                                "Unknown compression algorithm: {}",
+                                algorithm
+                            )))
+                        }
                     };
-                    
-                    return serde_json::from_str(&decompressed)
-                        .map_err(|e| RhemaError::SerializationError(format!("Failed to deserialize decompressed data: {}", e)));
+
+                    return serde_json::from_str(&decompressed).map_err(|e| {
+                        RhemaError::SerializationError(format!(
+                            "Failed to deserialize decompressed data: {}",
+                            e
+                        ))
+                    });
                 }
             }
         }
-        
+
         Ok(value.clone())
     }
 
@@ -1942,23 +1999,35 @@ impl CacheManager {
     /// Decompress using LZ4
     async fn decompress_lz4(&self, data: &[u8]) -> RhemaResult<String> {
         let decompressed = lz4::block::decompress(data, None)?;
-        String::from_utf8(decompressed)
-            .map_err(|e| RhemaError::SerializationError(format!("Failed to decode LZ4 decompressed data: {}", e)))
+        String::from_utf8(decompressed).map_err(|e| {
+            RhemaError::SerializationError(format!("Failed to decode LZ4 decompressed data: {}", e))
+        })
     }
 
     /// Decompress using Zstd
     async fn decompress_zstd(&self, data: &[u8]) -> RhemaResult<String> {
         let decompressed = zstd::bulk::decompress(data, 0)?;
-        String::from_utf8(decompressed)
-            .map_err(|e| RhemaError::SerializationError(format!("Failed to decode Zstd decompressed data: {}", e)))
+        String::from_utf8(decompressed).map_err(|e| {
+            RhemaError::SerializationError(format!(
+                "Failed to decode Zstd decompressed data: {}",
+                e
+            ))
+        })
     }
 
     /// Decompress using Snappy
     async fn decompress_snappy(&self, data: &[u8]) -> RhemaResult<String> {
-        let decompressed = snap::raw::Decoder::new().decompress_vec(data)
-            .map_err(|e| RhemaError::SerializationError(format!("Snappy decompression failed: {}", e)))?;
-        String::from_utf8(decompressed)
-            .map_err(|e| RhemaError::SerializationError(format!("Failed to decode Snappy decompressed data: {}", e)))
+        let decompressed = snap::raw::Decoder::new()
+            .decompress_vec(data)
+            .map_err(|e| {
+                RhemaError::SerializationError(format!("Snappy decompression failed: {}", e))
+            })?;
+        String::from_utf8(decompressed).map_err(|e| {
+            RhemaError::SerializationError(format!(
+                "Failed to decode Snappy decompressed data: {}",
+                e
+            ))
+        })
     }
 
     /// Validate an entry
@@ -1988,9 +2057,12 @@ impl CacheManager {
 
         // Basic validation - check if it's a valid JSON value
         match value {
-            Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) | Value::Array(_) | Value::Object(_) => {
-                Ok(true)
-            }
+            Value::Null
+            | Value::Bool(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Array(_)
+            | Value::Object(_) => Ok(true),
         }
     }
 
@@ -2003,10 +2075,10 @@ impl CacheManager {
     /// Update performance metrics
     async fn update_performance_metrics(&self, response_time: Duration) {
         let mut metrics = self.performance_metrics.write().await;
-        
+
         // Update average response time (simplified)
         metrics.average_response_time_ms = response_time.as_millis() as f64;
-        
+
         // Update throughput (simplified)
         metrics.throughput_requests_per_second = 1.0 / (response_time.as_secs_f64() + 0.001);
     }
@@ -2090,7 +2162,7 @@ impl CacheManager {
         }
 
         let mut partitions = self.partitions.write().await;
-        
+
         // Initialize partitions if they don't exist
         for i in 0..self.config.partitioning.partition_count {
             if !partitions.contains_key(&i) {
@@ -2100,11 +2172,11 @@ impl CacheManager {
 
         // Simple rebalancing: move entries to their correct partitions
         let mut entries_to_move = Vec::new();
-        
+
         for entry in self.memory_cache.iter() {
             let key = entry.key();
             let partition = self.get_partition(key).await;
-            
+
             if let Some(partition_cache) = partitions.get(&partition) {
                 if !partition_cache.contains_key(key) {
                     entries_to_move.push((key.clone(), entry.value().clone()));
@@ -2136,7 +2208,7 @@ impl CacheManager {
         for entry in self.memory_cache.iter() {
             let key = entry.key();
             let cache_value = entry.value();
-            
+
             if let Some(coherent_value) = coherency_state.get(key) {
                 if coherent_value != &cache_value.data {
                     // Conflict detected, resolve based on strategy
@@ -2150,8 +2222,9 @@ impl CacheManager {
                         }
                         ConflictResolution::Merge => {
                             // For JSON values, attempt to merge
-                            if let (Value::Object(cache_obj), Value::Object(coherent_obj)) = 
-                                (&cache_value.data, coherent_value) {
+                            if let (Value::Object(cache_obj), Value::Object(coherent_obj)) =
+                                (&cache_value.data, coherent_value)
+                            {
                                 let mut merged = coherent_obj.clone();
                                 for (k, v) in cache_obj {
                                     merged.insert(k.clone(), v.clone());
@@ -2195,7 +2268,8 @@ impl CacheManager {
                 if !self.memory_cache.contains_key(&key) {
                     // Simulate prefetching by creating a placeholder entry
                     let placeholder = Value::String(format!("prefetched_{}", key));
-                    let entry = CacheEntry::new(placeholder, Duration::from_secs(self.config.ttl_seconds));
+                    let entry =
+                        CacheEntry::new(placeholder, Duration::from_secs(self.config.ttl_seconds));
                     self.memory_cache.insert(key, entry);
                     prefetched += 1;
                 }
@@ -2216,7 +2290,7 @@ impl CacheManager {
         }
 
         let mut prefetch_queue = self.prefetch_queue.write().await;
-        
+
         // Check if key is already in queue
         if !prefetch_queue.contains(&key) {
             prefetch_queue.push(key);
@@ -2245,7 +2319,7 @@ impl CacheManager {
             error_rate: 0.0, // Would need to track errors
             partition_count: partitions.len(),
             coherency_conflicts: 0, // Would need to track conflicts
-            prefetch_hits: 0, // Would need to track prefetch hits
+            prefetch_hits: 0,       // Would need to track prefetch hits
         };
 
         let mut analytics_data = self.analytics_data.write().await;
@@ -2277,20 +2351,23 @@ impl CacheManager {
 
     /// Export analytics as JSON
     async fn export_analytics_json(&self, analytics_data: &[AnalyticsRecord]) -> RhemaResult<()> {
-        let json = serde_json::to_string_pretty(analytics_data)
-            .map_err(|e| RhemaError::SerializationError(format!("Failed to serialize analytics: {}", e)))?;
-        
+        let json = serde_json::to_string_pretty(analytics_data).map_err(|e| {
+            RhemaError::SerializationError(format!("Failed to serialize analytics: {}", e))
+        })?;
+
         let analytics_dir = PathBuf::from(".rhema/analytics");
         if !analytics_dir.exists() {
-            std::fs::create_dir_all(&analytics_dir)
-                .map_err(|e| RhemaError::IoError(e))?;
+            std::fs::create_dir_all(&analytics_dir).map_err(|e| RhemaError::IoError(e))?;
         }
 
-        let filename = format!("cache_analytics_{}.json", 
-            chrono::Utc::now().format("%Y%m%d_%H%M%S"));
+        let filename = format!(
+            "cache_analytics_{}.json",
+            chrono::Utc::now().format("%Y%m%d_%H%M%S")
+        );
         let filepath = analytics_dir.join(filename);
-        
-        tokio::fs::write(&filepath, json).await
+
+        tokio::fs::write(&filepath, json)
+            .await
             .map_err(|e| RhemaError::IoError(e))?;
 
         Ok(())
@@ -2300,9 +2377,10 @@ impl CacheManager {
     async fn export_analytics_csv(&self, analytics_data: &[AnalyticsRecord]) -> RhemaResult<()> {
         let mut csv = String::new();
         csv.push_str("timestamp,hit_rate,memory_usage,response_time_ms,throughput_rps,error_rate,partition_count,coherency_conflicts,prefetch_hits\n");
-        
+
         for record in analytics_data {
-            csv.push_str(&format!("{},{},{},{},{},{},{},{},{}\n",
+            csv.push_str(&format!(
+                "{},{},{},{},{},{},{},{},{}\n",
                 record.timestamp,
                 record.hit_rate,
                 record.memory_usage,
@@ -2317,61 +2395,78 @@ impl CacheManager {
 
         let analytics_dir = PathBuf::from(".rhema/analytics");
         if !analytics_dir.exists() {
-            std::fs::create_dir_all(&analytics_dir)
-                .map_err(|e| RhemaError::IoError(e))?;
+            std::fs::create_dir_all(&analytics_dir).map_err(|e| RhemaError::IoError(e))?;
         }
 
-        let filename = format!("cache_analytics_{}.csv", 
-            chrono::Utc::now().format("%Y%m%d_%H%M%S"));
+        let filename = format!(
+            "cache_analytics_{}.csv",
+            chrono::Utc::now().format("%Y%m%d_%H%M%S")
+        );
         let filepath = analytics_dir.join(filename);
-        
-        tokio::fs::write(&filepath, csv).await
+
+        tokio::fs::write(&filepath, csv)
+            .await
             .map_err(|e| RhemaError::IoError(e))?;
 
         Ok(())
     }
 
     /// Export analytics as Prometheus metrics
-    async fn export_analytics_prometheus(&self, analytics_data: &[AnalyticsRecord]) -> RhemaResult<()> {
+    async fn export_analytics_prometheus(
+        &self,
+        analytics_data: &[AnalyticsRecord],
+    ) -> RhemaResult<()> {
         if analytics_data.is_empty() {
             return Ok(());
         }
 
         let latest = &analytics_data[analytics_data.len() - 1];
         let mut prometheus = String::new();
-        
+
         prometheus.push_str(&format!("# HELP cache_hit_rate Cache hit rate\n"));
         prometheus.push_str(&format!("# TYPE cache_hit_rate gauge\n"));
         prometheus.push_str(&format!("cache_hit_rate {}\n", latest.hit_rate));
-        
-        prometheus.push_str(&format!("# HELP cache_memory_usage Cache memory usage in bytes\n"));
+
+        prometheus.push_str(&format!(
+            "# HELP cache_memory_usage Cache memory usage in bytes\n"
+        ));
         prometheus.push_str(&format!("# TYPE cache_memory_usage gauge\n"));
         prometheus.push_str(&format!("cache_memory_usage {}\n", latest.memory_usage));
-        
-        prometheus.push_str(&format!("# HELP cache_response_time_ms Cache average response time in milliseconds\n"));
+
+        prometheus.push_str(&format!(
+            "# HELP cache_response_time_ms Cache average response time in milliseconds\n"
+        ));
         prometheus.push_str(&format!("# TYPE cache_response_time_ms gauge\n"));
-        prometheus.push_str(&format!("cache_response_time_ms {}\n", latest.response_time_ms));
+        prometheus.push_str(&format!(
+            "cache_response_time_ms {}\n",
+            latest.response_time_ms
+        ));
 
         let analytics_dir = PathBuf::from(".rhema/analytics");
         if !analytics_dir.exists() {
-            std::fs::create_dir_all(&analytics_dir)
-                .map_err(|e| RhemaError::IoError(e))?;
+            std::fs::create_dir_all(&analytics_dir).map_err(|e| RhemaError::IoError(e))?;
         }
 
-        let filename = format!("cache_metrics_{}.prom", 
-            chrono::Utc::now().format("%Y%m%d_%H%M%S"));
+        let filename = format!(
+            "cache_metrics_{}.prom",
+            chrono::Utc::now().format("%Y%m%d_%H%M%S")
+        );
         let filepath = analytics_dir.join(filename);
-        
-        tokio::fs::write(&filepath, prometheus).await
+
+        tokio::fs::write(&filepath, prometheus)
+            .await
             .map_err(|e| RhemaError::IoError(e))?;
 
         Ok(())
     }
 
     /// Export analytics as InfluxDB line protocol
-    async fn export_analytics_influxdb(&self, analytics_data: &[AnalyticsRecord]) -> RhemaResult<()> {
+    async fn export_analytics_influxdb(
+        &self,
+        analytics_data: &[AnalyticsRecord],
+    ) -> RhemaResult<()> {
         let mut influxdb = String::new();
-        
+
         for record in analytics_data {
             influxdb.push_str(&format!("cache_metrics,host=rhema hit_rate={},memory_usage={},response_time_ms={},throughput_rps={},error_rate={},partition_count={},coherency_conflicts={},prefetch_hits={} {}\n",
                 record.hit_rate,
@@ -2388,15 +2483,17 @@ impl CacheManager {
 
         let analytics_dir = PathBuf::from(".rhema/analytics");
         if !analytics_dir.exists() {
-            std::fs::create_dir_all(&analytics_dir)
-                .map_err(|e| RhemaError::IoError(e))?;
+            std::fs::create_dir_all(&analytics_dir).map_err(|e| RhemaError::IoError(e))?;
         }
 
-        let filename = format!("cache_analytics_{}.influx", 
-            chrono::Utc::now().format("%Y%m%d_%H%M%S"));
+        let filename = format!(
+            "cache_analytics_{}.influx",
+            chrono::Utc::now().format("%Y%m%d_%H%M%S")
+        );
         let filepath = analytics_dir.join(filename);
-        
-        tokio::fs::write(&filepath, influxdb).await
+
+        tokio::fs::write(&filepath, influxdb)
+            .await
             .map_err(|e| RhemaError::IoError(e))?;
 
         Ok(())
@@ -2418,8 +2515,10 @@ impl CacheManager {
             issues.push(HealthIssue {
                 issue_type: "low_hit_rate".to_string(),
                 severity: AlertSeverity::Warning,
-                message: format!("Cache hit rate {} is below threshold {}", 
-                    stats.hit_rate, self.config.health.health_thresholds.min_hit_rate),
+                message: format!(
+                    "Cache hit rate {} is below threshold {}",
+                    stats.hit_rate, self.config.health.health_thresholds.min_hit_rate
+                ),
                 timestamp: chrono::Utc::now(),
             });
         }
@@ -2435,21 +2534,27 @@ impl CacheManager {
             issues.push(HealthIssue {
                 issue_type: "high_memory_usage".to_string(),
                 severity: AlertSeverity::Warning,
-                message: format!("Cache memory usage {}% is above threshold {}%", 
-                    memory_usage_ratio * 100.0, 
-                    self.config.health.health_thresholds.max_memory_usage * 100.0),
+                message: format!(
+                    "Cache memory usage {}% is above threshold {}%",
+                    memory_usage_ratio * 100.0,
+                    self.config.health.health_thresholds.max_memory_usage * 100.0
+                ),
                 timestamp: chrono::Utc::now(),
             });
         }
 
         // Check response time
-        if performance_metrics.average_response_time_ms > self.config.health.health_thresholds.max_response_time_ms {
+        if performance_metrics.average_response_time_ms
+            > self.config.health.health_thresholds.max_response_time_ms
+        {
             issues.push(HealthIssue {
                 issue_type: "high_response_time".to_string(),
                 severity: AlertSeverity::Warning,
-                message: format!("Cache response time {}ms is above threshold {}ms", 
+                message: format!(
+                    "Cache response time {}ms is above threshold {}ms",
                     performance_metrics.average_response_time_ms,
-                    self.config.health.health_thresholds.max_response_time_ms),
+                    self.config.health.health_thresholds.max_response_time_ms
+                ),
                 timestamp: chrono::Utc::now(),
             });
         }
@@ -2471,18 +2576,18 @@ impl CacheManager {
     /// Perform automatic recovery
     async fn perform_auto_recovery(&self) -> RhemaResult<()> {
         info!("Performing automatic cache recovery");
-        
+
         // Evict expired entries
         self.evict_expired().await?;
-        
+
         // Optimize cache
         self.optimize_cache().await?;
-        
+
         // Rebalance partitions if enabled
         if self.config.partitioning.enabled {
             self.rebalance_partitions().await?;
         }
-        
+
         // Resolve conflicts if enabled
         if self.config.coherency.enabled {
             self.resolve_conflicts().await?;
@@ -2506,11 +2611,11 @@ impl CacheManager {
     pub async fn get_partition_info(&self) -> HashMap<usize, usize> {
         let partitions = self.partitions.read().await;
         let mut partition_info = HashMap::new();
-        
+
         for (partition_id, partition_cache) in partitions.iter() {
             partition_info.insert(*partition_id, partition_cache.len());
         }
-        
+
         partition_info
     }
 
@@ -2758,7 +2863,7 @@ mod tests {
     async fn test_cache_expiration() -> RhemaResult<()> {
         let mut config = CacheConfig::default();
         config.ttl_seconds = 1; // 1 second TTL
-        
+
         let cache_manager = CacheManager::new(&config).await?;
 
         let key = "expire_key";
@@ -2787,7 +2892,7 @@ mod tests {
         config.compression.enabled = true;
         config.compression.algorithm = CompressionAlgorithm::Gzip;
         config.compression.min_size_bytes = 10; // Small threshold for testing
-        
+
         let cache_manager = CacheManager::new(&config).await?;
 
         let key = "compress_key";
@@ -2813,7 +2918,7 @@ mod tests {
     async fn test_cache_eviction_policies() -> RhemaResult<()> {
         let mut config = CacheConfig::default();
         config.max_size = 5; // Small size to trigger eviction
-        
+
         // Test LRU eviction
         config.eviction_policy = EvictionPolicy::LRU;
         let cache_manager = CacheManager::new(&config).await?;
@@ -2840,29 +2945,45 @@ mod tests {
         let mut config = CacheConfig::default();
         config.warming.enabled = true;
         config.warming.warm_on_access = true;
-        
+
         let cache_manager = CacheManager::new(&config).await?;
 
         // Add some data to warming cache
         let warming_cache = cache_manager.warming_cache.clone();
-        warming_cache.write().await.insert("warm_key1".to_string(), serde_json::json!({"data": "warm1"}));
-        warming_cache.write().await.insert("warm_key2".to_string(), serde_json::json!({"data": "warm2"}));
+        warming_cache.write().await.insert(
+            "warm_key1".to_string(),
+            serde_json::json!({"data": "warm1"}),
+        );
+        warming_cache.write().await.insert(
+            "warm_key2".to_string(),
+            serde_json::json!({"data": "warm2"}),
+        );
 
         // Add some access patterns
         let access_patterns = cache_manager.access_patterns.clone();
-        access_patterns.write().await.insert("pattern1".to_string(), 5);
-        access_patterns.write().await.insert("pattern2".to_string(), 3);
+        access_patterns
+            .write()
+            .await
+            .insert("pattern1".to_string(), 5);
+        access_patterns
+            .write()
+            .await
+            .insert("pattern2".to_string(), 3);
 
         // Test warming with patterns - first add some keys to memory cache
-        cache_manager.set("warm_key1", serde_json::json!({"data": "warm1"})).await?;
-        cache_manager.set("warm_key2", serde_json::json!({"data": "warm2"})).await?;
+        cache_manager
+            .set("warm_key1", serde_json::json!({"data": "warm1"}))
+            .await?;
+        cache_manager
+            .set("warm_key2", serde_json::json!({"data": "warm2"}))
+            .await?;
 
         // Test warming on access
         cache_manager.warm_cache_on_access("warm_key1").await?;
 
         // Get warming stats
         let warming_stats = cache_manager.get_warming_stats().await;
-        
+
         // Verify warming is enabled
         assert!(warming_stats.warming_enabled);
         assert!(warming_stats.warm_on_access);
@@ -2878,7 +2999,7 @@ mod tests {
         config.validation.enabled = true;
         config.validation.validate_on_read = true;
         config.validation.validate_on_write = true;
-        
+
         let cache_manager = CacheManager::new(&config).await?;
 
         // Add some valid data

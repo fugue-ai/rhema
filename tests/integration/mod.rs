@@ -10,4 +10,4 @@ pub mod pattern_enhancement_tests;
 pub mod pattern_execution_tests;
 pub mod pattern_integration_tests;
 pub mod rag_cache_integration_test;
-pub mod search_integration_tests; 
+pub mod search_integration_tests;

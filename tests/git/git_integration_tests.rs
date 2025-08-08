@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-use rhema_git::{
-    git_hooks::HookType,
-    git_basic::{
-        AdvancedGitIntegration, BranchManager, BranchContext, ContextEvolution,
-        ContextBlame, AutomationTask, MergeResult, PullRequestAnalysis, WorkflowType,
-    },
-    git::security::Operation,
-};
-use rhema_core::ValidationResult;
-use git2::{Repository, BranchType, Signature};
-use tempfile::TempDir;
-use std::path::PathBuf;
-use std::fs;
-use std::collections::HashMap;
-use rhema_core::RhemaResult;
+use git2::{BranchType, Repository, Signature};
 use rhema_cli::Rhema;
+use rhema_core::RhemaResult;
+use rhema_core::ValidationResult;
+use rhema_git::{
+    git::security::Operation,
+    git_basic::{
+        AdvancedGitIntegration, AutomationTask, BranchContext, BranchManager, ContextBlame,
+        ContextEvolution, MergeResult, PullRequestAnalysis, WorkflowType,
+    },
+    git_hooks::HookType,
+};
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use tempfile::TempDir;
 
 /// Test fixture for Git integration tests
 struct GitIntegrationTestFixture {
@@ -227,11 +227,10 @@ fn test_context_history_tracking() -> RhemaResult<()> {
     assert!(!blame.entries.is_empty());
 
     // Test context version creation
-    let context_version = fixture.git_integration.create_context_version(
-        "1.0.0",
-        "patch",
-        "Test version",
-    )?;
+    let context_version =
+        fixture
+            .git_integration
+            .create_context_version("1.0.0", "patch", "Test version")?;
     assert_eq!(context_version.version, "1.0.0");
 
     Ok(())
@@ -354,9 +353,7 @@ fn test_context_conflict_detection() -> RhemaResult<()> {
     fixture.create_context_file("conflict", "Modified content in feature branch")?;
 
     // Test conflict detection
-    let conflicts = fixture
-        .git_integration
-        .detect_conflicts()?;
+    let conflicts = fixture.git_integration.detect_conflicts()?;
     assert!(!conflicts.is_empty());
 
     Ok(())
@@ -402,17 +399,15 @@ fn test_context_versioning() -> RhemaResult<()> {
     fixture.create_context_file("version-test", "Version test context")?;
 
     // Create multiple versions
-    let version1 = fixture.git_integration.create_context_version(
-        "1.0.0",
-        "major",
-        "Major version",
-    )?;
+    let version1 =
+        fixture
+            .git_integration
+            .create_context_version("1.0.0", "major", "Major version")?;
 
-    let version2 = fixture.git_integration.create_context_version(
-        "1.1.0",
-        "minor",
-        "Minor version",
-    )?;
+    let version2 =
+        fixture
+            .git_integration
+            .create_context_version("1.1.0", "minor", "Minor version")?;
 
     assert_eq!(version1.version, "1.0.0");
     assert_eq!(version2.version, "1.1.0");
@@ -428,7 +423,9 @@ fn test_advanced_hook_configuration() -> RhemaResult<()> {
     let mut fixture = GitIntegrationTestFixture::new()?;
 
     // Test advanced hook execution
-    let hook_result = fixture.git_integration.execute_hook(rhema_git::git_hooks::HookType::PreCommit)?;
+    let hook_result = fixture
+        .git_integration
+        .execute_hook(rhema_git::git_hooks::HookType::PreCommit)?;
     assert!(hook_result.success);
 
     Ok(())
@@ -443,10 +440,7 @@ fn test_workflow_integration_configuration() -> RhemaResult<()> {
 
     // Test workflow status
     let workflow_status = fixture.git_integration.get_workflow_status()?;
-    assert_eq!(
-        format!("{:?}", workflow_status.workflow_type),
-        "GitFlow"
-    );
+    assert_eq!(format!("{:?}", workflow_status.workflow_type), "GitFlow");
 
     Ok(())
 }
@@ -579,18 +573,16 @@ fn test_security_validation() -> RhemaResult<()> {
     assert!(!scan_result.issues.is_empty());
 
     // Test access validation
-    let read_access = fixture.git_integration.validate_access(
-        "user1",
-        &Operation::Read,
-        "secure.yaml",
-    )?;
+    let read_access =
+        fixture
+            .git_integration
+            .validate_access("user1", &Operation::Read, "secure.yaml")?;
     assert!(read_access);
 
-    let write_access = fixture.git_integration.validate_access(
-        "user2",
-        &Operation::Write,
-        "insecure.yaml",
-    )?;
+    let write_access =
+        fixture
+            .git_integration
+            .validate_access("user2", &Operation::Write, "insecure.yaml")?;
     assert!(write_access);
 
     Ok(())

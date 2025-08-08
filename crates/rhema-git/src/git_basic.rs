@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
+use git2::{BranchType, MergeOptions, Repository, Signature};
 use rhema_core::{RhemaError, RhemaResult};
-use std::path::{Path, PathBuf};
-use git2::{Repository, BranchType, MergeOptions, Signature};
 use std::collections::HashMap;
-
+use std::path::{Path, PathBuf};
 
 /// Find the Git repository root from the current directory
 pub fn find_repo_root() -> Result<PathBuf, RhemaError> {
@@ -33,31 +32,31 @@ pub fn find_repo_root_from(path: &Path) -> Result<PathBuf, RhemaError> {
             return Ok(current);
         }
         if !current.pop() {
-            return Err(RhemaError::ConfigError("No Git repository found".to_string()));
+            return Err(RhemaError::ConfigError(
+                "No Git repository found".to_string(),
+            ));
         }
     }
 }
 
 /// Get a Git repository instance
 pub fn get_repo(path: &Path) -> Result<Repository, RhemaError> {
-    Repository::open(path).map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to open Git repository: {}", e))
-    })
+    Repository::open(path)
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to open Git repository: {}", e)))
 }
 
 /// Check if a file is tracked by Git
 pub fn is_tracked(repo: &Repository, path: &Path) -> Result<bool, RhemaError> {
-    let status = repo.status_file(path).map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to get file status: {}", e))
-    })?;
+    let status = repo
+        .status_file(path)
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to get file status: {}", e)))?;
     Ok(!status.is_empty())
 }
 
 /// Get file status
 pub fn get_file_status(repo: &Repository, path: &Path) -> Result<git2::Status, RhemaError> {
-    repo.status_file(path).map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to get file status: {}", e))
-    })
+    repo.status_file(path)
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to get file status: {}", e)))
 }
 
 /// Get changed files in the repository
@@ -65,43 +64,44 @@ pub fn get_changed_files(repo: &Repository) -> Result<Vec<PathBuf>, RhemaError> 
     let mut options = git2::StatusOptions::new();
     options.include_untracked(true);
     options.include_ignored(false);
-    
-    let statuses = repo.statuses(Some(&mut options))
+
+    let statuses = repo
+        .statuses(Some(&mut options))
         .map_err(|e| RhemaError::ConfigError(format!("Failed to get statuses: {}", e)))?;
-    
+
     let mut changed_files = Vec::new();
     for entry in statuses.iter() {
         if let Some(path) = entry.path() {
             changed_files.push(PathBuf::from(path));
         }
     }
-    
+
     Ok(changed_files)
 }
 
 /// Get the current branch name
 pub fn get_current_branch(repo: &Repository) -> Result<String, RhemaError> {
-    let head = repo.head().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to get HEAD: {}", e))
-    })?;
-    
+    let head = repo
+        .head()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to get HEAD: {}", e)))?;
+
     let branch_name = head.shorthand().ok_or_else(|| {
         RhemaError::ConfigError("Failed to get branch name from HEAD".to_string())
     })?;
-    
+
     Ok(branch_name.to_string())
 }
 
 /// Get the latest commit hash
 pub fn get_latest_commit(repo: &Repository) -> Result<String, RhemaError> {
-    let head = repo.head().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to get HEAD: {}", e))
-    })?;
-    
-    let commit = head.peel_to_commit().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to peel to commit: {}", e))
-    })?;
-    
+    let head = repo
+        .head()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to get HEAD: {}", e)))?;
+
+    let commit = head
+        .peel_to_commit()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to peel to commit: {}", e)))?;
+
     Ok(commit.id().to_string())
 }
 
@@ -113,18 +113,18 @@ pub fn is_working_directory_clean(repo: &Repository) -> Result<bool, RhemaError>
 
 /// Stage a file for commit
 pub fn stage_file(repo: &Repository, path: &Path) -> Result<(), RhemaError> {
-    let mut index = repo.index().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to get index: {}", e))
-    })?;
-    
-    index.add_path(path).map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to add file to index: {}", e))
-    })?;
-    
-    index.write().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to write index: {}", e))
-    })?;
-    
+    let mut index = repo
+        .index()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to get index: {}", e)))?;
+
+    index
+        .add_path(path)
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to add file to index: {}", e)))?;
+
+    index
+        .write()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to write index: {}", e)))?;
+
     Ok(())
 }
 
@@ -132,30 +132,37 @@ pub fn stage_file(repo: &Repository, path: &Path) -> Result<(), RhemaError> {
 pub fn commit_changes(repo: &Repository, message: &str) -> Result<(), RhemaError> {
     let signature = Signature::now("Rhema Git", "rhema@example.com")
         .map_err(|e| RhemaError::ConfigError(format!("Failed to create signature: {}", e)))?;
-    
-    let mut index = repo.index().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to get index: {}", e))
-    })?;
-    
-    let tree_id = index.write_tree().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to write tree: {}", e))
-    })?;
-    
-    let tree = repo.find_tree(tree_id).map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to find tree: {}", e))
-    })?;
-    
-    let head = repo.head().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to get HEAD: {}", e))
-    })?;
-    
-    let parent_commit = head.peel_to_commit().map_err(|e| {
-        RhemaError::ConfigError(format!("Failed to peel to commit: {}", e))
-    })?;
-    
-    repo.commit(Some("HEAD"), &signature, &signature, message, &tree, &[&parent_commit])
-        .map_err(|e| RhemaError::ConfigError(format!("Failed to commit: {}", e)))?;
-    
+
+    let mut index = repo
+        .index()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to get index: {}", e)))?;
+
+    let tree_id = index
+        .write_tree()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to write tree: {}", e)))?;
+
+    let tree = repo
+        .find_tree(tree_id)
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to find tree: {}", e)))?;
+
+    let head = repo
+        .head()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to get HEAD: {}", e)))?;
+
+    let parent_commit = head
+        .peel_to_commit()
+        .map_err(|e| RhemaError::ConfigError(format!("Failed to peel to commit: {}", e)))?;
+
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        message,
+        &tree,
+        &[&parent_commit],
+    )
+    .map_err(|e| RhemaError::ConfigError(format!("Failed to commit: {}", e)))?;
+
     Ok(())
 }
 
@@ -460,10 +467,14 @@ pub struct AdvancedGitIntegration {
 impl AdvancedGitIntegration {
     /// Create a new advanced Git integration instance
     pub fn new(repo: Repository) -> RhemaResult<Self> {
-        let repo_path = repo.path().parent().unwrap_or_else(|| Path::new("")).to_path_buf();
+        let repo_path = repo
+            .path()
+            .parent()
+            .unwrap_or_else(|| Path::new(""))
+            .to_path_buf();
         let hooks_manager = crate::git_hooks::GitHooksManager::new(&repo_path).ok();
-        
-        Ok(Self { 
+
+        Ok(Self {
             repo,
             hooks_manager,
         })
@@ -472,13 +483,14 @@ impl AdvancedGitIntegration {
     /// Detect conflicts in the repository
     pub fn detect_conflicts(&self) -> RhemaResult<Vec<ConflictInfo>> {
         let mut conflicts = Vec::new();
-        
+
         // Check for merge conflicts by looking at the repository state
         // For now, we'll use a simplified approach
-        let statuses = self.repo.statuses(None).map_err(|e| {
-            RhemaError::ConfigError(format!("Failed to get statuses: {}", e))
-        })?;
-        
+        let statuses = self
+            .repo
+            .statuses(None)
+            .map_err(|e| RhemaError::ConfigError(format!("Failed to get statuses: {}", e)))?;
+
         for entry in statuses.iter() {
             if let Some(path) = entry.path() {
                 let status = entry.status();
@@ -492,28 +504,35 @@ impl AdvancedGitIntegration {
                 }
             }
         }
-        
+
         Ok(conflicts)
     }
 
     /// Resolve conflicts automatically
-    pub fn resolve_conflicts(&mut self, strategy: ConflictResolutionStrategy) -> RhemaResult<ConflictResolutionResult> {
+    pub fn resolve_conflicts(
+        &mut self,
+        strategy: ConflictResolutionStrategy,
+    ) -> RhemaResult<ConflictResolutionResult> {
         let conflicts = self.detect_conflicts()?;
         let mut resolved_conflicts = Vec::new();
         let mut unresolved_conflicts = Vec::new();
         let mut messages = Vec::new();
-        
+
         match strategy {
             ConflictResolutionStrategy::Auto(auto_strategy) => {
                 for conflict in conflicts {
                     match self.resolve_single_conflict(&conflict, &auto_strategy) {
                         Ok(_) => {
                             resolved_conflicts.push(conflict.file_path.clone());
-                            messages.push(format!("Resolved conflict in {}", conflict.file_path.display()));
+                            messages.push(format!(
+                                "Resolved conflict in {}",
+                                conflict.file_path.display()
+                            ));
                         }
                         Err(e) => {
                             let mut unresolved = conflict.clone();
-                            unresolved.resolution_strategy = Some(ConflictResolutionStrategy::Manual);
+                            unresolved.resolution_strategy =
+                                Some(ConflictResolutionStrategy::Manual);
                             unresolved.details = format!("Auto-resolution failed: {}", e);
                             unresolved_conflicts.push(unresolved);
                         }
@@ -535,24 +554,25 @@ impl AdvancedGitIntegration {
                 });
             }
         }
-        
+
         // Stage resolved conflicts
         if !resolved_conflicts.is_empty() {
-            let mut index = self.repo.index().map_err(|e| {
-                RhemaError::ConfigError(format!("Failed to get index: {}", e))
-            })?;
-            
+            let mut index = self
+                .repo
+                .index()
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to get index: {}", e)))?;
+
             for path in &resolved_conflicts {
                 index.add_path(path).map_err(|e| {
                     RhemaError::ConfigError(format!("Failed to add resolved file: {}", e))
                 })?;
             }
-            
-            index.write().map_err(|e| {
-                RhemaError::ConfigError(format!("Failed to write index: {}", e))
-            })?;
+
+            index
+                .write()
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to write index: {}", e)))?;
         }
-        
+
         Ok(ConflictResolutionResult {
             success: unresolved_conflicts.is_empty(),
             resolved_conflicts,
@@ -562,26 +582,30 @@ impl AdvancedGitIntegration {
     }
 
     /// Resolve a single conflict
-    fn resolve_single_conflict(&self, conflict: &ConflictInfo, strategy: &AutoResolutionStrategy) -> RhemaResult<()> {
+    fn resolve_single_conflict(
+        &self,
+        conflict: &ConflictInfo,
+        strategy: &AutoResolutionStrategy,
+    ) -> RhemaResult<()> {
         let file_path = &conflict.file_path;
-        
+
         // Read the conflicted file content
         let content = std::fs::read_to_string(file_path).map_err(|e| {
             RhemaError::ConfigError(format!("Failed to read conflicted file: {}", e))
         })?;
-        
+
         let resolved_content = match strategy {
             AutoResolutionStrategy::Current => self.resolve_with_current_version(&content)?,
             AutoResolutionStrategy::Incoming => self.resolve_with_incoming_version(&content)?,
             AutoResolutionStrategy::Base => self.resolve_with_base_version(&content)?,
             AutoResolutionStrategy::Merge => self.resolve_with_merge_version(&content)?,
         };
-        
+
         // Write the resolved content back
         std::fs::write(file_path, resolved_content).map_err(|e| {
             RhemaError::ConfigError(format!("Failed to write resolved file: {}", e))
         })?;
-        
+
         Ok(())
     }
 
@@ -591,7 +615,7 @@ impl AdvancedGitIntegration {
         let mut resolved_lines = Vec::new();
         let mut in_conflict = false;
         let mut in_current = false;
-        
+
         for line in lines {
             if line.starts_with("<<<<<<<") {
                 in_conflict = true;
@@ -608,7 +632,7 @@ impl AdvancedGitIntegration {
                 resolved_lines.push(line);
             }
         }
-        
+
         Ok(resolved_lines.join("\n"))
     }
 
@@ -618,7 +642,7 @@ impl AdvancedGitIntegration {
         let mut resolved_lines = Vec::new();
         let mut in_conflict = false;
         let mut in_incoming = false;
-        
+
         for line in lines {
             if line.starts_with("<<<<<<<") {
                 in_conflict = true;
@@ -634,7 +658,7 @@ impl AdvancedGitIntegration {
                 resolved_lines.push(line);
             }
         }
-        
+
         Ok(resolved_lines.join("\n"))
     }
 
@@ -643,15 +667,18 @@ impl AdvancedGitIntegration {
         let lines: Vec<&str> = content.lines().collect();
         let mut resolved_lines = Vec::new();
         let mut in_conflict = false;
-        
+
         for line in lines {
-            if line.starts_with("<<<<<<<") || line.starts_with("=======") || line.starts_with(">>>>>>>") {
+            if line.starts_with("<<<<<<<")
+                || line.starts_with("=======")
+                || line.starts_with(">>>>>>>")
+            {
                 in_conflict = !in_conflict;
             } else if !in_conflict {
                 resolved_lines.push(line);
             }
         }
-        
+
         Ok(resolved_lines.join("\n"))
     }
 
@@ -662,7 +689,7 @@ impl AdvancedGitIntegration {
         let mut in_conflict = false;
         let mut current_lines = Vec::new();
         let mut incoming_lines = Vec::new();
-        
+
         for line in lines {
             if line.starts_with("<<<<<<<") {
                 in_conflict = true;
@@ -685,54 +712,70 @@ impl AdvancedGitIntegration {
                 resolved_lines.push(line);
             }
         }
-        
+
         Ok(resolved_lines.join("\n"))
     }
 
     /// Abort the current merge
     fn abort_merge(&self) -> RhemaResult<()> {
         // Reset the repository to abort the merge
-        let head = self.repo.head().map_err(|e| {
-            RhemaError::ConfigError(format!("Failed to get HEAD: {}", e))
-        })?;
-        
-        let commit = head.peel_to_commit().map_err(|e| {
-            RhemaError::ConfigError(format!("Failed to peel to commit: {}", e))
-        })?;
-        
-        self.repo.reset(&commit.as_object(), git2::ResetType::Hard, None)
+        let head = self
+            .repo
+            .head()
+            .map_err(|e| RhemaError::ConfigError(format!("Failed to get HEAD: {}", e)))?;
+
+        let commit = head
+            .peel_to_commit()
+            .map_err(|e| RhemaError::ConfigError(format!("Failed to peel to commit: {}", e)))?;
+
+        self.repo
+            .reset(&commit.as_object(), git2::ResetType::Hard, None)
             .map_err(|e| RhemaError::ConfigError(format!("Failed to abort merge: {}", e)))?;
-        
+
         Ok(())
     }
 
     /// Create a feature branch
     pub fn create_feature_branch(&mut self, name: &str, base: &str) -> RhemaResult<FeatureBranch> {
         let branch_name = format!("feature/{}", name);
-        
+
         // Get the base branch reference
-        let base_ref = self.repo.find_branch(base, BranchType::Local)
-            .map_err(|e| RhemaError::ConfigError(format!("Base branch '{}' not found: {}", base, e)))?;
-        
-        let base_commit = base_ref.get().peel_to_commit()
+        let base_ref = self
+            .repo
+            .find_branch(base, BranchType::Local)
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Base branch '{}' not found: {}", base, e))
+            })?;
+
+        let base_commit = base_ref
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get base commit: {}", e)))?;
-        
+
         // Create the new branch
-        let branch_ref = self.repo.branch(&branch_name, &base_commit, false)
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to create branch '{}': {}", branch_name, e)))?;
-        
+        let branch_ref = self
+            .repo
+            .branch(&branch_name, &base_commit, false)
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to create branch '{}': {}", branch_name, e))
+            })?;
+
         // Checkout the new branch
-        let branch_commit = branch_ref.get().peel_to_commit()
+        let branch_commit = branch_ref
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get branch commit: {}", e)))?;
-        
+
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        self.repo.checkout_tree(&branch_commit.as_object(), Some(&mut checkout_options))
+        self.repo
+            .checkout_tree(&branch_commit.as_object(), Some(&mut checkout_options))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to checkout branch: {}", e)))?;
-        
-        self.repo.set_head(&format!("refs/heads/{}", branch_name))
+
+        self.repo
+            .set_head(&format!("refs/heads/{}", branch_name))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD: {}", e)))?;
-        
+
         Ok(FeatureBranch {
             name: branch_name,
             base_branch: base.to_string(),
@@ -747,66 +790,109 @@ impl AdvancedGitIntegration {
         let mut messages = Vec::new();
         let mut conflicts = Vec::new();
         let conflict_resolution = None;
-        
+
         // Get the feature branch and commit
         let feature_commit = {
-            let feature_branch = self.repo.find_branch(&branch_name, BranchType::Local)
-                .map_err(|e| RhemaError::ConfigError(format!("Feature branch '{}' not found: {}", branch_name, e)))?;
-            
-            feature_branch.get().peel_to_commit()
-                .map_err(|e| RhemaError::ConfigError(format!("Failed to get feature commit: {}", e)))?
+            let feature_branch = self
+                .repo
+                .find_branch(&branch_name, BranchType::Local)
+                .map_err(|e| {
+                    RhemaError::ConfigError(format!(
+                        "Feature branch '{}' not found: {}",
+                        branch_name, e
+                    ))
+                })?;
+
+            feature_branch.get().peel_to_commit().map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to get feature commit: {}", e))
+            })?
         };
-        
+
         // Get the develop branch
-        let develop_branch = self.repo.find_branch("develop", BranchType::Local)
+        let develop_branch = self
+            .repo
+            .find_branch("develop", BranchType::Local)
             .map_err(|e| RhemaError::ConfigError(format!("Develop branch not found: {}", e)))?;
-        
-        let develop_commit = develop_branch.get().peel_to_commit()
+
+        let develop_commit = develop_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get develop commit: {}", e)))?;
-        
+
         // Checkout develop branch
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        self.repo.checkout_tree(&develop_commit.as_object(), Some(&mut checkout_options))
+        self.repo
+            .checkout_tree(&develop_commit.as_object(), Some(&mut checkout_options))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to checkout develop: {}", e)))?;
-        
-        self.repo.set_head("refs/heads/develop")
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD to develop: {}", e)))?;
-        
+
+        self.repo.set_head("refs/heads/develop").map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to set HEAD to develop: {}", e))
+        })?;
+
         // Merge the feature branch
         let mut merge_options = MergeOptions::new();
         merge_options.fail_on_conflict(true); // Fail on conflicts for now
-        
-        let annotated_commit = self.repo.find_annotated_commit(feature_commit.id())
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to create annotated commit: {}", e)))?;
-        
-        match self.repo.merge(&[&annotated_commit], Some(&mut merge_options), None) {
+
+        let annotated_commit = self
+            .repo
+            .find_annotated_commit(feature_commit.id())
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to create annotated commit: {}", e))
+            })?;
+
+        match self
+            .repo
+            .merge(&[&annotated_commit], Some(&mut merge_options), None)
+        {
             Ok(_) => {
                 messages.push("Feature branch merged successfully".to_string());
-                
+
                 // Create merge commit
-                let signature = Signature::now("Rhema Git", "rhema@example.com")
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to create signature: {}", e)))?;
-                
-                let tree = self.repo.index()
+                let signature = Signature::now("Rhema Git", "rhema@example.com").map_err(|e| {
+                    RhemaError::ConfigError(format!("Failed to create signature: {}", e))
+                })?;
+
+                let tree = self
+                    .repo
+                    .index()
                     .map_err(|e| RhemaError::ConfigError(format!("Failed to get index: {}", e)))?
                     .write_tree()
                     .map_err(|e| RhemaError::ConfigError(format!("Failed to write tree: {}", e)))?;
-                
-                let tree_obj = self.repo.find_tree(tree)
+
+                let tree_obj = self
+                    .repo
+                    .find_tree(tree)
                     .map_err(|e| RhemaError::ConfigError(format!("Failed to find tree: {}", e)))?;
-                
-                self.repo.commit(Some("refs/heads/develop"), &signature, &signature, 
-                    &format!("Merge feature branch '{}'", name), &tree_obj, &[&develop_commit, &feature_commit])
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to create merge commit: {}", e)))?;
-                
+
+                self.repo
+                    .commit(
+                        Some("refs/heads/develop"),
+                        &signature,
+                        &signature,
+                        &format!("Merge feature branch '{}'", name),
+                        &tree_obj,
+                        &[&develop_commit, &feature_commit],
+                    )
+                    .map_err(|e| {
+                        RhemaError::ConfigError(format!("Failed to create merge commit: {}", e))
+                    })?;
+
                 // Delete the feature branch (need to find it again since we dropped the reference)
-                let mut feature_branch_to_delete = self.repo.find_branch(&branch_name, BranchType::Local)
-                    .map_err(|e| RhemaError::ConfigError(format!("Feature branch '{}' not found for deletion: {}", branch_name, e)))?;
-                
-                feature_branch_to_delete.delete()
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to delete feature branch: {}", e)))?;
-                
+                let mut feature_branch_to_delete = self
+                    .repo
+                    .find_branch(&branch_name, BranchType::Local)
+                    .map_err(|e| {
+                        RhemaError::ConfigError(format!(
+                            "Feature branch '{}' not found for deletion: {}",
+                            branch_name, e
+                        ))
+                    })?;
+
+                feature_branch_to_delete.delete().map_err(|e| {
+                    RhemaError::ConfigError(format!("Failed to delete feature branch: {}", e))
+                })?;
+
                 messages.push("Feature branch deleted".to_string());
             }
             Err(e) => {
@@ -821,7 +907,7 @@ impl AdvancedGitIntegration {
                 });
             }
         }
-        
+
         Ok(FeatureResult {
             success: conflicts.is_empty(),
             merged_branch: branch_name,
@@ -835,30 +921,44 @@ impl AdvancedGitIntegration {
     /// Start a release branch
     pub fn start_release_branch(&mut self, version: &str) -> RhemaResult<ReleaseBranch> {
         let branch_name = format!("release/{}", version);
-        
+
         // Get the develop branch
-        let develop_branch = self.repo.find_branch("develop", BranchType::Local)
+        let develop_branch = self
+            .repo
+            .find_branch("develop", BranchType::Local)
             .map_err(|e| RhemaError::ConfigError(format!("Develop branch not found: {}", e)))?;
-        
-        let develop_commit = develop_branch.get().peel_to_commit()
+
+        let develop_commit = develop_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get develop commit: {}", e)))?;
-        
+
         // Create the release branch
-        let branch_ref = self.repo.branch(&branch_name, &develop_commit, false)
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to create release branch: {}", e)))?;
-        
+        let branch_ref = self
+            .repo
+            .branch(&branch_name, &develop_commit, false)
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to create release branch: {}", e))
+            })?;
+
         // Checkout the release branch
-        let branch_commit = branch_ref.get().peel_to_commit()
+        let branch_commit = branch_ref
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get branch commit: {}", e)))?;
-        
+
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        self.repo.checkout_tree(&branch_commit.as_object(), Some(&mut checkout_options))
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to checkout release branch: {}", e)))?;
-        
-        self.repo.set_head(&format!("refs/heads/{}", branch_name))
+        self.repo
+            .checkout_tree(&branch_commit.as_object(), Some(&mut checkout_options))
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to checkout release branch: {}", e))
+            })?;
+
+        self.repo
+            .set_head(&format!("refs/heads/{}", branch_name))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD: {}", e)))?;
-        
+
         Ok(ReleaseBranch {
             name: branch_name,
             version: version.to_string(),
@@ -872,61 +972,89 @@ impl AdvancedGitIntegration {
         let branch_name = format!("release/{}", version);
         let mut messages = Vec::new();
         let conflict_resolution = None;
-        
+
         // Get the release branch
-        let mut release_branch = self.repo.find_branch(&branch_name, BranchType::Local)
-            .map_err(|e| RhemaError::ConfigError(format!("Release branch '{}' not found: {}", branch_name, e)))?;
-        
-        let release_commit = release_branch.get().peel_to_commit()
+        let mut release_branch = self
+            .repo
+            .find_branch(&branch_name, BranchType::Local)
+            .map_err(|e| {
+                RhemaError::ConfigError(format!(
+                    "Release branch '{}' not found: {}",
+                    branch_name, e
+                ))
+            })?;
+
+        let release_commit = release_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get release commit: {}", e)))?;
-        
+
         // Get main and develop branches
-        let main_branch = self.repo.find_branch("main", BranchType::Local)
+        let main_branch = self
+            .repo
+            .find_branch("main", BranchType::Local)
             .map_err(|_e| RhemaError::ConfigError("Main branch not found".to_string()))?;
-        
-        let develop_branch = self.repo.find_branch("develop", BranchType::Local)
+
+        let develop_branch = self
+            .repo
+            .find_branch("develop", BranchType::Local)
             .map_err(|_e| RhemaError::ConfigError("Develop branch not found".to_string()))?;
-        
-        let main_commit = main_branch.get().peel_to_commit()
+
+        let main_commit = main_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get main commit: {}", e)))?;
-        
-        let develop_commit = develop_branch.get().peel_to_commit()
+
+        let develop_commit = develop_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get develop commit: {}", e)))?;
-        
+
         // Merge to main
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        self.repo.checkout_tree(&main_commit.as_object(), Some(&mut checkout_options))
+        self.repo
+            .checkout_tree(&main_commit.as_object(), Some(&mut checkout_options))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to checkout main: {}", e)))?;
-        
-        self.repo.set_head("refs/heads/main")
+
+        self.repo
+            .set_head("refs/heads/main")
             .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD to main: {}", e)))?;
-        
+
         let signature = Signature::now("Rhema Git", "rhema@example.com")
             .map_err(|e| RhemaError::ConfigError(format!("Failed to create signature: {}", e)))?;
-        
+
         // Create tag
-        self.repo.tag(version, &release_commit.as_object(), &signature, 
-            &format!("Release version {}", version), false)
+        self.repo
+            .tag(
+                version,
+                &release_commit.as_object(),
+                &signature,
+                &format!("Release version {}", version),
+                false,
+            )
             .map_err(|e| RhemaError::ConfigError(format!("Failed to create tag: {}", e)))?;
-        
+
         messages.push(format!("Tag v{} created", version));
-        
+
         // Merge to develop
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        self.repo.checkout_tree(&develop_commit.as_object(), Some(&mut checkout_options))
+        self.repo
+            .checkout_tree(&develop_commit.as_object(), Some(&mut checkout_options))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to checkout develop: {}", e)))?;
-        
-        self.repo.set_head("refs/heads/develop")
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD to develop: {}", e)))?;
-        
+
+        self.repo.set_head("refs/heads/develop").map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to set HEAD to develop: {}", e))
+        })?;
+
         // Delete the release branch
-        release_branch.delete()
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to delete release branch: {}", e)))?;
-        
+        release_branch.delete().map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to delete release branch: {}", e))
+        })?;
+
         messages.push("Release branch deleted".to_string());
-        
+
         Ok(ReleaseResult {
             success: true,
             version: version.to_string(),
@@ -941,30 +1069,44 @@ impl AdvancedGitIntegration {
     /// Start a hotfix branch
     pub fn start_hotfix_branch(&mut self, version: &str) -> RhemaResult<HotfixBranch> {
         let branch_name = format!("hotfix/{}", version);
-        
+
         // Get the main branch
-        let main_branch = self.repo.find_branch("main", BranchType::Local)
+        let main_branch = self
+            .repo
+            .find_branch("main", BranchType::Local)
             .map_err(|e| RhemaError::ConfigError(format!("Main branch not found: {}", e)))?;
-        
-        let main_commit = main_branch.get().peel_to_commit()
+
+        let main_commit = main_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get main commit: {}", e)))?;
-        
+
         // Create the hotfix branch
-        let branch_ref = self.repo.branch(&branch_name, &main_commit, false)
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to create hotfix branch: {}", e)))?;
-        
+        let branch_ref = self
+            .repo
+            .branch(&branch_name, &main_commit, false)
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to create hotfix branch: {}", e))
+            })?;
+
         // Checkout the hotfix branch
-        let branch_commit = branch_ref.get().peel_to_commit()
+        let branch_commit = branch_ref
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get branch commit: {}", e)))?;
-        
+
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        self.repo.checkout_tree(&branch_commit.as_object(), Some(&mut checkout_options))
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to checkout hotfix branch: {}", e)))?;
-        
-        self.repo.set_head(&format!("refs/heads/{}", branch_name))
+        self.repo
+            .checkout_tree(&branch_commit.as_object(), Some(&mut checkout_options))
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to checkout hotfix branch: {}", e))
+            })?;
+
+        self.repo
+            .set_head(&format!("refs/heads/{}", branch_name))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD: {}", e)))?;
-        
+
         Ok(HotfixBranch {
             name: branch_name,
             version: version.to_string(),
@@ -978,61 +1120,86 @@ impl AdvancedGitIntegration {
         let branch_name = format!("hotfix/{}", version);
         let mut messages = Vec::new();
         let conflict_resolution = None;
-        
+
         // Get the hotfix branch
-        let mut hotfix_branch = self.repo.find_branch(&branch_name, BranchType::Local)
-            .map_err(|e| RhemaError::ConfigError(format!("Hotfix branch '{}' not found: {}", branch_name, e)))?;
-        
-        let hotfix_commit = hotfix_branch.get().peel_to_commit()
+        let mut hotfix_branch = self
+            .repo
+            .find_branch(&branch_name, BranchType::Local)
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Hotfix branch '{}' not found: {}", branch_name, e))
+            })?;
+
+        let hotfix_commit = hotfix_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get hotfix commit: {}", e)))?;
-        
+
         // Get main and develop branches
-        let main_branch = self.repo.find_branch("main", BranchType::Local)
+        let main_branch = self
+            .repo
+            .find_branch("main", BranchType::Local)
             .map_err(|_e| RhemaError::ConfigError("Main branch not found".to_string()))?;
-        
-        let develop_branch = self.repo.find_branch("develop", BranchType::Local)
+
+        let develop_branch = self
+            .repo
+            .find_branch("develop", BranchType::Local)
             .map_err(|_e| RhemaError::ConfigError("Develop branch not found".to_string()))?;
-        
-        let main_commit = main_branch.get().peel_to_commit()
+
+        let main_commit = main_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get main commit: {}", e)))?;
-        
-        let develop_commit = develop_branch.get().peel_to_commit()
+
+        let develop_commit = develop_branch
+            .get()
+            .peel_to_commit()
             .map_err(|e| RhemaError::ConfigError(format!("Failed to get develop commit: {}", e)))?;
-        
+
         // Merge to main
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        self.repo.checkout_tree(&main_commit.as_object(), Some(&mut checkout_options))
+        self.repo
+            .checkout_tree(&main_commit.as_object(), Some(&mut checkout_options))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to checkout main: {}", e)))?;
-        
-        self.repo.set_head("refs/heads/main")
+
+        self.repo
+            .set_head("refs/heads/main")
             .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD to main: {}", e)))?;
-        
+
         let signature = Signature::now("Rhema Git", "rhema@example.com")
             .map_err(|e| RhemaError::ConfigError(format!("Failed to create signature: {}", e)))?;
-        
+
         // Create tag
-        self.repo.tag(version, &hotfix_commit.as_object(), &signature, 
-            &format!("Hotfix version {}", version), false)
+        self.repo
+            .tag(
+                version,
+                &hotfix_commit.as_object(),
+                &signature,
+                &format!("Hotfix version {}", version),
+                false,
+            )
             .map_err(|e| RhemaError::ConfigError(format!("Failed to create tag: {}", e)))?;
-        
+
         messages.push(format!("Hotfix tag v{} created", version));
-        
+
         // Merge to develop
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        self.repo.checkout_tree(&develop_commit.as_object(), Some(&mut checkout_options))
+        self.repo
+            .checkout_tree(&develop_commit.as_object(), Some(&mut checkout_options))
             .map_err(|e| RhemaError::ConfigError(format!("Failed to checkout develop: {}", e)))?;
-        
-        self.repo.set_head("refs/heads/develop")
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD to develop: {}", e)))?;
-        
+
+        self.repo.set_head("refs/heads/develop").map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to set HEAD to develop: {}", e))
+        })?;
+
         // Delete the hotfix branch
-        hotfix_branch.delete()
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to delete hotfix branch: {}", e)))?;
-        
+        hotfix_branch.delete().map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to delete hotfix branch: {}", e))
+        })?;
+
         messages.push("Hotfix branch deleted".to_string());
-        
+
         Ok(HotfixResult {
             success: true,
             version: version.to_string(),
@@ -1047,7 +1214,7 @@ impl AdvancedGitIntegration {
     /// Get workflow status
     pub fn get_workflow_status(&self) -> RhemaResult<WorkflowStatus> {
         let current_branch = get_current_branch(&self.repo)?;
-        
+
         let branch_type = if current_branch == "main" {
             FlowBranchType::Main
         } else if current_branch == "develop" {
@@ -1061,7 +1228,7 @@ impl AdvancedGitIntegration {
         } else {
             FlowBranchType::Main
         };
-        
+
         Ok(WorkflowStatus {
             current_branch,
             branch_type,
@@ -1077,7 +1244,11 @@ impl AdvancedGitIntegration {
 
     /// Get repository path
     pub fn get_repo_path(&self) -> PathBuf {
-        self.repo.path().parent().unwrap_or_else(|| Path::new("")).to_path_buf()
+        self.repo
+            .path()
+            .parent()
+            .unwrap_or_else(|| Path::new(""))
+            .to_path_buf()
     }
 
     /// Get the underlying repository
@@ -1134,7 +1305,10 @@ impl AdvancedGitIntegration {
     }
 
     // Stub implementations for CLI compatibility
-    pub fn execute_hook(&self, hook_type: crate::git_hooks::HookType) -> RhemaResult<crate::git_hooks::HookResult> {
+    pub fn execute_hook(
+        &self,
+        hook_type: crate::git_hooks::HookType,
+    ) -> RhemaResult<crate::git_hooks::HookResult> {
         // TODO: Implement proper hook execution
         Ok(crate::git_hooks::HookResult {
             success: true,
@@ -1179,7 +1353,11 @@ impl AdvancedGitIntegration {
         })
     }
 
-    pub fn track_context_evolution(&self, _scope: &str, _limit: Option<usize>) -> RhemaResult<ContextEvolution> {
+    pub fn track_context_evolution(
+        &self,
+        _scope: &str,
+        _limit: Option<usize>,
+    ) -> RhemaResult<ContextEvolution> {
         Ok(ContextEvolution {
             entries: vec![EvolutionEntry {
                 timestamp: Utc::now(),
@@ -1203,7 +1381,12 @@ impl AdvancedGitIntegration {
         })
     }
 
-    pub fn create_context_version(&self, _version: &str, _version_type: &str, _description: &str) -> RhemaResult<ContextVersion> {
+    pub fn create_context_version(
+        &self,
+        _version: &str,
+        _version_type: &str,
+        _description: &str,
+    ) -> RhemaResult<ContextVersion> {
         Ok(ContextVersion {
             version: _version.to_string(),
             version_type: _version_type.to_string(),
@@ -1217,7 +1400,11 @@ impl AdvancedGitIntegration {
         Ok(())
     }
 
-    pub fn generate_evolution_report(&self, _scope: &str, _since_date: Option<&str>) -> RhemaResult<EvolutionReport> {
+    pub fn generate_evolution_report(
+        &self,
+        _scope: &str,
+        _since_date: Option<&str>,
+    ) -> RhemaResult<EvolutionReport> {
         Ok(EvolutionReport {
             total_commits: 0,
             changes_by_type: HashMap::new(),
@@ -1267,10 +1454,16 @@ impl AdvancedGitIntegration {
     }
 
     /// Trigger workflow automation based on events or schedules
-    pub fn trigger_workflow_automation(&self, trigger_type: &str, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+    pub fn trigger_workflow_automation(
+        &self,
+        trigger_type: &str,
+        data: Option<std::collections::HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         // TODO: Implement workflow automation
         if trigger_type.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Trigger type cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Trigger type cannot be empty".to_string(),
+            ));
         }
         Ok(())
     }
@@ -1279,10 +1472,14 @@ impl AdvancedGitIntegration {
     pub fn trigger_feature_automation(&self, feature_name: &str, action: &str) -> RhemaResult<()> {
         // TODO: Implement feature automation
         if feature_name.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Feature name cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Feature name cannot be empty".to_string(),
+            ));
         }
         if action.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Action cannot be empty".to_string(),
+            ));
         }
         Ok(())
     }
@@ -1291,10 +1488,14 @@ impl AdvancedGitIntegration {
     pub fn trigger_release_automation(&self, version: &str, action: &str) -> RhemaResult<()> {
         // TODO: Implement release automation
         if version.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Version cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Version cannot be empty".to_string(),
+            ));
         }
         if action.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Action cannot be empty".to_string(),
+            ));
         }
         Ok(())
     }
@@ -1303,10 +1504,14 @@ impl AdvancedGitIntegration {
     pub fn trigger_hotfix_automation(&self, version: &str, action: &str) -> RhemaResult<()> {
         // TODO: Implement hotfix automation
         if version.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Version cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Version cannot be empty".to_string(),
+            ));
         }
         if action.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Action cannot be empty".to_string(),
+            ));
         }
         Ok(())
     }
@@ -1346,12 +1551,20 @@ impl AdvancedGitIntegration {
         })
     }
 
-    pub fn record_git_operation(&mut self, _operation: &str, _duration: chrono::Duration) -> RhemaResult<()> {
+    pub fn record_git_operation(
+        &mut self,
+        _operation: &str,
+        _duration: chrono::Duration,
+    ) -> RhemaResult<()> {
         // TODO: Implement operation recording
         Ok(())
     }
 
-    pub fn record_context_operation(&mut self, _operation: &str, _duration: chrono::Duration) -> RhemaResult<()> {
+    pub fn record_context_operation(
+        &mut self,
+        _operation: &str,
+        _duration: chrono::Duration,
+    ) -> RhemaResult<()> {
         // TODO: Implement context operation recording
         Ok(())
     }
@@ -1370,7 +1583,12 @@ impl AdvancedGitIntegration {
         })
     }
 
-    pub fn validate_access(&self, _user: &str, _operation: &crate::git::security::Operation, _resource: &str) -> RhemaResult<bool> {
+    pub fn validate_access(
+        &self,
+        _user: &str,
+        _operation: &crate::git::security::Operation,
+        _resource: &str,
+    ) -> RhemaResult<bool> {
         Ok(true)
     }
 
@@ -1381,8 +1599,6 @@ impl AdvancedGitIntegration {
             issues: vec![],
         })
     }
-
-
 
     pub fn shutdown(&mut self) -> RhemaResult<()> {
         // TODO: Implement shutdown
@@ -1404,7 +1620,11 @@ impl AdvancedGitIntegration {
         })
     }
 
-    pub fn merge_branch_context(&self, _source_branch: &str, _target_branch: &str) -> RhemaResult<MergeResult> {
+    pub fn merge_branch_context(
+        &self,
+        _source_branch: &str,
+        _target_branch: &str,
+    ) -> RhemaResult<MergeResult> {
         Ok(MergeResult {
             success: true,
             conflicts: vec![],
@@ -1443,7 +1663,10 @@ pub struct BranchManager {
 }
 
 impl BranchManager {
-    pub fn initialize_branch_context(&self, _branch_name: Option<String>) -> RhemaResult<BranchContext> {
+    pub fn initialize_branch_context(
+        &self,
+        _branch_name: Option<String>,
+    ) -> RhemaResult<BranchContext> {
         Ok(BranchContext {
             name: _branch_name.unwrap_or_else(|| "default".to_string()),
             path: PathBuf::from("/tmp/branch_context"),

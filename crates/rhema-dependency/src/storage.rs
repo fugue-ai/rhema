@@ -1,11 +1,11 @@
-use sqlx::{sqlite::SqlitePool, postgres::PgPool, mysql::MySqlPool, Pool, Database, Row};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sqlx::{mysql::MySqlPool, postgres::PgPool, sqlite::SqlitePool, Database, Pool, Row};
+use std::collections::HashMap;
 
-use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore, HealthMetrics};
 use crate::config::DatabaseConfig;
+use crate::error::{Error, Result};
+use crate::types::{DependencyConfig, DependencyType, HealthMetrics, HealthStatus, ImpactScore};
 
 /// Database connection pool
 pub enum DatabasePool {
@@ -125,22 +125,26 @@ impl StorageManager {
     pub async fn new(config: DatabaseConfig) -> Result<Self> {
         let pool = match config.database_type {
             crate::config::DatabaseType::Sqlite => {
-                let pool = SqlitePool::connect(&config.connection_string).await
+                let pool = SqlitePool::connect(&config.connection_string)
+                    .await
                     .map_err(|e| Error::Database(e.into()))?;
                 DatabasePool::Sqlite(pool)
             }
             crate::config::DatabaseType::Postgres => {
-                let pool = PgPool::connect(&config.connection_string).await
+                let pool = PgPool::connect(&config.connection_string)
+                    .await
                     .map_err(|e| Error::Database(e.into()))?;
                 DatabasePool::Postgres(pool)
             }
             crate::config::DatabaseType::MySQL => {
-                let pool = MySqlPool::connect(&config.connection_string).await
+                let pool = MySqlPool::connect(&config.connection_string)
+                    .await
                     .map_err(|e| Error::Database(e.into()))?;
                 DatabasePool::MySQL(pool)
             }
             crate::config::DatabaseType::InMemory => {
-                let pool = SqlitePool::connect("sqlite::memory:").await
+                let pool = SqlitePool::connect("sqlite::memory:")
+                    .await
                     .map_err(|e| Error::Database(e.into()))?;
                 DatabasePool::Sqlite(pool)
             }
@@ -425,28 +429,36 @@ impl StorageManager {
         let operations_json = serde_json::to_string(&config.operations)
             .map_err(|e| Error::Serialization(e.into()))?;
 
-        let health_check_json = config.health_check.as_ref()
+        let health_check_json = config
+            .health_check
+            .as_ref()
             .map(|hc| serde_json::to_string(hc))
             .transpose()
             .map_err(|e| Error::Serialization(e.into()))?;
 
-        let impact_config_json = config.impact_config.as_ref()
+        let impact_config_json = config
+            .impact_config
+            .as_ref()
             .map(|ic| serde_json::to_string(ic))
             .transpose()
             .map_err(|e| Error::Serialization(e.into()))?;
 
-        let security_requirements_json = config.security_requirements.as_ref()
+        let security_requirements_json = config
+            .security_requirements
+            .as_ref()
             .map(|sr| serde_json::to_string(sr))
             .transpose()
             .map_err(|e| Error::Serialization(e.into()))?;
 
-        let performance_requirements_json = config.performance_requirements.as_ref()
+        let performance_requirements_json = config
+            .performance_requirements
+            .as_ref()
             .map(|pr| serde_json::to_string(pr))
             .transpose()
             .map_err(|e| Error::Serialization(e.into()))?;
 
-        let metadata_json = serde_json::to_string(&config.metadata)
-            .map_err(|e| Error::Serialization(e.into()))?;
+        let metadata_json =
+            serde_json::to_string(&config.metadata).map_err(|e| Error::Serialization(e.into()))?;
 
         match &self.pool {
             DatabasePool::Sqlite(pool) => {
@@ -563,31 +575,25 @@ impl StorageManager {
     pub async fn load_dependency(&self, id: &str) -> Result<Option<DependencyConfig>> {
         let record = match &self.pool {
             DatabasePool::Sqlite(pool) => {
-                sqlx::query_as::<_, DependencyRecord>(
-                    "SELECT * FROM dependencies WHERE id = ?"
-                )
-                .bind(id)
-                .fetch_optional(pool)
-                .await
-                .map_err(|e| Error::Database(e.into()))?
+                sqlx::query_as::<_, DependencyRecord>("SELECT * FROM dependencies WHERE id = ?")
+                    .bind(id)
+                    .fetch_optional(pool)
+                    .await
+                    .map_err(|e| Error::Database(e.into()))?
             }
             DatabasePool::Postgres(pool) => {
-                sqlx::query_as::<_, DependencyRecord>(
-                    "SELECT * FROM dependencies WHERE id = $1"
-                )
-                .bind(id)
-                .fetch_optional(pool)
-                .await
-                .map_err(|e| Error::Database(e.into()))?
+                sqlx::query_as::<_, DependencyRecord>("SELECT * FROM dependencies WHERE id = $1")
+                    .bind(id)
+                    .fetch_optional(pool)
+                    .await
+                    .map_err(|e| Error::Database(e.into()))?
             }
             DatabasePool::MySQL(pool) => {
-                sqlx::query_as::<_, DependencyRecord>(
-                    "SELECT * FROM dependencies WHERE id = ?"
-                )
-                .bind(id)
-                .fetch_optional(pool)
-                .await
-                .map_err(|e| Error::Database(e.into()))?
+                sqlx::query_as::<_, DependencyRecord>("SELECT * FROM dependencies WHERE id = ?")
+                    .bind(id)
+                    .fetch_optional(pool)
+                    .await
+                    .map_err(|e| Error::Database(e.into()))?
             }
         };
 
@@ -602,30 +608,24 @@ impl StorageManager {
     /// Load all dependency configurations
     pub async fn load_all_dependencies(&self) -> Result<Vec<DependencyConfig>> {
         let records = match &self.pool {
-            DatabasePool::Sqlite(pool) => {
-                sqlx::query_as::<_, DependencyRecord>(
-                    "SELECT * FROM dependencies ORDER BY created_at"
-                )
-                .fetch_all(pool)
-                .await
-                .map_err(|e| Error::Database(e.into()))?
-            }
-            DatabasePool::Postgres(pool) => {
-                sqlx::query_as::<_, DependencyRecord>(
-                    "SELECT * FROM dependencies ORDER BY created_at"
-                )
-                .fetch_all(pool)
-                .await
-                .map_err(|e| Error::Database(e.into()))?
-            }
-            DatabasePool::MySQL(pool) => {
-                sqlx::query_as::<_, DependencyRecord>(
-                    "SELECT * FROM dependencies ORDER BY created_at"
-                )
-                .fetch_all(pool)
-                .await
-                .map_err(|e| Error::Database(e.into()))?
-            }
+            DatabasePool::Sqlite(pool) => sqlx::query_as::<_, DependencyRecord>(
+                "SELECT * FROM dependencies ORDER BY created_at",
+            )
+            .fetch_all(pool)
+            .await
+            .map_err(|e| Error::Database(e.into()))?,
+            DatabasePool::Postgres(pool) => sqlx::query_as::<_, DependencyRecord>(
+                "SELECT * FROM dependencies ORDER BY created_at",
+            )
+            .fetch_all(pool)
+            .await
+            .map_err(|e| Error::Database(e.into()))?,
+            DatabasePool::MySQL(pool) => sqlx::query_as::<_, DependencyRecord>(
+                "SELECT * FROM dependencies ORDER BY created_at",
+            )
+            .fetch_all(pool)
+            .await
+            .map_err(|e| Error::Database(e.into()))?,
         };
 
         let mut configs = Vec::new();
@@ -667,7 +667,11 @@ impl StorageManager {
     }
 
     /// Save health metrics
-    pub async fn save_health_metrics(&self, dependency_id: &str, metrics: &HealthMetrics) -> Result<()> {
+    pub async fn save_health_metrics(
+        &self,
+        dependency_id: &str,
+        metrics: &HealthMetrics,
+    ) -> Result<()> {
         match &self.pool {
             DatabasePool::Sqlite(pool) => {
                 sqlx::query(
@@ -747,9 +751,13 @@ impl StorageManager {
     }
 
     /// Load health metrics for a dependency
-    pub async fn load_health_metrics(&self, dependency_id: &str, limit: Option<i64>) -> Result<Vec<HealthMetrics>> {
+    pub async fn load_health_metrics(
+        &self,
+        dependency_id: &str,
+        limit: Option<i64>,
+    ) -> Result<Vec<HealthMetrics>> {
         let limit = limit.unwrap_or(100);
-        
+
         let records = match &self.pool {
             DatabasePool::Sqlite(pool) => {
                 sqlx::query_as::<_, HealthMetricsRecord>(
@@ -802,7 +810,11 @@ impl StorageManager {
     }
 
     /// Save impact analysis
-    pub async fn save_impact_analysis(&self, dependency_id: &str, impact_score: &ImpactScore) -> Result<()> {
+    pub async fn save_impact_analysis(
+        &self,
+        dependency_id: &str,
+        impact_score: &ImpactScore,
+    ) -> Result<()> {
         match &self.pool {
             DatabasePool::Sqlite(pool) => {
                 sqlx::query(
@@ -876,9 +888,13 @@ impl StorageManager {
     }
 
     /// Load impact analysis for a dependency
-    pub async fn load_impact_analysis(&self, dependency_id: &str, limit: Option<i64>) -> Result<Vec<ImpactScore>> {
+    pub async fn load_impact_analysis(
+        &self,
+        dependency_id: &str,
+        limit: Option<i64>,
+    ) -> Result<Vec<ImpactScore>> {
         let limit = limit.unwrap_or(100);
-        
+
         let records = match &self.pool {
             DatabasePool::Sqlite(pool) => {
                 sqlx::query_as::<_, ImpactAnalysisRecord>(
@@ -930,39 +946,35 @@ impl StorageManager {
 
     /// Convert database record to dependency configuration
     fn record_to_config(&self, record: DependencyRecord) -> Result<DependencyConfig> {
-        let operations: Vec<String> = serde_json::from_str(&record.operations)
-            .map_err(|e| Error::Serialization(e.into()))?;
+        let operations: Vec<String> =
+            serde_json::from_str(&record.operations).map_err(|e| Error::Serialization(e.into()))?;
 
         let health_check = if let Some(hc_json) = record.health_check {
-            Some(serde_json::from_str(&hc_json)
-                .map_err(|e| Error::Serialization(e.into()))?)
+            Some(serde_json::from_str(&hc_json).map_err(|e| Error::Serialization(e.into()))?)
         } else {
             None
         };
 
         let impact_config = if let Some(ic_json) = record.impact_config {
-            Some(serde_json::from_str(&ic_json)
-                .map_err(|e| Error::Serialization(e.into()))?)
+            Some(serde_json::from_str(&ic_json).map_err(|e| Error::Serialization(e.into()))?)
         } else {
             None
         };
 
         let security_requirements = if let Some(sr_json) = record.security_requirements {
-            Some(serde_json::from_str(&sr_json)
-                .map_err(|e| Error::Serialization(e.into()))?)
+            Some(serde_json::from_str(&sr_json).map_err(|e| Error::Serialization(e.into()))?)
         } else {
             None
         };
 
         let performance_requirements = if let Some(pr_json) = record.performance_requirements {
-            Some(serde_json::from_str(&pr_json)
-                .map_err(|e| Error::Serialization(e.into()))?)
+            Some(serde_json::from_str(&pr_json).map_err(|e| Error::Serialization(e.into()))?)
         } else {
             None
         };
 
-        let metadata: HashMap<String, String> = serde_json::from_str(&record.metadata)
-            .map_err(|e| Error::Serialization(e.into()))?;
+        let metadata: HashMap<String, String> =
+            serde_json::from_str(&record.metadata).map_err(|e| Error::Serialization(e.into()))?;
 
         let dependency_type = match record.dependency_type.as_str() {
             "DataFlow" => DependencyType::DataFlow,
@@ -1003,17 +1015,23 @@ impl StorageManager {
                     .await
                     .map_err(|e| Error::Database(e.into()))?;
 
-                let health_metrics_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM health_metrics")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|e| Error::Database(e.into()))?;
+                let health_metrics_count: i64 =
+                    sqlx::query_scalar("SELECT COUNT(*) FROM health_metrics")
+                        .fetch_one(pool)
+                        .await
+                        .map_err(|e| Error::Database(e.into()))?;
 
-                let impact_analysis_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM impact_analysis")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|e| Error::Database(e.into()))?;
+                let impact_analysis_count: i64 =
+                    sqlx::query_scalar("SELECT COUNT(*) FROM impact_analysis")
+                        .fetch_one(pool)
+                        .await
+                        .map_err(|e| Error::Database(e.into()))?;
 
-                (dependency_count, health_metrics_count, impact_analysis_count)
+                (
+                    dependency_count,
+                    health_metrics_count,
+                    impact_analysis_count,
+                )
             }
             DatabasePool::Postgres(pool) => {
                 let dependency_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dependencies")
@@ -1021,17 +1039,23 @@ impl StorageManager {
                     .await
                     .map_err(|e| Error::Database(e.into()))?;
 
-                let health_metrics_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM health_metrics")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|e| Error::Database(e.into()))?;
+                let health_metrics_count: i64 =
+                    sqlx::query_scalar("SELECT COUNT(*) FROM health_metrics")
+                        .fetch_one(pool)
+                        .await
+                        .map_err(|e| Error::Database(e.into()))?;
 
-                let impact_analysis_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM impact_analysis")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|e| Error::Database(e.into()))?;
+                let impact_analysis_count: i64 =
+                    sqlx::query_scalar("SELECT COUNT(*) FROM impact_analysis")
+                        .fetch_one(pool)
+                        .await
+                        .map_err(|e| Error::Database(e.into()))?;
 
-                (dependency_count, health_metrics_count, impact_analysis_count)
+                (
+                    dependency_count,
+                    health_metrics_count,
+                    impact_analysis_count,
+                )
             }
             DatabasePool::MySQL(pool) => {
                 let dependency_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM dependencies")
@@ -1039,17 +1063,23 @@ impl StorageManager {
                     .await
                     .map_err(|e| Error::Database(e.into()))?;
 
-                let health_metrics_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM health_metrics")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|e| Error::Database(e.into()))?;
+                let health_metrics_count: i64 =
+                    sqlx::query_scalar("SELECT COUNT(*) FROM health_metrics")
+                        .fetch_one(pool)
+                        .await
+                        .map_err(|e| Error::Database(e.into()))?;
 
-                let impact_analysis_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM impact_analysis")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|e| Error::Database(e.into()))?;
+                let impact_analysis_count: i64 =
+                    sqlx::query_scalar("SELECT COUNT(*) FROM impact_analysis")
+                        .fetch_one(pool)
+                        .await
+                        .map_err(|e| Error::Database(e.into()))?;
 
-                (dependency_count, health_metrics_count, impact_analysis_count)
+                (
+                    dependency_count,
+                    health_metrics_count,
+                    impact_analysis_count,
+                )
             }
         };
 
@@ -1119,7 +1149,8 @@ mod tests {
             DependencyType::ApiCall,
             "http://test.example.com".to_string(),
             vec!["GET".to_string()],
-        ).unwrap();
+        )
+        .unwrap();
 
         // Save dependency
         let save_result = manager.save_dependency(&dependency_config).await;
@@ -1146,4 +1177,4 @@ mod tests {
         assert_eq!(stats.impact_analysis_count, 50);
         assert_eq!(stats.database_type, "sqlite");
     }
-} 
+}

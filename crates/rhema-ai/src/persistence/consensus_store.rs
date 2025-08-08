@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-use super::{PersistenceConfig, StoreStats, StorageBackend};
+use super::{PersistenceConfig, StorageBackend, StoreStats};
 use crate::agent::real_time_coordination::{
-    ConsensusState, ConsensusEntry, ConsensusConfig, ConsensusAlgorithm
+    ConsensusAlgorithm, ConsensusConfig, ConsensusEntry, ConsensusState,
 };
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -25,7 +26,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
-use chrono::{DateTime, Utc};
 
 /// Consensus store for persisting consensus state
 pub struct ConsensusStore {
@@ -64,16 +64,17 @@ impl ConsensusStore {
     pub async fn new(config: PersistenceConfig) -> RhemaResult<Self> {
         let file_path = match &config.backend {
             StorageBackend::File => {
-                let path = config.storage_path
+                let path = config
+                    .storage_path
                     .as_ref()
                     .map(|p| p.join("consensus"))
                     .unwrap_or_else(|| PathBuf::from("./data/consensus"));
-                
+
                 // Create directory if it doesn't exist
                 if let Some(parent) = path.parent() {
                     tokio::fs::create_dir_all(parent).await?;
                 }
-                
+
                 Some(path)
             }
             _ => None,
@@ -94,12 +95,16 @@ impl ConsensusStore {
     }
 
     /// Store consensus state
-    pub async fn store_consensus_state(&self, node_id: String, state: ConsensusState) -> RhemaResult<()> {
+    pub async fn store_consensus_state(
+        &self,
+        node_id: String,
+        state: ConsensusState,
+    ) -> RhemaResult<()> {
         let size_bytes = serde_json::to_string(&state)?.len() as u64;
         let now = Utc::now();
-        
+
         let mut states = self.consensus_states.write().await;
-        
+
         let stored_state = if let Some(existing) = states.get_mut(&node_id) {
             existing.state = state;
             existing.updated_at = now;
@@ -128,10 +133,14 @@ impl ConsensusStore {
     }
 
     /// Store consensus entry
-    pub async fn store_consensus_entry(&self, node_id: String, entry: ConsensusEntry) -> RhemaResult<()> {
+    pub async fn store_consensus_entry(
+        &self,
+        node_id: String,
+        entry: ConsensusEntry,
+    ) -> RhemaResult<()> {
         let size_bytes = serde_json::to_string(&entry)?.len() as u64;
         let now = Utc::now();
-        
+
         let stored_entry = StoredConsensusEntry {
             entry,
             created_at: now,
@@ -151,7 +160,11 @@ impl ConsensusStore {
     }
 
     /// Store consensus configuration
-    pub async fn store_consensus_config(&self, node_id: String, config: ConsensusConfig) -> RhemaResult<()> {
+    pub async fn store_consensus_config(
+        &self,
+        node_id: String,
+        config: ConsensusConfig,
+    ) -> RhemaResult<()> {
         {
             let mut configs = self.consensus_configs.write().await;
             configs.insert(node_id, config);
@@ -164,7 +177,7 @@ impl ConsensusStore {
     /// Retrieve consensus state
     pub async fn get_consensus_state(&self, node_id: &str) -> Option<ConsensusState> {
         let mut states = self.consensus_states.write().await;
-        
+
         if let Some(stored_state) = states.get_mut(node_id) {
             stored_state.access_count += 1;
             stored_state.last_accessed = Utc::now();
@@ -191,7 +204,7 @@ impl ConsensusStore {
     /// Mark consensus entry as committed
     pub async fn mark_entry_committed(&self, node_id: &str, index: u64) -> RhemaResult<()> {
         let mut logs = self.consensus_logs.write().await;
-        
+
         if let Some(node_log) = logs.get_mut(node_id) {
             if let Some(entry) = node_log.get_mut(index as usize) {
                 entry.committed_at = Some(Utc::now());
@@ -205,7 +218,7 @@ impl ConsensusStore {
     /// Mark consensus entry as applied
     pub async fn mark_entry_applied(&self, node_id: &str, index: u64) -> RhemaResult<()> {
         let mut logs = self.consensus_logs.write().await;
-        
+
         if let Some(node_log) = logs.get_mut(node_id) {
             if let Some(entry) = node_log.get_mut(index as usize) {
                 entry.applied_at = Some(Utc::now());
@@ -220,16 +233,18 @@ impl ConsensusStore {
     pub async fn get_consensus_stats(&self, node_id: &str) -> Option<ConsensusStats> {
         let states = self.consensus_states.read().await;
         let logs = self.consensus_logs.read().await;
-        
+
         if let Some(stored_state) = states.get(node_id) {
             let log_entries = logs.get(node_id).map(|entries| entries.len()).unwrap_or(0);
-            let committed_entries = logs.get(node_id)
+            let committed_entries = logs
+                .get(node_id)
                 .map(|entries| entries.iter().filter(|e| e.committed_at.is_some()).count())
                 .unwrap_or(0);
-            let applied_entries = logs.get(node_id)
+            let applied_entries = logs
+                .get(node_id)
                 .map(|entries| entries.iter().filter(|e| e.applied_at.is_some()).count())
                 .unwrap_or(0);
-            
+
             Some(ConsensusStats {
                 node_id: node_id.to_string(),
                 term: stored_state.state.term,
@@ -254,14 +269,18 @@ impl ConsensusStore {
     }
 
     /// Get consensus state by algorithm
-    pub async fn get_consensus_by_algorithm(&self, algorithm: ConsensusAlgorithm) -> Vec<ConsensusState> {
+    pub async fn get_consensus_by_algorithm(
+        &self,
+        algorithm: ConsensusAlgorithm,
+    ) -> Vec<ConsensusState> {
         let states = self.consensus_states.read().await;
         let configs = self.consensus_configs.read().await;
-        
+
         states
             .iter()
             .filter_map(|(node_id, stored_state)| {
-                configs.get(node_id)
+                configs
+                    .get(node_id)
                     .filter(|config| config.algorithm == algorithm)
                     .map(|_| stored_state.state.clone())
             })
@@ -276,16 +295,18 @@ impl ConsensusStore {
                     if path.exists() {
                         let data = tokio::fs::read_to_string(path).await?;
                         let stored_data: StoredConsensusData = serde_json::from_str(&data)?;
-                        
+
                         let states_count = stored_data.states.len();
                         let logs_count = stored_data.logs.len();
-                        
+
                         *self.consensus_states.write().await = stored_data.states;
                         *self.consensus_logs.write().await = stored_data.logs;
                         *self.consensus_configs.write().await = stored_data.configs;
-                        
-                        info!("Loaded {} consensus states and {} consensus logs from storage", 
-                              states_count, logs_count);
+
+                        info!(
+                            "Loaded {} consensus states and {} consensus logs from storage",
+                            states_count, logs_count
+                        );
                     }
                 }
             }
@@ -305,13 +326,13 @@ impl ConsensusStore {
                     let states = self.consensus_states.read().await;
                     let logs = self.consensus_logs.read().await;
                     let configs = self.consensus_configs.read().await;
-                    
+
                     let stored_data = StoredConsensusData {
                         states: states.clone(),
                         logs: logs.clone(),
                         configs: configs.clone(),
                     };
-                    
+
                     let data = serde_json::to_string_pretty(&stored_data)?;
                     tokio::fs::write(path, data).await?;
                 }
@@ -326,24 +347,25 @@ impl ConsensusStore {
     /// Perform backup
     pub async fn backup(&self) -> RhemaResult<()> {
         if self.config.enable_backups {
-            let backup_path = self.file_path
+            let backup_path = self
+                .file_path
                 .as_ref()
                 .map(|p| p.with_extension("backup"))
                 .unwrap_or_else(|| PathBuf::from("./data/consensus.backup"));
-            
+
             let states = self.consensus_states.read().await;
             let logs = self.consensus_logs.read().await;
             let configs = self.consensus_configs.read().await;
-            
+
             let stored_data = StoredConsensusData {
                 states: states.clone(),
                 logs: logs.clone(),
                 configs: configs.clone(),
             };
-            
+
             let data = serde_json::to_string_pretty(&stored_data)?;
             tokio::fs::write(backup_path, data).await?;
-            
+
             info!("Consensus backup completed");
         }
         Ok(())
@@ -352,20 +374,21 @@ impl ConsensusStore {
     /// Perform cleanup
     pub async fn cleanup(&self) -> RhemaResult<()> {
         if self.config.enable_cleanup {
-            let cutoff_date = Utc::now() - chrono::Duration::days(self.config.data_retention_days as i64);
-            
+            let cutoff_date =
+                Utc::now() - chrono::Duration::days(self.config.data_retention_days as i64);
+
             {
                 let mut states = self.consensus_states.write().await;
                 states.retain(|_, stored_state| stored_state.updated_at > cutoff_date);
             }
-            
+
             {
                 let mut logs = self.consensus_logs.write().await;
                 for node_log in logs.values_mut() {
                     node_log.retain(|entry| entry.created_at > cutoff_date);
                 }
             }
-            
+
             self.save().await?;
             info!("Consensus cleanup completed");
         }
@@ -377,26 +400,27 @@ impl ConsensusStore {
         if self.config.enable_validation {
             let states = self.consensus_states.read().await;
             let logs = self.consensus_logs.read().await;
-            
+
             for (node_id, stored_state) in states.iter() {
                 if stored_state.state.term == 0 && stored_state.term_count > 0 {
-                    return Err(rhema_core::RhemaError::Validation(
-                        format!("Invalid term count for node {}: term is 0 but count is {}", node_id, stored_state.term_count)
-                    ));
+                    return Err(rhema_core::RhemaError::Validation(format!(
+                        "Invalid term count for node {}: term is 0 but count is {}",
+                        node_id, stored_state.term_count
+                    )));
                 }
             }
-            
+
             for (node_id, node_log) in logs.iter() {
                 for (index, entry) in node_log.iter().enumerate() {
                     if entry.entry.index != index as u64 {
-                        return Err(rhema_core::RhemaError::Validation(
-                            format!("Invalid entry index for node {}: expected {}, got {}", 
-                                   node_id, index, entry.entry.index)
-                        ));
+                        return Err(rhema_core::RhemaError::Validation(format!(
+                            "Invalid entry index for node {}: expected {}, got {}",
+                            node_id, index, entry.entry.index
+                        )));
                     }
                 }
             }
-            
+
             info!("Consensus validation completed successfully");
         }
         Ok(())
@@ -407,16 +431,22 @@ impl ConsensusStore {
         let states = self.consensus_states.read().await;
         let logs = self.consensus_logs.read().await;
         let configs = self.consensus_configs.read().await;
-        
-        let total_entries = states.len() + logs.values().map(|entries| entries.len()).sum::<usize>() + configs.len();
-        let size_bytes = states.values().map(|s| s.size_bytes).sum::<u64>() +
-                        logs.values().flat_map(|entries| entries.iter()).map(|e| e.size_bytes).sum::<u64>();
-        
+
+        let total_entries = states.len()
+            + logs.values().map(|entries| entries.len()).sum::<usize>()
+            + configs.len();
+        let size_bytes = states.values().map(|s| s.size_bytes).sum::<u64>()
+            + logs
+                .values()
+                .flat_map(|entries| entries.iter())
+                .map(|e| e.size_bytes)
+                .sum::<u64>();
+
         Ok(StoreStats {
             total_entries,
             size_bytes,
-            last_backup: None, // TODO: Track backup timestamps
-            last_cleanup: None, // TODO: Track cleanup timestamps
+            last_backup: None,    // TODO: Track backup timestamps
+            last_cleanup: None,   // TODO: Track cleanup timestamps
             validation_errors: 0, // TODO: Track validation errors
         })
     }
@@ -443,4 +473,4 @@ struct StoredConsensusData {
     states: HashMap<String, StoredConsensusState>,
     logs: HashMap<String, Vec<StoredConsensusEntry>>,
     configs: HashMap<String, ConsensusConfig>,
-} 
+}

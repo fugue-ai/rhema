@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
+use rhema_config::ConflictResolutionStrategy;
+use rhema_core::RhemaResult;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::collections::HashMap;
 use tempfile::TempDir;
-use rhema_core::RhemaResult;
-use rhema_config::ConflictResolutionStrategy;
 
 #[test]
 fn test_conflict_resolution_cli_command() -> RhemaResult<()> {
     // Create a temporary directory for testing
     let test_dir = TempDir::new()?;
     let test_path = test_dir.path();
-    
+
     // Create a simple test lock file content
     let lock_file_content = r#"
 {
@@ -63,16 +63,16 @@ fn test_conflict_resolution_cli_command() -> RhemaResult<()> {
   }
 }
 "#;
-    
+
     let lock_file_path = test_dir.path().join("rhema.lock");
     fs::write(&lock_file_path, lock_file_content)?;
-    
+
     // Test that the lock file can be read
     let lock_content = fs::read_to_string(&lock_file_path)?;
     assert!(lock_content.contains("test-scope"));
     assert!(lock_content.contains("test-dep"));
     assert!(lock_content.contains("1.2.3"));
-    
+
     // Test conflict resolution configuration using actual types
     let config = rhema_config::ConflictResolutionConfig {
         primary_strategy: ConflictResolutionStrategy::LatestCompatible,
@@ -97,18 +97,21 @@ fn test_conflict_resolution_cli_command() -> RhemaResult<()> {
         dependency_type_preferences: HashMap::new(),
         scope_preferences: HashMap::new(),
     };
-    
+
     // Test that the configuration is valid
-    assert_eq!(config.primary_strategy, ConflictResolutionStrategy::LatestCompatible);
+    assert_eq!(
+        config.primary_strategy,
+        ConflictResolutionStrategy::LatestCompatible
+    );
     assert_eq!(config.fallback_strategies.len(), 2);
     assert!(config.enable_auto_detection);
     assert!(config.track_history);
-    
+
     // Test that the lock file exists and can be parsed as JSON
     let lock_data: serde_json::Value = serde_json::from_str(&lock_content)?;
     assert_eq!(lock_data["lockfile_version"], "1.0.0");
     assert!(lock_data["scopes"]["test-scope"]["dependencies"]["test-dep"]["version"] == "1.2.3");
-    
+
     Ok(())
 }
 
@@ -122,7 +125,7 @@ fn test_conflict_resolution_strategies() -> RhemaResult<()> {
         ConflictResolutionStrategy::Aggressive,
         ConflictResolutionStrategy::PinnedVersion,
     ];
-    
+
     // Test that all strategies are valid
     for strategy in strategies {
         match strategy {
@@ -137,7 +140,7 @@ fn test_conflict_resolution_strategies() -> RhemaResult<()> {
             ConflictResolutionStrategy::Hybrid => assert!(true),
         }
     }
-    
+
     Ok(())
 }
 
@@ -145,21 +148,25 @@ fn test_conflict_resolution_strategies() -> RhemaResult<()> {
 fn test_conflict_resolution_config_defaults() -> RhemaResult<()> {
     // Test default configuration creation
     let config = rhema_config::ConflictResolutionConfig::default();
-    
+
     // Test that default values are reasonable
     assert!(config.max_attempts > 0);
     assert!(config.timeout_seconds > 0);
     assert!(config.compatibility_threshold > 0.0);
     assert!(config.compatibility_threshold <= 1.0);
     assert!(config.max_parallel_threads > 0);
-    
+
     // Test that the configuration can be serialized and deserialized
     let config_json = serde_json::to_string(&config)?;
-    let deserialized_config: rhema_config::ConflictResolutionConfig = serde_json::from_str(&config_json)?;
-    
-    assert_eq!(config.primary_strategy, deserialized_config.primary_strategy);
+    let deserialized_config: rhema_config::ConflictResolutionConfig =
+        serde_json::from_str(&config_json)?;
+
+    assert_eq!(
+        config.primary_strategy,
+        deserialized_config.primary_strategy
+    );
     assert_eq!(config.max_attempts, deserialized_config.max_attempts);
     assert_eq!(config.timeout_seconds, deserialized_config.timeout_seconds);
-    
+
     Ok(())
-} 
+}

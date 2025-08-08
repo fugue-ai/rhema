@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use uuid::Uuid;
 use tracing::info;
-use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use crate::agent::real_time_coordination::{
-    AgentInfo, AgentMessage,
-};
+use crate::agent::real_time_coordination::{AgentInfo, AgentMessage};
 
 // Temporarily comment out the generated protobuf code until we fix the dependencies
 /*
@@ -86,8 +84,11 @@ pub enum ConnectionStatus {
 
 impl SyneidesisCoordinationClient {
     pub async fn new(config: SyneidesisConfig) -> Result<Self, Box<dyn std::error::Error>> {
-        info!("Initializing Syneidesis coordination client with config: {:?}", config);
-        
+        info!(
+            "Initializing Syneidesis coordination client with config: {:?}",
+            config
+        );
+
         let client = Self {
             config,
             connection_status: Arc::new(RwLock::new(ConnectionStatus::Disconnected)),
@@ -95,7 +96,7 @@ impl SyneidesisCoordinationClient {
 
         // Attempt to connect
         client.connect().await?;
-        
+
         info!("✅ Syneidesis coordination client initialized successfully");
         Ok(client)
     }
@@ -103,11 +104,11 @@ impl SyneidesisCoordinationClient {
     async fn connect(&self) -> Result<(), Box<dyn std::error::Error>> {
         let mut status = self.connection_status.write().await;
         *status = ConnectionStatus::Connecting;
-        
+
         // For now, simulate connection
         // TODO: Replace with actual Syneidesis client connection
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        
+
         *status = ConnectionStatus::Connected;
         info!("✅ Connected to Syneidesis coordination server");
         Ok(())
@@ -137,7 +138,10 @@ impl SyneidesisCoordinationClient {
         }
     }
 
-    pub async fn send_message(&self, message: AgentMessage) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn send_message(
+        &self,
+        message: AgentMessage,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let status = self.connection_status.read().await;
         match *status {
             ConnectionStatus::Connected => {
@@ -149,7 +153,10 @@ impl SyneidesisCoordinationClient {
         }
     }
 
-    pub async fn get_agent_info(&self, agent_id: &str) -> Result<Option<AgentInfo>, Box<dyn std::error::Error>> {
+    pub async fn get_agent_info(
+        &self,
+        agent_id: &str,
+    ) -> Result<Option<AgentInfo>, Box<dyn std::error::Error>> {
         let status = self.connection_status.read().await;
         match *status {
             ConnectionStatus::Connected => {
@@ -161,11 +168,19 @@ impl SyneidesisCoordinationClient {
         }
     }
 
-    pub async fn create_session(&self, topic: String, participants: Vec<String>) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn create_session(
+        &self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let status = self.connection_status.read().await;
         match *status {
             ConnectionStatus::Connected => {
-                info!("Creating session '{}' with {} participants via Syneidesis", topic, participants.len());
+                info!(
+                    "Creating session '{}' with {} participants via Syneidesis",
+                    topic,
+                    participants.len()
+                );
                 // TODO: Replace with actual Syneidesis session creation
                 Ok(format!("syneidesis-session-{}", Uuid::new_v4()))
             }
@@ -173,11 +188,18 @@ impl SyneidesisCoordinationClient {
         }
     }
 
-    pub async fn join_session(&self, session_id: &str, agent_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn join_session(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let status = self.connection_status.read().await;
         match *status {
             ConnectionStatus::Connected => {
-                info!("Agent '{}' joining session '{}' via Syneidesis", agent_id, session_id);
+                info!(
+                    "Agent '{}' joining session '{}' via Syneidesis",
+                    agent_id, session_id
+                );
                 // TODO: Replace with actual Syneidesis session join
                 Ok(())
             }
@@ -185,11 +207,18 @@ impl SyneidesisCoordinationClient {
         }
     }
 
-    pub async fn leave_session(&self, session_id: &str, agent_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn leave_session(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let status = self.connection_status.read().await;
         match *status {
             ConnectionStatus::Connected => {
-                info!("Agent '{}' leaving session '{}' via Syneidesis", agent_id, session_id);
+                info!(
+                    "Agent '{}' leaving session '{}' via Syneidesis",
+                    agent_id, session_id
+                );
                 // TODO: Replace with actual Syneidesis session leave
                 Ok(())
             }
@@ -197,11 +226,18 @@ impl SyneidesisCoordinationClient {
         }
     }
 
-    pub async fn send_session_message(&self, session_id: &str, message: AgentMessage) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn send_session_message(
+        &self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let status = self.connection_status.read().await;
         match *status {
             ConnectionStatus::Connected => {
-                info!("Sending session message '{}' to session '{}' via Syneidesis", message.id, session_id);
+                info!(
+                    "Sending session message '{}' to session '{}' via Syneidesis",
+                    message.id, session_id
+                );
                 // TODO: Replace with actual Syneidesis session message sending
                 Ok(())
             }
@@ -264,12 +300,13 @@ pub struct GrpcCoordinationClient {
 impl GrpcCoordinationClient {
     pub async fn new(config: GrpcClientConfig) -> Result<Self, Box<dyn std::error::Error>> {
         // For now, just create a placeholder client
-        Ok(Self {
-            config,
-        })
+        Ok(Self { config })
     }
 
-    pub async fn register_agent(&self, agent_info: AgentInfo) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn register_agent(
+        &self,
+        agent_info: AgentInfo,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // For now, just log the registration
         println!("Would register agent: {}", agent_info.id);
         Ok(())
@@ -281,39 +318,74 @@ impl GrpcCoordinationClient {
         Ok(())
     }
 
-    pub async fn send_message(&self, message: AgentMessage) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn send_message(
+        &self,
+        message: AgentMessage,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // For now, just log the message
         println!("Would send message: {}", message.id);
         Ok(())
     }
 
-    pub async fn get_agent_info(&self, agent_id: &str) -> Result<Option<AgentInfo>, Box<dyn std::error::Error>> {
+    pub async fn get_agent_info(
+        &self,
+        agent_id: &str,
+    ) -> Result<Option<AgentInfo>, Box<dyn std::error::Error>> {
         // For now, return None
         println!("Would get agent info: {}", agent_id);
         Ok(None)
     }
 
-    pub async fn create_session(&self, topic: String, participants: Vec<String>) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn create_session(
+        &self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         // For now, return a placeholder session ID
-        println!("Would create session: {} with {} participants", topic, participants.len());
+        println!(
+            "Would create session: {} with {} participants",
+            topic,
+            participants.len()
+        );
         Ok("placeholder-session-id".to_string())
     }
 
-    pub async fn join_session(&self, session_id: &str, agent_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn join_session(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // For now, just log the join
-        println!("Would join session: {} with agent: {}", session_id, agent_id);
+        println!(
+            "Would join session: {} with agent: {}",
+            session_id, agent_id
+        );
         Ok(())
     }
 
-    pub async fn leave_session(&self, session_id: &str, agent_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn leave_session(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // For now, just log the leave
-        println!("Would leave session: {} with agent: {}", session_id, agent_id);
+        println!(
+            "Would leave session: {} with agent: {}",
+            session_id, agent_id
+        );
         Ok(())
     }
 
-    pub async fn send_session_message(&self, session_id: &str, message: AgentMessage) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn send_session_message(
+        &self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // For now, just log the session message
-        println!("Would send session message: {} to session: {}", message.id, session_id);
+        println!(
+            "Would send session message: {} to session: {}",
+            message.id, session_id
+        );
         Ok(())
     }
 }
@@ -584,4 +656,4 @@ impl GrpcCoordinationClient {
         }
     }
 }
-*/ 
+*/

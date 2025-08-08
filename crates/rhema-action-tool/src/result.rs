@@ -25,4 +25,4 @@ pub struct ToolResult {
     pub errors: Vec<String>,
     pub warnings: Vec<String>,
     pub duration: Duration,
-} 
+}

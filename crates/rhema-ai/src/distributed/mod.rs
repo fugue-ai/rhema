@@ -15,22 +15,22 @@
  */
 
 pub mod cluster_manager;
-pub mod node_discovery;
-pub mod load_balancer;
 pub mod health_checker;
+pub mod load_balancer;
+pub mod node_discovery;
 pub mod service_registry;
 
 pub use cluster_manager::ClusterManager;
-pub use node_discovery::NodeDiscovery;
-pub use load_balancer::DistributedLoadBalancer;
 pub use health_checker::HealthChecker;
+pub use load_balancer::DistributedLoadBalancer;
+pub use node_discovery::NodeDiscovery;
 pub use service_registry::ServiceRegistry;
 
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use chrono::{DateTime, Utc};
 
 /// Distributed deployment configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -470,7 +470,10 @@ impl DistributedManager {
     }
 
     /// Select node for service
-    pub async fn select_node_for_service(&self, service_name: &str) -> RhemaResult<Option<NodeInfo>> {
+    pub async fn select_node_for_service(
+        &self,
+        service_name: &str,
+    ) -> RhemaResult<Option<NodeInfo>> {
         self.load_balancer.select_node(service_name).await
     }
-} 
+}

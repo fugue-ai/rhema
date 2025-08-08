@@ -66,4 +66,4 @@ impl MessageEncryption {
         // TODO: Implement actual decryption
         Ok(data.to_vec())
     }
-} 
+}

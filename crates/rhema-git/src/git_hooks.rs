@@ -1,6 +1,6 @@
 use rhema_core::{RhemaError, RhemaResult};
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// Git hook types
@@ -72,11 +72,13 @@ impl GitHooksManager {
     /// Create a new Git hooks manager
     pub fn new(repo_path: &Path) -> RhemaResult<Self> {
         let hooks_dir = repo_path.join(".git").join("hooks");
-        
+
         if !hooks_dir.exists() {
-            return Err(RhemaError::ConfigError("Git hooks directory not found".to_string()));
+            return Err(RhemaError::ConfigError(
+                "Git hooks directory not found".to_string(),
+            ));
         }
-        
+
         Ok(Self {
             repo_path: repo_path.to_path_buf(),
             hooks_dir,
@@ -87,12 +89,11 @@ impl GitHooksManager {
     pub fn install_hook(&self, hook_type: &HookType, script_content: &str) -> RhemaResult<()> {
         let hook_name = self.get_hook_filename(hook_type);
         let hook_path = self.hooks_dir.join(hook_name);
-        
+
         // Write the hook script
-        fs::write(&hook_path, script_content).map_err(|e| {
-            RhemaError::ConfigError(format!("Failed to write hook script: {}", e))
-        })?;
-        
+        fs::write(&hook_path, script_content)
+            .map_err(|e| RhemaError::ConfigError(format!("Failed to write hook script: {}", e)))?;
+
         // Make the hook executable
         #[cfg(unix)]
         {
@@ -103,7 +104,7 @@ impl GitHooksManager {
                 RhemaError::ConfigError(format!("Failed to set hook permissions: {}", e))
             })?;
         }
-        
+
         Ok(())
     }
 
@@ -111,7 +112,7 @@ impl GitHooksManager {
     pub fn execute_hook(&self, hook_type: &HookType) -> RhemaResult<HookResult> {
         let hook_name = self.get_hook_filename(hook_type);
         let hook_path = self.hooks_dir.join(hook_name);
-        
+
         if !hook_path.exists() {
             return Ok(HookResult {
                 success: true,
@@ -121,29 +122,29 @@ impl GitHooksManager {
                 warnings: vec![],
             });
         }
-        
+
         // Execute the hook script
         let output = Command::new(&hook_path)
             .current_dir(&self.repo_path)
             .output()
-            .map_err(|e| {
-                RhemaError::ConfigError(format!("Failed to execute hook: {}", e))
-            })?;
-        
+            .map_err(|e| RhemaError::ConfigError(format!("Failed to execute hook: {}", e)))?;
+
         let success = output.status.success();
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        
-        let messages: Vec<String> = stdout.lines()
+
+        let messages: Vec<String> = stdout
+            .lines()
             .filter(|line| !line.trim().is_empty())
             .map(|line| line.to_string())
             .collect();
-        
-        let errors: Vec<String> = stderr.lines()
+
+        let errors: Vec<String> = stderr
+            .lines()
             .filter(|line| !line.trim().is_empty())
             .map(|line| line.to_string())
             .collect();
-        
+
         Ok(HookResult {
             success,
             hook_type: hook_type.clone(),
@@ -229,21 +230,21 @@ echo "Pre-push validation completed"
         self.install_hook(&HookType::PreCommit, pre_commit_script)?;
         self.install_hook(&HookType::PostCommit, post_commit_script)?;
         self.install_hook(&HookType::PrePush, pre_push_script)?;
-        
+
         Ok(())
     }
 
     /// List installed hooks
     pub fn list_hooks(&self) -> RhemaResult<Vec<String>> {
         let mut hooks = Vec::new();
-        
+
         for entry in fs::read_dir(&self.hooks_dir).map_err(|e| {
             RhemaError::ConfigError(format!("Failed to read hooks directory: {}", e))
         })? {
             let entry = entry.map_err(|e| {
                 RhemaError::ConfigError(format!("Failed to read hook entry: {}", e))
             })?;
-            
+
             let path = entry.path();
             if path.is_file() {
                 if let Some(name) = path.file_name() {
@@ -253,7 +254,7 @@ echo "Pre-push validation completed"
                 }
             }
         }
-        
+
         Ok(hooks)
     }
 
@@ -261,13 +262,12 @@ echo "Pre-push validation completed"
     pub fn remove_hook(&self, hook_type: &HookType) -> RhemaResult<()> {
         let hook_name = self.get_hook_filename(hook_type);
         let hook_path = self.hooks_dir.join(hook_name);
-        
+
         if hook_path.exists() {
-            fs::remove_file(&hook_path).map_err(|e| {
-                RhemaError::ConfigError(format!("Failed to remove hook: {}", e))
-            })?;
+            fs::remove_file(&hook_path)
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to remove hook: {}", e)))?;
         }
-        
+
         Ok(())
     }
-} 
+}

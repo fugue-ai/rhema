@@ -48,19 +48,19 @@ pub struct FileEvent {
 pub struct WatcherConfig {
     /// Enable file watching
     pub enabled: bool,
-    
+
     /// Directories to watch
     pub watch_dirs: Vec<PathBuf>,
-    
+
     /// File patterns to watch
     pub file_patterns: Vec<String>,
-    
+
     /// Debounce interval in milliseconds
     pub debounce_ms: u64,
-    
+
     /// Watch recursively
     pub recursive: bool,
-    
+
     /// Ignore hidden files
     pub ignore_hidden: bool,
 }
@@ -70,7 +70,11 @@ impl Default for WatcherConfig {
         Self {
             enabled: true,
             watch_dirs: vec![PathBuf::from(".")],
-            file_patterns: vec!["*.yaml".to_string(), "*.yml".to_string(), "*.json".to_string()],
+            file_patterns: vec![
+                "*.yaml".to_string(),
+                "*.yml".to_string(),
+                "*.json".to_string(),
+            ],
             debounce_ms: 100,
             recursive: true,
             ignore_hidden: true,
@@ -610,8 +614,8 @@ impl Default for FileWatcherBuilder {
 mod tests {
     use super::*;
     use crate::watcher::WatcherConfig;
-    use tempfile::TempDir;
     use std::fs;
+    use tempfile::TempDir;
 
     #[tokio::test]
     async fn test_file_watcher_creation() -> RhemaResult<()> {
@@ -629,10 +633,13 @@ mod tests {
         let mut config = WatcherConfig::default();
         config.enabled = true;
         config.file_patterns = vec!["*.txt".to_string()];
-        
+
         let file_watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf()).await?;
         assert!(file_watcher.config().enabled);
-        assert_eq!(file_watcher.config().file_patterns, vec!["*.txt".to_string()]);
+        assert_eq!(
+            file_watcher.config().file_patterns,
+            vec!["*.txt".to_string()]
+        );
         Ok(())
     }
 
@@ -641,7 +648,7 @@ mod tests {
         let temp_dir = TempDir::new()?;
         let config = WatcherConfig::default();
         let file_watcher = FileWatcher::new(&config, temp_dir.path().to_path_buf()).await?;
-        
+
         let stats = file_watcher.stats().await;
         assert_eq!(stats.total_events, 0);
         assert!(stats.uptime_seconds >= 0);

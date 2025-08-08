@@ -1,10 +1,12 @@
 pub mod backup;
+pub mod comprehensive_validator;
 pub mod config;
 pub mod global;
 pub mod invariants;
 pub mod lock;
 pub mod migration;
 pub mod repository;
+pub mod schema_validator;
 pub mod scope;
 pub mod security;
 #[cfg(test)]
@@ -12,10 +14,8 @@ pub mod test_config;
 pub mod tools;
 pub mod types;
 pub mod validation;
-pub mod validator;
-pub mod schema_validator;
-pub mod comprehensive_validator;
 pub mod validation_rules;
+pub mod validator;
 
 // Re-export core types
 pub use rhema_core::{RhemaError, RhemaResult};
@@ -32,10 +32,18 @@ pub use types::{
 
 // Re-export specific types from modules
 pub use backup::{
-    BackupManager, BackupFormat, BackupSchedule, BackupFrequency, RestoredConfig,
-    DetailedBackupStats, BackupReport, BackupRecord, BackupSummary, RestoreReport, RestoreSummary
+    BackupFormat, BackupFrequency, BackupManager, BackupRecord, BackupReport, BackupSchedule,
+    BackupSummary, DetailedBackupStats, RestoreReport, RestoreSummary, RestoredConfig,
+};
+pub use comprehensive_validator::{
+    ComprehensiveValidationIssue, ComprehensiveValidationReport, ComprehensiveValidationResult,
+    ComprehensiveValidationStatistics, ComprehensiveValidationSummary, ComprehensiveValidator,
+    ValidationCategory,
 };
 pub use global::GlobalConfig;
+pub use invariants::{
+    AgentValidator, ContextValidator, DependencyValidator, LockValidator, SyncValidator,
+};
 pub use lock::{
     AlertThresholds, CacheConfig, CacheEvictionPolicy, CacheType, ConflictResolutionConfig,
     ConflictResolutionStrategy, ConstraintType, EnvironmentLockConfig, LockConfig, MemoryConfig,
@@ -44,33 +52,34 @@ pub use lock::{
     UpdateFrequency, UpdateNotificationConfig, UpdatePoliciesConfig, UpdateRollbackConfig,
     UpdateSchedulingConfig, ValidationConfig, ValidationSeverity, VersionConstraintConfig,
 };
-pub use repository::RepositoryConfig;
-pub use scope::{ScopeConfig, ScopeDependency, DependencyType};
-pub use security::{SecurityManager, SecurityConfig, EncryptionSettings, AccessControlSettings, AuditSettings, ComplianceSettings, AccessDecision, ComplianceReport, ComplianceStatus};
 pub use migration::{
-    MigrationManager, Migration, MigrationStep, MigrationStepType, MigrationCondition, MigrationConditionOperator,
-    MigrationReport, MigrationRecord, MigrationSummary
+    Migration, MigrationCondition, MigrationConditionOperator, MigrationManager, MigrationRecord,
+    MigrationReport, MigrationStep, MigrationStepType, MigrationSummary,
+};
+pub use repository::RepositoryConfig;
+pub use schema_validator::{
+    SchemaType, SchemaValidationIssue, SchemaValidationResult, SchemaValidationStatistics,
+    SchemaValidator,
+};
+pub use scope::{DependencyType, ScopeConfig, ScopeDependency};
+pub use security::{
+    AccessControlSettings, AccessDecision, AuditSettings, ComplianceReport, ComplianceSettings,
+    ComplianceStatus, EncryptionSettings, SecurityConfig, SecurityManager,
 };
 pub use tools::{
-    ConfigBackupTool, ConfigDocumentationTool, ConfigEditor, ConfigMigrator, ConfigValidator,
-    ToolsConfig, ToolsManager, EditorSettings, ValidationSettings, MigrationSettings, BackupSettings,
-    DocumentationSettings, ToolIntegrations, EditorType, ValidationCache,
-    MigrationStrategy, BackupRetention, RetentionPolicy, DocumentationFormat, DocumentationStyle,
-    GitIntegration, IDEIntegration, CICDIntegration, ExternalTool, DocumentationReport, ValidationStatus, MigrationStatus, BackupStatus, DocumentationStatus
+    BackupRetention, BackupSettings, BackupStatus, CICDIntegration, ConfigBackupTool,
+    ConfigDocumentationTool, ConfigEditor, ConfigMigrator, ConfigValidator, DocumentationFormat,
+    DocumentationReport, DocumentationSettings, DocumentationStatus, DocumentationStyle,
+    EditorSettings, EditorType, ExternalTool, GitIntegration, IDEIntegration, MigrationSettings,
+    MigrationStatus, MigrationStrategy, RetentionPolicy, ToolIntegrations, ToolsConfig,
+    ToolsManager, ValidationCache, ValidationSettings, ValidationStatus,
 };
 pub use validation::{ValidationManager, ValidationReport, ValidationResult};
-pub use schema_validator::{SchemaValidator, SchemaType, SchemaValidationResult, SchemaValidationIssue, SchemaValidationStatistics};
-pub use comprehensive_validator::{
-    ComprehensiveValidator, ComprehensiveValidationResult, ComprehensiveValidationIssue,
-    ComprehensiveValidationReport, ComprehensiveValidationSummary, ComprehensiveValidationStatistics,
-    ValidationCategory,
-};
 pub use validation_rules::{
-    ValidationRulesConfig, ValidationRule, RuleType, RuleCondition, ConditionOperator,
-    RuleAction, ActionType, RuleSet, GlobalValidationSettings, SchemaOverride,
-    CustomValidatorConfig, ValidationRulesManager, RuleEvaluationResult, ValidationRulesStatistics,
+    ActionType, ConditionOperator, CustomValidatorConfig, GlobalValidationSettings, RuleAction,
+    RuleCondition, RuleEvaluationResult, RuleSet, RuleType, SchemaOverride, ValidationRule,
+    ValidationRulesConfig, ValidationRulesManager, ValidationRulesStatistics,
 };
-pub use invariants::{ContextValidator, DependencyValidator, AgentValidator, LockValidator, SyncValidator};
 
 // Error type conversions
 impl From<ConfigError> for RhemaError {

@@ -4,7 +4,7 @@ use rhema_core::RhemaResult;
 #[tokio::main]
 async fn main() -> RhemaResult<()> {
     println!("Testing basic Rhema functionality...");
-    
+
     // Create Rhema instance
     let rhema = Rhema::new()?;
     println!("✅ Rhema instance created");
@@ -19,8 +19,11 @@ async fn main() -> RhemaResult<()> {
 
     // Test search functionality
     let search_results = rhema.search_regex("test", None)?;
-    println!("✅ Search executed successfully, found {} results", search_results.len());
+    println!(
+        "✅ Search executed successfully, found {} results",
+        search_results.len()
+    );
 
     println!("All basic Rhema methods are accessible!");
     Ok(())
-} 
+}

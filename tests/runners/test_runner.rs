@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::common::{TestEnv, fixtures::TestFixtures};
+use crate::common::{fixtures::TestFixtures, TestEnv};
 use crate::config::test_config::TestConfig;
 
 /// Test result status
@@ -481,7 +481,9 @@ impl TestRunner {
     }
 
     /// Run coordination integration tests
-    pub fn run_coordination_integration_tests(&self) -> Result<SimpleTestResult, Box<dyn std::error::Error>> {
+    pub fn run_coordination_integration_tests(
+        &self,
+    ) -> Result<SimpleTestResult, Box<dyn std::error::Error>> {
         if !self.config.should_run_coordination_integration_tests() {
             return Ok(SimpleTestResult::Skipped);
         }
@@ -513,8 +515,14 @@ impl TestRunner {
         }
 
         let duration = start_time.elapsed();
-        println!("✅ Coordination Integration Tests completed in {:?}", duration);
-        println!("   Passed: {}, Failed: {}, Skipped: {}", passed, failed, skipped);
+        println!(
+            "✅ Coordination Integration Tests completed in {:?}",
+            duration
+        );
+        println!(
+            "   Passed: {}, Failed: {}, Skipped: {}",
+            passed, failed, skipped
+        );
 
         if failed > 0 {
             Ok(SimpleTestResult::Failed)
@@ -524,7 +532,9 @@ impl TestRunner {
     }
 
     /// Run coordination performance benchmarks
-    pub fn run_coordination_benchmarks(&self) -> Result<SimpleTestResult, Box<dyn std::error::Error>> {
+    pub fn run_coordination_benchmarks(
+        &self,
+    ) -> Result<SimpleTestResult, Box<dyn std::error::Error>> {
         if !self.config.should_run_coordination_benchmarks() {
             return Ok(SimpleTestResult::Skipped);
         }
@@ -556,8 +566,14 @@ impl TestRunner {
         }
 
         let duration = start_time.elapsed();
-        println!("✅ Coordination Performance Benchmarks completed in {:?}", duration);
-        println!("   Passed: {}, Failed: {}, Skipped: {}", passed, failed, skipped);
+        println!(
+            "✅ Coordination Performance Benchmarks completed in {:?}",
+            duration
+        );
+        println!(
+            "   Passed: {}, Failed: {}, Skipped: {}",
+            passed, failed, skipped
+        );
 
         if failed > 0 {
             Ok(SimpleTestResult::Failed)
@@ -567,7 +583,9 @@ impl TestRunner {
     }
 
     /// Run coordination security tests
-    pub fn run_coordination_security_tests(&self) -> Result<SimpleTestResult, Box<dyn std::error::Error>> {
+    pub fn run_coordination_security_tests(
+        &self,
+    ) -> Result<SimpleTestResult, Box<dyn std::error::Error>> {
         if !self.config.should_run_coordination_security_tests() {
             return Ok(SimpleTestResult::Skipped);
         }
@@ -600,7 +618,10 @@ impl TestRunner {
 
         let duration = start_time.elapsed();
         println!("✅ Coordination Security Tests completed in {:?}", duration);
-        println!("   Passed: {}, Failed: {}, Skipped: {}", passed, failed, skipped);
+        println!(
+            "   Passed: {}, Failed: {}, Skipped: {}",
+            passed, failed, skipped
+        );
 
         if failed > 0 {
             Ok(SimpleTestResult::Failed)
@@ -656,13 +677,13 @@ impl TestRunner {
         // For now, return empty results
         Ok(Vec::new())
     }
-    
+
     /// Run a single test
     fn run_single_test(&self, _suite: &str, _test_name: &str) -> SimpleTestResult {
         // Mock implementation - always pass
         SimpleTestResult::Passed
     }
-    
+
     /// Run a single benchmark
     fn run_single_benchmark(&self, _suite: &str, _benchmark_name: &str) -> SimpleTestResult {
         // Mock implementation - always pass

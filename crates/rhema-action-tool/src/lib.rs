@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-pub mod types;
 pub mod error;
 pub mod result;
 pub mod traits;
+pub mod types;
 
 // Re-export commonly used items for convenience
-pub use types::{ActionIntent, ActionType, SafetyLevel};
 pub use error::{ActionError, ActionResult};
 pub use result::ToolResult;
-pub use traits::{TransformationTool, ValidationTool, SafetyTool}; 
+pub use traits::{SafetyTool, TransformationTool, ValidationTool};
+pub use types::{ActionIntent, ActionType, SafetyLevel};

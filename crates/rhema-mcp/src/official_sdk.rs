@@ -136,66 +136,75 @@ impl OfficialRhemaMcpServer {
 
         match name.as_str() {
             "rhema_query" => {
-                let query = arguments["query"]
-                    .as_str()
-                    .ok_or_else(|| rhema_core::RhemaError::InvalidInput("Missing query parameter".to_string()))?;
-                
+                let query = arguments["query"].as_str().ok_or_else(|| {
+                    rhema_core::RhemaError::InvalidInput("Missing query parameter".to_string())
+                })?;
+
                 // Execute the actual query
                 let result = self.context_provider.execute_query(query).await?;
-                
-                Ok(ToolResult::Text { 
-                    text: serde_json::to_string(&result)?
+
+                Ok(ToolResult::Text {
+                    text: serde_json::to_string(&result)?,
                 })
             }
             "rhema_search" => {
-                let pattern = arguments["pattern"]
-                    .as_str()
-                    .ok_or_else(|| rhema_core::RhemaError::InvalidInput("Missing pattern parameter".to_string()))?;
-                
+                let pattern = arguments["pattern"].as_str().ok_or_else(|| {
+                    rhema_core::RhemaError::InvalidInput("Missing pattern parameter".to_string())
+                })?;
+
                 let file_filter = arguments["file_filter"].as_str();
-                
+
                 // Execute the actual search
-                let results = self.context_provider.search_regex(pattern, file_filter).await?;
-                
-                Ok(ToolResult::Text { 
-                    text: serde_json::to_string(&results)?
+                let results = self
+                    .context_provider
+                    .search_regex(pattern, file_filter)
+                    .await?;
+
+                Ok(ToolResult::Text {
+                    text: serde_json::to_string(&results)?,
                 })
             }
             "rhema_scope" => {
-                let scope_name = arguments["name"]
-                    .as_str()
-                    .ok_or_else(|| rhema_core::RhemaError::InvalidInput("Missing name parameter".to_string()))?;
-                
+                let scope_name = arguments["name"].as_str().ok_or_else(|| {
+                    rhema_core::RhemaError::InvalidInput("Missing name parameter".to_string())
+                })?;
+
                 // Get scope information
                 let scope = self.context_provider.get_scope(scope_name).await?;
-                
-                Ok(ToolResult::Text { 
-                    text: serde_json::to_string(&scope)?
+
+                Ok(ToolResult::Text {
+                    text: serde_json::to_string(&scope)?,
                 })
             }
             "rhema_scopes" => {
                 // Get all scopes
                 let scopes = self.context_provider.get_scopes().await?;
-                
-                Ok(ToolResult::Text { 
-                    text: serde_json::to_string(&scopes)?
+
+                Ok(ToolResult::Text {
+                    text: serde_json::to_string(&scopes)?,
                 })
             }
             "rhema_knowledge" => {
-                let scope_name = arguments["scope"]
-                    .as_str()
-                    .ok_or_else(|| rhema_core::RhemaError::InvalidInput("Missing scope parameter".to_string()))?;
-                
+                let scope_name = arguments["scope"].as_str().ok_or_else(|| {
+                    rhema_core::RhemaError::InvalidInput("Missing scope parameter".to_string())
+                })?;
+
                 // Load knowledge for scope
-                let knowledge = self.context_provider.get_knowledge_for_mcp(scope_name).await?;
-                
-                Ok(ToolResult::Text { 
-                    text: serde_json::to_string(&knowledge)?
+                let knowledge = self
+                    .context_provider
+                    .get_knowledge_for_mcp(scope_name)
+                    .await?;
+
+                Ok(ToolResult::Text {
+                    text: serde_json::to_string(&knowledge)?,
                 })
             }
             _ => {
                 warn!("Unknown tool: {}", name);
-                Err(rhema_core::RhemaError::InvalidInput(format!("Unknown tool: {}", name)))
+                Err(rhema_core::RhemaError::InvalidInput(format!(
+                    "Unknown tool: {}",
+                    name
+                )))
             }
         }
     }
@@ -221,7 +230,7 @@ impl OfficialRhemaMcpServer {
     /// Initialize resources
     async fn initialize_resources(&self) -> RhemaResult<()> {
         let mut resources_guard = self.resources.write().await;
-        
+
         // Add default Rhema resources
         resources_guard.insert(
             "rhema://context/schema".to_string(),
@@ -262,7 +271,7 @@ impl OfficialRhemaMcpServer {
     /// Initialize tools
     async fn initialize_tools(&self) -> RhemaResult<()> {
         let mut tools_guard = self.tools.write().await;
-        
+
         // Add Rhema query tool
         tools_guard.insert(
             "rhema_query".to_string(),
@@ -373,7 +382,7 @@ impl OfficialRhemaMcpServer {
     /// Initialize prompts
     async fn initialize_prompts(&self) -> RhemaResult<()> {
         let mut prompts_guard = self.prompts.write().await;
-        
+
         // Add default Rhema prompts
         prompts_guard.insert(
             "rhema_context_analysis".to_string(),
@@ -421,7 +430,7 @@ impl OfficialRhemaMcpServer {
     pub async fn health(&self) -> crate::mcp::HealthStatus {
         // Get actual cache statistics
         let cache_stats = self.cache_manager.get_statistics().await;
-        
+
         crate::mcp::HealthStatus {
             status: "healthy".to_string(),
             uptime: self.get_uptime().await.as_secs(),
@@ -456,4 +465,4 @@ impl OfficialRhemaMcpServer {
             used_mb: 0,
         }
     }
-} 
+}

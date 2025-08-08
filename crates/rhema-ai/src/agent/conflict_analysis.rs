@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-use chrono::{DateTime, Utc, Duration};
-use rhema_core::{RhemaResult, RhemaError};
+use chrono::{DateTime, Duration, Utc};
+use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use thiserror::Error;
-use uuid::Uuid;
+use tokio::sync::RwLock;
 use tracing::error;
+use uuid::Uuid;
 
 use super::conflict_prevention::{
-    ConflictType, ConflictSeverity, Conflict, ConflictStatus, ResolutionStrategy,
-    ConflictResolution,
+    Conflict, ConflictResolution, ConflictSeverity, ConflictStatus, ConflictType,
+    ResolutionStrategy,
 };
 use super::ml_conflict_prediction::{
-    ConflictPredictionResult, MLConflictPredictionStats, LearningMetrics,
+    ConflictPredictionResult, LearningMetrics, MLConflictPredictionStats,
 };
 use super::real_time_coordination::RealTimeCoordinationSystem;
 
@@ -720,9 +720,11 @@ impl ConflictAnalysisSystem {
         let report = ConflictAnalysisReport {
             id: Uuid::new_v4().to_string(),
             title: format!("Conflict Analysis Report - {:?}", report_type),
-            description: format!("Comprehensive analysis of conflicts and resolutions from {} to {}", 
-                               start_time.format("%Y-%m-%d %H:%M"), 
-                               end_time.format("%Y-%m-%d %H:%M")),
+            description: format!(
+                "Comprehensive analysis of conflicts and resolutions from {} to {}",
+                start_time.format("%Y-%m-%d %H:%M"),
+                end_time.format("%Y-%m-%d %H:%M")
+            ),
             report_type,
             analysis_period,
             generated_at: Utc::now(),
@@ -753,7 +755,9 @@ impl ConflictAnalysisSystem {
         let learning_insights = self.analyze_learning_insights(period).await?;
         let trend_analysis = self.analyze_trends(period).await?;
         let performance_metrics = self.analyze_performance_metrics(period).await?;
-        let recommendations = self.generate_recommendations(&conflict_stats, &resolution_stats, &prediction_stats).await?;
+        let recommendations = self
+            .generate_recommendations(&conflict_stats, &resolution_stats, &prediction_stats)
+            .await?;
 
         Ok(ReportData {
             conflict_stats,
@@ -767,10 +771,13 @@ impl ConflictAnalysisSystem {
     }
 
     /// Analyze conflict statistics
-    async fn analyze_conflict_statistics(&self, period: &AnalysisPeriod) -> RhemaResult<ConflictStatistics> {
+    async fn analyze_conflict_statistics(
+        &self,
+        period: &AnalysisPeriod,
+    ) -> RhemaResult<ConflictStatistics> {
         let conflicts = self.get_conflicts_in_period(period).await?;
         let resolutions = self.get_resolutions_in_period(period).await?;
-        
+
         let mut conflicts_by_type = HashMap::new();
         let mut conflicts_by_severity = HashMap::new();
         let mut conflicts_by_status = HashMap::new();
@@ -778,10 +785,18 @@ impl ConflictAnalysisSystem {
         let mut conflicts_by_scope = HashMap::new();
 
         for conflict in &conflicts {
-            *conflicts_by_type.entry(conflict.conflict_type.clone()).or_insert(0) += 1;
-            *conflicts_by_severity.entry(conflict.severity.clone()).or_insert(0) += 1;
-            *conflicts_by_status.entry(conflict.status.clone()).or_insert(0) += 1;
-            *conflicts_by_scope.entry(conflict.affected_scope.clone()).or_insert(0) += 1;
+            *conflicts_by_type
+                .entry(conflict.conflict_type.clone())
+                .or_insert(0) += 1;
+            *conflicts_by_severity
+                .entry(conflict.severity.clone())
+                .or_insert(0) += 1;
+            *conflicts_by_status
+                .entry(conflict.status.clone())
+                .or_insert(0) += 1;
+            *conflicts_by_scope
+                .entry(conflict.affected_scope.clone())
+                .or_insert(0) += 1;
 
             for agent in &conflict.involved_agents {
                 *conflicts_by_agent.entry(agent.clone()).or_insert(0) += 1;
@@ -796,7 +811,8 @@ impl ConflictAnalysisSystem {
         };
 
         // Calculate most common types
-        let mut type_frequencies: Vec<_> = conflicts_by_type.iter()
+        let mut type_frequencies: Vec<_> = conflicts_by_type
+            .iter()
             .map(|(t, &count)| ConflictTypeFrequency {
                 conflict_type: t.clone(),
                 frequency: count,
@@ -806,15 +822,18 @@ impl ConflictAnalysisSystem {
         type_frequencies.sort_by(|a, b| b.frequency.cmp(&a.frequency));
 
         // Calculate most affected agents with resolution time
-        let mut agent_frequencies: Vec<_> = conflicts_by_agent.iter()
+        let mut agent_frequencies: Vec<_> = conflicts_by_agent
+            .iter()
             .map(|(id, &count)| {
                 // Calculate average resolution time for this agent
-                let agent_resolutions: Vec<_> = resolutions.iter()
+                let agent_resolutions: Vec<_> = resolutions
+                    .iter()
                     .filter(|r| r.conflict_id.starts_with(id))
                     .collect();
-                
+
                 let avg_resolution_time = if !agent_resolutions.is_empty() {
-                    let total_time: f64 = agent_resolutions.iter()
+                    let total_time: f64 = agent_resolutions
+                        .iter()
                         .map(|r| r.metrics.time_to_resolution_seconds as f64)
                         .sum();
                     total_time / agent_resolutions.len() as f64
@@ -834,19 +853,20 @@ impl ConflictAnalysisSystem {
 
         // Calculate conflict frequency trend
         let conflict_frequency_trend = if conflicts.len() > 1 {
-            let sorted_conflicts: Vec<_> = conflicts.iter()
-                .map(|c| c.detected_at)
-                .collect();
-            
+            let sorted_conflicts: Vec<_> = conflicts.iter().map(|c| c.detected_at).collect();
+
             let mid_point = sorted_conflicts.len() / 2;
             let first_half = sorted_conflicts[..mid_point].len();
             let second_half = sorted_conflicts[mid_point..].len();
-            
+
             if second_half > first_half * 2 {
                 TrendDirection::Increasing
             } else if first_half > second_half * 2 {
                 TrendDirection::Decreasing
-            } else if (first_half as f64 - second_half as f64).abs() / (first_half + second_half) as f64 > 0.3 {
+            } else if (first_half as f64 - second_half as f64).abs()
+                / (first_half + second_half) as f64
+                > 0.3
+            {
                 TrendDirection::Fluctuating
             } else {
                 TrendDirection::Stable
@@ -870,9 +890,12 @@ impl ConflictAnalysisSystem {
     }
 
     /// Analyze resolution statistics
-    async fn analyze_resolution_statistics(&self, period: &AnalysisPeriod) -> RhemaResult<ResolutionStatistics> {
+    async fn analyze_resolution_statistics(
+        &self,
+        period: &AnalysisPeriod,
+    ) -> RhemaResult<ResolutionStatistics> {
         let resolutions = self.get_resolutions_in_period(period).await?;
-        
+
         let mut resolutions_by_strategy = HashMap::new();
         let resolution_time_by_type = HashMap::new();
         let resolution_success_by_strategy = HashMap::new();
@@ -881,8 +904,10 @@ impl ConflictAnalysisSystem {
         let mut successful_resolutions = 0;
 
         for resolution in &resolutions {
-            *resolutions_by_strategy.entry(resolution.strategy.clone()).or_insert(0) += 1;
-            
+            *resolutions_by_strategy
+                .entry(resolution.strategy.clone())
+                .or_insert(0) += 1;
+
             if resolution.successful {
                 successful_resolutions += 1;
             }
@@ -904,9 +929,11 @@ impl ConflictAnalysisSystem {
         };
 
         // Calculate strategy effectiveness
-        let mut strategy_effectiveness: Vec<_> = resolutions_by_strategy.iter()
+        let mut strategy_effectiveness: Vec<_> = resolutions_by_strategy
+            .iter()
             .map(|(strategy, &count)| {
-                let successful = resolutions.iter()
+                let successful = resolutions
+                    .iter()
                     .filter(|r| r.strategy == *strategy && r.successful)
                     .count();
                 let success_rate = if count > 0 {
@@ -915,10 +942,12 @@ impl ConflictAnalysisSystem {
                     0.0
                 };
 
-                let avg_time = resolutions.iter()
+                let avg_time = resolutions
+                    .iter()
                     .filter(|r| r.strategy == *strategy)
                     .map(|r| r.metrics.time_to_resolution_seconds as f64)
-                    .sum::<f64>() / count as f64;
+                    .sum::<f64>()
+                    / count as f64;
 
                 StrategyEffectiveness {
                     strategy: strategy.clone(),
@@ -931,17 +960,25 @@ impl ConflictAnalysisSystem {
         strategy_effectiveness.sort_by(|a, b| b.success_rate.partial_cmp(&a.success_rate).unwrap());
 
         // Calculate resolution complexity scores
-        let mut complexity_scores: Vec<_> = resolutions.iter()
+        let mut complexity_scores: Vec<_> = resolutions
+            .iter()
             .map(|r| ComplexityScore {
                 conflict_id: r.conflict_id.clone(),
                 complexity_score: r.metrics.complexity_score,
                 complexity_factors: vec![
-                    format!("Time to resolution: {:.2}s", r.metrics.time_to_resolution_seconds),
-                    format!("Time to resolution: {}s", r.metrics.time_to_resolution_seconds),
+                    format!(
+                        "Time to resolution: {:.2}s",
+                        r.metrics.time_to_resolution_seconds
+                    ),
+                    format!(
+                        "Time to resolution: {}s",
+                        r.metrics.time_to_resolution_seconds
+                    ),
                 ],
             })
             .collect();
-        complexity_scores.sort_by(|a, b| b.complexity_score.partial_cmp(&a.complexity_score).unwrap());
+        complexity_scores
+            .sort_by(|a, b| b.complexity_score.partial_cmp(&a.complexity_score).unwrap());
 
         Ok(ResolutionStatistics {
             total_resolutions,
@@ -956,7 +993,10 @@ impl ConflictAnalysisSystem {
     }
 
     /// Analyze prediction statistics
-    async fn analyze_prediction_statistics(&self, period: &AnalysisPeriod) -> RhemaResult<PredictionStatistics> {
+    async fn analyze_prediction_statistics(
+        &self,
+        period: &AnalysisPeriod,
+    ) -> RhemaResult<PredictionStatistics> {
         let predictions = self.get_predictions_in_period(period).await?;
         let ml_stats = self.ml_prediction_stats.read().await;
 
@@ -985,24 +1025,33 @@ impl ConflictAnalysisSystem {
             } else {
                 "Low (<0.7)"
             };
-            *predictions_by_confidence.entry(confidence_level.to_string()).or_insert(0) += 1;
+            *predictions_by_confidence
+                .entry(confidence_level.to_string())
+                .or_insert(0) += 1;
         }
 
         // Calculate prediction accuracy by type
         let mut prediction_accuracy_by_type = HashMap::new();
         let mut type_predictions: HashMap<ConflictType, (usize, usize)> = HashMap::new();
-        
+
         for prediction in &predictions {
-            let entry = type_predictions.entry(prediction.predicted_conflict_type.clone().unwrap_or(ConflictType::FileModification)).or_insert((0, 0));
+            let entry = type_predictions
+                .entry(
+                    prediction
+                        .predicted_conflict_type
+                        .clone()
+                        .unwrap_or(ConflictType::FileModification),
+                )
+                .or_insert((0, 0));
             entry.0 += 1; // total predictions for this type
-            
+
             // For now, we'll assume predictions are accurate if confidence > 0.8
             // In a real implementation, this would be compared against actual outcomes
             if prediction.confidence > 0.8 {
                 entry.1 += 1; // accurate predictions for this type
             }
         }
-        
+
         for (conflict_type, (total, accurate)) in type_predictions {
             let accuracy = if total > 0 {
                 accurate as f64 / total as f64
@@ -1014,19 +1063,18 @@ impl ConflictAnalysisSystem {
 
         // Calculate false positive and false negative rates
         // For now, we'll use simplified calculations based on confidence thresholds
-        let false_positives = predictions.iter()
+        let false_positives = predictions
+            .iter()
             .filter(|p| p.confidence > 0.8 && p.confidence < 0.95)
             .count();
-        let false_negatives = predictions.iter()
-            .filter(|p| p.confidence < 0.5)
-            .count();
-        
+        let false_negatives = predictions.iter().filter(|p| p.confidence < 0.5).count();
+
         let false_positive_rate = if total_predictions > 0 {
             false_positives as f64 / total_predictions as f64
         } else {
             0.0
         };
-        
+
         let false_negative_rate = if total_predictions > 0 {
             false_negatives as f64 / total_predictions as f64
         } else {
@@ -1048,7 +1096,10 @@ impl ConflictAnalysisSystem {
     }
 
     /// Analyze learning insights
-    async fn analyze_learning_insights(&self, period: &AnalysisPeriod) -> RhemaResult<LearningInsights> {
+    async fn analyze_learning_insights(
+        &self,
+        period: &AnalysisPeriod,
+    ) -> RhemaResult<LearningInsights> {
         let ml_stats = self.ml_prediction_stats.read().await;
 
         // Generate model performance trends
@@ -1108,7 +1159,10 @@ impl ConflictAnalysisSystem {
                 description: "High confidence predictions tend to be more accurate".to_string(),
                 frequency: 85,
                 confidence: 0.92,
-                related_features: vec!["dependency_complexity".to_string(), "version_conflicts".to_string()],
+                related_features: vec![
+                    "dependency_complexity".to_string(),
+                    "version_conflicts".to_string(),
+                ],
             },
             LearningPattern {
                 pattern_id: "circular_dependency_detection".to_string(),
@@ -1123,7 +1177,8 @@ impl ConflictAnalysisSystem {
         let knowledge_gaps = vec![
             KnowledgeGap {
                 gap_id: "rare_conflict_types".to_string(),
-                description: "Limited data on rare conflict types reduces prediction accuracy".to_string(),
+                description: "Limited data on rare conflict types reduces prediction accuracy"
+                    .to_string(),
                 severity: PriorityLevel::Medium,
                 impact_on_predictions: 0.15,
                 suggested_actions: vec![
@@ -1133,7 +1188,8 @@ impl ConflictAnalysisSystem {
             },
             KnowledgeGap {
                 gap_id: "multi_agent_coordination".to_string(),
-                description: "Complex multi-agent coordination patterns are not well understood".to_string(),
+                description: "Complex multi-agent coordination patterns are not well understood"
+                    .to_string(),
                 severity: PriorityLevel::High,
                 impact_on_predictions: 0.25,
                 suggested_actions: vec![
@@ -1154,14 +1210,17 @@ impl ConflictAnalysisSystem {
             },
             ImprovementOpportunity {
                 opportunity_id: "real_time_learning".to_string(),
-                description: "Enable real-time model updates based on new conflict data".to_string(),
+                description: "Enable real-time model updates based on new conflict data"
+                    .to_string(),
                 expected_improvement: 0.08,
                 implementation_effort: EffortLevel::High,
                 priority: PriorityLevel::Medium,
             },
             ImprovementOpportunity {
                 opportunity_id: "feature_engineering".to_string(),
-                description: "Develop more sophisticated feature engineering for conflict prediction".to_string(),
+                description:
+                    "Develop more sophisticated feature engineering for conflict prediction"
+                        .to_string(),
                 expected_improvement: 0.15,
                 implementation_effort: EffortLevel::Medium,
                 priority: PriorityLevel::High,
@@ -1193,7 +1252,10 @@ impl ConflictAnalysisSystem {
         let time_series_data: Vec<TimeSeriesData> = conflict_counts_by_day
             .into_iter()
             .map(|(date, count)| TimeSeriesData {
-                timestamp: DateTime::from_naive_utc_and_offset(date.and_hms_opt(0, 0, 0).unwrap(), Utc),
+                timestamp: DateTime::from_naive_utc_and_offset(
+                    date.and_hms_opt(0, 0, 0).unwrap(),
+                    Utc,
+                ),
                 value: count as f64,
                 trend: TrendDirection::Stable,
             })
@@ -1243,19 +1305,18 @@ impl ConflictAnalysisSystem {
         ];
 
         // Generate anomaly detection
-        let anomalies = vec![
-            Anomaly {
-                anomaly_id: "spike_2024_01_15".to_string(),
-                description: "Unusual spike in conflicts on January 15th".to_string(),
-                timestamp: DateTime::from_naive_utc_and_offset(
-                    chrono::NaiveDateTime::parse_from_str("2024-01-15 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
-                    Utc
-                ),
-                severity: PriorityLevel::High,
-                anomaly_score: 0.92,
-                related_metrics: vec!["conflict_count".to_string(), "resolution_time".to_string()],
-            },
-        ];
+        let anomalies = vec![Anomaly {
+            anomaly_id: "spike_2024_01_15".to_string(),
+            description: "Unusual spike in conflicts on January 15th".to_string(),
+            timestamp: DateTime::from_naive_utc_and_offset(
+                chrono::NaiveDateTime::parse_from_str("2024-01-15 10:00:00", "%Y-%m-%d %H:%M:%S")
+                    .unwrap(),
+                Utc,
+            ),
+            severity: PriorityLevel::High,
+            anomaly_score: 0.92,
+            related_metrics: vec!["conflict_count".to_string(), "resolution_time".to_string()],
+        }];
 
         Ok(TrendAnalysis {
             conflict_frequency_trends: time_series_data.clone(),
@@ -1268,7 +1329,10 @@ impl ConflictAnalysisSystem {
     }
 
     /// Analyze performance metrics
-    async fn analyze_performance_metrics(&self, _period: &AnalysisPeriod) -> RhemaResult<PerformanceMetrics> {
+    async fn analyze_performance_metrics(
+        &self,
+        _period: &AnalysisPeriod,
+    ) -> RhemaResult<PerformanceMetrics> {
         // Generate system metrics (simulated)
         let system_metrics = SystemMetrics {
             cpu_utilization: 0.65,
@@ -1281,22 +1345,28 @@ impl ConflictAnalysisSystem {
 
         // Generate agent metrics (simulated)
         let mut agent_metrics = HashMap::new();
-        agent_metrics.insert("agent_1".to_string(), AgentMetrics {
-            agent_id: "agent_1".to_string(),
-            response_time_ms: 125.0,
-            throughput_rps: 45.2,
-            error_rate: 0.01,
-            availability: 0.995,
-            resource_usage: 0.23,
-        });
-        agent_metrics.insert("agent_2".to_string(), AgentMetrics {
-            agent_id: "agent_2".to_string(),
-            response_time_ms: 98.5,
-            throughput_rps: 52.1,
-            error_rate: 0.015,
-            availability: 0.998,
-            resource_usage: 0.31,
-        });
+        agent_metrics.insert(
+            "agent_1".to_string(),
+            AgentMetrics {
+                agent_id: "agent_1".to_string(),
+                response_time_ms: 125.0,
+                throughput_rps: 45.2,
+                error_rate: 0.01,
+                availability: 0.995,
+                resource_usage: 0.23,
+            },
+        );
+        agent_metrics.insert(
+            "agent_2".to_string(),
+            AgentMetrics {
+                agent_id: "agent_2".to_string(),
+                response_time_ms: 98.5,
+                throughput_rps: 52.1,
+                error_rate: 0.015,
+                availability: 0.998,
+                resource_usage: 0.31,
+            },
+        );
 
         // Generate resource utilization
         let resource_utilization = ResourceUtilization {
@@ -1438,25 +1508,34 @@ impl ConflictAnalysisSystem {
     /// Get conflicts in period
     async fn get_conflicts_in_period(&self, period: &AnalysisPeriod) -> RhemaResult<Vec<Conflict>> {
         let conflicts = self.conflict_history.read().await;
-        Ok(conflicts.iter()
+        Ok(conflicts
+            .iter()
             .filter(|c| c.detected_at >= period.start_time && c.detected_at <= period.end_time)
             .cloned()
             .collect())
     }
 
     /// Get resolutions in period
-    async fn get_resolutions_in_period(&self, period: &AnalysisPeriod) -> RhemaResult<Vec<ConflictResolution>> {
+    async fn get_resolutions_in_period(
+        &self,
+        period: &AnalysisPeriod,
+    ) -> RhemaResult<Vec<ConflictResolution>> {
         let resolutions = self.resolution_history.read().await;
-        Ok(resolutions.iter()
+        Ok(resolutions
+            .iter()
             .filter(|r| r.timestamp >= period.start_time && r.timestamp <= period.end_time)
             .cloned()
             .collect())
     }
 
     /// Get predictions in period
-    async fn get_predictions_in_period(&self, period: &AnalysisPeriod) -> RhemaResult<Vec<ConflictPredictionResult>> {
+    async fn get_predictions_in_period(
+        &self,
+        period: &AnalysisPeriod,
+    ) -> RhemaResult<Vec<ConflictPredictionResult>> {
         let predictions = self.prediction_history.read().await;
-        Ok(predictions.iter()
+        Ok(predictions
+            .iter()
             .filter(|p| p.timestamp >= period.start_time && p.timestamp <= period.end_time)
             .cloned()
             .collect())
@@ -1477,8 +1556,9 @@ impl ConflictAnalysisSystem {
     /// Export report to JSON
     pub async fn export_report_json(&self, report_id: &str) -> RhemaResult<String> {
         if let Some(report) = self.get_report(report_id).await {
-            serde_json::to_string_pretty(&report)
-                .map_err(|e| RhemaError::SerializationError(format!("Failed to serialize report: {}", e)))
+            serde_json::to_string_pretty(&report).map_err(|e| {
+                RhemaError::SerializationError(format!("Failed to serialize report: {}", e))
+            })
         } else {
             Err(RhemaError::NotFound("Report not found".to_string()))
         }
@@ -1488,9 +1568,9 @@ impl ConflictAnalysisSystem {
     pub async fn cleanup_old_reports(&self) -> RhemaResult<()> {
         let cutoff_time = Utc::now() - Duration::days(self.config.report_retention_days as i64);
         let mut reports = self.analysis_reports.write().await;
-        
+
         reports.retain(|r| r.generated_at >= cutoff_time);
-        
+
         Ok(())
     }
 }
@@ -1504,7 +1584,7 @@ mod tests {
     async fn test_conflict_analysis_system_creation() {
         let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
         let config = ConflictAnalysisConfig::default();
-        
+
         let system = ConflictAnalysisSystem::new(coordination_system, config).await;
         assert!(system.is_ok());
     }
@@ -1513,18 +1593,18 @@ mod tests {
     async fn test_analysis_report_generation() {
         let coordination_system = Arc::new(RealTimeCoordinationSystem::new());
         let config = ConflictAnalysisConfig::default();
-        
-        let system = ConflictAnalysisSystem::new(coordination_system, config).await.unwrap();
-        
+
+        let system = ConflictAnalysisSystem::new(coordination_system, config)
+            .await
+            .unwrap();
+
         let start_time = Utc::now() - Duration::days(7);
         let end_time = Utc::now();
-        
-        let report = system.generate_analysis_report(
-            ReportType::Summary,
-            start_time,
-            end_time,
-        ).await;
-        
+
+        let report = system
+            .generate_analysis_report(ReportType::Summary, start_time, end_time)
+            .await;
+
         assert!(report.is_ok());
     }
-} 
+}

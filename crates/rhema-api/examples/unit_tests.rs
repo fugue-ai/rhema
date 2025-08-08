@@ -1,15 +1,19 @@
 //! Unit tests for Rhema crate functionality
-//! 
+//!
 //! This example demonstrates comprehensive unit testing for the Rhema crate,
 //! including initialization, query execution, performance monitoring, and security features.
 
-use rhema::{Rhema, RhemaResult, ApiInput, RateLimitConfig, PerformanceMonitor, PerformanceMetrics, SecurityManager, SecurityConfig, InputSanitizer, AccessControl, AuditLogger, AuditLogEntry, ApiDocumentation, PerformanceGuard, ResourceManager, PerformanceOptimizer};
-use std::path::PathBuf;
-use tempfile::TempDir;
-use std::fs;
-use std::collections::HashMap;
-use std::sync::Arc;
 use chrono;
+use rhema::{
+    AccessControl, ApiDocumentation, ApiInput, AuditLogEntry, AuditLogger, InputSanitizer,
+    PerformanceGuard, PerformanceMetrics, PerformanceMonitor, PerformanceOptimizer,
+    RateLimitConfig, ResourceManager, Rhema, RhemaResult, SecurityConfig, SecurityManager,
+};
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tempfile::TempDir;
 
 /// Test fixture for creating temporary repositories
 struct TestFixture {
@@ -22,7 +26,7 @@ impl TestFixture {
         let temp_dir = tempfile::tempdir()?;
         let repo_path = temp_dir.path().join("test_repo");
         fs::create_dir_all(&repo_path)?;
-        
+
         // Initialize git repository
         std::process::Command::new("git")
             .args(&["init"])
@@ -35,17 +39,26 @@ impl TestFixture {
         })
     }
 
-    fn create_scope_file(&self, scope_name: &str, content: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn create_scope_file(
+        &self,
+        scope_name: &str,
+        content: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let scope_path = self.repo_path.join(scope_name);
         fs::create_dir_all(&scope_path)?;
-        
+
         let rhema_file = scope_path.join("rhema.yaml");
         fs::write(rhema_file, content)?;
-        
+
         Ok(())
     }
 
-    fn create_data_file(&self, scope_name: &str, filename: &str, content: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn create_data_file(
+        &self,
+        scope_name: &str,
+        filename: &str,
+        content: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let file_path = self.repo_path.join(scope_name).join(filename);
         fs::write(file_path, content)?;
         Ok(())
@@ -94,7 +107,7 @@ async fn main() -> RhemaResult<()> {
 
 async fn test_rhema_initialization() -> RhemaResult<()> {
     let fixture = TestFixture::new()?;
-    
+
     // Test basic initialization
     std::env::set_current_dir(&fixture.repo_path)?;
     let rhema = Rhema::new()?;
@@ -151,7 +164,11 @@ async fn test_query_with_error_recovery() -> RhemaResult<()> {
 
     // Create test data
     fixture.create_scope_file("test_scope", "name: test_scope\ndescription: Test scope")?;
-    fixture.create_data_file("test_scope", "todos.yaml", "todos:\n  - title: Test todo\n    priority: high")?;
+    fixture.create_data_file(
+        "test_scope",
+        "todos.yaml",
+        "todos:\n  - title: Test todo\n    priority: high",
+    )?;
 
     // Test successful query
     let result = rhema.query_with_error_recovery("SELECT * FROM todos").await;
@@ -190,7 +207,11 @@ async fn test_scope_operations() -> RhemaResult<()> {
     assert!(result.is_ok());
 
     // Test knowledge loading
-    fixture.create_data_file("scope1", "knowledge.yaml", "entries:\n  - title: Test knowledge\n    content: Test content")?;
+    fixture.create_data_file(
+        "scope1",
+        "knowledge.yaml",
+        "entries:\n  - title: Test knowledge\n    content: Test content",
+    )?;
     let knowledge = rhema.load_knowledge_async("scope1").await?;
     assert!(!knowledge.entries.is_empty());
 
@@ -247,7 +268,8 @@ async fn test_performance_monitoring() -> RhemaResult<()> {
     assert!(status.within_limits);
 
     // Test performance optimizer
-    let optimized_query = PerformanceOptimizer::optimize_query("SELECT * FROM todos WHERE priority = 'high'");
+    let optimized_query =
+        PerformanceOptimizer::optimize_query("SELECT * FROM todos WHERE priority = 'high'");
     assert!(!optimized_query.is_empty());
 
     let files = vec!["file1.yaml".to_string(), "file2.yaml".to_string()];
@@ -262,19 +284,27 @@ async fn test_security_features() -> RhemaResult<()> {
     let security_manager = SecurityManager::new(config);
 
     // Test input validation
-    let result = security_manager.validate_input("user1", "test_operation", "safe input").await;
+    let result = security_manager
+        .validate_input("user1", "test_operation", "safe input")
+        .await;
     assert!(result.is_ok());
 
     // Test malicious input
-    let result = security_manager.validate_input("user1", "test_operation", "<script>alert('xss')</script>").await;
+    let result = security_manager
+        .validate_input("user1", "test_operation", "<script>alert('xss')</script>")
+        .await;
     assert!(result.is_err());
 
     // Test file path validation
-    let result = security_manager.validate_file_access("user1", "safe_file.yaml").await;
+    let result = security_manager
+        .validate_file_access("user1", "safe_file.yaml")
+        .await;
     assert!(result.is_ok());
 
     // Test malicious file path
-    let result = security_manager.validate_file_access("user1", "../../../etc/passwd").await;
+    let result = security_manager
+        .validate_file_access("user1", "../../../etc/passwd")
+        .await;
     assert!(result.is_err());
 
     // Test input sanitizer
@@ -337,7 +367,7 @@ async fn test_security_features() -> RhemaResult<()> {
 
     // Test API documentation
     let docs = ApiDocumentation::generate_rhema_api_docs();
-    
+
     assert_eq!(docs.version, "1.0.0");
     assert_eq!(docs.title, "Rhema API");
     assert!(!docs.endpoints.is_empty());
@@ -354,7 +384,7 @@ async fn test_security_features() -> RhemaResult<()> {
 
 async fn test_error_handling() -> RhemaResult<()> {
     let fixture = TestFixture::new()?;
-    
+
     // Test with non-existent repository
     let result = Rhema::new_from_path(PathBuf::from("/non/existent/path"));
     assert!(result.is_err());
@@ -373,14 +403,20 @@ async fn test_concurrent_operations() -> RhemaResult<()> {
 
     // Create test data
     fixture.create_scope_file("test_scope", "name: test_scope\ndescription: Test scope")?;
-    fixture.create_data_file("test_scope", "todos.yaml", "todos:\n  - title: Test todo\n    priority: high")?;
+    fixture.create_data_file(
+        "test_scope",
+        "todos.yaml",
+        "todos:\n  - title: Test todo\n    priority: high",
+    )?;
 
     // Run concurrent operations
     let handles: Vec<_> = (0..10)
         .map(|i| {
             let rhema = rhema.clone();
             tokio::spawn(async move {
-                rhema.query(&format!("SELECT * FROM todos LIMIT {}", i + 1)).await
+                rhema
+                    .query(&format!("SELECT * FROM todos LIMIT {}", i + 1))
+                    .await
             })
         })
         .collect();
@@ -393,17 +429,22 @@ async fn test_concurrent_operations() -> RhemaResult<()> {
 
     // Test stress test with multiple scopes
     for i in 0..5 {
-        fixture.create_scope_file(&format!("scope{}", i), &format!("name: scope{}\ndescription: Scope {}", i, i))?;
-        fixture.create_data_file(&format!("scope{}", i), "todos.yaml", &format!("todos:\n  - title: Todo {}\n    priority: high", i))?;
+        fixture.create_scope_file(
+            &format!("scope{}", i),
+            &format!("name: scope{}\ndescription: Scope {}", i, i),
+        )?;
+        fixture.create_data_file(
+            &format!("scope{}", i),
+            "todos.yaml",
+            &format!("todos:\n  - title: Todo {}\n    priority: high", i),
+        )?;
     }
 
     // Run many concurrent operations
     let handles: Vec<_> = (0..20)
         .map(|_| {
             let rhema = rhema.clone();
-            tokio::spawn(async move {
-                rhema.discover_scopes_optimized().await
-            })
+            tokio::spawn(async move { rhema.discover_scopes_optimized().await })
         })
         .collect();
 
@@ -414,4 +455,4 @@ async fn test_concurrent_operations() -> RhemaResult<()> {
     }
 
     Ok(())
-} 
+}

@@ -15,12 +15,12 @@
  */
 
 pub mod collaboration;
-pub mod resources;
-pub mod orchestration;
-pub mod validation;
-pub mod recovery;
-pub mod monitoring;
 pub mod composition;
+pub mod monitoring;
+pub mod orchestration;
+pub mod recovery;
+pub mod resources;
+pub mod validation;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -29,16 +29,15 @@ use thiserror::Error;
 
 // Re-export recovery types
 pub use recovery::{
-    PatternRecoveryManager, RecoveryStrategy, RecoveryResult, RecoveryError,
-    PatternCheckpoint, AgentStateSnapshot, ResourceStateSnapshot,
-    RecoveryRecord, RecoveryStatistics, EnhancedRecoveryStrategy
+    AgentStateSnapshot, EnhancedRecoveryStrategy, PatternCheckpoint, PatternRecoveryManager,
+    RecoveryError, RecoveryRecord, RecoveryResult, RecoveryStatistics, RecoveryStrategy,
+    ResourceStateSnapshot,
 };
 
 // Re-export monitoring types
 pub use monitoring::{
-    PatternMonitor, MonitoringEvent, MonitoringConfig, RealTimeMetrics,
-    PerformanceProfile, MonitoringStatistics, ErrorSeverity,
-    ResourceUsageSnapshot, AlertThresholds
+    AlertThresholds, ErrorSeverity, MonitoringConfig, MonitoringEvent, MonitoringStatistics,
+    PatternMonitor, PerformanceProfile, RealTimeMetrics, ResourceUsageSnapshot,
 };
 
 // Re-export validation types
@@ -46,8 +45,8 @@ pub use validation::PatternValidationEngine;
 
 // Re-export composition types
 pub use composition::{
-    PatternCompositionEngine, PatternTemplate, TemplateParameter, CompositionRule,
-    ComposedPattern, CompositionStatistics, PatternDependencyGraph
+    ComposedPattern, CompositionRule, CompositionStatistics, PatternCompositionEngine,
+    PatternDependencyGraph, PatternTemplate, TemplateParameter,
 };
 
 /// Coordination pattern trait that defines the interface for all patterns
@@ -55,13 +54,13 @@ pub use composition::{
 pub trait CoordinationPattern: Send + Sync {
     /// Execute the coordination pattern
     async fn execute(&self, context: &PatternContext) -> Result<PatternResult, PatternError>;
-    
+
     /// Validate the pattern can be executed with the given context
     async fn validate(&self, context: &PatternContext) -> Result<ValidationResult, PatternError>;
-    
+
     /// Rollback the pattern execution if needed
     async fn rollback(&self, context: &PatternContext) -> Result<(), PatternError>;
-    
+
     /// Get pattern metadata
     fn metadata(&self) -> PatternMetadata;
 }
@@ -477,8 +476,7 @@ pub enum PatternCategory {
 }
 
 /// Pattern error types
-#[derive(Debug, Error)]
-#[derive(Clone)]
+#[derive(Debug, Error, Clone)]
 pub enum PatternError {
     #[error("Pattern validation failed: {0}")]
     ValidationError(String),
@@ -544,10 +542,7 @@ impl PatternRegistry {
 
     /// List all registered patterns
     pub fn list_patterns(&self) -> Vec<PatternMetadata> {
-        self.patterns
-            .values()
-            .map(|p| p.metadata())
-            .collect()
+        self.patterns.values().map(|p| p.metadata()).collect()
     }
 
     /// Find patterns by category
@@ -563,7 +558,11 @@ impl PatternRegistry {
     pub fn find_patterns_by_capability(&self, capability: &str) -> Vec<PatternMetadata> {
         self.patterns
             .values()
-            .filter(|p| p.metadata().required_capabilities.contains(&capability.to_string()))
+            .filter(|p| {
+                p.metadata()
+                    .required_capabilities
+                    .contains(&capability.to_string())
+            })
             .map(|p| p.metadata())
             .collect()
     }
@@ -601,10 +600,9 @@ impl PatternExecutor {
         mut context: PatternContext,
     ) -> Result<PatternResult, PatternError> {
         // Get pattern reference first
-        let pattern = self
-            .registry
-            .get_pattern(pattern_id)
-            .ok_or_else(|| PatternError::ConfigurationError(format!("Pattern not found: {}", pattern_id)))?;
+        let pattern = self.registry.get_pattern(pattern_id).ok_or_else(|| {
+            PatternError::ConfigurationError(format!("Pattern not found: {}", pattern_id))
+        })?;
 
         // Enhanced validation with detailed error reporting
         let validation = pattern.validate(&context).await?;
@@ -639,12 +637,26 @@ impl PatternExecutor {
             progress: 0.0,
             status: PatternStatus::Running,
             data: HashMap::from([
-                ("validation_warnings".to_string(), serde_json::Value::Array(
-                    validation.warnings.into_iter().map(|w| serde_json::Value::String(w)).collect()
-                )),
-                ("validation_details".to_string(), serde_json::Value::Object(
-                    validation.details.into_iter().map(|(k, v)| (k, v)).collect()
-                )),
+                (
+                    "validation_warnings".to_string(),
+                    serde_json::Value::Array(
+                        validation
+                            .warnings
+                            .into_iter()
+                            .map(|w| serde_json::Value::String(w))
+                            .collect(),
+                    ),
+                ),
+                (
+                    "validation_details".to_string(),
+                    serde_json::Value::Object(
+                        validation
+                            .details
+                            .into_iter()
+                            .map(|(k, v)| (k, v))
+                            .collect(),
+                    ),
+                ),
             ]),
         };
 
@@ -659,7 +671,11 @@ impl PatternExecutor {
         // Create checkpoint if rollback is enabled
         let mut checkpoint_id = None;
         if context.config.enable_rollback {
-            match self.recovery_manager.create_checkpoint(pattern_id, &context, None).await {
+            match self
+                .recovery_manager
+                .create_checkpoint(pattern_id, &context, None)
+                .await
+            {
                 Ok(id) => checkpoint_id = Some(id),
                 Err(e) => {
                     tracing::warn!(pattern_id = pattern_id, error = %e, "Failed to create checkpoint");
@@ -668,40 +684,52 @@ impl PatternExecutor {
         }
 
         // Register active pattern
-        self.active_patterns.insert(pattern_id.to_string(), pattern_state);
+        self.active_patterns
+            .insert(pattern_id.to_string(), pattern_state);
 
         // Execute pattern with timeout and retry logic
-        let result = self.execute_pattern_with_timeout_and_retry(pattern_id, &context).await;
+        let result = self
+            .execute_pattern_with_timeout_and_retry(pattern_id, &context)
+            .await;
 
         // Handle recovery if pattern failed and rollback is enabled
         if let Err(ref error) = result {
             if context.config.enable_rollback {
                 tracing::info!(pattern_id = pattern_id, error = %error, "Attempting pattern recovery");
-                
+
                 if let Some(checkpoint_id) = &checkpoint_id {
                     let recovery_strategy = RecoveryStrategy::Rollback {
                         checkpoint_id: checkpoint_id.clone(),
                         restore_resources: true,
                         restore_agent_states: true,
                     };
-                    
-                    match self.recovery_manager.execute_enhanced_recovery_strategy(
-                        pattern_id,
-                        &EnhancedRecoveryStrategy::PartialRollback {
-                            checkpoint_id: checkpoint_id.clone(),
-                            rollback_steps: vec![],
-                            preserve_successful_steps: false,
-                            restore_resources: true,
-                            restore_agent_states: true,
-                        },
-                        &mut context,
-                        error,
-                    ).await {
+
+                    match self
+                        .recovery_manager
+                        .execute_enhanced_recovery_strategy(
+                            pattern_id,
+                            &EnhancedRecoveryStrategy::PartialRollback {
+                                checkpoint_id: checkpoint_id.clone(),
+                                rollback_steps: vec![],
+                                preserve_successful_steps: false,
+                                restore_resources: true,
+                                restore_agent_states: true,
+                            },
+                            &mut context,
+                            error,
+                        )
+                        .await
+                    {
                         Ok(recovery_result) => {
                             if recovery_result.success {
-                                tracing::info!(pattern_id = pattern_id, "Pattern recovery successful");
+                                tracing::info!(
+                                    pattern_id = pattern_id,
+                                    "Pattern recovery successful"
+                                );
                                 // Retry execution after recovery
-                                let retry_result = self.execute_pattern_with_timeout_and_retry(pattern_id, &context).await;
+                                let retry_result = self
+                                    .execute_pattern_with_timeout_and_retry(pattern_id, &context)
+                                    .await;
                                 if retry_result.is_ok() {
                                     return retry_result;
                                 }
@@ -721,7 +749,7 @@ impl PatternExecutor {
         if let Some(state) = self.active_patterns.get_mut(pattern_id) {
             state.ended_at = Some(Utc::now());
             state.progress = 1.0;
-            
+
             match &result {
                 Ok(pattern_result) => {
                     state.phase = PatternPhase::Completed;
@@ -738,7 +766,7 @@ impl PatternExecutor {
                     state.status = PatternStatus::Failed;
                     state.data.insert(
                         "error_message".to_string(),
-                        serde_json::Value::String(error.to_string())
+                        serde_json::Value::String(error.to_string()),
                     );
                 }
             }
@@ -762,26 +790,28 @@ impl PatternExecutor {
 
         while attempt <= max_retries {
             attempt += 1;
-            
+
             // Update pattern state to show current attempt
             if let Some(state) = self.active_patterns.get_mut(&context.state.pattern_id) {
                 state.phase = PatternPhase::Executing;
                 state.data.insert(
                     "current_attempt".to_string(),
-                    serde_json::Value::Number(attempt.into())
+                    serde_json::Value::Number(attempt.into()),
                 );
                 state.data.insert(
                     "max_retries".to_string(),
-                    serde_json::Value::Number(max_retries.into())
+                    serde_json::Value::Number(max_retries.into()),
                 );
             }
 
             // Get pattern from registry for this attempt
-            let pattern = self.registry.get_pattern(pattern_id)
-                .ok_or_else(|| PatternError::ConfigurationError(format!("Pattern not found: {}", pattern_id)))?;
+            let pattern = self.registry.get_pattern(pattern_id).ok_or_else(|| {
+                PatternError::ConfigurationError(format!("Pattern not found: {}", pattern_id))
+            })?;
 
             // Execute pattern with timeout
-            let execution_result = tokio::time::timeout(timeout_duration, pattern.execute(context)).await;
+            let execution_result =
+                tokio::time::timeout(timeout_duration, pattern.execute(context)).await;
 
             match execution_result {
                 Ok(Ok(result)) => {
@@ -791,7 +821,7 @@ impl PatternExecutor {
                         state.progress = 1.0;
                         state.data.insert(
                             "final_attempt".to_string(),
-                            serde_json::Value::Number(attempt.into())
+                            serde_json::Value::Number(attempt.into()),
                         );
                     }
                     return Ok(result);
@@ -799,7 +829,7 @@ impl PatternExecutor {
                 Ok(Err(error)) => {
                     // Pattern execution failed
                     last_error = Some(error.clone());
-                    
+
                     tracing::warn!(
                         pattern_id = &context.state.pattern_id,
                         attempt = attempt,
@@ -831,7 +861,8 @@ impl PatternExecutor {
                     }
 
                     // Wait before retry (exponential backoff)
-                    let backoff_duration = std::time::Duration::from_millis(100 * 2_u64.pow(attempt as u32 - 1));
+                    let backoff_duration =
+                        std::time::Duration::from_millis(100 * 2_u64.pow(attempt as u32 - 1));
                     tokio::time::sleep(backoff_duration).await;
                 }
                 Err(_) => {
@@ -841,7 +872,7 @@ impl PatternExecutor {
                         context.config.timeout_seconds
                     ));
                     last_error = Some(timeout_error.clone());
-                    
+
                     tracing::error!(
                         pattern_id = &context.state.pattern_id,
                         attempt = attempt,
@@ -889,12 +920,9 @@ impl PatternExecutor {
             state.ended_at = Some(Utc::now());
             state.data.insert(
                 "cancelled_at".to_string(),
-                serde_json::Value::String(Utc::now().to_rfc3339())
+                serde_json::Value::String(Utc::now().to_rfc3339()),
             );
-            tracing::info!(
-                pattern_id = pattern_id,
-                "Pattern cancelled successfully"
-            );
+            tracing::info!(pattern_id = pattern_id, "Pattern cancelled successfully");
         } else {
             return Err(PatternError::ConfigurationError(format!(
                 "Pattern not found for cancellation: {}",
@@ -910,10 +938,9 @@ impl PatternExecutor {
         pattern_id: &str,
         context: &PatternContext,
     ) -> Result<ValidationResult, PatternError> {
-        let pattern = self
-            .registry
-            .get_pattern(pattern_id)
-            .ok_or_else(|| PatternError::ConfigurationError(format!("Pattern not found: {}", pattern_id)))?;
+        let pattern = self.registry.get_pattern(pattern_id).ok_or_else(|| {
+            PatternError::ConfigurationError(format!("Pattern not found: {}", pattern_id))
+        })?;
 
         let mut errors = Vec::new();
         let mut warnings = Vec::new();
@@ -922,9 +949,10 @@ impl PatternExecutor {
         // Validate agent requirements
         let metadata = pattern.metadata();
         for required_capability in &metadata.required_capabilities {
-            let has_capability = context.agents.iter().any(|agent| {
-                agent.capabilities.contains(required_capability)
-            });
+            let has_capability = context
+                .agents
+                .iter()
+                .any(|agent| agent.capabilities.contains(required_capability));
             if !has_capability {
                 errors.push(format!(
                     "No agent found with required capability: {}",
@@ -955,11 +983,12 @@ impl PatternExecutor {
                 }
                 _ => {
                     // Check custom resources
-                    if !context.resources.custom_resources.contains_key(required_resource) {
-                        warnings.push(format!(
-                            "Custom resource not found: {}",
-                            required_resource
-                        ));
+                    if !context
+                        .resources
+                        .custom_resources
+                        .contains_key(required_resource)
+                    {
+                        warnings.push(format!("Custom resource not found: {}", required_resource));
                     }
                 }
             }
@@ -972,7 +1001,8 @@ impl PatternExecutor {
                     ConstraintType::ResourceAvailability => {
                         if let Some(min_memory) = constraint.parameters.get("min_memory_mb") {
                             if let Some(memory_mb) = min_memory.as_u64() {
-                                let available_memory_mb = context.resources.memory_pool.available_memory / (1024 * 1024);
+                                let available_memory_mb =
+                                    context.resources.memory_pool.available_memory / (1024 * 1024);
                                 if available_memory_mb < memory_mb {
                                     errors.push(format!(
                                         "Memory constraint violated: required {}MB, available {}MB",
@@ -1022,7 +1052,7 @@ impl PatternExecutor {
                 "category": metadata.category.to_string(),
                 "complexity": metadata.complexity,
                 "estimated_execution_time": metadata.estimated_execution_time_seconds
-            })
+            }),
         );
 
         details.insert(
@@ -1079,7 +1109,8 @@ impl PatternExecutor {
             stats.average_execution_time = total_execution_time / completed_count as f64;
         }
 
-        let total_finished = stats.completed_patterns + stats.failed_patterns + stats.cancelled_patterns;
+        let total_finished =
+            stats.completed_patterns + stats.failed_patterns + stats.cancelled_patterns;
         if total_finished > 0 {
             stats.success_rate = stats.completed_patterns as f64 / total_finished as f64;
         }
@@ -1128,12 +1159,18 @@ impl PatternExecutor {
     }
 
     /// Get monitoring events
-    pub async fn get_monitoring_events(&self, pattern_id: Option<&str>, limit: Option<usize>) -> Vec<MonitoringEvent> {
+    pub async fn get_monitoring_events(
+        &self,
+        pattern_id: Option<&str>,
+        limit: Option<usize>,
+    ) -> Vec<MonitoringEvent> {
         self.monitor.get_events(pattern_id, limit).await
     }
 
     /// Subscribe to monitoring events
-    pub fn subscribe_to_monitoring_events(&self) -> tokio::sync::broadcast::Receiver<MonitoringEvent> {
+    pub fn subscribe_to_monitoring_events(
+        &self,
+    ) -> tokio::sync::broadcast::Receiver<MonitoringEvent> {
         self.monitor.subscribe()
     }
 }
@@ -1223,4 +1260,4 @@ mod tests {
         let status = AgentStatus::Idle;
         assert_eq!(status.to_string(), "idle");
     }
-} 
+}

@@ -15,9 +15,9 @@
  */
 
 use async_trait::async_trait;
+use rhema_action_tool::{ActionError, ActionIntent, ActionResult, SafetyLevel};
+use rhema_action_tool::{ToolResult, TransformationTool};
 use tracing::{info, warn};
-use rhema_action_tool::{ActionIntent, ActionResult, ActionError, SafetyLevel};
-use rhema_action_tool::{TransformationTool, ToolResult};
 
 /// Prettier transformation tool
 pub struct PrettierTool;
@@ -26,29 +26,31 @@ pub struct PrettierTool;
 impl TransformationTool for PrettierTool {
     async fn execute(&self, intent: &ActionIntent) -> ActionResult<ToolResult> {
         info!("Executing prettier for intent: {}", intent.id);
-        
+
         let start = std::time::Instant::now();
-        
+
         // Extract file paths from intent
         let files = &intent.scope;
         if files.is_empty() {
-            return Err(ActionError::Validation("No files specified for formatting".to_string()));
+            return Err(ActionError::Validation(
+                "No files specified for formatting".to_string(),
+            ));
         }
-        
+
         // Execute prettier on each file
         let mut changes = Vec::new();
         let mut errors = Vec::new();
         let warnings = Vec::new();
-        
+
         for file in files {
             match self.execute_prettier_on_file(file).await {
                 Ok(change) => changes.push(change),
                 Err(e) => errors.push(format!("Failed to format {}: {}", file, e)),
             }
         }
-        
+
         let success = errors.is_empty();
-        
+
         Ok(ToolResult {
             success,
             changes,
@@ -58,23 +60,26 @@ impl TransformationTool for PrettierTool {
             duration: start.elapsed(),
         })
     }
-    
+
     fn supports_language(&self, language: &str) -> bool {
-        matches!(language, "javascript" | "typescript" | "jsx" | "tsx" | "json" | "css" | "scss" | "html")
+        matches!(
+            language,
+            "javascript" | "typescript" | "jsx" | "tsx" | "json" | "css" | "scss" | "html"
+        )
     }
-    
+
     fn safety_level(&self) -> SafetyLevel {
         SafetyLevel::Low
     }
-    
+
     fn name(&self) -> &str {
         "prettier"
     }
-    
+
     fn version(&self) -> &str {
         "1.0.0"
     }
-    
+
     async fn is_available(&self) -> bool {
         // Check if prettier is installed
         tokio::process::Command::new("npx")
@@ -90,42 +95,41 @@ impl PrettierTool {
     /// Execute prettier on a specific file
     async fn execute_prettier_on_file(&self, file_path: &str) -> ActionResult<String> {
         info!("Executing prettier on file: {}", file_path);
-        
+
         // Check if file exists
         if !std::path::Path::new(file_path).exists() {
-            return Err(ActionError::Validation(format!("File not found: {}", file_path)));
+            return Err(ActionError::Validation(format!(
+                "File not found: {}",
+                file_path
+            )));
         }
-        
+
         // Execute prettier
         let output = tokio::process::Command::new("npx")
-            .args(&[
-                "prettier",
-                "--write",
-                file_path
-            ])
+            .args(&["prettier", "--write", file_path])
             .output()
             .await
-            .map_err(|e| ActionError::ToolExecution { 
-                tool: "prettier".to_string(), 
-                message: format!("Failed to execute prettier: {}", e) 
+            .map_err(|e| ActionError::ToolExecution {
+                tool: "prettier".to_string(),
+                message: format!("Failed to execute prettier: {}", e),
             })?;
-        
+
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             let stderr = String::from_utf8_lossy(&output.stderr);
-            
+
             info!("Prettier stdout: {}", stdout);
             if !stderr.is_empty() {
                 warn!("Prettier stderr: {}", stderr);
             }
-            
+
             Ok(format!("Successfully formatted {}", file_path))
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(ActionError::ToolExecution { 
-                tool: "prettier".to_string(), 
-                message: format!("Prettier failed for {}: {}", file_path, stderr) 
+            Err(ActionError::ToolExecution {
+                tool: "prettier".to_string(),
+                message: format!("Prettier failed for {}: {}", file_path, stderr),
             })
         }
     }
-} 
+}

@@ -1,25 +1,24 @@
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 
 use super::{
-    PatternContext, ValidationResult, PatternMetadata,
-    AgentInfo, AgentStatus, ConstraintType,
-    PatternPhase, PatternStatus
+    AgentInfo, AgentStatus, ConstraintType, PatternContext, PatternMetadata, PatternPhase,
+    PatternStatus, ValidationResult,
 };
 
 /// Pattern validation rule
 pub trait ValidationRule: Send + Sync {
     /// Validate the pattern context against this rule
     fn validate(&self, context: &PatternContext, metadata: &PatternMetadata) -> ValidationResult;
-    
+
     /// Get rule name
     fn name(&self) -> &str;
-    
+
     /// Get rule description
     fn description(&self) -> &str;
-    
+
     /// Get rule priority (higher = more important)
     fn priority(&self) -> u32;
 }
@@ -35,7 +34,9 @@ impl ValidationRule for AgentCapabilityRule {
 
         // Check if all required capabilities are available
         for required_capability in &metadata.required_capabilities {
-            let agents_with_capability: Vec<&AgentInfo> = context.agents.iter()
+            let agents_with_capability: Vec<&AgentInfo> = context
+                .agents
+                .iter()
                 .filter(|agent| agent.capabilities.contains(required_capability))
                 .collect();
 
@@ -56,12 +57,18 @@ impl ValidationRule for AgentCapabilityRule {
         }
 
         // Check agent availability
-        let idle_agents = context.agents.iter()
+        let idle_agents = context
+            .agents
+            .iter()
             .filter(|agent| agent.status == AgentStatus::Idle)
             .count();
-        
-        let busy_agents = context.agents.iter()
-            .filter(|agent| agent.status == AgentStatus::Busy || agent.status == AgentStatus::Working)
+
+        let busy_agents = context
+            .agents
+            .iter()
+            .filter(|agent| {
+                agent.status == AgentStatus::Busy || agent.status == AgentStatus::Working
+            })
             .count();
 
         if idle_agents == 0 {
@@ -77,7 +84,7 @@ impl ValidationRule for AgentCapabilityRule {
                 "idle_agents": idle_agents,
                 "busy_agents": busy_agents,
                 "required_capabilities": metadata.required_capabilities.len()
-            })
+            }),
         );
 
         ValidationResult {
@@ -113,7 +120,8 @@ impl ValidationRule for ResourceAvailabilityRule {
         // Check memory availability
         let available_memory_mb = context.resources.memory_pool.available_memory / (1024 * 1024);
         let total_memory_mb = context.resources.memory_pool.total_memory / (1024 * 1024);
-        let memory_utilization = context.resources.memory_pool.allocated_memory as f64 / context.resources.memory_pool.total_memory as f64;
+        let memory_utilization = context.resources.memory_pool.allocated_memory as f64
+            / context.resources.memory_pool.total_memory as f64;
 
         if available_memory_mb < 100 {
             errors.push("Insufficient available memory (less than 100MB)".to_string());
@@ -128,7 +136,8 @@ impl ValidationRule for ResourceAvailabilityRule {
         // Check CPU availability
         let available_cores = context.resources.cpu_allocator.available_cores;
         let total_cores = context.resources.cpu_allocator.total_cores;
-        let cpu_utilization = context.resources.cpu_allocator.allocated_cores as f64 / context.resources.cpu_allocator.total_cores as f64;
+        let cpu_utilization = context.resources.cpu_allocator.allocated_cores as f64
+            / context.resources.cpu_allocator.total_cores as f64;
 
         if available_cores == 0 {
             errors.push("No CPU cores available".to_string());
@@ -142,7 +151,8 @@ impl ValidationRule for ResourceAvailabilityRule {
 
         // Check network bandwidth
         let available_bandwidth = context.resources.network_resources.available_bandwidth;
-        let total_bandwidth = context.resources.network_resources.available_bandwidth + context.resources.network_resources.allocated_bandwidth;
+        let total_bandwidth = context.resources.network_resources.available_bandwidth
+            + context.resources.network_resources.allocated_bandwidth;
         let bandwidth_utilization = if total_bandwidth > 0 {
             context.resources.network_resources.allocated_bandwidth as f64 / total_bandwidth as f64
         } else {
@@ -160,11 +170,12 @@ impl ValidationRule for ResourceAvailabilityRule {
         // Check custom resources
         for required_resource in &metadata.required_resources {
             if !["memory", "cpu", "network"].contains(&required_resource.as_str()) {
-                if !context.resources.custom_resources.contains_key(required_resource) {
-                    warnings.push(format!(
-                        "Custom resource not found: {}",
-                        required_resource
-                    ));
+                if !context
+                    .resources
+                    .custom_resources
+                    .contains_key(required_resource)
+                {
+                    warnings.push(format!("Custom resource not found: {}", required_resource));
                 }
             }
         }
@@ -187,7 +198,7 @@ impl ValidationRule for ResourceAvailabilityRule {
                     "total_bandwidth_mbps": total_bandwidth,
                     "utilization": bandwidth_utilization
                 }
-            })
+            }),
         );
 
         ValidationResult {
@@ -231,7 +242,8 @@ impl ValidationRule for ConstraintValidationRule {
                 ConstraintType::ResourceAvailability => {
                     if let Some(min_memory) = constraint.parameters.get("min_memory_mb") {
                         if let Some(memory_mb) = min_memory.as_u64() {
-                            let available_memory_mb = context.resources.memory_pool.available_memory / (1024 * 1024);
+                            let available_memory_mb =
+                                context.resources.memory_pool.available_memory / (1024 * 1024);
                             if available_memory_mb < memory_mb {
                                 constraint_valid = false;
                                 constraint_errors.push(format!(
@@ -245,9 +257,10 @@ impl ValidationRule for ConstraintValidationRule {
                 ConstraintType::AgentCapability => {
                     if let Some(required_capability) = constraint.parameters.get("capability") {
                         if let Some(capability) = required_capability.as_str() {
-                                                            let has_capability = context.agents.iter().any(|agent| {
-                                    agent.capabilities.contains(&capability.to_string())
-                                });
+                            let has_capability = context
+                                .agents
+                                .iter()
+                                .any(|agent| agent.capabilities.contains(&capability.to_string()));
                             if !has_capability {
                                 constraint_valid = false;
                                 constraint_errors.push(format!(
@@ -262,7 +275,10 @@ impl ValidationRule for ConstraintValidationRule {
                     if let Some(max_duration) = constraint.parameters.get("max_duration_seconds") {
                         if let Some(duration) = max_duration.as_u64() {
                             // This would be checked during execution
-                            constraint_warnings.push("Temporal constraint will be validated during execution".to_string());
+                            constraint_warnings.push(
+                                "Temporal constraint will be validated during execution"
+                                    .to_string(),
+                            );
                         }
                     }
                 }
@@ -270,7 +286,10 @@ impl ValidationRule for ConstraintValidationRule {
                     if let Some(min_efficiency) = constraint.parameters.get("min_efficiency") {
                         if let Some(efficiency) = min_efficiency.as_f64() {
                             // This would be checked during execution
-                            constraint_warnings.push("Performance constraint will be validated during execution".to_string());
+                            constraint_warnings.push(
+                                "Performance constraint will be validated during execution"
+                                    .to_string(),
+                            );
                         }
                     }
                 }
@@ -301,7 +320,10 @@ impl ValidationRule for ConstraintValidationRule {
             }));
         }
 
-        details.insert("constraint_results".to_string(), serde_json::Value::Array(constraint_results));
+        details.insert(
+            "constraint_results".to_string(),
+            serde_json::Value::Array(constraint_results),
+        );
 
         ValidationResult {
             is_valid: errors.is_empty(),
@@ -349,7 +371,11 @@ impl ValidationRule for ComplexityValidationRule {
         }
 
         // Check estimated execution time vs timeout
-        if let Some(timeout_seconds) = context.config.timeout_seconds.checked_sub(metadata.estimated_execution_time_seconds) {
+        if let Some(timeout_seconds) = context
+            .config
+            .timeout_seconds
+            .checked_sub(metadata.estimated_execution_time_seconds)
+        {
             if timeout_seconds < 10 {
                 warnings.push("Estimated execution time close to timeout limit".to_string());
             }
@@ -405,14 +431,16 @@ impl ValidationRule for ConfigurationValidationRule {
         } else if context.config.timeout_seconds < metadata.estimated_execution_time_seconds {
             warnings.push(format!(
                 "Pattern timeout ({}) is less than estimated execution time ({})",
-                context.config.timeout_seconds,
-                metadata.estimated_execution_time_seconds
+                context.config.timeout_seconds, metadata.estimated_execution_time_seconds
             ));
         }
 
         // Validate retry configuration
         if context.config.max_retries > 10 {
-            warnings.push("Maximum retries is set very high, which may indicate configuration issues".to_string());
+            warnings.push(
+                "Maximum retries is set very high, which may indicate configuration issues"
+                    .to_string(),
+            );
         }
 
         // Validate custom configuration
@@ -422,27 +450,43 @@ impl ValidationRule for ConfigurationValidationRule {
                 for dep in deps {
                     if let Some(dep_name) = dep.as_str() {
                         // Check if dependency is available in context
-                        if !context.state.data.contains_key(&format!("dependency_{}", dep_name)) {
+                        if !context
+                            .state
+                            .data
+                            .contains_key(&format!("dependency_{}", dep_name))
+                        {
                             missing_deps.push(dep_name.to_string());
                         }
                     }
                 }
                 if !missing_deps.is_empty() {
-                    errors.push(format!("Missing required dependencies: {}", missing_deps.join(", ")));
+                    errors.push(format!(
+                        "Missing required dependencies: {}",
+                        missing_deps.join(", ")
+                    ));
                 }
             }
         }
 
         // Validate monitoring configuration
         if context.config.enable_monitoring {
-            if !context.config.custom_config.contains_key("monitoring_endpoint") {
-                warnings.push("Monitoring enabled but no monitoring endpoint configured".to_string());
+            if !context
+                .config
+                .custom_config
+                .contains_key("monitoring_endpoint")
+            {
+                warnings
+                    .push("Monitoring enabled but no monitoring endpoint configured".to_string());
             }
         }
 
         // Validate rollback configuration
         if context.config.enable_rollback {
-            if !context.config.custom_config.contains_key("checkpoint_interval") {
+            if !context
+                .config
+                .custom_config
+                .contains_key("checkpoint_interval")
+            {
                 warnings.push("Rollback enabled but no checkpoint interval configured".to_string());
             }
         }
@@ -455,7 +499,7 @@ impl ValidationRule for ConfigurationValidationRule {
                 "enable_monitoring": context.config.enable_monitoring,
                 "enable_rollback": context.config.enable_rollback,
                 "custom_config_keys": context.config.custom_config.keys().collect::<Vec<_>>()
-            })
+            }),
         );
 
         ValidationResult {
@@ -493,15 +537,19 @@ impl ValidationRule for DependencyValidationRule {
             if let Some(dep_array) = dependencies.as_array() {
                 let mut missing_deps = Vec::new();
                 let mut circular_deps = Vec::new();
-                
+
                 for dep in dep_array {
                     if let Some(dep_obj) = dep.as_object() {
                         if let Some(dep_id) = dep_obj.get("pattern_id").and_then(|v| v.as_str()) {
                             // Check if dependent pattern exists in registry
-                            if !context.state.data.contains_key(&format!("pattern_{}", dep_id)) {
+                            if !context
+                                .state
+                                .data
+                                .contains_key(&format!("pattern_{}", dep_id))
+                            {
                                 missing_deps.push(dep_id.to_string());
                             }
-                            
+
                             // Check for circular dependencies
                             if dep_id == metadata.name {
                                 circular_deps.push(dep_id.to_string());
@@ -509,13 +557,19 @@ impl ValidationRule for DependencyValidationRule {
                         }
                     }
                 }
-                
+
                 if !missing_deps.is_empty() {
-                    errors.push(format!("Missing pattern dependencies: {}", missing_deps.join(", ")));
+                    errors.push(format!(
+                        "Missing pattern dependencies: {}",
+                        missing_deps.join(", ")
+                    ));
                 }
-                
+
                 if !circular_deps.is_empty() {
-                    errors.push(format!("Circular pattern dependencies detected: {}", circular_deps.join(", ")));
+                    errors.push(format!(
+                        "Circular pattern dependencies detected: {}",
+                        circular_deps.join(", ")
+                    ));
                 }
             }
         }
@@ -526,11 +580,17 @@ impl ValidationRule for DependencyValidationRule {
                 "memory" => context.resources.memory_pool.available_memory > 0,
                 "cpu" => context.resources.cpu_allocator.available_cores > 0,
                 "network" => context.resources.network_resources.available_bandwidth > 0,
-                _ => context.resources.custom_resources.contains_key(required_resource),
+                _ => context
+                    .resources
+                    .custom_resources
+                    .contains_key(required_resource),
             };
-            
+
             if !resource_available {
-                errors.push(format!("Required resource not available: {}", required_resource));
+                errors.push(format!(
+                    "Required resource not available: {}",
+                    required_resource
+                ));
             }
         }
 
@@ -553,13 +613,22 @@ impl ValidationRule for DependencyValidationRule {
             if let Some(service_array) = service_deps.as_array() {
                 for service_dep in service_array {
                     if let Some(service_obj) = service_dep.as_object() {
-                        if let Some(service_name) = service_obj.get("name").and_then(|v| v.as_str()) {
-                            if let Some(required) = service_obj.get("required").and_then(|v| v.as_bool()) {
+                        if let Some(service_name) = service_obj.get("name").and_then(|v| v.as_str())
+                        {
+                            if let Some(required) =
+                                service_obj.get("required").and_then(|v| v.as_bool())
+                            {
                                 if required {
                                     // Check if service is available (simplified check)
-                                    let service_available = context.state.data.contains_key(&format!("service_{}", service_name));
+                                    let service_available = context
+                                        .state
+                                        .data
+                                        .contains_key(&format!("service_{}", service_name));
                                     if !service_available {
-                                        errors.push(format!("Required external service not available: {}", service_name));
+                                        errors.push(format!(
+                                            "Required external service not available: {}",
+                                            service_name
+                                        ));
                                     }
                                 }
                             }
@@ -577,7 +646,7 @@ impl ValidationRule for DependencyValidationRule {
                 "pattern_dependencies": context.state.data.get("pattern_dependencies"),
                 "agent_dependencies": context.state.data.get("agent_dependencies"),
                 "service_dependencies": context.state.data.get("service_dependencies")
-            })
+            }),
         );
 
         ValidationResult {
@@ -614,7 +683,10 @@ impl ValidationRule for StateValidationRule {
         match context.state.status {
             PatternStatus::Running => {
                 if context.state.phase == PatternPhase::Completed {
-                    errors.push("Pattern state inconsistency: status is Running but phase is Completed".to_string());
+                    errors.push(
+                        "Pattern state inconsistency: status is Running but phase is Completed"
+                            .to_string(),
+                    );
                 }
             }
             PatternStatus::Completed => {
@@ -624,7 +696,10 @@ impl ValidationRule for StateValidationRule {
             }
             PatternStatus::Failed => {
                 if context.state.phase != PatternPhase::Failed {
-                    errors.push("Pattern state inconsistency: status is Failed but phase is not Failed".to_string());
+                    errors.push(
+                        "Pattern state inconsistency: status is Failed but phase is not Failed"
+                            .to_string(),
+                    );
                 }
             }
             PatternStatus::Cancelled => {
@@ -650,11 +725,19 @@ impl ValidationRule for StateValidationRule {
         // Validate agent states
         for agent in &context.agents {
             if agent.current_workload < 0.0 || agent.current_workload > 1.0 {
-                warnings.push(format!("Agent {} workload is outside normal range: {}", agent.id, agent.current_workload));
+                warnings.push(format!(
+                    "Agent {} workload is outside normal range: {}",
+                    agent.id, agent.current_workload
+                ));
             }
-            
-            if agent.performance_metrics.success_rate < 0.0 || agent.performance_metrics.success_rate > 1.0 {
-                warnings.push(format!("Agent {} success rate is outside normal range: {}", agent.id, agent.performance_metrics.success_rate));
+
+            if agent.performance_metrics.success_rate < 0.0
+                || agent.performance_metrics.success_rate > 1.0
+            {
+                warnings.push(format!(
+                    "Agent {} success rate is outside normal range: {}",
+                    agent.id, agent.performance_metrics.success_rate
+                ));
             }
         }
 
@@ -744,7 +827,7 @@ impl PatternValidationEngine {
         // Run all validation rules
         for rule in &self.rules {
             let rule_result = rule.validate(context, metadata);
-            
+
             rule_results.push(serde_json::json!({
                 "rule_name": rule.name(),
                 "rule_description": rule.description(),
@@ -760,7 +843,10 @@ impl PatternValidationEngine {
         }
 
         // Add rule summary to details
-        all_details.insert("rule_results".to_string(), serde_json::Value::Array(rule_results));
+        all_details.insert(
+            "rule_results".to_string(),
+            serde_json::Value::Array(rule_results),
+        );
 
         let end_time = Utc::now();
         let validation_duration = (end_time - start_time).num_milliseconds() as f64 / 1000.0;
@@ -786,7 +872,7 @@ impl PatternValidationEngine {
         {
             let mut history = self.validation_history.write().await;
             history.push(record);
-            
+
             // Keep only last 1000 records
             if history.len() > 1000 {
                 history.remove(0);
@@ -799,7 +885,7 @@ impl PatternValidationEngine {
     /// Get validation statistics
     pub async fn get_validation_statistics(&self) -> ValidationStatistics {
         let history = self.validation_history.read().await;
-        
+
         let mut stats = ValidationStatistics {
             total_validations: history.len(),
             successful_validations: 0,
@@ -814,7 +900,7 @@ impl PatternValidationEngine {
 
         for record in history.iter() {
             total_duration += record.duration_seconds;
-            
+
             if record.is_valid {
                 stats.successful_validations += 1;
             } else {
@@ -903,17 +989,15 @@ mod tests {
         };
 
         let context = PatternContext {
-            agents: vec![
-                AgentInfo {
-                    id: "agent1".to_string(),
-                    name: "Test Agent".to_string(),
-                    capabilities: vec!["test_capability".to_string()],
-                    status: AgentStatus::Idle,
-                    performance_metrics: AgentPerformanceMetrics::default(),
-                    current_workload: 0.0,
-                    assigned_tasks: vec![],
-                }
-            ],
+            agents: vec![AgentInfo {
+                id: "agent1".to_string(),
+                name: "Test Agent".to_string(),
+                capabilities: vec!["test_capability".to_string()],
+                status: AgentStatus::Idle,
+                performance_metrics: AgentPerformanceMetrics::default(),
+                current_workload: 0.0,
+                assigned_tasks: vec![],
+            }],
             resources: ResourcePool {
                 file_locks: HashMap::new(),
                 memory_pool: MemoryPool {
@@ -964,7 +1048,7 @@ mod tests {
     #[tokio::test]
     async fn test_validation_engine_integration() {
         let engine = PatternValidationEngine::new();
-        
+
         let metadata = PatternMetadata {
             id: "test-pattern".to_string(),
             name: "Test Pattern".to_string(),
@@ -984,17 +1068,15 @@ mod tests {
         };
 
         let context = PatternContext {
-            agents: vec![
-                AgentInfo {
-                    id: "agent1".to_string(),
-                    name: "Test Agent".to_string(),
-                    capabilities: vec!["test_capability".to_string()],
-                    status: AgentStatus::Idle,
-                    performance_metrics: AgentPerformanceMetrics::default(),
-                    current_workload: 0.0,
-                    assigned_tasks: vec![],
-                }
-            ],
+            agents: vec![AgentInfo {
+                id: "agent1".to_string(),
+                name: "Test Agent".to_string(),
+                capabilities: vec!["test_capability".to_string()],
+                status: AgentStatus::Idle,
+                performance_metrics: AgentPerformanceMetrics::default(),
+                current_workload: 0.0,
+                assigned_tasks: vec![],
+            }],
             resources: ResourcePool {
                 file_locks: HashMap::new(),
                 memory_pool: MemoryPool {
@@ -1037,11 +1119,13 @@ mod tests {
             parent_pattern_id: None,
         };
 
-        let result = engine.validate_pattern("test_pattern", &context, &metadata).await;
+        let result = engine
+            .validate_pattern("test_pattern", &context, &metadata)
+            .await;
         assert!(result.is_valid);
-        
+
         let stats = engine.get_validation_statistics().await;
         assert_eq!(stats.total_validations, 1);
         assert_eq!(stats.successful_validations, 1);
     }
-} 
+}

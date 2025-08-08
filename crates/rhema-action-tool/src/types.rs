@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Safety levels for actions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -92,4 +92,4 @@ impl ActionIntent {
             dependencies: None,
         }
     }
-} 
+}

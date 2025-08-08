@@ -24,7 +24,6 @@ use serde_json;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-
 /// Lock file configuration for Rhema
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LockConfig {
@@ -882,7 +881,7 @@ pub struct EnvironmentLockConfig {
 
     /// Environment-specific settings
     pub settings: HashMap<String, serde_json::Value>,
-} 
+}
 
 impl Config for LockConfig {
     fn version(&self) -> &str {
@@ -892,38 +891,50 @@ impl Config for LockConfig {
     fn validate_config(&self) -> RhemaResult<()> {
         // Basic validation
         if self.version.is_empty() {
-            return Err(RhemaError::ConfigError("Version cannot be empty".to_string()));
+            return Err(RhemaError::ConfigError(
+                "Version cannot be empty".to_string(),
+            ));
         }
-        
-        if self.conflict_resolution.compatibility_threshold < 0.0 || self.conflict_resolution.compatibility_threshold > 1.0 {
-            return Err(RhemaError::ConfigError("Compatibility threshold must be between 0.0 and 1.0".to_string()));
+
+        if self.conflict_resolution.compatibility_threshold < 0.0
+            || self.conflict_resolution.compatibility_threshold > 1.0
+        {
+            return Err(RhemaError::ConfigError(
+                "Compatibility threshold must be between 0.0 and 1.0".to_string(),
+            ));
         }
-        
+
         if self.resolution.max_depth == 0 {
-            return Err(RhemaError::ConfigError("Max depth must be greater than 0".to_string()));
+            return Err(RhemaError::ConfigError(
+                "Max depth must be greater than 0".to_string(),
+            ));
         }
-        
+
         Ok(())
     }
 
     fn load_from_file(path: &Path) -> RhemaResult<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to read lock config file: {}", e)))?;
-        
-        let config: LockConfig = serde_yaml::from_str(&content)
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to parse lock config YAML: {}", e)))?;
-        
+        let content = std::fs::read_to_string(path).map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to read lock config file: {}", e))
+        })?;
+
+        let config: LockConfig = serde_yaml::from_str(&content).map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to parse lock config YAML: {}", e))
+        })?;
+
         config.validate_config()?;
         Ok(config)
     }
 
     fn save_to_file(&self, path: &Path) -> RhemaResult<()> {
-        let content = serde_yaml::to_string(self)
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to serialize lock config: {}", e)))?;
-        
-        std::fs::write(path, content)
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to write lock config file: {}", e)))?;
-        
+        let content = serde_yaml::to_string(self).map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to serialize lock config: {}", e))
+        })?;
+
+        std::fs::write(path, content).map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to write lock config file: {}", e))
+        })?;
+
         Ok(())
     }
 
@@ -983,12 +994,15 @@ impl LockConfig {
     /// Get the default configuration path
     fn get_config_path() -> RhemaResult<PathBuf> {
         let config_dir = dirs::config_dir()
-            .ok_or_else(|| RhemaError::ConfigError("Could not determine config directory".to_string()))?
+            .ok_or_else(|| {
+                RhemaError::ConfigError("Could not determine config directory".to_string())
+            })?
             .join("rhema");
-        
-        std::fs::create_dir_all(&config_dir)
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to create config directory: {}", e)))?;
-        
+
+        std::fs::create_dir_all(&config_dir).map_err(|e| {
+            RhemaError::ConfigError(format!("Failed to create config directory: {}", e))
+        })?;
+
         Ok(config_dir.join("lock.yaml"))
     }
 
@@ -1003,11 +1017,11 @@ impl LockConfig {
         let parts: Vec<&str> = path.split('.').collect();
         let value = serde_json::to_value(self).ok()?;
         let mut current = &value;
-        
+
         for part in parts {
             current = current.get(part)?;
         }
-        
+
         Some(current.clone())
     }
 
@@ -1015,7 +1029,9 @@ impl LockConfig {
     pub fn set_value(&mut self, path: &str, value: serde_json::Value) -> RhemaResult<()> {
         let parts: Vec<&str> = path.split('.').collect();
         if parts.is_empty() {
-            return Err(RhemaError::ConfigError("Empty configuration path".to_string()));
+            return Err(RhemaError::ConfigError(
+                "Empty configuration path".to_string(),
+            ));
         }
 
         match parts[0] {
@@ -1026,7 +1042,12 @@ impl LockConfig {
             "performance" => self.set_performance_value(&parts[1..], value)?,
             "environments" => self.set_environments_value(&parts[1..], value)?,
             "custom" => self.set_custom_value(&parts[1..], value)?,
-            _ => return Err(RhemaError::ConfigError(format!("Unknown configuration section: {}", parts[0]))),
+            _ => {
+                return Err(RhemaError::ConfigError(format!(
+                    "Unknown configuration section: {}",
+                    parts[0]
+                )))
+            }
         }
 
         self.update()?;
@@ -1034,12 +1055,19 @@ impl LockConfig {
     }
 
     /// Get environment-specific configuration
-    pub fn get_environment_config(&self, environment: &ConfigEnvironment) -> Option<&EnvironmentLockConfig> {
+    pub fn get_environment_config(
+        &self,
+        environment: &ConfigEnvironment,
+    ) -> Option<&EnvironmentLockConfig> {
         self.environments.get(environment)
     }
 
     /// Set environment-specific configuration
-    pub fn set_environment_config(&mut self, environment: ConfigEnvironment, config: EnvironmentLockConfig) {
+    pub fn set_environment_config(
+        &mut self,
+        environment: ConfigEnvironment,
+        config: EnvironmentLockConfig,
+    ) {
         self.environments.insert(environment, config);
         self.update().ok();
     }
@@ -1048,29 +1076,29 @@ impl LockConfig {
     pub fn merge(&mut self, other: &LockConfig) -> RhemaResult<()> {
         // Merge resolution config
         self.resolution.merge(&other.resolution);
-        
+
         // Merge conflict resolution config
         self.conflict_resolution.merge(&other.conflict_resolution);
-        
+
         // Merge update policies
         self.update_policies.merge(&other.update_policies);
-        
+
         // Merge validation config
         self.validation.merge(&other.validation);
-        
+
         // Merge performance config
         self.performance.merge(&other.performance);
-        
+
         // Merge environments
         for (env, config) in &other.environments {
             self.environments.insert(env.clone(), config.clone());
         }
-        
+
         // Merge custom settings
         for (key, value) in &other.custom {
             self.custom.insert(key.clone(), value.clone());
         }
-        
+
         self.update()?;
         Ok(())
     }
@@ -1078,38 +1106,34 @@ impl LockConfig {
     /// Export configuration to different formats
     pub fn export(&self, format: &str) -> RhemaResult<String> {
         match format.to_lowercase().as_str() {
-            "yaml" | "yml" => {
-                serde_yaml::to_string(self)
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to export to YAML: {}", e)))
-            }
-            "json" => {
-                serde_json::to_string_pretty(self)
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to export to JSON: {}", e)))
-            }
-            "toml" => {
-                toml::to_string_pretty(self)
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to export to TOML: {}", e)))
-            }
-            _ => Err(RhemaError::ConfigError(format!("Unsupported export format: {}", format))),
+            "yaml" | "yml" => serde_yaml::to_string(self)
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to export to YAML: {}", e))),
+            "json" => serde_json::to_string_pretty(self)
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to export to JSON: {}", e))),
+            "toml" => toml::to_string_pretty(self)
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to export to TOML: {}", e))),
+            _ => Err(RhemaError::ConfigError(format!(
+                "Unsupported export format: {}",
+                format
+            ))),
         }
     }
 
     /// Import configuration from different formats
     pub fn import(&mut self, content: &str, format: &str) -> RhemaResult<()> {
         let imported_config: LockConfig = match format.to_lowercase().as_str() {
-            "yaml" | "yml" => {
-                serde_yaml::from_str(content)
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to parse YAML: {}", e)))?
+            "yaml" | "yml" => serde_yaml::from_str(content)
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to parse YAML: {}", e)))?,
+            "json" => serde_json::from_str(content)
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to parse JSON: {}", e)))?,
+            "toml" => toml::from_str(content)
+                .map_err(|e| RhemaError::ConfigError(format!("Failed to parse TOML: {}", e)))?,
+            _ => {
+                return Err(RhemaError::ConfigError(format!(
+                    "Unsupported import format: {}",
+                    format
+                )))
             }
-            "json" => {
-                serde_json::from_str(content)
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to parse JSON: {}", e)))?
-            }
-            "toml" => {
-                toml::from_str(content)
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to parse TOML: {}", e)))?
-            }
-            _ => return Err(RhemaError::ConfigError(format!("Unsupported import format: {}", format))),
         };
 
         self.merge(&imported_config)?;
@@ -1117,110 +1141,172 @@ impl LockConfig {
     }
 
     // Helper methods for setting nested values
-    fn set_resolution_value(&mut self, parts: &[&str], value: serde_json::Value) -> RhemaResult<()> {
+    fn set_resolution_value(
+        &mut self,
+        parts: &[&str],
+        value: serde_json::Value,
+    ) -> RhemaResult<()> {
         if parts.is_empty() {
             return Err(RhemaError::ConfigError("Empty resolution path".to_string()));
         }
 
         match parts[0] {
             "default_strategy" => {
-                let strategy: ResolutionStrategy = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid resolution strategy: {}", e)))?;
+                let strategy: ResolutionStrategy = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid resolution strategy: {}", e))
+                })?;
                 self.resolution.default_strategy = strategy;
             }
             "smart_resolution_enabled" => {
-                let enabled: bool = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid boolean value: {}", e)))?;
+                let enabled: bool = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid boolean value: {}", e))
+                })?;
                 self.resolution.smart_resolution_enabled = enabled;
             }
             "prefer_stable" => {
-                let prefer: bool = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid boolean value: {}", e)))?;
+                let prefer: bool = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid boolean value: {}", e))
+                })?;
                 self.resolution.prefer_stable = prefer;
             }
-            _ => return Err(RhemaError::ConfigError(format!("Unknown resolution setting: {}", parts[0]))),
+            _ => {
+                return Err(RhemaError::ConfigError(format!(
+                    "Unknown resolution setting: {}",
+                    parts[0]
+                )))
+            }
         }
 
         Ok(())
     }
 
-    fn set_conflict_resolution_value(&mut self, parts: &[&str], value: serde_json::Value) -> RhemaResult<()> {
+    fn set_conflict_resolution_value(
+        &mut self,
+        parts: &[&str],
+        value: serde_json::Value,
+    ) -> RhemaResult<()> {
         if parts.is_empty() {
-            return Err(RhemaError::ConfigError("Empty conflict resolution path".to_string()));
+            return Err(RhemaError::ConfigError(
+                "Empty conflict resolution path".to_string(),
+            ));
         }
 
         match parts[0] {
             "primary_strategy" => {
-                let strategy: ConflictResolutionStrategy = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid conflict resolution strategy: {}", e)))?;
+                let strategy: ConflictResolutionStrategy =
+                    serde_json::from_value(value).map_err(|e| {
+                        RhemaError::ConfigError(format!(
+                            "Invalid conflict resolution strategy: {}",
+                            e
+                        ))
+                    })?;
                 self.conflict_resolution.primary_strategy = strategy;
             }
             "enable_auto_detection" => {
-                let enabled: bool = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid boolean value: {}", e)))?;
+                let enabled: bool = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid boolean value: {}", e))
+                })?;
                 self.conflict_resolution.enable_auto_detection = enabled;
             }
             "compatibility_threshold" => {
-                let threshold: f64 = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid threshold value: {}", e)))?;
+                let threshold: f64 = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid threshold value: {}", e))
+                })?;
                 if !(0.0..=1.0).contains(&threshold) {
-                    return Err(RhemaError::ConfigError("Compatibility threshold must be between 0.0 and 1.0".to_string()));
+                    return Err(RhemaError::ConfigError(
+                        "Compatibility threshold must be between 0.0 and 1.0".to_string(),
+                    ));
                 }
                 self.conflict_resolution.compatibility_threshold = threshold;
             }
-            _ => return Err(RhemaError::ConfigError(format!("Unknown conflict resolution setting: {}", parts[0]))),
+            _ => {
+                return Err(RhemaError::ConfigError(format!(
+                    "Unknown conflict resolution setting: {}",
+                    parts[0]
+                )))
+            }
         }
 
         Ok(())
     }
 
-    fn set_update_policies_value(&mut self, parts: &[&str], value: serde_json::Value) -> RhemaResult<()> {
+    fn set_update_policies_value(
+        &mut self,
+        parts: &[&str],
+        value: serde_json::Value,
+    ) -> RhemaResult<()> {
         if parts.is_empty() {
-            return Err(RhemaError::ConfigError("Empty update policies path".to_string()));
+            return Err(RhemaError::ConfigError(
+                "Empty update policies path".to_string(),
+            ));
         }
 
         match parts[0] {
             "auto_update_enabled" => {
-                let enabled: bool = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid boolean value: {}", e)))?;
+                let enabled: bool = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid boolean value: {}", e))
+                })?;
                 self.update_policies.auto_update_enabled = enabled;
             }
             "update_frequency" => {
-                let frequency: UpdateFrequency = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid update frequency: {}", e)))?;
+                let frequency: UpdateFrequency = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid update frequency: {}", e))
+                })?;
                 self.update_policies.update_frequency = frequency;
             }
-            _ => return Err(RhemaError::ConfigError(format!("Unknown update policy setting: {}", parts[0]))),
+            _ => {
+                return Err(RhemaError::ConfigError(format!(
+                    "Unknown update policy setting: {}",
+                    parts[0]
+                )))
+            }
         }
 
         Ok(())
     }
 
-    fn set_validation_value(&mut self, parts: &[&str], value: serde_json::Value) -> RhemaResult<()> {
+    fn set_validation_value(
+        &mut self,
+        parts: &[&str],
+        value: serde_json::Value,
+    ) -> RhemaResult<()> {
         if parts.is_empty() {
             return Err(RhemaError::ConfigError("Empty validation path".to_string()));
         }
 
         match parts[0] {
             "validation_enabled" => {
-                let enabled: bool = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid boolean value: {}", e)))?;
+                let enabled: bool = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid boolean value: {}", e))
+                })?;
                 self.validation.validation_enabled = enabled;
             }
             "validation_level" => {
-                let level: ValidationLevel = serde_json::from_value(value)
-                    .map_err(|e| RhemaError::ConfigError(format!("Invalid validation level: {}", e)))?;
+                let level: ValidationLevel = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid validation level: {}", e))
+                })?;
                 self.validation.validation_level = level;
             }
-            _ => return Err(RhemaError::ConfigError(format!("Unknown validation setting: {}", parts[0]))),
+            _ => {
+                return Err(RhemaError::ConfigError(format!(
+                    "Unknown validation setting: {}",
+                    parts[0]
+                )))
+            }
         }
 
         Ok(())
     }
 
-    fn set_performance_value(&mut self, parts: &[&str], value: serde_json::Value) -> RhemaResult<()> {
+    fn set_performance_value(
+        &mut self,
+        parts: &[&str],
+        value: serde_json::Value,
+    ) -> RhemaResult<()> {
         if parts.is_empty() {
-            return Err(RhemaError::ConfigError("Empty performance path".to_string()));
+            return Err(RhemaError::ConfigError(
+                "Empty performance path".to_string(),
+            ));
         }
 
         match parts[0] {
@@ -1229,28 +1315,46 @@ impl LockConfig {
                 if parts.len() > 1 {
                     match parts[1] {
                         "enabled" => {
-                            let enabled: bool = serde_json::from_value(value)
-                                .map_err(|e| RhemaError::ConfigError(format!("Invalid boolean value: {}", e)))?;
+                            let enabled: bool = serde_json::from_value(value).map_err(|e| {
+                                RhemaError::ConfigError(format!("Invalid boolean value: {}", e))
+                            })?;
                             self.performance.cache.enabled = enabled;
                         }
                         "size_limit_mb" => {
-                            let size: u64 = serde_json::from_value(value)
-                                .map_err(|e| RhemaError::ConfigError(format!("Invalid size value: {}", e)))?;
+                            let size: u64 = serde_json::from_value(value).map_err(|e| {
+                                RhemaError::ConfigError(format!("Invalid size value: {}", e))
+                            })?;
                             self.performance.cache.size_limit_mb = size;
                         }
-                        _ => return Err(RhemaError::ConfigError(format!("Unknown cache setting: {}", parts[1]))),
+                        _ => {
+                            return Err(RhemaError::ConfigError(format!(
+                                "Unknown cache setting: {}",
+                                parts[1]
+                            )))
+                        }
                     }
                 }
             }
-            _ => return Err(RhemaError::ConfigError(format!("Unknown performance setting: {}", parts[0]))),
+            _ => {
+                return Err(RhemaError::ConfigError(format!(
+                    "Unknown performance setting: {}",
+                    parts[0]
+                )))
+            }
         }
 
         Ok(())
     }
 
-    fn set_environments_value(&mut self, parts: &[&str], value: serde_json::Value) -> RhemaResult<()> {
+    fn set_environments_value(
+        &mut self,
+        parts: &[&str],
+        value: serde_json::Value,
+    ) -> RhemaResult<()> {
         if parts.len() < 2 {
-            return Err(RhemaError::ConfigError("Environment path must include environment name".to_string()));
+            return Err(RhemaError::ConfigError(
+                "Environment path must include environment name".to_string(),
+            ));
         }
 
         let env_name = parts[0];
@@ -1586,7 +1690,8 @@ impl ResolutionConfig {
         if other.default_strategy != ResolutionStrategy::Latest {
             self.default_strategy = other.default_strategy.clone();
         }
-        self.strategy_overrides.extend(other.strategy_overrides.clone());
+        self.strategy_overrides
+            .extend(other.strategy_overrides.clone());
         self.scope_strategies.extend(other.scope_strategies.clone());
         self.smart_resolution_enabled = other.smart_resolution_enabled;
         self.prefer_stable = other.prefer_stable;
@@ -1630,8 +1735,10 @@ impl ConflictResolutionConfig {
         self.auto_resolve_medium_severity = other.auto_resolve_medium_severity;
         self.fail_on_high_severity = other.fail_on_high_severity;
         self.fail_on_critical_severity = other.fail_on_critical_severity;
-        self.dependency_type_preferences.extend(other.dependency_type_preferences.clone());
-        self.scope_preferences.extend(other.scope_preferences.clone());
+        self.dependency_type_preferences
+            .extend(other.dependency_type_preferences.clone());
+        self.scope_preferences
+            .extend(other.scope_preferences.clone());
     }
 }
 
@@ -1803,7 +1910,8 @@ impl OptimizationConfig {
         self.path_optimization_enabled = other.path_optimization_enabled;
         self.constraint_optimization_enabled = other.constraint_optimization_enabled;
         self.version_selection_optimization_enabled = other.version_selection_optimization_enabled;
-        self.conflict_resolution_optimization_enabled = other.conflict_resolution_optimization_enabled;
+        self.conflict_resolution_optimization_enabled =
+            other.conflict_resolution_optimization_enabled;
         self.validation_optimization_enabled = other.validation_optimization_enabled;
         self.caching_optimization_enabled = other.caching_optimization_enabled;
         self.parallel_optimization_enabled = other.parallel_optimization_enabled;
@@ -1875,13 +1983,16 @@ mod tests {
     fn test_lock_config_merge() {
         let mut config1 = LockConfig::new();
         let mut config2 = LockConfig::new();
-        
+
         config2.resolution.default_strategy = ResolutionStrategy::Conservative;
         config2.conflict_resolution.compatibility_threshold = 0.9;
-        
+
         config1.merge(&config2).unwrap();
-        
-        assert_eq!(config1.resolution.default_strategy, ResolutionStrategy::Conservative);
+
+        assert_eq!(
+            config1.resolution.default_strategy,
+            ResolutionStrategy::Conservative
+        );
         assert_eq!(config1.conflict_resolution.compatibility_threshold, 0.9);
     }
 
@@ -1898,7 +2009,7 @@ mod tests {
             performance_tuning: None,
             settings: HashMap::new(),
         };
-        
+
         config.set_environment_config(ConfigEnvironment::Testing, env_config);
         let retrieved = config.get_environment_config(&ConfigEnvironment::Testing);
         assert!(retrieved.is_some());
@@ -1908,12 +2019,12 @@ mod tests {
     #[test]
     fn test_config_value_access() {
         let config = LockConfig::new();
-        
+
         // Test getting values
         let smart_resolution = config.get_value("resolution.smart_resolution_enabled");
         assert!(smart_resolution.is_some());
         assert_eq!(smart_resolution.unwrap().as_bool().unwrap(), true);
-        
+
         let version = config.get_value("version");
         assert!(version.is_some());
         assert_eq!(version.unwrap().as_str().unwrap(), CURRENT_CONFIG_VERSION);
@@ -1922,29 +2033,39 @@ mod tests {
     #[test]
     fn test_config_value_setting() {
         let mut config = LockConfig::new();
-        
+
         // Test setting values
-        config.set_value("resolution.smart_resolution_enabled", serde_json::json!(false)).unwrap();
+        config
+            .set_value(
+                "resolution.smart_resolution_enabled",
+                serde_json::json!(false),
+            )
+            .unwrap();
         assert!(!config.resolution.smart_resolution_enabled);
-        
-        config.set_value("conflict_resolution.compatibility_threshold", serde_json::json!(0.95)).unwrap();
+
+        config
+            .set_value(
+                "conflict_resolution.compatibility_threshold",
+                serde_json::json!(0.95),
+            )
+            .unwrap();
         assert_eq!(config.conflict_resolution.compatibility_threshold, 0.95);
     }
 
     #[test]
     fn test_config_export_import() {
         let config = LockConfig::new();
-        
+
         // Test YAML export/import
         let yaml = config.export("yaml").unwrap();
         let mut new_config = LockConfig::new();
         new_config.import(&yaml, "yaml").unwrap();
         assert_eq!(config.version, new_config.version);
-        
+
         // Test JSON export/import
         let json = config.export("json").unwrap();
         let mut new_config2 = LockConfig::new();
         new_config2.import(&json, "json").unwrap();
         assert_eq!(config.version, new_config2.version);
     }
-} 
+}

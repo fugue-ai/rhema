@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 
 use crate::PerformanceMonitor;
 use rhema_core::RhemaResult;
 
 // Import actual LOCOMO types
 use rhema_locomo::{
-    LocomoMetrics, LocomoMetricsCollector, LocomoBenchmarkEngine, LocomoReportingSystem,
-    LocomoReport, ReportType, DashboardData, ChartData, Alert, TrendAnalysis, TrendDirection
+    Alert, ChartData, DashboardData, LocomoBenchmarkEngine, LocomoMetrics, LocomoMetricsCollector,
+    LocomoReport, LocomoReportingSystem, ReportType, TrendAnalysis, TrendDirection,
 };
 
 /// LOCOMO Performance Integration
@@ -339,10 +339,7 @@ impl LocomoPerformanceIntegration {
     /// Run integrated benchmarks
     pub async fn run_integrated_benchmarks(&self) -> RhemaResult<LocomoReport> {
         let system_metrics = self.get_system_metrics_data().await?;
-        let benchmark_result = self
-            .locomo_benchmark_engine
-            .run_all_benchmarks()
-            .await?;
+        let benchmark_result = self.locomo_benchmark_engine.run_all_benchmarks().await?;
 
         let report = self
             .locomo_reporting_system
@@ -356,21 +353,29 @@ impl LocomoPerformanceIntegration {
     /// Get current dashboard data
     pub async fn get_dashboard_data(&self) -> RhemaResult<DashboardData> {
         let mut dashboard = self.dashboard_data.write().await;
-        
+
         // Update current metrics
         dashboard.current_metrics = LocomoMetrics::new();
-        
+
         // Update recent reports
         dashboard.recent_reports = Vec::new();
 
         // Update charts
-        dashboard.performance_chart = self.generate_performance_chart(&dashboard.recent_reports).await?;
-        dashboard.quality_chart = self.generate_quality_chart(&dashboard.recent_reports).await?;
-        dashboard.optimization_chart = self.generate_optimization_chart(&dashboard.recent_reports).await?;
+        dashboard.performance_chart = self
+            .generate_performance_chart(&dashboard.recent_reports)
+            .await?;
+        dashboard.quality_chart = self
+            .generate_quality_chart(&dashboard.recent_reports)
+            .await?;
+        dashboard.optimization_chart = self
+            .generate_optimization_chart(&dashboard.recent_reports)
+            .await?;
 
         // Update alerts
         let integrated_metrics = self.collect_integrated_metrics().await?;
-        dashboard.alerts = self.generate_alerts(&integrated_metrics.locomo_metrics).await?;
+        dashboard.alerts = self
+            .generate_alerts(&integrated_metrics.locomo_metrics)
+            .await?;
 
         Ok(dashboard.clone())
     }
@@ -378,7 +383,7 @@ impl LocomoPerformanceIntegration {
     /// Export dashboard data
     pub async fn export_dashboard_data(&self, format: &str) -> RhemaResult<String> {
         let dashboard_data = self.get_dashboard_data().await?;
-        
+
         match format {
             "json" => Ok(serde_json::to_string_pretty(&dashboard_data)?),
             "csv" => self.export_to_csv(&dashboard_data).await,
@@ -393,21 +398,30 @@ impl LocomoPerformanceIntegration {
     /// Start metrics collection background task
     async fn start_metrics_collection(&self) -> RhemaResult<()> {
         let interval = self.integration_config.locomo_metrics_interval_seconds;
-        info!("Starting LOCOMO metrics collection with {}s interval", interval);
+        info!(
+            "Starting LOCOMO metrics collection with {}s interval",
+            interval
+        );
         Ok(())
     }
 
     /// Start benchmark monitoring background task
     async fn start_benchmark_monitoring(&self) -> RhemaResult<()> {
         let interval = self.integration_config.locomo_benchmark_interval_hours;
-        info!("Starting LOCOMO benchmark monitoring with {}h interval", interval);
+        info!(
+            "Starting LOCOMO benchmark monitoring with {}h interval",
+            interval
+        );
         Ok(())
     }
 
     /// Start reporting monitoring background task
     async fn start_reporting_monitoring(&self) -> RhemaResult<()> {
         let interval = self.integration_config.locomo_reporting_interval_hours;
-        info!("Starting LOCOMO reporting monitoring with {}h interval", interval);
+        info!(
+            "Starting LOCOMO reporting monitoring with {}h interval",
+            interval
+        );
         Ok(())
     }
 
@@ -544,12 +558,17 @@ impl LocomoPerformanceIntegration {
     }
 
     /// Check and generate alerts
-    async fn check_and_generate_alerts(&self, metrics: &IntegratedLocomoMetrics) -> RhemaResult<()> {
+    async fn check_and_generate_alerts(
+        &self,
+        metrics: &IntegratedLocomoMetrics,
+    ) -> RhemaResult<()> {
         let thresholds = &self.integration_config.performance_thresholds;
         let mut alerts = vec![];
 
         // Check performance thresholds
-        if metrics.locomo_metrics.context_retrieval_latency.as_millis() as f64 > thresholds.context_retrieval_latency_ms {
+        if metrics.locomo_metrics.context_retrieval_latency.as_millis() as f64
+            > thresholds.context_retrieval_latency_ms
+        {
             alerts.push(LocomoPerformanceAlert {
                 alert_type: LocomoAlertType::PerformanceDegradation,
                 severity: AlertSeverity::High,
@@ -575,8 +594,7 @@ impl LocomoPerformanceIntegration {
                 severity: AlertSeverity::Medium,
                 message: format!(
                     "Quality score ({:.2}) below threshold ({:.2})",
-                    metrics.locomo_metrics.context_quality_assessment,
-                    thresholds.quality_score
+                    metrics.locomo_metrics.context_quality_assessment, thresholds.quality_score
                 ),
                 metrics: metrics.clone(),
                 recommendations: vec![
@@ -622,7 +640,7 @@ impl LocomoPerformanceIntegration {
         {
             let mut history = self.alert_history.write().await;
             history.push(alert.clone());
-            
+
             // Keep only recent alerts
             if history.len() > 100 {
                 history.remove(0);
@@ -689,7 +707,10 @@ impl LocomoPerformanceIntegration {
     }
 
     /// Generate performance chart
-    async fn generate_performance_chart(&self, _reports: &[LocomoReport]) -> RhemaResult<ChartData> {
+    async fn generate_performance_chart(
+        &self,
+        _reports: &[LocomoReport],
+    ) -> RhemaResult<ChartData> {
         Ok(ChartData {
             chart_type: "line".to_string(),
             data: serde_json::json!({
@@ -717,7 +738,10 @@ impl LocomoPerformanceIntegration {
     }
 
     /// Generate optimization chart
-    async fn generate_optimization_chart(&self, _reports: &[LocomoReport]) -> RhemaResult<ChartData> {
+    async fn generate_optimization_chart(
+        &self,
+        _reports: &[LocomoReport],
+    ) -> RhemaResult<ChartData> {
         Ok(ChartData {
             chart_type: "line".to_string(),
             data: serde_json::json!({
@@ -739,15 +763,24 @@ impl LocomoPerformanceIntegration {
     async fn export_to_csv(&self, dashboard_data: &DashboardData) -> RhemaResult<String> {
         let mut csv = String::new();
         csv.push_str("Metric,Value,Timestamp\n");
-        csv.push_str(&format!("Performance Score,{:.2},{}\n", 
-            dashboard_data.current_metrics.context_retrieval_latency.as_millis() as f64, 
-            Utc::now()));
-        csv.push_str(&format!("Quality Score,{:.2},{}\n", 
-            dashboard_data.current_metrics.context_quality_assessment, 
-            Utc::now()));
-        csv.push_str(&format!("Optimization Score,{:.2},{}\n", 
-            dashboard_data.current_metrics.ai_agent_optimization_score, 
-            Utc::now()));
+        csv.push_str(&format!(
+            "Performance Score,{:.2},{}\n",
+            dashboard_data
+                .current_metrics
+                .context_retrieval_latency
+                .as_millis() as f64,
+            Utc::now()
+        ));
+        csv.push_str(&format!(
+            "Quality Score,{:.2},{}\n",
+            dashboard_data.current_metrics.context_quality_assessment,
+            Utc::now()
+        ));
+        csv.push_str(&format!(
+            "Optimization Score,{:.2},{}\n",
+            dashboard_data.current_metrics.ai_agent_optimization_score,
+            Utc::now()
+        ));
         Ok(csv)
     }
 
@@ -780,10 +813,15 @@ impl LocomoPerformanceIntegration {
 </body>
 </html>
 "#,
-            dashboard_data.current_metrics.context_retrieval_latency.as_millis() as f64,
+            dashboard_data
+                .current_metrics
+                .context_retrieval_latency
+                .as_millis() as f64,
             dashboard_data.current_metrics.context_quality_assessment,
             dashboard_data.current_metrics.ai_agent_optimization_score,
-            dashboard_data.alerts.iter()
+            dashboard_data
+                .alerts
+                .iter()
                 .map(|alert| format!("<div class='alert'>{}</div>", alert.message))
                 .collect::<Vec<_>>()
                 .join("")
@@ -813,7 +851,12 @@ mod tests {
         );
 
         assert!(integration.integration_config.enable_locomo_monitoring);
-        assert_eq!(integration.integration_config.locomo_metrics_interval_seconds, 30);
+        assert_eq!(
+            integration
+                .integration_config
+                .locomo_metrics_interval_seconds,
+            30
+        );
     }
 
     #[tokio::test]
@@ -856,4 +899,4 @@ mod tests {
         assert!(integration.start_integration().await.is_ok());
         assert!(integration.stop_integration().await.is_ok());
     }
-} 
+}

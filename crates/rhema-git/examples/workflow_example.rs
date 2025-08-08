@@ -79,4 +79,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   The CLI can now use these functions to implement workflow commands.");
 
     Ok(())
-} 
+}

@@ -15,7 +15,7 @@
  */
 
 use chrono::{DateTime, Utc};
-use rhema_core::{RhemaLock, RhemaResult, LockedScope};
+use rhema_core::{LockedScope, RhemaLock, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -46,9 +46,10 @@ impl LockFileContextProvider {
                     self.last_updated = Some(Utc::now());
                 }
                 Err(e) => {
-                    return Err(rhema_core::RhemaError::InvalidInput(
-                        format!("Failed to load lock file: {}", e)
-                    ));
+                    return Err(rhema_core::RhemaError::InvalidInput(format!(
+                        "Failed to load lock file: {}",
+                        e
+                    )));
                 }
             }
         }
@@ -57,8 +58,9 @@ impl LockFileContextProvider {
 
     /// Get comprehensive lock file context for AI agents
     pub fn get_ai_context(&self) -> RhemaResult<LockFileAIContext> {
-        let lock_file = self.lock_file.as_ref()
-            .ok_or_else(|| rhema_core::RhemaError::InvalidInput("No lock file loaded".to_string()))?;
+        let lock_file = self.lock_file.as_ref().ok_or_else(|| {
+            rhema_core::RhemaError::InvalidInput("No lock file loaded".to_string())
+        })?;
 
         let mut context = LockFileAIContext {
             summary: self.generate_summary(lock_file),
@@ -72,7 +74,9 @@ impl LockFileContextProvider {
 
         // Add detailed scope information
         for (scope_path, locked_scope) in &lock_file.scopes {
-            context.scope_details.insert(scope_path.clone(), self.analyze_scope(locked_scope));
+            context
+                .scope_details
+                .insert(scope_path.clone(), self.analyze_scope(locked_scope));
         }
 
         Ok(context)
@@ -80,8 +84,9 @@ impl LockFileContextProvider {
 
     /// Get scope-specific lock file context
     pub fn get_scope_context(&self, scope_path: &str) -> RhemaResult<ScopeLockContext> {
-        let lock_file = self.lock_file.as_ref()
-            .ok_or_else(|| rhema_core::RhemaError::InvalidInput("No lock file loaded".to_string()))?;
+        let lock_file = self.lock_file.as_ref().ok_or_else(|| {
+            rhema_core::RhemaError::InvalidInput("No lock file loaded".to_string())
+        })?;
 
         if let Some(locked_scope) = lock_file.scopes.get(scope_path) {
             Ok(ScopeLockContext {
@@ -93,9 +98,10 @@ impl LockFileContextProvider {
                 last_resolved: locked_scope.resolved_at,
             })
         } else {
-            Err(rhema_core::RhemaError::InvalidInput(
-                format!("Scope not found in lock file: {}", scope_path)
-            ))
+            Err(rhema_core::RhemaError::InvalidInput(format!(
+                "Scope not found in lock file: {}",
+                scope_path
+            )))
         }
     }
 
@@ -127,10 +133,16 @@ impl LockFileContextProvider {
         for locked_scope in lock_file.scopes.values() {
             for (dep_name, dep) in &locked_scope.dependencies {
                 // Count dependency types
-                if let Some(pos) = analysis.dependency_types.iter().position(|(dt, _)| dt == &dep.dependency_type) {
+                if let Some(pos) = analysis
+                    .dependency_types
+                    .iter()
+                    .position(|(dt, _)| dt == &dep.dependency_type)
+                {
                     analysis.dependency_types[pos].1 += 1;
                 } else {
-                    analysis.dependency_types.push((dep.dependency_type.clone(), 1));
+                    analysis
+                        .dependency_types
+                        .push((dep.dependency_type.clone(), 1));
                 }
 
                 // Count direct vs transitive
@@ -141,7 +153,10 @@ impl LockFileContextProvider {
                 }
 
                 // Analyze version distribution
-                *analysis.version_distribution.entry(dep.version.clone()).or_insert(0) += 1;
+                *analysis
+                    .version_distribution
+                    .entry(dep.version.clone())
+                    .or_insert(0) += 1;
 
                 // Check for outdated dependencies (simplified check)
                 if dep.version.starts_with("0.") {
@@ -211,7 +226,10 @@ impl LockFileContextProvider {
         // Detect circular dependencies (simplified)
         if lock_file.metadata.circular_dependencies > 0 {
             analysis.circular_dependencies.push(CircularDependency {
-                description: format!("{} circular dependencies detected", lock_file.metadata.circular_dependencies),
+                description: format!(
+                    "{} circular dependencies detected",
+                    lock_file.metadata.circular_dependencies
+                ),
                 affected_scopes: lock_file.scopes.keys().cloned().collect(),
                 severity: ConflictSeverity::High,
             });
@@ -235,7 +253,10 @@ impl LockFileContextProvider {
         // Check circular dependencies
         if lock_file.metadata.circular_dependencies > 0 {
             score -= 20.0 * lock_file.metadata.circular_dependencies as f64;
-            issues.push(format!("{} circular dependencies detected", lock_file.metadata.circular_dependencies));
+            issues.push(format!(
+                "{} circular dependencies detected",
+                lock_file.metadata.circular_dependencies
+            ));
         }
 
         // Check performance metrics
@@ -257,7 +278,9 @@ impl LockFileContextProvider {
         }
 
         // Check for outdated dependencies
-        let outdated_count = lock_file.scopes.values()
+        let outdated_count = lock_file
+            .scopes
+            .values()
             .flat_map(|scope| scope.dependencies.values())
             .filter(|dep| dep.version.starts_with("0."))
             .count();
@@ -269,7 +292,13 @@ impl LockFileContextProvider {
 
         HealthAssessment {
             overall_score: score.max(0.0),
-            status: if score >= 80.0 { HealthStatus::Good } else if score >= 60.0 { HealthStatus::Fair } else { HealthStatus::Poor },
+            status: if score >= 80.0 {
+                HealthStatus::Good
+            } else if score >= 60.0 {
+                HealthStatus::Fair
+            } else {
+                HealthStatus::Poor
+            },
             issues: issues.clone(),
             warnings: warnings.clone(),
             recommendations: self.generate_health_recommendations(score, &issues, &warnings),
@@ -286,7 +315,8 @@ impl LockFileContextProvider {
                 category: RecommendationCategory::Validation,
                 priority: RecommendationPriority::High,
                 title: "Fix validation issues".to_string(),
-                description: "The lock file has validation errors that should be resolved".to_string(),
+                description: "The lock file has validation errors that should be resolved"
+                    .to_string(),
                 action: "Review and fix validation errors in the lock file".to_string(),
             });
         }
@@ -297,13 +327,19 @@ impl LockFileContextProvider {
                 category: RecommendationCategory::Dependencies,
                 priority: RecommendationPriority::High,
                 title: "Resolve circular dependencies".to_string(),
-                description: format!("{} circular dependencies detected", lock_file.metadata.circular_dependencies),
-                action: "Review dependency relationships and break circular dependencies".to_string(),
+                description: format!(
+                    "{} circular dependencies detected",
+                    lock_file.metadata.circular_dependencies
+                ),
+                action: "Review dependency relationships and break circular dependencies"
+                    .to_string(),
             });
         }
 
         // Recommendations based on outdated dependencies
-        let outdated_deps: Vec<_> = lock_file.scopes.values()
+        let outdated_deps: Vec<_> = lock_file
+            .scopes
+            .values()
             .flat_map(|scope| scope.dependencies.iter())
             .filter(|(_, dep)| dep.version.starts_with("0."))
             .collect();
@@ -313,7 +349,10 @@ impl LockFileContextProvider {
                 category: RecommendationCategory::Dependencies,
                 priority: RecommendationPriority::Medium,
                 title: "Update outdated dependencies".to_string(),
-                description: format!("{} dependencies are using pre-release versions", outdated_deps.len()),
+                description: format!(
+                    "{} dependencies are using pre-release versions",
+                    outdated_deps.len()
+                ),
                 action: "Consider upgrading to stable versions where possible".to_string(),
             });
         }
@@ -347,8 +386,10 @@ impl LockFileContextProvider {
 
     /// Analyze dependencies for a specific scope
     fn analyze_scope_dependencies(&self, locked_scope: &LockedScope) -> Vec<DependencyInfo> {
-        locked_scope.dependencies.iter().map(|(name, dep)| {
-            DependencyInfo {
+        locked_scope
+            .dependencies
+            .iter()
+            .map(|(name, dep)| DependencyInfo {
                 name: name.clone(),
                 version: dep.version.clone(),
                 path: dep.path.clone(),
@@ -357,8 +398,8 @@ impl LockFileContextProvider {
                 original_constraint: dep.original_constraint.clone(),
                 resolved_at: dep.resolved_at,
                 checksum: dep.checksum.clone(),
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     /// Assess health for a specific scope
@@ -371,7 +412,9 @@ impl LockFileContextProvider {
             issues.push("Scope has circular dependencies".to_string());
         }
 
-        let outdated_count = locked_scope.dependencies.values()
+        let outdated_count = locked_scope
+            .dependencies
+            .values()
             .filter(|dep| dep.version.starts_with("0."))
             .count();
 
@@ -382,7 +425,13 @@ impl LockFileContextProvider {
 
         ScopeHealth {
             score: score.max(0.0),
-            status: if score >= 80.0 { HealthStatus::Good } else if score >= 60.0 { HealthStatus::Fair } else { HealthStatus::Poor },
+            status: if score >= 80.0 {
+                HealthStatus::Good
+            } else if score >= 60.0 {
+                HealthStatus::Fair
+            } else {
+                HealthStatus::Poor
+            },
             issues,
         }
     }
@@ -401,7 +450,9 @@ impl LockFileContextProvider {
             });
         }
 
-        let outdated_deps: Vec<_> = locked_scope.dependencies.iter()
+        let outdated_deps: Vec<_> = locked_scope
+            .dependencies
+            .iter()
             .filter(|(_, dep)| dep.version.starts_with("0."))
             .collect();
 
@@ -410,7 +461,10 @@ impl LockFileContextProvider {
                 category: RecommendationCategory::Dependencies,
                 priority: RecommendationPriority::Medium,
                 title: "Update outdated dependencies".to_string(),
-                description: format!("{} dependencies are using pre-release versions", outdated_deps.len()),
+                description: format!(
+                    "{} dependencies are using pre-release versions",
+                    outdated_deps.len()
+                ),
                 action: "Consider upgrading to stable versions".to_string(),
             });
         }
@@ -419,14 +473,22 @@ impl LockFileContextProvider {
     }
 
     /// Generate health recommendations
-    fn generate_health_recommendations(&self, score: f64, issues: &[String], warnings: &[String]) -> Vec<String> {
+    fn generate_health_recommendations(
+        &self,
+        score: f64,
+        issues: &[String],
+        warnings: &[String],
+    ) -> Vec<String> {
         let mut recommendations = Vec::new();
 
         if score < 70.0 {
             recommendations.push("Consider regenerating the lock file".to_string());
         }
 
-        if issues.iter().any(|issue| issue.contains("circular dependencies")) {
+        if issues
+            .iter()
+            .any(|issue| issue.contains("circular dependencies"))
+        {
             recommendations.push("Review and resolve circular dependencies".to_string());
         }
 
@@ -644,4 +706,4 @@ pub struct ScopeHealth {
     pub score: f64,
     pub status: HealthStatus,
     pub issues: Vec<String>,
-} 
+}

@@ -17,8 +17,7 @@
 use chrono::Utc;
 use rhema_core::RhemaResult;
 use rhema_monitoring::performance::{
-    PerformanceConfig, PerformanceMonitor, ReportPeriod, SystemPerformanceData,
-    UsageData, UxData,
+    PerformanceConfig, PerformanceMonitor, ReportPeriod, SystemPerformanceData, UsageData, UxData,
 };
 use std::sync::Arc;
 

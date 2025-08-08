@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-use rhema_core::{RhemaError, RhemaResult, scope::Scope};
+use chrono::{DateTime, Utc};
+use glob::Pattern;
+use rayon::prelude::*;
+use regex::Regex;
+use rhema_core::{scope::Scope, RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::HashMap;
 use std::path::Path;
-use regex::Regex;
-use chrono::{DateTime, Utc};
 use std::time::Instant;
-use rayon::prelude::*;
-use glob::Pattern;
 
 /// Search engine for advanced search capabilities
 #[derive(Debug, Clone)]
@@ -372,7 +372,7 @@ impl SearchEngine {
                     if let Ok(content) = std::fs::read_to_string(&full_path) {
                         let doc_id = format!("{}:{}", scope.definition.name, file_name);
                         let doc_type = self.detect_document_type(file_name, &content);
-                        
+
                         let document = IndexedDocument {
                             id: doc_id.clone(),
                             content: content.clone(),
@@ -394,13 +394,17 @@ impl SearchEngine {
         index.total_documents = index.documents.len();
         let total_docs = index.total_documents;
         self.search_index = Some(index);
-        
+
         // Update performance metrics
         let build_time = start_time.elapsed();
         self.performance_metrics.index_size_bytes = self.calculate_index_size();
         self.performance_metrics.last_updated = Utc::now();
 
-        tracing::info!("Search index built in {:?} with {} documents", build_time, total_docs);
+        tracing::info!(
+            "Search index built in {:?} with {} documents",
+            build_time,
+            total_docs
+        );
         Ok(())
     }
 
@@ -434,7 +438,7 @@ impl SearchEngine {
     /// Detect document type based on filename and content
     fn detect_document_type(&self, file_name: &str, content: &str) -> DocumentType {
         let extension = file_name.split('.').last().unwrap_or("").to_lowercase();
-        
+
         match extension.as_str() {
             "yaml" | "yml" => DocumentType::YAML,
             "json" => DocumentType::JSON,
@@ -475,7 +479,7 @@ impl SearchEngine {
     fn index_document(&self, index: &mut SearchIndex, doc_id: &str, content: &str) {
         // Tokenize content
         let tokens = self.tokenize(content);
-        
+
         // Update document frequency
         for token in &tokens {
             *index.document_frequency.entry(token.clone()).or_insert(0) += 1;
@@ -483,7 +487,8 @@ impl SearchEngine {
 
         // Build inverted index
         for token in tokens {
-            index.inverted_index
+            index
+                .inverted_index
                 .entry(token.to_lowercase())
                 .or_insert_with(Vec::new)
                 .push(doc_id.to_string());
@@ -506,7 +511,11 @@ impl SearchEngine {
     }
 
     /// Perform full-text search with advanced ranking
-    pub async fn full_text_search(&mut self, query: &str, options: Option<SearchOptions>) -> RhemaResult<Vec<SearchResult>> {
+    pub async fn full_text_search(
+        &mut self,
+        query: &str,
+        options: Option<SearchOptions>,
+    ) -> RhemaResult<Vec<SearchResult>> {
         let start_time = Instant::now();
         let options = options.unwrap_or_else(|| SearchOptions {
             search_type: SearchType::FullText,
@@ -522,7 +531,9 @@ impl SearchEngine {
             field_boosts: HashMap::new(),
         });
 
-        let index = self.search_index.as_ref()
+        let index = self
+            .search_index
+            .as_ref()
             .ok_or_else(|| RhemaError::ConfigError("Search index not built".to_string()))?;
 
         let query_tokens = self.tokenize(query);
@@ -534,7 +545,7 @@ impl SearchEngine {
             if let Some(doc_ids) = index.inverted_index.get(&token_lower) {
                 let df = index.document_frequency.get(&token).unwrap_or(&1);
                 let idf = (index.total_documents as f64 / *df as f64).ln();
-                
+
                 for doc_id in doc_ids {
                     let tf = doc_ids.iter().filter(|&&ref id| id == doc_id).count() as f64;
                     let tf_idf = tf * idf;
@@ -550,7 +561,7 @@ impl SearchEngine {
                 if let Some(doc) = index.documents.get(&doc_id) {
                     let highlights = self.highlight_matches(&doc.content, query);
                     let match_positions = self.find_match_positions(&doc.content, query);
-                    
+
                     Some(SearchResult {
                         id: doc_id,
                         content: doc.content.clone(),
@@ -575,8 +586,12 @@ impl SearchEngine {
         results = self.apply_filters(results, &options.filters);
 
         // Sort by score and apply limit
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
-        
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
         if let Some(limit) = options.limit {
             results.truncate(limit);
         }
@@ -589,7 +604,11 @@ impl SearchEngine {
     }
 
     /// Perform enhanced regex search
-    pub async fn regex_search(&mut self, pattern: &str, options: Option<SearchOptions>) -> RhemaResult<Vec<SearchResult>> {
+    pub async fn regex_search(
+        &mut self,
+        pattern: &str,
+        options: Option<SearchOptions>,
+    ) -> RhemaResult<Vec<SearchResult>> {
         let start_time = Instant::now();
         let options = options.unwrap_or_else(|| SearchOptions {
             search_type: SearchType::Regex,
@@ -608,7 +627,9 @@ impl SearchEngine {
         let regex = Regex::new(pattern)
             .map_err(|e| RhemaError::ConfigError(format!("Invalid regex pattern: {}", e)))?;
 
-        let index = self.search_index.as_ref()
+        let index = self
+            .search_index
+            .as_ref()
             .ok_or_else(|| RhemaError::ConfigError("Search index not built".to_string()))?;
 
         let mut results: Vec<SearchResult> = Vec::new();
@@ -625,7 +646,7 @@ impl SearchEngine {
                 let score = self.calculate_regex_score(&doc.content, &regex, matches.len());
                 let highlights = self.extract_regex_highlights(&doc.content, &regex);
                 let match_positions = self.extract_regex_positions(&doc.content, &regex);
-                
+
                 results.push(SearchResult {
                     id: doc_id.clone(),
                     content: doc.content.clone(),
@@ -647,8 +668,12 @@ impl SearchEngine {
         results = self.apply_filters(results, &options.filters);
 
         // Sort by score and apply limit
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
-        
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
         if let Some(limit) = options.limit {
             results.truncate(limit);
         }
@@ -665,24 +690,24 @@ impl SearchEngine {
         let content_length = content.len() as f64;
         let match_density = match_count as f64 / content_length;
         let base_score = match_count as f64;
-        
+
         // Boost score for shorter content (more relevant matches)
         let length_boost = 1.0 / (1.0 + content_length / 1000.0);
-        
+
         base_score * (1.0 + match_density) * length_boost
     }
 
     /// Extract regex highlights
     fn extract_regex_highlights(&self, content: &str, regex: &Regex) -> Vec<String> {
         let mut highlights = Vec::new();
-        
+
         for cap in regex.find_iter(content) {
             let start = cap.start().saturating_sub(50);
             let end = (cap.end() + 50).min(content.len());
             let snippet = &content[start..end];
             highlights.push(snippet.to_string());
         }
-        
+
         highlights
     }
 
@@ -690,15 +715,15 @@ impl SearchEngine {
     fn extract_regex_positions(&self, content: &str, regex: &Regex) -> Vec<MatchPosition> {
         let mut positions = Vec::new();
         let lines: Vec<&str> = content.lines().collect();
-        
+
         for cap in regex.find_iter(content) {
             let start = cap.start();
             let end = cap.end();
-            
+
             // Calculate line and column
             let mut _line_num = 1;
             let mut char_count = 0;
-            
+
             for (line_idx, line) in lines.iter().enumerate() {
                 if char_count + line.len() >= start {
                     let column = start - char_count;
@@ -715,7 +740,7 @@ impl SearchEngine {
                 _line_num += 1;
             }
         }
-        
+
         positions
     }
 
@@ -725,12 +750,12 @@ impl SearchEngine {
         let query_lower = query.to_lowercase();
         let content_lower = content.to_lowercase();
         let lines: Vec<&str> = content.lines().collect();
-        
+
         let mut offset = 0;
         while let Some(pos) = content_lower[offset..].find(&query_lower) {
             let start = offset + pos;
             let end = start + query.len();
-            
+
             // Calculate line and column
             let mut char_count = 0;
             for (line_idx, line) in lines.iter().enumerate() {
@@ -747,15 +772,19 @@ impl SearchEngine {
                 }
                 char_count += line.len() + 1; // +1 for newline
             }
-            
+
             offset = end;
         }
-        
+
         positions
     }
 
     /// Apply search filters
-    fn apply_filters(&self, mut results: Vec<SearchResult>, filters: &[SearchFilter]) -> Vec<SearchResult> {
+    fn apply_filters(
+        &self,
+        mut results: Vec<SearchResult>,
+        filters: &[SearchFilter],
+    ) -> Vec<SearchResult> {
         for filter in filters {
             results.retain(|result| self.matches_filter(result, filter));
         }
@@ -782,9 +811,7 @@ impl SearchEngine {
                     true // Include if no date available
                 }
             }
-            SearchFilter::Scope(scope_name) => {
-                result.id.starts_with(&format!("{}:", scope_name))
-            }
+            SearchFilter::Scope(scope_name) => result.id.starts_with(&format!("{}:", scope_name)),
             SearchFilter::SizeRange(min_size, max_size) => {
                 result.file_size >= *min_size && result.file_size <= *max_size
             }
@@ -795,9 +822,7 @@ impl SearchEngine {
                     false
                 }
             }
-            SearchFilter::Custom(key, value) => {
-                result.metadata.get(key) == Some(value)
-            }
+            SearchFilter::Custom(key, value) => result.metadata.get(key) == Some(value),
         }
     }
 
@@ -821,8 +846,9 @@ impl SearchEngine {
     fn update_performance_metrics(&mut self, search_time: std::time::Duration) {
         self.performance_metrics.total_searches += 1;
         self.performance_metrics.total_search_time_ms += search_time.as_millis() as u64;
-        self.performance_metrics.avg_search_time_ms = 
-            self.performance_metrics.total_search_time_ms as f64 / self.performance_metrics.total_searches as f64;
+        self.performance_metrics.avg_search_time_ms = self.performance_metrics.total_search_time_ms
+            as f64
+            / self.performance_metrics.total_searches as f64;
         self.performance_metrics.last_updated = Utc::now();
     }
 
@@ -830,20 +856,20 @@ impl SearchEngine {
     fn calculate_index_size(&self) -> usize {
         if let Some(index) = &self.search_index {
             let mut size = 0;
-            
+
             // Calculate size of documents
             for doc in index.documents.values() {
                 size += doc.content.len();
                 size += doc.path.len();
                 size += std::mem::size_of_val(&doc.metadata);
             }
-            
+
             // Calculate size of inverted index
             for (term, doc_ids) in &index.inverted_index {
                 size += term.len();
                 size += doc_ids.len() * std::mem::size_of::<String>();
             }
-            
+
             size
         } else {
             0
@@ -853,30 +879,69 @@ impl SearchEngine {
     /// Get search statistics
     pub fn get_stats(&self) -> HashMap<String, Value> {
         let mut stats = HashMap::new();
-        
+
         if let Some(index) = &self.search_index {
-            stats.insert("total_documents".to_string(), Value::Number(index.total_documents.into()));
-            stats.insert("total_terms".to_string(), Value::Number(index.inverted_index.len().into()));
-            stats.insert("index_size_bytes".to_string(), Value::Number(self.performance_metrics.index_size_bytes.into()));
+            stats.insert(
+                "total_documents".to_string(),
+                Value::Number(index.total_documents.into()),
+            );
+            stats.insert(
+                "total_terms".to_string(),
+                Value::Number(index.inverted_index.len().into()),
+            );
+            stats.insert(
+                "index_size_bytes".to_string(),
+                Value::Number(self.performance_metrics.index_size_bytes.into()),
+            );
         }
 
-        stats.insert("full_text_enabled".to_string(), Value::Bool(self.config.full_text_enabled));
-        stats.insert("semantic_enabled".to_string(), Value::Bool(self.config.semantic_enabled));
-        stats.insert("hybrid_enabled".to_string(), Value::Bool(self.config.hybrid_enabled));
-        stats.insert("regex_enabled".to_string(), Value::Bool(self.config.regex_enabled));
-        stats.insert("parallel_processing".to_string(), Value::Bool(self.config.parallel_processing));
-        
+        stats.insert(
+            "full_text_enabled".to_string(),
+            Value::Bool(self.config.full_text_enabled),
+        );
+        stats.insert(
+            "semantic_enabled".to_string(),
+            Value::Bool(self.config.semantic_enabled),
+        );
+        stats.insert(
+            "hybrid_enabled".to_string(),
+            Value::Bool(self.config.hybrid_enabled),
+        );
+        stats.insert(
+            "regex_enabled".to_string(),
+            Value::Bool(self.config.regex_enabled),
+        );
+        stats.insert(
+            "parallel_processing".to_string(),
+            Value::Bool(self.config.parallel_processing),
+        );
+
         // Performance metrics
-        stats.insert("total_searches".to_string(), Value::Number(self.performance_metrics.total_searches.into()));
-        stats.insert("avg_search_time_ms".to_string(), Value::Number(serde_yaml::Number::from(self.performance_metrics.avg_search_time_ms)));
-        stats.insert("cache_hit_rate".to_string(), Value::Number(serde_yaml::Number::from(self.performance_metrics.cache_hit_rate)));
+        stats.insert(
+            "total_searches".to_string(),
+            Value::Number(self.performance_metrics.total_searches.into()),
+        );
+        stats.insert(
+            "avg_search_time_ms".to_string(),
+            Value::Number(serde_yaml::Number::from(
+                self.performance_metrics.avg_search_time_ms,
+            )),
+        );
+        stats.insert(
+            "cache_hit_rate".to_string(),
+            Value::Number(serde_yaml::Number::from(
+                self.performance_metrics.cache_hit_rate,
+            )),
+        );
 
         stats
     }
 
     /// Get search suggestions
     pub async fn get_suggestions(&self, query: &str) -> RhemaResult<Vec<SearchSuggestion>> {
-        let index = self.search_index.as_ref()
+        let index = self
+            .search_index
+            .as_ref()
             .ok_or_else(|| RhemaError::ConfigError("Search index not built".to_string()))?;
 
         let mut suggestions: Vec<SearchSuggestion> = Vec::new();
@@ -895,7 +960,11 @@ impl SearchEngine {
         }
 
         // Sort by score and limit results
-        suggestions.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        suggestions.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         suggestions.truncate(10);
 
         Ok(suggestions)
@@ -906,4 +975,4 @@ impl Default for SearchEngine {
     fn default() -> Self {
         Self::new()
     }
-} 
+}

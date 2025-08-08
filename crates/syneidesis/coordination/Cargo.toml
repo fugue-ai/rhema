@@ -1,0 +1,75 @@
+[package]
+name = "syneidesis-coordination"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+# Core dependencies
+tokio.workspace = true
+serde.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+
+# Internal dependencies
+syneidesis-core = { path = "../core" }
+syneidesis-agent = { path = "../agent" }
+syneidesis-grpc = { path = "../grpc" }
+syneidesis-config = { path = "../config" }
+
+# gRPC dependencies
+tonic.workspace = true
+prost.workspace = true
+prost-types.workspace = true
+
+# HTTP and API
+# axum.workspace = true
+# hyper.workspace = true
+
+# Serialization
+serde_json.workspace = true
+serde_yaml.workspace = true
+
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Async utilities
+tokio-util.workspace = true
+async-trait.workspace = true
+tokio-stream.workspace = true
+futures.workspace = true
+
+# WebSocket support
+tokio-tungstenite.workspace = true
+
+# Collections and utilities
+dashmap.workspace = true
+parking_lot.workspace = true
+
+# Validation
+validator = { version = "0.16", features = ["derive"] }
+
+# Command line argument parsing
+clap = { version = "4.0", features = ["derive"] }
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[dev-dependencies]
+tempfile = "3.8"
+assert_fs = "1.1"
+predicates = "3.0"
+
+[[bin]]
+name = "stress_test"
+path = "src/bin/stress_test.rs" 

@@ -1,12 +1,12 @@
 pub mod git;
 pub mod git_basic;
-pub mod workflow_templates;
 pub mod git_hooks;
+pub mod workflow_templates;
 
 // Re-export version management types
 pub use git::version_management::{
-    VersionManager, VersionManagementConfig, VersionManagementResult,
-    BumpType, CommitType, CommitInfo, default_version_management_config,
+    default_version_management_config, BumpType, CommitInfo, CommitType, VersionManagementConfig,
+    VersionManagementResult, VersionManager,
 };
 
 use rhema_core::RhemaResult;
@@ -59,7 +59,11 @@ mod tests {
         };
 
         // Test that the API functions exist and have the right signatures
-        let _create_fn: fn(&Path) -> RhemaResult<AdvancedGitIntegration> = create_advanced_git_integration;
-        let _create_with_config_fn: fn(&Path, serde_json::Value) -> RhemaResult<AdvancedGitIntegration> = create_advanced_git_integration_with_config;
+        let _create_fn: fn(&Path) -> RhemaResult<AdvancedGitIntegration> =
+            create_advanced_git_integration;
+        let _create_with_config_fn: fn(
+            &Path,
+            serde_json::Value,
+        ) -> RhemaResult<AdvancedGitIntegration> = create_advanced_git_integration_with_config;
     }
 }

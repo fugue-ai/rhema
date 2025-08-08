@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use chrono::Utc;
-use serde::{Deserialize, Serialize};
 
-use crate::types::{
-    LocomoError, BenchmarkConfig, BenchmarkScenario, BenchmarkResult, BenchmarkMetrics,
-    PerformanceMetrics, QualityMetrics, Context, BenchmarkType, ContextSize
-};
-use crate::metrics::{LocomoMetricsCollector, LocomoPerformanceAnalyzer, LocomoMetrics};
+use crate::metrics::{LocomoMetrics, LocomoMetricsCollector, LocomoPerformanceAnalyzer};
 use crate::quality_assessor::ContextQualityAssessor;
+use crate::types::{
+    BenchmarkConfig, BenchmarkMetrics, BenchmarkResult, BenchmarkScenario, BenchmarkType, Context,
+    ContextSize, LocomoError, PerformanceMetrics, QualityMetrics,
+};
 use rhema_core::RhemaResult;
 
 /// LOCOMO benchmark engine
@@ -121,32 +121,26 @@ impl LocomoBenchmarkEngine {
                     ..Default::default()
                 },
             ],
-            context_compression: vec![
-                BenchmarkConfig {
-                    name: "text_compression".to_string(),
-                    benchmark_type: crate::types::BenchmarkType::ContextCompression,
-                    context_size: ContextSize::Medium,
-                    compression_target: Some(0.7),
-                    quality_threshold: Some(0.8),
-                    ..Default::default()
-                },
-            ],
-            context_persistence: vec![
-                BenchmarkConfig {
-                    name: "version_evolution".to_string(),
-                    benchmark_type: crate::types::BenchmarkType::ContextPersistence,
-                    context_size: ContextSize::Small,
-                    ..Default::default()
-                },
-            ],
-            ai_agent_optimization: vec![
-                BenchmarkConfig {
-                    name: "token_efficiency".to_string(),
-                    benchmark_type: crate::types::BenchmarkType::AIAgentOptimization,
-                    context_size: ContextSize::Medium,
-                    ..Default::default()
-                },
-            ],
+            context_compression: vec![BenchmarkConfig {
+                name: "text_compression".to_string(),
+                benchmark_type: crate::types::BenchmarkType::ContextCompression,
+                context_size: ContextSize::Medium,
+                compression_target: Some(0.7),
+                quality_threshold: Some(0.8),
+                ..Default::default()
+            }],
+            context_persistence: vec![BenchmarkConfig {
+                name: "version_evolution".to_string(),
+                benchmark_type: crate::types::BenchmarkType::ContextPersistence,
+                context_size: ContextSize::Small,
+                ..Default::default()
+            }],
+            ai_agent_optimization: vec![BenchmarkConfig {
+                name: "token_efficiency".to_string(),
+                benchmark_type: crate::types::BenchmarkType::AIAgentOptimization,
+                context_size: ContextSize::Medium,
+                ..Default::default()
+            }],
             cross_scope_integration: vec![],
             quality_assessment: vec![],
         };
@@ -269,13 +263,16 @@ impl LocomoBenchmarkEngine {
         Ok(benchmark_result)
     }
 
-    async fn benchmark_context_retrieval(&self, config: &BenchmarkConfig) -> RhemaResult<BenchmarkResult> {
+    async fn benchmark_context_retrieval(
+        &self,
+        config: &BenchmarkConfig,
+    ) -> RhemaResult<BenchmarkResult> {
         debug!("Running context retrieval benchmark: {}", config.name);
         let start_time = Instant::now();
 
         // Generate test context
         let context = self.generate_test_context(&config.context_size).await?;
-        
+
         // Generate test query
         let query = self.generate_test_query(&config.context_size).await?;
 
@@ -285,12 +282,17 @@ impl LocomoBenchmarkEngine {
         let retrieval_latency = retrieval_start.elapsed();
 
         // Assess quality
-        let quality_score = self.context_quality_assessor.assess_context_quality_dummy().await;
+        let quality_score = self
+            .context_quality_assessor
+            .assess_context_quality_dummy()
+            .await;
 
         // Calculate metrics
         let metrics = BenchmarkMetrics {
             context_retrieval_latency: retrieval_latency,
-            context_relevance_score: self.calculate_relevance_score(&retrieved_context, &query).await?,
+            context_relevance_score: self
+                .calculate_relevance_score(&retrieved_context, &query)
+                .await?,
             context_compression_ratio: 1.0, // No compression in retrieval
             cross_scope_integration_quality: 0.8, // Simulated
             context_persistence_accuracy: 0.95, // Simulated
@@ -299,7 +301,9 @@ impl LocomoBenchmarkEngine {
             context_evolution_tracking: 0.9, // Simulated
         };
 
-        let performance = self.calculate_performance_metrics(&config, start_time.elapsed()).await?;
+        let performance = self
+            .calculate_performance_metrics(&config, start_time.elapsed())
+            .await?;
         let quality = self.calculate_quality_metrics(&metrics).await?;
 
         let result = BenchmarkResult {
@@ -317,7 +321,10 @@ impl LocomoBenchmarkEngine {
         Ok(result)
     }
 
-    async fn benchmark_context_compression(&self, config: &BenchmarkConfig) -> RhemaResult<BenchmarkResult> {
+    async fn benchmark_context_compression(
+        &self,
+        config: &BenchmarkConfig,
+    ) -> RhemaResult<BenchmarkResult> {
         debug!("Running context compression benchmark: {}", config.name);
         let start_time = Instant::now();
 
@@ -335,21 +342,26 @@ impl LocomoBenchmarkEngine {
         let compression_ratio = compressed_size as f64 / original_size as f64;
 
         // Assess quality
-        let quality_score = self.context_quality_assessor.assess_context_quality_dummy().await;
+        let quality_score = self
+            .context_quality_assessor
+            .assess_context_quality_dummy()
+            .await;
 
         // Calculate metrics
         let metrics = BenchmarkMetrics {
             context_retrieval_latency: Duration::from_millis(0), // Not applicable
-            context_relevance_score: 1.0, // Maintained relevance
+            context_relevance_score: 1.0,                        // Maintained relevance
             context_compression_ratio: compression_ratio,
             cross_scope_integration_quality: 0.8, // Simulated
-            context_persistence_accuracy: 0.95, // Simulated
-            ai_agent_optimization_score: 0.8, // Simulated
+            context_persistence_accuracy: 0.95,   // Simulated
+            ai_agent_optimization_score: 0.8,     // Simulated
             context_quality_assessment: quality_score.overall_score,
             context_evolution_tracking: 0.9, // Simulated
         };
 
-        let performance = self.calculate_performance_metrics(&config, start_time.elapsed()).await?;
+        let performance = self
+            .calculate_performance_metrics(&config, start_time.elapsed())
+            .await?;
         let quality = self.calculate_quality_metrics(&metrics).await?;
 
         let result = BenchmarkResult {
@@ -367,7 +379,10 @@ impl LocomoBenchmarkEngine {
         Ok(result)
     }
 
-    async fn benchmark_ai_optimization(&self, config: &BenchmarkConfig) -> RhemaResult<BenchmarkResult> {
+    async fn benchmark_ai_optimization(
+        &self,
+        config: &BenchmarkConfig,
+    ) -> RhemaResult<BenchmarkResult> {
         debug!("Running AI optimization benchmark: {}", config.name);
         let start_time = Instant::now();
 
@@ -380,25 +395,34 @@ impl LocomoBenchmarkEngine {
         let optimization_time = optimization_start.elapsed();
 
         // Calculate optimization metrics
-        let token_reduction = self.calculate_token_reduction(&context, &optimized_context).await?;
-        let ai_optimization_score = self.calculate_ai_optimization_score(&optimized_context).await?;
+        let token_reduction = self
+            .calculate_token_reduction(&context, &optimized_context)
+            .await?;
+        let ai_optimization_score = self
+            .calculate_ai_optimization_score(&optimized_context)
+            .await?;
 
         // Assess quality
-        let quality_score = self.context_quality_assessor.assess_context_quality_dummy().await;
+        let quality_score = self
+            .context_quality_assessor
+            .assess_context_quality_dummy()
+            .await;
 
         // Calculate metrics
         let metrics = BenchmarkMetrics {
             context_retrieval_latency: Duration::from_millis(0), // Not applicable
-            context_relevance_score: 0.9, // Enhanced relevance
-            context_compression_ratio: 0.8, // Simulated compression
-            cross_scope_integration_quality: 0.85, // Simulated
-            context_persistence_accuracy: 0.95, // Simulated
+            context_relevance_score: 0.9,                        // Enhanced relevance
+            context_compression_ratio: 0.8,                      // Simulated compression
+            cross_scope_integration_quality: 0.85,               // Simulated
+            context_persistence_accuracy: 0.95,                  // Simulated
             ai_agent_optimization_score: ai_optimization_score,
             context_quality_assessment: quality_score.overall_score,
             context_evolution_tracking: 0.9, // Simulated
         };
 
-        let performance = self.calculate_performance_metrics(&config, start_time.elapsed()).await?;
+        let performance = self
+            .calculate_performance_metrics(&config, start_time.elapsed())
+            .await?;
         let quality = self.calculate_quality_metrics(&metrics).await?;
 
         let result = BenchmarkResult {
@@ -418,9 +442,9 @@ impl LocomoBenchmarkEngine {
 
     async fn generate_test_context(&self, size: &ContextSize) -> RhemaResult<Context> {
         let content_size = match size {
-            ContextSize::Small => 5000,    // ~5KB
-            ContextSize::Medium => 50000,  // ~50KB
-            ContextSize::Large => 500000,  // ~500KB
+            ContextSize::Small => 5000,        // ~5KB
+            ContextSize::Medium => 50000,      // ~50KB
+            ContextSize::Large => 500000,      // ~500KB
             ContextSize::VeryLarge => 2000000, // ~2MB
             ContextSize::MultiScope => 100000, // ~100KB
         };
@@ -449,10 +473,26 @@ impl LocomoBenchmarkEngine {
     async fn generate_synthetic_content(&self, size: usize) -> RhemaResult<String> {
         // Generate synthetic content for benchmarking
         let words = vec![
-            "context", "management", "optimization", "benchmark", "performance",
-            "quality", "assessment", "retrieval", "compression", "persistence",
-            "integration", "evolution", "tracking", "analysis", "metrics",
-            "framework", "system", "architecture", "design", "implementation",
+            "context",
+            "management",
+            "optimization",
+            "benchmark",
+            "performance",
+            "quality",
+            "assessment",
+            "retrieval",
+            "compression",
+            "persistence",
+            "integration",
+            "evolution",
+            "tracking",
+            "analysis",
+            "metrics",
+            "framework",
+            "system",
+            "architecture",
+            "design",
+            "implementation",
         ];
 
         let mut content = String::new();
@@ -477,7 +517,11 @@ impl LocomoBenchmarkEngine {
         Ok("test query for context retrieval".to_string())
     }
 
-    async fn simulate_context_retrieval(&self, context: &Context, query: &str) -> RhemaResult<Context> {
+    async fn simulate_context_retrieval(
+        &self,
+        context: &Context,
+        query: &str,
+    ) -> RhemaResult<Context> {
         // Simulate context retrieval with some latency
         tokio::time::sleep(Duration::from_millis(10)).await;
         Ok(context.clone())
@@ -485,8 +529,12 @@ impl LocomoBenchmarkEngine {
 
     async fn simulate_context_compression(&self, context: &Context) -> RhemaResult<Context> {
         // Simulate context compression
-        let compressed_content = context.content.chars().take(context.content.len() / 2).collect();
-        
+        let compressed_content = context
+            .content
+            .chars()
+            .take(context.content.len() / 2)
+            .collect();
+
         Ok(Context {
             content: compressed_content,
             ..context.clone()
@@ -496,11 +544,12 @@ impl LocomoBenchmarkEngine {
     async fn calculate_relevance_score(&self, context: &Context, query: &str) -> RhemaResult<f64> {
         // Simple relevance scoring based on word overlap
         let query_words: std::collections::HashSet<&str> = query.split_whitespace().collect();
-        let context_words: std::collections::HashSet<&str> = context.content.split_whitespace().collect();
-        
+        let context_words: std::collections::HashSet<&str> =
+            context.content.split_whitespace().collect();
+
         let intersection = query_words.intersection(&context_words).count();
         let union = query_words.union(&context_words).count();
-        
+
         if union == 0 {
             Ok(0.0)
         } else {
@@ -508,7 +557,11 @@ impl LocomoBenchmarkEngine {
         }
     }
 
-    async fn calculate_performance_metrics(&self, config: &BenchmarkConfig, duration: Duration) -> RhemaResult<PerformanceMetrics> {
+    async fn calculate_performance_metrics(
+        &self,
+        config: &BenchmarkConfig,
+        duration: Duration,
+    ) -> RhemaResult<PerformanceMetrics> {
         Ok(PerformanceMetrics {
             mean_duration: duration,
             median_duration: duration,
@@ -523,7 +576,10 @@ impl LocomoBenchmarkEngine {
         })
     }
 
-    async fn calculate_quality_metrics(&self, metrics: &BenchmarkMetrics) -> RhemaResult<QualityMetrics> {
+    async fn calculate_quality_metrics(
+        &self,
+        metrics: &BenchmarkMetrics,
+    ) -> RhemaResult<QualityMetrics> {
         Ok(QualityMetrics {
             overall_quality_score: metrics.context_quality_assessment,
             relevance_score: metrics.context_relevance_score,
@@ -540,15 +596,34 @@ impl LocomoBenchmarkEngine {
         let successful_benchmarks = results.iter().filter(|r| r.success).count();
         let failed_benchmarks = total_benchmarks - successful_benchmarks;
 
-        let scores: Vec<f64> = results.iter().map(|r| r.quality.overall_quality_score).collect();
-        let average_score = if scores.is_empty() { 0.0 } else { scores.iter().sum::<f64>() / scores.len() as f64 };
+        let scores: Vec<f64> = results
+            .iter()
+            .map(|r| r.quality.overall_quality_score)
+            .collect();
+        let average_score = if scores.is_empty() {
+            0.0
+        } else {
+            scores.iter().sum::<f64>() / scores.len() as f64
+        };
 
-        let best_benchmark = results.iter()
-            .max_by(|a, b| a.quality.overall_quality_score.partial_cmp(&b.quality.overall_quality_score).unwrap())
+        let best_benchmark = results
+            .iter()
+            .max_by(|a, b| {
+                a.quality
+                    .overall_quality_score
+                    .partial_cmp(&b.quality.overall_quality_score)
+                    .unwrap()
+            })
             .map(|r| r.benchmark_name.clone());
 
-        let worst_benchmark = results.iter()
-            .min_by(|a, b| a.quality.overall_quality_score.partial_cmp(&b.quality.overall_quality_score).unwrap())
+        let worst_benchmark = results
+            .iter()
+            .min_by(|a, b| {
+                a.quality
+                    .overall_quality_score
+                    .partial_cmp(&b.quality.overall_quality_score)
+                    .unwrap()
+            })
             .map(|r| r.benchmark_name.clone());
 
         let recommendations = self.generate_recommendations(results).await?;
@@ -564,21 +639,38 @@ impl LocomoBenchmarkEngine {
         })
     }
 
-    async fn generate_recommendations(&self, results: &[BenchmarkResult]) -> RhemaResult<Vec<String>> {
+    async fn generate_recommendations(
+        &self,
+        results: &[BenchmarkResult],
+    ) -> RhemaResult<Vec<String>> {
         let mut recommendations = Vec::new();
 
         // Analyze results and generate recommendations
-        let avg_relevance = results.iter().map(|r| r.metrics.context_relevance_score).sum::<f64>() / results.len() as f64;
+        let avg_relevance = results
+            .iter()
+            .map(|r| r.metrics.context_relevance_score)
+            .sum::<f64>()
+            / results.len() as f64;
         if avg_relevance < 0.8 {
-            recommendations.push("Consider improving context relevance scoring algorithms".to_string());
+            recommendations
+                .push("Consider improving context relevance scoring algorithms".to_string());
         }
 
-        let avg_compression = results.iter().map(|r| r.metrics.context_compression_ratio).sum::<f64>() / results.len() as f64;
+        let avg_compression = results
+            .iter()
+            .map(|r| r.metrics.context_compression_ratio)
+            .sum::<f64>()
+            / results.len() as f64;
         if avg_compression > 0.8 {
-            recommendations.push("Context compression could be improved for better efficiency".to_string());
+            recommendations
+                .push("Context compression could be improved for better efficiency".to_string());
         }
 
-        let avg_ai_optimization = results.iter().map(|r| r.metrics.ai_agent_optimization_score).sum::<f64>() / results.len() as f64;
+        let avg_ai_optimization = results
+            .iter()
+            .map(|r| r.metrics.ai_agent_optimization_score)
+            .sum::<f64>()
+            / results.len() as f64;
         if avg_ai_optimization < 0.8 {
             recommendations.push("AI agent optimization needs improvement".to_string());
         }
@@ -589,7 +681,9 @@ impl LocomoBenchmarkEngine {
     async fn record_benchmark_metrics(&self, result: &LocomoBenchmarkResult) -> RhemaResult<()> {
         for benchmark_result in &result.results {
             let locomo_metrics = LocomoMetrics::from_benchmark_metrics(&benchmark_result.metrics);
-            self.metrics_collector.record_metrics(&locomo_metrics).await?;
+            self.metrics_collector
+                .record_metrics(&locomo_metrics)
+                .await?;
         }
         Ok(())
     }
@@ -649,10 +743,14 @@ impl AIAgentOptimizer {
 }
 
 impl LocomoBenchmarkEngine {
-    async fn calculate_token_reduction(&self, original: &Context, optimized: &Context) -> RhemaResult<f64> {
+    async fn calculate_token_reduction(
+        &self,
+        original: &Context,
+        optimized: &Context,
+    ) -> RhemaResult<f64> {
         let original_tokens = original.content.split_whitespace().count();
         let optimized_tokens = optimized.content.split_whitespace().count();
-        
+
         if original_tokens == 0 {
             Ok(0.0)
         } else {
@@ -665,18 +763,32 @@ impl LocomoBenchmarkEngine {
         let mut score = 1.0;
 
         // Factor 1: Content structure
-        let structure_score = if context.content.contains("Enhanced Context:") { 0.9 } else { 0.7 };
+        let structure_score = if context.content.contains("Enhanced Context:") {
+            0.9
+        } else {
+            0.7
+        };
         score *= structure_score;
 
         // Factor 2: Token efficiency
         let word_count = context.content.split_whitespace().count();
-        let token_efficiency = if word_count < 100 { 0.9 } else if word_count < 500 { 0.8 } else { 0.7 };
+        let token_efficiency = if word_count < 100 {
+            0.9
+        } else if word_count < 500 {
+            0.8
+        } else {
+            0.7
+        };
         score *= token_efficiency;
 
         // Factor 3: Semantic coherence
-        let coherence_score = if context.content.contains("optimized_context") { 0.9 } else { 0.8 };
+        let coherence_score = if context.content.contains("optimized_context") {
+            0.9
+        } else {
+            0.8
+        };
         score *= coherence_score;
 
         Ok(score)
     }
-} 
+}

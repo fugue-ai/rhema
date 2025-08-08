@@ -241,22 +241,26 @@ impl ValidationManager {
         };
 
         // Validate global config
-        let global_result = self.validate_config(global_config.clone(), "global").await?;
+        let global_result = self
+            .validate_config(global_config.clone(), "global")
+            .await?;
         results.insert(PathBuf::from("global"), global_result.clone());
         self.update_summary(&mut summary, &global_result);
 
         // Validate repository configs
         for (path, config) in repository_configs {
-            let result =
-                self.validate_config(config.clone(), &format!("repository:{}", path.display())).await?;
+            let result = self
+                .validate_config(config.clone(), &format!("repository:{}", path.display()))
+                .await?;
             results.insert(path.clone(), result.clone());
             self.update_summary(&mut summary, &result);
         }
 
         // Validate scope configs
         for (path, config) in scope_configs {
-            let result =
-                self.validate_config(config.clone(), &format!("scope:{}", path.display())).await?;
+            let result = self
+                .validate_config(config.clone(), &format!("scope:{}", path.display()))
+                .await?;
             results.insert(path.clone(), result.clone());
             self.update_summary(&mut summary, &result);
         }
@@ -330,7 +334,7 @@ impl ValidationManager {
 
         // Get the schema for the configuration type
         let schema = T::schema();
-        
+
         // Serialize the config to JSON for validation
         let config_json = serde_json::to_value(config)
             .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
@@ -344,8 +348,9 @@ impl ValidationManager {
                 suggestion: Some("Check schema definition".to_string()),
             });
         } else {
-            let compiled_schema = jsonschema::JSONSchema::compile(&schema)
-                .map_err(|e| ConfigError::ValidationFailed(format!("Schema compilation failed: {}", e)))?;
+            let compiled_schema = jsonschema::JSONSchema::compile(&schema).map_err(|e| {
+                ConfigError::ValidationFailed(format!("Schema compilation failed: {}", e))
+            })?;
 
             let validation_result = compiled_schema.validate(&config_json);
             if let Err(validation_errors) = validation_result {
@@ -371,17 +376,20 @@ impl ValidationManager {
     }
 
     /// Validate cross-references between configurations
-    pub async fn validate_cross_references<T: Config>(&self, configs: &[&T]) -> RhemaResult<ValidationResult> {
+    pub async fn validate_cross_references<T: Config>(
+        &self,
+        configs: &[&T],
+    ) -> RhemaResult<ValidationResult> {
         let start_time = std::time::Instant::now();
         let mut issues = Vec::new();
 
         // Create a map of configuration references
         let mut reference_map = std::collections::HashMap::new();
-        
+
         for config in configs {
             let config_json = serde_json::to_value(config)
                 .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
-            
+
             // Extract references from the configuration
             self.extract_references(&config_json, &mut reference_map)?;
         }
@@ -391,7 +399,10 @@ impl ValidationManager {
             if !self.reference_exists::<T>(reference, configs) {
                 issues.push(ConfigIssue {
                     severity: ConfigIssueSeverity::Error,
-                    message: format!("Cross-reference validation failed: reference '{}' not found", reference),
+                    message: format!(
+                        "Cross-reference validation failed: reference '{}' not found",
+                        reference
+                    ),
                     location: Some(format!("Referenced from: {:?}", locations)),
                     suggestion: Some("Ensure all referenced configurations exist".to_string()),
                 });
@@ -409,7 +420,10 @@ impl ValidationManager {
     }
 
     /// Validate configuration dependencies
-    pub async fn validate_dependencies<T: Config>(&self, config: &T) -> RhemaResult<ValidationResult> {
+    pub async fn validate_dependencies<T: Config>(
+        &self,
+        config: &T,
+    ) -> RhemaResult<ValidationResult> {
         let start_time = std::time::Instant::now();
         let mut issues = Vec::new();
 
@@ -454,8 +468,8 @@ impl ValidationManager {
     /// Apply validation rules
     fn apply_validation_rules<T: Config>(&self, config: &T) -> RhemaResult<Vec<ConfigIssue>> {
         let mut issues = Vec::new();
-        let config_value =
-            serde_json::to_value(config).map_err(|e| ConfigError::SerializationError(e.to_string()))?;
+        let config_value = serde_json::to_value(config)
+            .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
 
         for rule in &self.rules {
             if !rule.enabled {
@@ -566,8 +580,8 @@ impl ValidationManager {
     /// Apply custom validators
     fn apply_custom_validators<T: Config>(&self, config: &T) -> RhemaResult<Vec<ConfigIssue>> {
         let mut issues = Vec::new();
-        let config_value =
-            serde_json::to_value(config).map_err(|e| ConfigError::SerializationError(e.to_string()))?;
+        let config_value = serde_json::to_value(config)
+            .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
 
         for validator in self.custom_validators.values() {
             let result = validator.validate(&config_value);
@@ -708,12 +722,17 @@ impl ValidationManager {
     }
 
     /// Detect circular dependencies in configuration
-    fn detect_circular_dependencies(&self, config: &serde_json::Value) -> RhemaResult<Option<String>> {
+    fn detect_circular_dependencies(
+        &self,
+        config: &serde_json::Value,
+    ) -> RhemaResult<Option<String>> {
         let mut visited = std::collections::HashSet::new();
         let mut recursion_stack = std::collections::HashSet::new();
-        
+
         if self.has_circular_dependency(config, &mut visited, &mut recursion_stack)? {
-            Ok(Some("Circular dependency detected in configuration".to_string()))
+            Ok(Some(
+                "Circular dependency detected in configuration".to_string(),
+            ))
         } else {
             Ok(None)
         }
@@ -765,9 +784,9 @@ impl ValidationManager {
     fn check_missing_dependencies(&self, config: &serde_json::Value) -> RhemaResult<Vec<String>> {
         let missing_deps = Vec::new();
         let mut dependencies = std::collections::HashSet::new();
-        
+
         self.collect_dependencies(config, &mut dependencies)?;
-        
+
         // Here we would check if all dependencies are available
         // For now, we'll return an empty vector
         Ok(missing_deps)
@@ -810,10 +829,10 @@ impl ValidationManager {
     /// Check version compatibility
     fn check_version_compatibility<T: Config>(&self, config: &T) -> RhemaResult<Vec<ConfigIssue>> {
         let mut issues = Vec::new();
-        
+
         let config_version = config.version();
         let current_version = crate::CURRENT_CONFIG_VERSION;
-        
+
         // Parse versions using semver
         if let (Ok(config_ver), Ok(current_ver)) = (
             semver::Version::parse(config_version),
@@ -831,7 +850,7 @@ impl ValidationManager {
                 });
             }
         }
-        
+
         Ok(issues)
     }
 }

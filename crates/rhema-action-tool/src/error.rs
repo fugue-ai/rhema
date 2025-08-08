@@ -21,22 +21,22 @@ use thiserror::Error;
 pub enum ActionError {
     #[error("Validation error: {0}")]
     Validation(String),
-    
+
     #[error("Tool execution error for {tool}: {message}")]
     ToolExecution { tool: String, message: String },
-    
+
     #[error("Configuration error: {0}")]
     Configuration(String),
-    
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-    
+
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
-    
+
     #[error("Unknown error: {0}")]
     Unknown(String),
 }
 
 /// Result type for action operations
-pub type ActionResult<T> = Result<T, ActionError>; 
+pub type ActionResult<T> = Result<T, ActionError>;

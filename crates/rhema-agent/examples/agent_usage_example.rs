@@ -15,12 +15,12 @@
  */
 
 use rhema_agent::{
-    RhemaAgentFramework, Agent, BaseAgent, AgentConfig, AgentType, AgentCapability,
-    AgentRequest, AgentMessage, AgentId
+    Agent, AgentCapability, AgentConfig, AgentId, AgentMessage, AgentRequest, AgentType, BaseAgent,
+    RhemaAgentFramework,
 };
 use std::collections::HashMap;
-use tempfile::tempdir;
 use std::fs;
+use tempfile::tempdir;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -78,7 +78,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         parameters: HashMap::new(),
         tags: vec!["code-review".to_string(), "security".to_string()],
     };
-    let code_review_agent = Box::new(BaseAgent::new("code-review-1".to_string(), code_review_config));
+    let code_review_agent = Box::new(BaseAgent::new(
+        "code-review-1".to_string(),
+        code_review_config,
+    ));
     let code_review_id = framework.register_agent(code_review_agent).await?;
     framework.start_agent(&code_review_id).await?;
     println!("✅ CodeReviewAgent started with ID: {}", code_review_id);
@@ -99,7 +102,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         parameters: HashMap::new(),
         tags: vec!["testing".to_string(), "automation".to_string()],
     };
-    let test_runner_agent = Box::new(BaseAgent::new("test-runner-1".to_string(), test_runner_config));
+    let test_runner_agent = Box::new(BaseAgent::new(
+        "test-runner-1".to_string(),
+        test_runner_config,
+    ));
     let test_runner_id = framework.register_agent(test_runner_agent).await?;
     framework.start_agent(&test_runner_id).await?;
     println!("✅ TestRunnerAgent started with ID: {}", test_runner_id);
@@ -116,12 +122,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "ignore_patterns": Vec::<String>::new(),
     });
 
-    let review_message = AgentMessage::TaskRequest(AgentRequest::new(
-        "code_review".to_string(),
-        review_request
-    ));
+    let review_message =
+        AgentMessage::TaskRequest(AgentRequest::new("code_review".to_string(), review_request));
 
-    framework.send_message(&code_review_id, review_message).await?;
+    framework
+        .send_message(&code_review_id, review_message)
+        .await?;
 
     // Wait a moment for processing
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -139,10 +145,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let generation_message = AgentMessage::TaskRequest(AgentRequest::new(
         "generate_tests".to_string(),
-        generation_request
+        generation_request,
     ));
 
-    framework.send_message(&test_runner_id, generation_message).await?;
+    framework
+        .send_message(&test_runner_id, generation_message)
+        .await?;
 
     // Wait a moment for processing
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -161,10 +169,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let execution_message = AgentMessage::TaskRequest(AgentRequest::new(
         "execute_tests".to_string(),
-        execution_request
+        execution_request,
     ));
 
-    framework.send_message(&test_runner_id, execution_message).await?;
+    framework
+        .send_message(&test_runner_id, execution_message)
+        .await?;
 
     // Wait a moment for processing
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -185,20 +195,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let test_runner_metrics = framework.get_agent_metrics(&test_runner_id).await?;
 
     println!("CodeReviewAgent Metrics:");
-    println!("  Tasks Completed: {}", code_review_metrics.tasks.total_tasks);
-    println!("  Success Rate: {:.1}%", 
+    println!(
+        "  Tasks Completed: {}",
+        code_review_metrics.tasks.total_tasks
+    );
+    println!(
+        "  Success Rate: {:.1}%",
         if code_review_metrics.tasks.total_tasks > 0 {
-            (code_review_metrics.tasks.successful_tasks as f64 / code_review_metrics.tasks.total_tasks as f64) * 100.0
+            (code_review_metrics.tasks.successful_tasks as f64
+                / code_review_metrics.tasks.total_tasks as f64)
+                * 100.0
         } else {
             0.0
         }
     );
 
     println!("TestRunnerAgent Metrics:");
-    println!("  Tasks Completed: {}", test_runner_metrics.tasks.total_tasks);
-    println!("  Success Rate: {:.1}%", 
+    println!(
+        "  Tasks Completed: {}",
+        test_runner_metrics.tasks.total_tasks
+    );
+    println!(
+        "  Success Rate: {:.1}%",
         if test_runner_metrics.tasks.total_tasks > 0 {
-            (test_runner_metrics.tasks.successful_tasks as f64 / test_runner_metrics.tasks.total_tasks as f64) * 100.0
+            (test_runner_metrics.tasks.successful_tasks as f64
+                / test_runner_metrics.tasks.total_tasks as f64)
+                * 100.0
         } else {
             0.0
         }
@@ -220,11 +242,11 @@ mod tests {
     async fn test_agent_framework_initialization() {
         let mut framework = RhemaAgentFramework::new();
         assert!(framework.initialize().await.is_ok());
-        
+
         let stats = framework.get_framework_stats().await.unwrap();
         assert_eq!(stats.total_agents, 0);
         assert_eq!(stats.active_agents, 0);
-        
+
         framework.shutdown().await.unwrap();
     }
 
@@ -247,9 +269,12 @@ mod tests {
             parameters: HashMap::new(),
             tags: vec!["test".to_string()],
         };
-        let code_review_agent = Box::new(BaseAgent::new("test-code-review".to_string(), code_review_config));
+        let code_review_agent = Box::new(BaseAgent::new(
+            "test-code-review".to_string(),
+            code_review_config,
+        ));
         let code_review_id = framework.register_agent(code_review_agent).await.unwrap();
-        
+
         let test_runner_config = AgentConfig {
             name: "test-test-runner".to_string(),
             description: Some("Test test runner agent".to_string()),
@@ -264,7 +289,10 @@ mod tests {
             parameters: HashMap::new(),
             tags: vec!["test".to_string()],
         };
-        let test_runner_agent = Box::new(BaseAgent::new("test-test-runner".to_string(), test_runner_config));
+        let test_runner_agent = Box::new(BaseAgent::new(
+            "test-test-runner".to_string(),
+            test_runner_config,
+        ));
         let test_runner_id = framework.register_agent(test_runner_agent).await.unwrap();
 
         let stats = framework.get_framework_stats().await.unwrap();
@@ -272,4 +300,4 @@ mod tests {
 
         framework.shutdown().await.unwrap();
     }
-} 
+}

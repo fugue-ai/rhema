@@ -1,8 +1,10 @@
 //! Dedicated test runner for Rhema Coordination CLI tests
 
-use std::time::{Duration, Instant};
-use crate::common::coordination_fixtures::{CoordinationTestEnv, CoordinationAssertions, CoordinationFixtures};
+use crate::common::coordination_fixtures::{
+    CoordinationAssertions, CoordinationFixtures, CoordinationTestEnv,
+};
 use crate::config::test_config::TestConfig;
+use std::time::{Duration, Instant};
 
 /// Coordination test results
 #[derive(Debug, Clone)]
@@ -46,11 +48,12 @@ impl CoordinationTestReport {
         println!("Skipped: {}", self.skipped);
         println!("Errors: {}", self.errors);
         println!("Total Duration: {:?}", self.total_duration);
-        println!("Success Rate: {:.1}%", 
-            if self.total_tests > 0 { 
-                (self.passed as f64 / self.total_tests as f64) * 100.0 
-            } else { 
-                0.0 
+        println!(
+            "Success Rate: {:.1}%",
+            if self.total_tests > 0 {
+                (self.passed as f64 / self.total_tests as f64) * 100.0
+            } else {
+                0.0
             }
         );
         println!("================================");
@@ -87,7 +90,9 @@ impl CoordinationTestRunner {
     }
 
     /// Run all coordination tests
-    pub async fn run_all_tests(&mut self) -> Result<CoordinationTestReport, Box<dyn std::error::Error>> {
+    pub async fn run_all_tests(
+        &mut self,
+    ) -> Result<CoordinationTestReport, Box<dyn std::error::Error>> {
         println!("🚀 Starting Rhema Coordination CLI Test Suite");
         println!("Configuration: {:?}", self.config);
 
@@ -124,11 +129,11 @@ impl CoordinationTestRunner {
     /// Setup test environment
     async fn setup_test_environment(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("🔧 Setting up coordination test environment...");
-        
+
         let test_env = CoordinationFixtures::create_test_env()?;
-        
+
         self.test_env = Some(test_env);
-        
+
         println!("✅ Test environment setup complete");
         Ok(())
     }
@@ -136,23 +141,29 @@ impl CoordinationTestRunner {
     /// Cleanup test environment
     async fn cleanup_test_environment(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("🧹 Cleaning up test environment...");
-        
+
         // Drop the test_env to clean up resources
         self.test_env = None;
-        
+
         println!("✅ Test environment cleanup complete");
         Ok(())
     }
 
     /// Run integration tests
-    async fn run_integration_tests(&self, report: &mut CoordinationTestReport) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run_integration_tests(
+        &self,
+        report: &mut CoordinationTestReport,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n🧪 Running Coordination Integration Tests...");
-        
+
         // Run tests sequentially to avoid type issues
         let test_results = vec![
             ("Agent Registration", self.test_agent_registration().await),
             ("Agent Listing", self.test_agent_listing().await),
-            ("Agent Message Sending", self.test_agent_message_sending().await),
+            (
+                "Agent Message Sending",
+                self.test_agent_message_sending().await,
+            ),
             ("Session Creation", self.test_session_creation().await),
             ("Session Listing", self.test_session_listing().await),
             ("System Statistics", self.test_system_stats().await),
@@ -171,7 +182,11 @@ impl CoordinationTestRunner {
                 }
             };
 
-            report.test_results.push((test_name.to_string(), test_result.clone(), Duration::from_millis(100)));
+            report.test_results.push((
+                test_name.to_string(),
+                test_result.clone(),
+                Duration::from_millis(100),
+            ));
             report.total_tests += 1;
 
             match test_result {
@@ -185,16 +200,34 @@ impl CoordinationTestRunner {
     }
 
     /// Run performance benchmarks
-    async fn run_performance_benchmarks(&self, report: &mut CoordinationTestReport) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run_performance_benchmarks(
+        &self,
+        report: &mut CoordinationTestReport,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n⚡ Running Coordination Performance Benchmarks...");
-        
+
         // Run benchmarks sequentially to avoid type issues
         let benchmark_results = vec![
-            ("Agent Registration Benchmark", self.benchmark_agent_registration().await),
-            ("Agent Listing Benchmark", self.benchmark_agent_listing().await),
-            ("Message Sending Benchmark", self.benchmark_message_sending().await),
-            ("Session Creation Benchmark", self.benchmark_session_creation().await),
-            ("System Stats Benchmark", self.benchmark_system_stats().await),
+            (
+                "Agent Registration Benchmark",
+                self.benchmark_agent_registration().await,
+            ),
+            (
+                "Agent Listing Benchmark",
+                self.benchmark_agent_listing().await,
+            ),
+            (
+                "Message Sending Benchmark",
+                self.benchmark_message_sending().await,
+            ),
+            (
+                "Session Creation Benchmark",
+                self.benchmark_session_creation().await,
+            ),
+            (
+                "System Stats Benchmark",
+                self.benchmark_system_stats().await,
+            ),
         ];
 
         for (benchmark_name, result) in benchmark_results {
@@ -209,7 +242,11 @@ impl CoordinationTestRunner {
                 }
             };
 
-            report.test_results.push((benchmark_name.to_string(), benchmark_result.clone(), Duration::from_millis(200)));
+            report.test_results.push((
+                benchmark_name.to_string(),
+                benchmark_result.clone(),
+                Duration::from_millis(200),
+            ));
             report.total_tests += 1;
 
             match benchmark_result {
@@ -223,16 +260,31 @@ impl CoordinationTestRunner {
     }
 
     /// Run security tests
-    async fn run_security_tests(&self, report: &mut CoordinationTestReport) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run_security_tests(
+        &self,
+        report: &mut CoordinationTestReport,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n🔒 Running Coordination Security Tests...");
-        
+
         // Run security tests sequentially to avoid type issues
         let security_test_results = vec![
-            ("SQL Injection Protection", self.test_sql_injection_protection().await),
+            (
+                "SQL Injection Protection",
+                self.test_sql_injection_protection().await,
+            ),
             ("XSS Protection", self.test_xss_protection().await),
-            ("Path Traversal Protection", self.test_path_traversal_protection().await),
-            ("Command Injection Protection", self.test_command_injection_protection().await),
-            ("Unauthorized Access Protection", self.test_unauthorized_access_protection().await),
+            (
+                "Path Traversal Protection",
+                self.test_path_traversal_protection().await,
+            ),
+            (
+                "Command Injection Protection",
+                self.test_command_injection_protection().await,
+            ),
+            (
+                "Unauthorized Access Protection",
+                self.test_unauthorized_access_protection().await,
+            ),
         ];
 
         for (test_name, result) in security_test_results {
@@ -247,7 +299,11 @@ impl CoordinationTestRunner {
                 }
             };
 
-            report.test_results.push((test_name.to_string(), test_result.clone(), Duration::from_millis(150)));
+            report.test_results.push((
+                test_name.to_string(),
+                test_result.clone(),
+                Duration::from_millis(150),
+            ));
             report.total_tests += 1;
 
             match test_result {
@@ -301,75 +357,75 @@ impl CoordinationTestRunner {
     // Performance benchmark implementations
     async fn benchmark_agent_registration(&self) -> Result<(), Box<dyn std::error::Error>> {
         let start = Instant::now();
-        
+
         // Simulate multiple agent registrations
         for i in 0..10 {
             let _agent_name = format!("bench-agent-{}", i);
             // This would call the actual coordination CLI command
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
-        
+
         let duration = start.elapsed();
         CoordinationAssertions::assert_performance_requirements(duration, 5000); // 5 seconds max
-        
+
         Ok(())
     }
 
     async fn benchmark_agent_listing(&self) -> Result<(), Box<dyn std::error::Error>> {
         let start = Instant::now();
-        
+
         // Simulate agent listing with filters
         for _ in 0..5 {
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
-        
+
         let duration = start.elapsed();
         CoordinationAssertions::assert_performance_requirements(duration, 2000); // 2 seconds max
-        
+
         Ok(())
     }
 
     async fn benchmark_message_sending(&self) -> Result<(), Box<dyn std::error::Error>> {
         let start = Instant::now();
-        
+
         // Simulate message sending
         for i in 0..20 {
             let _message = format!("Benchmark message {}", i);
             tokio::time::sleep(Duration::from_millis(5)).await;
         }
-        
+
         let duration = start.elapsed();
         CoordinationAssertions::assert_performance_requirements(duration, 3000); // 3 seconds max
-        
+
         Ok(())
     }
 
     async fn benchmark_session_creation(&self) -> Result<(), Box<dyn std::error::Error>> {
         let start = Instant::now();
-        
+
         // Simulate session creation
         for i in 0..5 {
             let _session_topic = format!("Benchmark Session {}", i);
             tokio::time::sleep(Duration::from_millis(30)).await;
         }
-        
+
         let duration = start.elapsed();
         CoordinationAssertions::assert_performance_requirements(duration, 2000); // 2 seconds max
-        
+
         Ok(())
     }
 
     async fn benchmark_system_stats(&self) -> Result<(), Box<dyn std::error::Error>> {
         let start = Instant::now();
-        
+
         // Simulate system stats collection
         for _ in 0..3 {
             tokio::time::sleep(Duration::from_millis(25)).await;
         }
-        
+
         let duration = start.elapsed();
         CoordinationAssertions::assert_performance_requirements(duration, 1500); // 1.5 seconds max
-        
+
         Ok(())
     }
 
@@ -419,11 +475,7 @@ impl CoordinationTestRunner {
     }
 
     async fn test_command_injection_protection(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let malicious_inputs = vec![
-            "$(rm -rf /)",
-            "`rm -rf /`",
-            "; rm -rf /;",
-        ];
+        let malicious_inputs = vec!["$(rm -rf /)", "`rm -rf /`", "; rm -rf /;"];
 
         for _malicious_input in malicious_inputs {
             tokio::time::sleep(Duration::from_millis(10)).await;
@@ -434,9 +486,9 @@ impl CoordinationTestRunner {
 
     async fn test_unauthorized_access_protection(&self) -> Result<(), Box<dyn std::error::Error>> {
         let unauthorized_requests = vec![
-            "agent-999999", // Non-existent agent
+            "agent-999999",   // Non-existent agent
             "session-999999", // Non-existent session
-            "admin-agent", // Unauthorized agent type
+            "admin-agent",    // Unauthorized agent type
         ];
 
         for _request in unauthorized_requests {
@@ -452,13 +504,13 @@ impl CoordinationTestRunner {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = TestConfig::new();
     let mut runner = CoordinationTestRunner::new(config);
-    
+
     let report = runner.run_all_tests().await?;
-    
+
     if report.failed > 0 || report.errors > 0 {
         std::process::exit(1);
     }
-    
+
     Ok(())
 }
 
@@ -492,4 +544,4 @@ mod tests {
             _ => assert!(false),
         }
     }
-} 
+}

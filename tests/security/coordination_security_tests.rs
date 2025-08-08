@@ -1,8 +1,8 @@
 //! Security tests for Rhema Coordination CLI
 
+use crate::common::{fixtures::TestFixtures, helpers::TestHelpers, TestEnv};
 use std::process::Command;
 use tempfile::TempDir;
-use crate::common::{TestEnv, fixtures::TestFixtures, helpers::TestHelpers};
 
 /// Test CLI command execution for coordination commands
 fn run_coordination_command(args: &[&str]) -> Result<String, Box<dyn std::error::Error>> {
@@ -10,14 +10,15 @@ fn run_coordination_command(args: &[&str]) -> Result<String, Box<dyn std::error:
         .args(&["run", "--bin", "rhema", "--", "coordination"])
         .args(args)
         .output()?;
-    
+
     if output.status.success() {
         Ok(String::from_utf8(output.stdout)?)
     } else {
         Err(format!(
             "Coordination command failed: {}",
             String::from_utf8_lossy(&output.stderr)
-        ).into())
+        )
+        .into())
     }
 }
 
@@ -35,15 +36,19 @@ fn test_coordination_sql_injection_agent_name() {
         "admin'--",
         "'; UPDATE agents SET type='hacker'; --",
     ];
-    
+
     for malicious_name in malicious_names {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", malicious_name,
-            "--type", "TestAgent",
-            "--scope", "security-testing"
+            "agent",
+            "register",
+            "--name",
+            malicious_name,
+            "--type",
+            "TestAgent",
+            "--scope",
+            "security-testing",
         ]);
-        
+
         // Should either fail gracefully or sanitize the input
         if result.is_ok() {
             let output = result.unwrap();
@@ -65,15 +70,19 @@ fn test_coordination_xss_agent_name() {
         "';alert('xss');//",
         "<svg onload=alert('xss')>",
     ];
-    
+
     for malicious_name in malicious_names {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", malicious_name,
-            "--type", "TestAgent",
-            "--scope", "security-testing"
+            "agent",
+            "register",
+            "--name",
+            malicious_name,
+            "--type",
+            "TestAgent",
+            "--scope",
+            "security-testing",
         ]);
-        
+
         // Should either fail gracefully or sanitize the input
         if result.is_ok() {
             let output = result.unwrap();
@@ -96,15 +105,19 @@ fn test_coordination_path_traversal_agent_name() {
         "C:\\Windows\\System32\\config\\SAM",
         "....//....//....//etc/passwd",
     ];
-    
+
     for malicious_name in malicious_names {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", malicious_name,
-            "--type", "TestAgent",
-            "--scope", "security-testing"
+            "agent",
+            "register",
+            "--name",
+            malicious_name,
+            "--type",
+            "TestAgent",
+            "--scope",
+            "security-testing",
         ]);
-        
+
         // Should either fail gracefully or sanitize the input
         if result.is_ok() {
             let output = result.unwrap();
@@ -128,15 +141,19 @@ fn test_coordination_command_injection_agent_name() {
         "$(cat /etc/passwd)",
         "`cat /etc/passwd`",
     ];
-    
+
     for malicious_name in malicious_names {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", malicious_name,
-            "--type", "TestAgent",
-            "--scope", "security-testing"
+            "agent",
+            "register",
+            "--name",
+            malicious_name,
+            "--type",
+            "TestAgent",
+            "--scope",
+            "security-testing",
         ]);
-        
+
         // Should either fail gracefully or sanitize the input
         if result.is_ok() {
             let output = result.unwrap();
@@ -150,20 +167,20 @@ fn test_coordination_command_injection_agent_name() {
 #[test]
 fn test_coordination_buffer_overflow_agent_name() {
     // Test buffer overflow attempts with extremely long names
-    let long_names = vec![
-        "A".repeat(10000),
-        "A".repeat(100000),
-        "A".repeat(1000000),
-    ];
-    
+    let long_names = vec!["A".repeat(10000), "A".repeat(100000), "A".repeat(1000000)];
+
     for long_name in long_names {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", &long_name,
-            "--type", "TestAgent",
-            "--scope", "security-testing"
+            "agent",
+            "register",
+            "--name",
+            &long_name,
+            "--type",
+            "TestAgent",
+            "--scope",
+            "security-testing",
         ]);
-        
+
         // Should handle gracefully without crashing
         // Either succeed with truncation or fail with proper error
         if result.is_err() {
@@ -184,15 +201,19 @@ fn test_coordination_null_byte_injection() {
         "\x00agent",
         "agent\x00\x00name",
     ];
-    
+
     for malicious_name in malicious_names {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", malicious_name,
-            "--type", "TestAgent",
-            "--scope", "security-testing"
+            "agent",
+            "register",
+            "--name",
+            malicious_name,
+            "--type",
+            "TestAgent",
+            "--scope",
+            "security-testing",
         ]);
-        
+
         // Should handle null bytes gracefully
         if result.is_err() {
             let error = result.unwrap_err();
@@ -210,15 +231,20 @@ fn test_coordination_null_byte_injection() {
 fn test_coordination_malicious_message_payload() {
     let env = TestEnv::with_sample_data().unwrap();
     std::env::set_current_dir(&env.repo_path).unwrap();
-    
+
     // Register an agent first
     run_coordination_command(&[
-        "agent", "register",
-        "--name", "security-test-agent",
-        "--type", "TestAgent",
-        "--scope", "security-testing"
-    ]).unwrap();
-    
+        "agent",
+        "register",
+        "--name",
+        "security-test-agent",
+        "--type",
+        "TestAgent",
+        "--scope",
+        "security-testing",
+    ])
+    .unwrap();
+
     // Test malicious JSON payloads
     let malicious_payloads = vec![
         r#"{"script": "<script>alert('xss')</script>"}"#,
@@ -228,17 +254,22 @@ fn test_coordination_malicious_message_payload() {
         r#"{"eval": "eval('alert(1)')"}"#,
         r#"{"exec": "exec('rm -rf /')"}"#,
     ];
-    
+
     for malicious_payload in malicious_payloads {
         let result = run_coordination_command(&[
-            "agent", "send-message",
-            "--to", "agent-001",
+            "agent",
+            "send-message",
+            "--to",
+            "agent-001",
             "Test message",
-            "--message-type", "Test",
-            "--priority", "Normal",
-            "--payload", malicious_payload
+            "--message-type",
+            "Test",
+            "--priority",
+            "Normal",
+            "--payload",
+            malicious_payload,
         ]);
-        
+
         // Should either fail gracefully or sanitize the payload
         if result.is_ok() {
             let output = result.unwrap();
@@ -257,36 +288,46 @@ fn test_coordination_malicious_message_payload() {
 fn test_coordination_invalid_json_payload() {
     let env = TestEnv::with_sample_data().unwrap();
     std::env::set_current_dir(&env.repo_path).unwrap();
-    
+
     // Register an agent first
     run_coordination_command(&[
-        "agent", "register",
-        "--name", "json-test-agent",
-        "--type", "TestAgent",
-        "--scope", "security-testing"
-    ]).unwrap();
-    
+        "agent",
+        "register",
+        "--name",
+        "json-test-agent",
+        "--type",
+        "TestAgent",
+        "--scope",
+        "security-testing",
+    ])
+    .unwrap();
+
     // Test invalid JSON payloads
     let invalid_payloads = vec![
         "{invalid json}",
-        "{'key': 'value'}", // Single quotes instead of double
-        "{key: value}", // Missing quotes
-        "{", // Incomplete JSON
-        "}", // Incomplete JSON
-        "[1, 2, 3,", // Incomplete array
+        "{'key': 'value'}",     // Single quotes instead of double
+        "{key: value}",         // Missing quotes
+        "{",                    // Incomplete JSON
+        "}",                    // Incomplete JSON
+        "[1, 2, 3,",            // Incomplete array
         r#"{"key": "value",}"#, // Trailing comma
     ];
-    
+
     for invalid_payload in invalid_payloads {
         let result = run_coordination_command(&[
-            "agent", "send-message",
-            "--to", "agent-001",
+            "agent",
+            "send-message",
+            "--to",
+            "agent-001",
             "Test message",
-            "--message-type", "Test",
-            "--priority", "Normal",
-            "--payload", invalid_payload
+            "--message-type",
+            "Test",
+            "--priority",
+            "Normal",
+            "--payload",
+            invalid_payload,
         ]);
-        
+
         // Should fail gracefully with proper error message
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -299,31 +340,41 @@ fn test_coordination_invalid_json_payload() {
 fn test_coordination_oversized_payload() {
     let env = TestEnv::with_sample_data().unwrap();
     std::env::set_current_dir(&env.repo_path).unwrap();
-    
+
     // Register an agent first
     run_coordination_command(&[
-        "agent", "register",
-        "--name", "size-test-agent",
-        "--type", "TestAgent",
-        "--scope", "security-testing"
-    ]).unwrap();
-    
+        "agent",
+        "register",
+        "--name",
+        "size-test-agent",
+        "--type",
+        "TestAgent",
+        "--scope",
+        "security-testing",
+    ])
+    .unwrap();
+
     // Create oversized payloads
     let oversized_payloads = vec![
         format!(r#"{{"data": "{}"}}"#, "A".repeat(1000000)), // 1MB payload
         format!(r#"{{"data": "{}"}}"#, "B".repeat(10000000)), // 10MB payload
     ];
-    
+
     for oversized_payload in oversized_payloads {
         let result = run_coordination_command(&[
-            "agent", "send-message",
-            "--to", "agent-001",
+            "agent",
+            "send-message",
+            "--to",
+            "agent-001",
             "Test message",
-            "--message-type", "Test",
-            "--priority", "Normal",
-            "--payload", &oversized_payload
+            "--message-type",
+            "Test",
+            "--priority",
+            "Normal",
+            "--payload",
+            &oversized_payload,
         ]);
-        
+
         // Should handle gracefully without crashing
         if result.is_err() {
             let error = result.unwrap_err();
@@ -341,11 +392,8 @@ fn test_coordination_oversized_payload() {
 #[test]
 fn test_coordination_unauthorized_agent_access() {
     // Test accessing agent information without proper authentication
-    let result = run_coordination_command(&[
-        "agent", "info",
-        "non-existent-agent-id"
-    ]);
-    
+    let result = run_coordination_command(&["agent", "info", "non-existent-agent-id"]);
+
     // Should fail with proper error message
     assert!(result.is_err());
     let error = result.unwrap_err();
@@ -358,11 +406,8 @@ fn test_coordination_unauthorized_agent_access() {
 #[test]
 fn test_coordination_unauthorized_session_access() {
     // Test accessing session information without proper authentication
-    let result = run_coordination_command(&[
-        "session", "info",
-        "non-existent-session-id"
-    ]);
-    
+    let result = run_coordination_command(&["session", "info", "non-existent-session-id"]);
+
     // Should fail with proper error message
     assert!(result.is_err());
     let error = result.unwrap_err();
@@ -382,15 +427,19 @@ fn test_coordination_privilege_escalation_attempt() {
         "SystemAgent",
         "PrivilegedAgent",
     ];
-    
+
     for agent_type in malicious_agent_types {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", "privilege-test-agent",
-            "--type", agent_type,
-            "--scope", "security-testing"
+            "agent",
+            "register",
+            "--name",
+            "privilege-test-agent",
+            "--type",
+            agent_type,
+            "--scope",
+            "security-testing",
         ]);
-        
+
         // Should either fail or not grant elevated privileges
         if result.is_ok() {
             let output = result.unwrap();
@@ -410,14 +459,17 @@ fn test_coordination_privilege_escalation_attempt() {
 fn test_coordination_session_hijacking_attempt() {
     let env = TestEnv::with_sample_data().unwrap();
     std::env::set_current_dir(&env.repo_path).unwrap();
-    
+
     // Create a session
     run_coordination_command(&[
-        "session", "create",
+        "session",
+        "create",
         "Security Test Session",
-        "--participants", "agent-001"
-    ]).unwrap();
-    
+        "--participants",
+        "agent-001",
+    ])
+    .unwrap();
+
     // Test session hijacking attempts
     let malicious_session_ids = vec![
         "session-001", // Try to access existing session
@@ -425,17 +477,22 @@ fn test_coordination_session_hijacking_attempt() {
         "admin-session",
         "root-session",
     ];
-    
+
     for session_id in malicious_session_ids {
         let result = run_coordination_command(&[
-            "session", "send-message",
-            "--session-id", session_id,
+            "session",
+            "send-message",
+            "--session-id",
+            session_id,
             "Hijacking attempt",
-            "--message-type", "Test",
-            "--priority", "Normal",
-            "--sender-id", "unauthorized-agent"
+            "--message-type",
+            "Test",
+            "--priority",
+            "Normal",
+            "--sender-id",
+            "unauthorized-agent",
         ]);
-        
+
         // Should fail for unauthorized access
         if result.is_ok() {
             let output = result.unwrap();
@@ -450,7 +507,7 @@ fn test_coordination_session_hijacking_attempt() {
 fn test_coordination_session_injection() {
     let env = TestEnv::with_sample_data().unwrap();
     std::env::set_current_dir(&env.repo_path).unwrap();
-    
+
     // Test session creation with malicious input
     let malicious_session_names = vec![
         "Session'; DROP TABLE sessions; --",
@@ -458,14 +515,16 @@ fn test_coordination_session_injection() {
         "$(rm -rf /)",
         "../../../etc/passwd",
     ];
-    
+
     for malicious_name in malicious_session_names {
         let result = run_coordination_command(&[
-            "session", "create",
+            "session",
+            "create",
             malicious_name,
-            "--participants", "agent-001"
+            "--participants",
+            "agent-001",
         ]);
-        
+
         // Should either fail gracefully or sanitize the input
         if result.is_ok() {
             let output = result.unwrap();
@@ -485,11 +544,8 @@ fn test_coordination_session_injection() {
 #[test]
 fn test_coordination_system_stats_information_disclosure() {
     // Test that system stats don't expose sensitive information
-    let result = run_coordination_command(&[
-        "system", "stats",
-        "--detailed"
-    ]);
-    
+    let result = run_coordination_command(&["system", "stats", "--detailed"]);
+
     if result.is_ok() {
         let output = result.unwrap();
         // Should not expose sensitive information
@@ -504,11 +560,8 @@ fn test_coordination_system_stats_information_disclosure() {
 #[test]
 fn test_coordination_message_history_information_disclosure() {
     // Test that message history doesn't expose sensitive information
-    let result = run_coordination_command(&[
-        "system", "message-history",
-        "--show-payloads"
-    ]);
-    
+    let result = run_coordination_command(&["system", "message-history", "--show-payloads"]);
+
     if result.is_ok() {
         let output = result.unwrap();
         // Should not expose sensitive information
@@ -530,34 +583,41 @@ fn test_coordination_dos_rapid_registration() {
     let start_time = std::time::Instant::now();
     let mut success_count = 0;
     let mut error_count = 0;
-    
+
     // Try to register many agents rapidly
     for i in 0..1000 {
         match run_coordination_command(&[
-            "agent", "register",
-            "--name", &format!("dos-agent-{}", i),
-            "--type", "TestAgent",
-            "--scope", "dos-testing"
+            "agent",
+            "register",
+            "--name",
+            &format!("dos-agent-{}", i),
+            "--type",
+            "TestAgent",
+            "--scope",
+            "dos-testing",
         ]) {
             Ok(_) => success_count += 1,
             Err(_) => error_count += 1,
         }
-        
+
         // Limit test duration
         if start_time.elapsed().as_secs() > 30 {
             break;
         }
     }
-    
+
     let duration = start_time.elapsed();
-    
+
     println!("=== DoS Test Results ===");
     println!("Duration: {:?}", duration);
     println!("Successful: {}", success_count);
     println!("Errors: {}", error_count);
-    println!("Operations per second: {:.2}", (success_count + error_count) as f64 / duration.as_secs_f64());
+    println!(
+        "Operations per second: {:.2}",
+        (success_count + error_count) as f64 / duration.as_secs_f64()
+    );
     println!("========================");
-    
+
     // Should handle gracefully without crashing
     assert!(duration.as_secs() < 60); // Should not hang indefinitely
 }
@@ -566,47 +626,59 @@ fn test_coordination_dos_rapid_registration() {
 fn test_coordination_dos_rapid_messaging() {
     let env = TestEnv::with_sample_data().unwrap();
     std::env::set_current_dir(&env.repo_path).unwrap();
-    
+
     // Register an agent first
     run_coordination_command(&[
-        "agent", "register",
-        "--name", "dos-message-agent",
-        "--type", "TestAgent",
-        "--scope", "dos-testing"
-    ]).unwrap();
-    
+        "agent",
+        "register",
+        "--name",
+        "dos-message-agent",
+        "--type",
+        "TestAgent",
+        "--scope",
+        "dos-testing",
+    ])
+    .unwrap();
+
     let start_time = std::time::Instant::now();
     let mut success_count = 0;
     let mut error_count = 0;
-    
+
     // Try to send many messages rapidly
     for i in 0..1000 {
         match run_coordination_command(&[
-            "agent", "send-message",
-            "--to", "agent-001",
+            "agent",
+            "send-message",
+            "--to",
+            "agent-001",
             &format!("DoS test message {}", i),
-            "--message-type", "Test",
-            "--priority", "Normal"
+            "--message-type",
+            "Test",
+            "--priority",
+            "Normal",
         ]) {
             Ok(_) => success_count += 1,
             Err(_) => error_count += 1,
         }
-        
+
         // Limit test duration
         if start_time.elapsed().as_secs() > 30 {
             break;
         }
     }
-    
+
     let duration = start_time.elapsed();
-    
+
     println!("=== DoS Messaging Test Results ===");
     println!("Duration: {:?}", duration);
     println!("Successful: {}", success_count);
     println!("Errors: {}", error_count);
-    println!("Messages per second: {:.2}", (success_count + error_count) as f64 / duration.as_secs_f64());
+    println!(
+        "Messages per second: {:.2}",
+        (success_count + error_count) as f64 / duration.as_secs_f64()
+    );
     println!("================================");
-    
+
     // Should handle gracefully without crashing
     assert!(duration.as_secs() < 60); // Should not hang indefinitely
 }
@@ -619,15 +691,20 @@ fn test_coordination_dos_rapid_messaging() {
 fn test_coordination_memory_exhaustion() {
     // Test memory exhaustion through large payloads
     let large_payload = format!(r#"{{"data": "{}"}}"#, "X".repeat(10000000)); // 10MB
-    
+
     let result = run_coordination_command(&[
-        "agent", "register",
-        "--name", "memory-test-agent",
-        "--type", "TestAgent",
-        "--scope", "memory-testing",
-        "--capabilities", &large_payload
+        "agent",
+        "register",
+        "--name",
+        "memory-test-agent",
+        "--type",
+        "TestAgent",
+        "--scope",
+        "memory-testing",
+        "--capabilities",
+        &large_payload,
     ]);
-    
+
     // Should handle gracefully without crashing
     if result.is_err() {
         let error = result.unwrap_err();
@@ -641,23 +718,28 @@ fn test_coordination_memory_exhaustion() {
 fn test_coordination_cpu_exhaustion() {
     // Test CPU exhaustion through complex operations
     let start_time = std::time::Instant::now();
-    
+
     // Perform many complex operations
     for i in 0..100 {
         let _ = run_coordination_command(&[
-            "agent", "register",
-            "--name", &format!("cpu-test-agent-{}", i),
-            "--type", "TestAgent",
-            "--scope", "cpu-testing",
-            "--capabilities", &format!("capability-{}", i)
+            "agent",
+            "register",
+            "--name",
+            &format!("cpu-test-agent-{}", i),
+            "--type",
+            "TestAgent",
+            "--scope",
+            "cpu-testing",
+            "--capabilities",
+            &format!("capability-{}", i),
         ]);
-        
+
         let _ = run_coordination_command(&["agent", "list", "--detailed"]);
         let _ = run_coordination_command(&["system", "stats", "--detailed"]);
     }
-    
+
     let duration = start_time.elapsed();
-    
+
     // Should complete within reasonable time
     assert!(duration.as_secs() < 120); // Should not hang indefinitely
 }
@@ -678,15 +760,19 @@ fn test_coordination_input_sanitization() {
         ("AGENT", "AGENT"),
         ("agent", "agent"),
     ];
-    
+
     for (description, agent_name) in test_cases {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", agent_name,
-            "--type", "TestAgent",
-            "--scope", "sanitization-testing"
+            "agent",
+            "register",
+            "--name",
+            agent_name,
+            "--type",
+            "TestAgent",
+            "--scope",
+            "sanitization-testing",
         ]);
-        
+
         // Should handle all valid inputs
         if result.is_err() {
             let error = result.unwrap_err();
@@ -708,15 +794,19 @@ fn test_coordination_unicode_handling() {
         "agent-🚀",
         "agent-🌟",
     ];
-    
+
     for unicode_name in unicode_names {
         let result = run_coordination_command(&[
-            "agent", "register",
-            "--name", unicode_name,
-            "--type", "TestAgent",
-            "--scope", "unicode-testing"
+            "agent",
+            "register",
+            "--name",
+            unicode_name,
+            "--type",
+            "TestAgent",
+            "--scope",
+            "unicode-testing",
         ]);
-        
+
         // Should handle Unicode gracefully
         if result.is_err() {
             let error = result.unwrap_err();
@@ -725,4 +815,4 @@ fn test_coordination_unicode_handling() {
             assert!(!error.to_string().contains("malicious"));
         }
     }
-} 
+}

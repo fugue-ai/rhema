@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use rhema_git::git::workflow::{WorkflowManager, default_git_flow_config};
 use git2::Repository;
+use rhema_git::git::workflow::{default_git_flow_config, WorkflowManager};
 use tempfile::TempDir;
 
 fn setup_test_repo() -> (TempDir, WorkflowManager) {
@@ -31,10 +31,10 @@ fn test_setup_and_validate_hotfix_context() {
     let (_temp_dir, manager) = setup_test_repo();
     let version = "1.2.1";
     let hotfix_branch = format!("hotfix/{}", version);
-    
+
     // Set up hotfix context
     assert!(manager.setup_hotfix_context(&hotfix_branch).is_ok());
-    
+
     // Validate hotfix
     assert!(manager.validate_hotfix(&hotfix_branch).is_ok());
 }
@@ -44,16 +44,16 @@ fn test_merge_and_cleanup_hotfix_branch() {
     let (_temp_dir, manager) = setup_test_repo();
     let version = "1.2.2";
     let hotfix_branch = format!("hotfix/{}", version);
-    
+
     // Set up hotfix context
     assert!(manager.setup_hotfix_context(&hotfix_branch).is_ok());
-    
+
     // Merge to main
     let _ = manager.merge_to_main(&hotfix_branch);
-    
+
     // Merge to develop
     let _ = manager.merge_to_develop(&hotfix_branch);
-    
+
     // Cleanup
     assert!(manager.cleanup_hotfix_branch(&hotfix_branch).is_ok());
 }
@@ -62,7 +62,7 @@ fn test_merge_and_cleanup_hotfix_branch() {
 fn test_hotfix_validation_failure() {
     let (_temp_dir, manager) = setup_test_repo();
     let non_existent_branch = "hotfix/non-existent";
-    
+
     // This should fail because the branch doesn't exist
     let result = manager.validate_hotfix(non_existent_branch);
     assert!(result.is_err());
@@ -73,11 +73,11 @@ fn test_hotfix_context_setup() {
     let (_temp_dir, manager) = setup_test_repo();
     let version = "1.2.3";
     let hotfix_branch = format!("hotfix/{}", version);
-    
+
     // Set up hotfix context
     let result = manager.setup_hotfix_context(&hotfix_branch);
     assert!(result.is_ok());
-    
+
     // Note: We can't access the repo directly since it's moved into the manager
     // The test passes if setup_hotfix_context succeeds
-} 
+}

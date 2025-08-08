@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
+use crate::git::monitoring::GitMonitoringManager;
 use git2::Repository;
 use rhema_core::RhemaResult;
 use std::fs;
 use std::path::Path;
-use crate::git::monitoring::GitMonitoringManager;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -681,7 +681,7 @@ pub struct HookManager {
 impl HookManager {
     /// Create a new hook manager
     pub fn new(
-        repo: Repository, 
+        repo: Repository,
         config: HookConfig,
         monitoring_manager: Option<Arc<Mutex<GitMonitoringManager>>>,
     ) -> Self {
@@ -718,12 +718,7 @@ impl HookManager {
         }
 
         // Backup existing hooks if auto-backup is enabled
-        if self
-            .config
-            .hook_management
-            .backup_recovery
-            .auto_backup
-        {
+        if self.config.hook_management.backup_recovery.auto_backup {
             self.backup_existing_hooks(&hooks_dir)?;
         }
 
@@ -750,21 +745,12 @@ impl HookManager {
         }
 
         // Verify hook integrity if enabled
-        if self
-            .config
-            .security_features
-            .integrity_verification
-        {
+        if self.config.security_features.integrity_verification {
             self.verify_hook_integrity()?;
         }
 
         // Run hook tests if enabled
-        if self
-            .config
-            .hook_management
-            .testing
-            .unit_testing
-        {
+        if self.config.hook_management.testing.unit_testing {
             self.run_hook_tests()?;
         }
 
@@ -807,11 +793,7 @@ impl HookManager {
 
     /// Apply backup retention policy
     fn apply_backup_retention_policy(&self, backup_dir: &Path) -> RhemaResult<()> {
-        let retention_days = self
-            .config
-            .hook_management
-            .backup_recovery
-            .backup_retention;
+        let retention_days = self.config.hook_management.backup_recovery.backup_retention;
         let cutoff_date = Utc::now() - chrono::Duration::days(retention_days as i64);
 
         for entry in fs::read_dir(backup_dir)? {
@@ -1048,20 +1030,44 @@ echo "Rhema pre-rebase validation completed successfully"
 
         // Execute the hook
         let execution_result = match hook_type {
-            HookType::PreCommit => self.execute_pre_commit(&mut messages, &mut errors, &mut warnings),
-            HookType::PostCommit => self.execute_post_commit(&mut messages, &mut errors, &mut warnings),
+            HookType::PreCommit => {
+                self.execute_pre_commit(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PostCommit => {
+                self.execute_post_commit(&mut messages, &mut errors, &mut warnings)
+            }
             HookType::PrePush => self.execute_pre_push(&mut messages, &mut errors, &mut warnings),
-            HookType::PostMerge => self.execute_post_merge(&mut messages, &mut errors, &mut warnings),
-            HookType::PreRebase => self.execute_pre_rebase(&mut messages, &mut errors, &mut warnings),
-            HookType::PreReceive => self.execute_pre_receive(&mut messages, &mut errors, &mut warnings),
-            HookType::PostReceive => self.execute_post_receive(&mut messages, &mut errors, &mut warnings),
+            HookType::PostMerge => {
+                self.execute_post_merge(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PreRebase => {
+                self.execute_pre_rebase(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PreReceive => {
+                self.execute_pre_receive(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PostReceive => {
+                self.execute_post_receive(&mut messages, &mut errors, &mut warnings)
+            }
             HookType::Update => self.execute_update(&mut messages, &mut errors, &mut warnings),
-            HookType::PreAutoGc => self.execute_pre_auto_gc(&mut messages, &mut errors, &mut warnings),
-            HookType::PostRewrite => self.execute_post_rewrite(&mut messages, &mut errors, &mut warnings),
-            HookType::PreApplyPatch => self.execute_pre_apply_patch(&mut messages, &mut errors, &mut warnings),
-            HookType::PostApplyPatch => self.execute_post_apply_patch(&mut messages, &mut errors, &mut warnings),
-            HookType::PreRebaseInteractive => self.execute_pre_rebase_interactive(&mut messages, &mut errors, &mut warnings),
-            HookType::PostCheckout => self.execute_post_checkout(&mut messages, &mut errors, &mut warnings),
+            HookType::PreAutoGc => {
+                self.execute_pre_auto_gc(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PostRewrite => {
+                self.execute_post_rewrite(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PreApplyPatch => {
+                self.execute_pre_apply_patch(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PostApplyPatch => {
+                self.execute_post_apply_patch(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PreRebaseInteractive => {
+                self.execute_pre_rebase_interactive(&mut messages, &mut errors, &mut warnings)
+            }
+            HookType::PostCheckout => {
+                self.execute_post_checkout(&mut messages, &mut errors, &mut warnings)
+            }
         }?;
 
         // Post-execution analysis
@@ -1071,7 +1077,14 @@ echo "Rhema pre-rebase validation completed successfully"
         let success = errors.is_empty() || !self.config.fail_on_error;
 
         // Record metrics and analytics
-        self.record_hook_execution(hook_type, success, execution_time, &messages, &errors, &warnings)?;
+        self.record_hook_execution(
+            hook_type,
+            success,
+            execution_time,
+            &messages,
+            &errors,
+            &warnings,
+        )?;
 
         Ok(HookResult {
             success,
@@ -1090,17 +1103,28 @@ echo "Rhema pre-rebase validation completed successfully"
         messages: &mut Vec<String>,
         warnings: &mut Vec<String>,
     ) -> RhemaResult<()> {
-        messages.push(format!("Starting pre-execution analysis for {:?} hook", hook_type));
-        
+        messages.push(format!(
+            "Starting pre-execution analysis for {:?} hook",
+            hook_type
+        ));
+
         // Check hook configuration
         if !self.config.enabled {
             warnings.push("Hook execution is disabled in configuration".to_string());
         }
 
         // Validate hook script exists
-        let hook_path = self.repo.path().join(".git").join("hooks").join(hook_type.filename());
+        let hook_path = self
+            .repo
+            .path()
+            .join(".git")
+            .join("hooks")
+            .join(hook_type.filename());
         if !hook_path.exists() {
-            warnings.push(format!("Hook script {} does not exist", hook_type.filename()));
+            warnings.push(format!(
+                "Hook script {} does not exist",
+                hook_type.filename()
+            ));
         }
 
         // Check repository state
@@ -1121,8 +1145,11 @@ echo "Rhema pre-rebase validation completed successfully"
         messages: &mut Vec<String>,
         warnings: &mut Vec<String>,
     ) -> RhemaResult<()> {
-        messages.push(format!("Completed post-execution analysis for {:?} hook", hook_type));
-        
+        messages.push(format!(
+            "Completed post-execution analysis for {:?} hook",
+            hook_type
+        ));
+
         match execution_result {
             Ok(_) => messages.push("Hook execution completed successfully".to_string()),
             Err(e) => warnings.push(format!("Hook execution failed: {}", e)),
@@ -1184,7 +1211,7 @@ echo "Rhema pre-rebase validation completed successfully"
         _warnings: &mut Vec<String>,
     ) -> RhemaResult<()> {
         messages.push("Executing pre-auto-gc hook...".to_string());
-        
+
         // Check repository size
         if let Ok(odb) = self.repo.odb() {
             let mut object_count = 0;
@@ -1192,9 +1219,12 @@ echo "Rhema pre-rebase validation completed successfully"
                 object_count += 1;
                 true
             });
-            
+
             if object_count > 10000 {
-                messages.push(format!("Repository has {} objects, garbage collection recommended", object_count));
+                messages.push(format!(
+                    "Repository has {} objects, garbage collection recommended",
+                    object_count
+                ));
             }
         }
 
@@ -1218,13 +1248,13 @@ echo "Rhema pre-rebase validation completed successfully"
         _warnings: &mut Vec<String>,
     ) -> RhemaResult<()> {
         messages.push("Executing pre-apply-patch hook...".to_string());
-        
+
         // Validate patch format
         messages.push("Validating patch format...".to_string());
-        
+
         // Check for conflicts
         messages.push("Checking for potential conflicts...".to_string());
-        
+
         // Validate patch metadata
         messages.push("Validating patch metadata...".to_string());
 
@@ -1239,15 +1269,15 @@ echo "Rhema pre-rebase validation completed successfully"
         _warnings: &mut Vec<String>,
     ) -> RhemaResult<()> {
         messages.push("Executing post-apply-patch hook...".to_string());
-        
+
         // Verify patch application
         messages.push("Verifying patch application...".to_string());
-        
+
         // Update context if needed
         if self.config.context_aware.enabled {
             messages.push("Updating context after patch application...".to_string());
         }
-        
+
         // Generate summary
         messages.push("Generating patch application summary...".to_string());
 
@@ -1262,18 +1292,18 @@ echo "Rhema pre-rebase validation completed successfully"
         _warnings: &mut Vec<String>,
     ) -> RhemaResult<()> {
         messages.push("Executing pre-rebase-interactive hook...".to_string());
-        
+
         // Backup current state
         if self.config.context_aware.backup_before_operations {
             messages.push("Creating backup of current state...".to_string());
         }
-        
+
         // Validate rebase plan
         messages.push("Validating rebase plan...".to_string());
-        
+
         // Check for potential conflicts
         messages.push("Analyzing potential conflicts...".to_string());
-        
+
         // Validate commit history
         messages.push("Validating commit history integrity...".to_string());
 
@@ -2266,8 +2296,6 @@ pub fn default_hook_config() -> HookConfig {
     }
 }
 
-
-
 /// Machine learning engine for hooks
 pub struct HookMLEngine {
     pub models: HashMap<String, MLModel>,
@@ -2416,7 +2444,11 @@ pub enum AutomationCondition {
     OnError,
     OnWarning,
     OnPattern(String),
-    OnThreshold { metric: String, operator: ThresholdOperator, value: f64 },
+    OnThreshold {
+        metric: String,
+        operator: ThresholdOperator,
+        value: f64,
+    },
     OnContext(ContextCondition),
     Custom(String),
 }

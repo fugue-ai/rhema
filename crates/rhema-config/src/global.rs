@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 use crate::{
     Config, ConfigAuditLog, ConfigEnvironment, ConfigHealth, ConfigStats, CURRENT_CONFIG_VERSION,
 };
@@ -849,11 +848,10 @@ impl GlobalConfig {
 
     /// Load global configuration from JSON string
     pub fn load_from_json(json: &str) -> RhemaResult<Self> {
-        let config: Self = serde_json::from_str(json).map_err(|e| {
-            rhema_core::RhemaError::InvalidJson {
+        let config: Self =
+            serde_json::from_str(json).map_err(|e| rhema_core::RhemaError::InvalidJson {
                 message: e.to_string(),
-            }
-        })?;
+            })?;
 
         config.validate_config()?;
         Ok(config)

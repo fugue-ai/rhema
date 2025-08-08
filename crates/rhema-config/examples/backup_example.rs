@@ -15,12 +15,12 @@
  */
 
 use rhema_config::{
-    BackupManager, BackupFormat, BackupSchedule, BackupFrequency, GlobalConfig, RepositoryConfig,
-    ScopeConfig, Config, RhemaResult, RestoredConfig,
+    BackupFormat, BackupFrequency, BackupManager, BackupSchedule, Config, GlobalConfig,
+    RepositoryConfig, RestoredConfig, RhemaResult, ScopeConfig,
 };
 use serde_json::json;
 use std::path::PathBuf;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 /// Example demonstrating configuration backup and restoration capabilities
 #[tokio::main]
@@ -140,13 +140,22 @@ async fn backup_with_compression(backup_manager: &mut BackupManager) -> RhemaRes
     info!("Compressed backup created:");
     info!("  Backup ID: {}", backup_record.backup_id);
     info!("  Original size: {} bytes", backup_record.size_bytes);
-    info!("  Compression enabled: {}", backup_record.compression_enabled);
+    info!(
+        "  Compression enabled: {}",
+        backup_record.compression_enabled
+    );
 
     // Get detailed statistics
     let detailed_stats = backup_manager.get_detailed_backup_stats().await?;
     info!("Compression statistics:");
-    info!("  Compression ratio: {:.2}%", detailed_stats.compression_ratio * 100.0);
-    info!("  Total compressed size: {} bytes", detailed_stats.total_compressed_size_bytes);
+    info!(
+        "  Compression ratio: {:.2}%",
+        detailed_stats.compression_ratio * 100.0
+    );
+    info!(
+        "  Total compressed size: {} bytes",
+        detailed_stats.total_compressed_size_bytes
+    );
 
     Ok(())
 }
@@ -199,7 +208,7 @@ async fn backup_multiple_configs(backup_manager: &mut BackupManager) -> RhemaRes
         let backup_record = backup_manager
             .backup_config(&config, &format!("multi-backup-{}", name))
             .await?;
-        
+
         backup_records.push(backup_record);
         info!("Backed up {}: {}", name, backup_record.backup_id);
     }
@@ -214,7 +223,10 @@ async fn backup_multiple_configs(backup_manager: &mut BackupManager) -> RhemaRes
     info!("  Total backups: {}", stats.total_backups);
     info!("  Successful backups: {}", stats.successful_backups);
     info!("  Total size: {} bytes", stats.total_size_bytes);
-    info!("  Compression ratio: {:.2}%", stats.compression_ratio * 100.0);
+    info!(
+        "  Compression ratio: {:.2}%",
+        stats.compression_ratio * 100.0
+    );
 
     Ok(())
 }
@@ -250,11 +262,13 @@ async fn automatic_backup_scheduling(backup_manager: &mut BackupManager) -> Rhem
 
     // Schedule automatic backups
     for (i, schedule) in schedules.iter().enumerate() {
-        backup_manager
-            .schedule_automatic_backup(schedule)
-            .await?;
-        
-        info!("Scheduled automatic backup {}: {:?}", i + 1, schedule.frequency);
+        backup_manager.schedule_automatic_backup(schedule).await?;
+
+        info!(
+            "Scheduled automatic backup {}: {:?}",
+            i + 1,
+            schedule.frequency
+        );
     }
 
     info!("Automatic backup scheduling completed");
@@ -285,7 +299,7 @@ async fn backup_integrity_checking(backup_manager: &mut BackupManager) -> RhemaR
 
     // Simulate corruption (in a real scenario, this would be file corruption)
     info!("Simulating backup corruption test...");
-    
+
     // Restore with integrity check
     let restored_config: RepositoryConfig = backup_manager
         .restore_with_integrity_check("repository", &backup_record.backup_id)
@@ -316,13 +330,16 @@ async fn backup_retention_management(backup_manager: &mut BackupManager) -> Rhem
         let backup_record = backup_manager
             .backup_config(&config, &format!("retention-test-{}", i))
             .await?;
-        
+
         info!("Created backup {}: {}", i, backup_record.backup_id);
     }
 
     // List backups after retention cleanup
     let remaining_backups = backup_manager.list_backups(None);
-    info!("Backups after retention cleanup: {}", remaining_backups.len());
+    info!(
+        "Backups after retention cleanup: {}",
+        remaining_backups.len()
+    );
 
     Ok(())
 }
@@ -336,7 +353,7 @@ async fn backup_format_conversion(backup_manager: &mut BackupManager) -> RhemaRe
 
     for format in formats {
         backup_manager.set_backup_format(format.clone());
-        
+
         let config = create_sample_config()?;
         let backup_record = backup_manager
             .backup_config(&config, &format!("format-test-{:?}", format))
@@ -369,13 +386,22 @@ async fn backup_statistics_monitoring(backup_manager: &mut BackupManager) -> Rhe
     info!("  Successful backups: {}", stats.successful_backups);
     info!("  Failed backups: {}", stats.failed_backups);
     info!("  Total size: {} bytes", stats.total_size_bytes);
-    info!("  Compression ratio: {:.2}%", stats.compression_ratio * 100.0);
+    info!(
+        "  Compression ratio: {:.2}%",
+        stats.compression_ratio * 100.0
+    );
 
     // Get detailed statistics
     let detailed_stats = backup_manager.get_detailed_backup_stats().await?;
     info!("Detailed backup statistics:");
-    info!("  Total compressed size: {} bytes", detailed_stats.total_compressed_size_bytes);
-    info!("  Compression ratio: {:.2}%", detailed_stats.compression_ratio * 100.0);
+    info!(
+        "  Total compressed size: {} bytes",
+        detailed_stats.total_compressed_size_bytes
+    );
+    info!(
+        "  Compression ratio: {:.2}%",
+        detailed_stats.compression_ratio * 100.0
+    );
     info!("  Format distribution:");
     for (format, count) in &detailed_stats.format_distribution {
         info!("    {:?}: {}", format, count);
@@ -397,9 +423,9 @@ async fn disaster_recovery_simulation(backup_manager: &mut BackupManager) -> Rhe
 
     // Create multiple backups with different settings
     let backup_scenarios = vec![
-        ("daily", false, false),      // Daily backup, no compression, no encryption
-        ("weekly", true, false),      // Weekly backup, compression, no encryption
-        ("monthly", true, true),      // Monthly backup, compression, encryption
+        ("daily", false, false), // Daily backup, no compression, no encryption
+        ("weekly", true, false), // Weekly backup, compression, no encryption
+        ("monthly", true, true), // Monthly backup, compression, encryption
     ];
 
     let mut backup_records = Vec::new();
@@ -409,7 +435,10 @@ async fn disaster_recovery_simulation(backup_manager: &mut BackupManager) -> Rhe
         backup_manager.set_encryption_enabled(encryption);
 
         let backup_record = backup_manager
-            .backup_with_integrity_check(&critical_config, &format!("disaster-recovery-{}", scenario))
+            .backup_with_integrity_check(
+                &critical_config,
+                &format!("disaster-recovery-{}", scenario),
+            )
             .await?;
 
         backup_records.push((scenario.to_string(), backup_record));
@@ -421,7 +450,10 @@ async fn disaster_recovery_simulation(backup_manager: &mut BackupManager) -> Rhe
 
     // Choose the most recent backup for recovery
     if let Some((scenario, backup_record)) = backup_records.last() {
-        info!("Recovering from {} backup: {}", scenario, backup_record.backup_id);
+        info!(
+            "Recovering from {} backup: {}",
+            scenario, backup_record.backup_id
+        );
 
         // Validate backup integrity before recovery
         let integrity_valid = backup_manager
@@ -601,4 +633,4 @@ mod tests {
 
         assert!(integrity_valid);
     }
-} 
+}

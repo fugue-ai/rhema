@@ -1,9 +1,9 @@
-use petgraph::graph::{DiGraph, NodeIndex};
+use chrono::{DateTime, Utc};
 use petgraph::algo::is_cyclic_directed;
+use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::{Dfs, EdgeRef};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use chrono::{DateTime, Utc};
 
 use crate::error::{Error, Result};
 use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore};
@@ -84,16 +84,14 @@ impl DependencyGraph {
 
     /// Remove a dependency node from the graph
     pub fn remove_node(&mut self, dependency_id: &str) -> Result<()> {
-        let node_index = self.node_indices
+        let node_index = self
+            .node_indices
             .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?
             .clone();
 
         // Remove all edges connected to this node
-        let edges_to_remove: Vec<_> = self.graph
-            .edges(node_index)
-            .map(|edge| edge.id())
-            .collect();
+        let edges_to_remove: Vec<_> = self.graph.edges(node_index).map(|edge| edge.id()).collect();
 
         for edge_id in edges_to_remove {
             self.graph.remove_edge(edge_id);
@@ -118,14 +116,18 @@ impl DependencyGraph {
     ) -> Result<()> {
         // Validate strength is between 0.0 and 1.0
         if !(0.0..=1.0).contains(&strength) {
-            return Err(Error::Validation("Dependency strength must be between 0.0 and 1.0".to_string()));
+            return Err(Error::Validation(
+                "Dependency strength must be between 0.0 and 1.0".to_string(),
+            ));
         }
 
-        let source_index = self.node_indices
+        let source_index = self
+            .node_indices
             .get(source_id)
             .ok_or_else(|| Error::DependencyNotFound(source_id.to_string()))?;
 
-        let target_index = self.node_indices
+        let target_index = self
+            .node_indices
             .get(target_id)
             .ok_or_else(|| Error::DependencyNotFound(target_id.to_string()))?;
 
@@ -143,8 +145,12 @@ impl DependencyGraph {
         // Check for circular dependencies
         if self.has_circular_dependencies()? {
             // Remove the edge we just added
-            self.graph.remove_edge(self.graph.find_edge(*source_index, *target_index).unwrap());
-            return Err(Error::CircularDependency(format!("Adding edge from {} to {} would create a circular dependency", source_id, target_id)));
+            self.graph
+                .remove_edge(self.graph.find_edge(*source_index, *target_index).unwrap());
+            return Err(Error::CircularDependency(format!(
+                "Adding edge from {} to {} would create a circular dependency",
+                source_id, target_id
+            )));
         }
 
         Ok(())
@@ -152,15 +158,18 @@ impl DependencyGraph {
 
     /// Remove a dependency edge
     pub fn remove_edge(&mut self, source_id: &str, target_id: &str) -> Result<()> {
-        let source_index = self.node_indices
+        let source_index = self
+            .node_indices
             .get(source_id)
             .ok_or_else(|| Error::DependencyNotFound(source_id.to_string()))?;
 
-        let target_index = self.node_indices
+        let target_index = self
+            .node_indices
             .get(target_id)
             .ok_or_else(|| Error::DependencyNotFound(target_id.to_string()))?;
 
-        let edge_index = self.graph
+        let edge_index = self
+            .graph
             .find_edge(*source_index, *target_index)
             .ok_or_else(|| Error::GraphOperation("Edge not found".to_string()))?;
 
@@ -202,9 +211,9 @@ impl DependencyGraph {
         visited.insert(node_index);
         rec_stack.insert(node_index);
 
-        let dependency_id = self.reverse_indices
-            .get(&node_index)
-            .ok_or_else(|| Error::GraphOperation("Node index not found in reverse mapping".to_string()))?;
+        let dependency_id = self.reverse_indices.get(&node_index).ok_or_else(|| {
+            Error::GraphOperation("Node index not found in reverse mapping".to_string())
+        })?;
 
         path.push(dependency_id.clone());
 
@@ -226,11 +235,13 @@ impl DependencyGraph {
 
     /// Get all dependencies that depend on a given dependency
     pub fn get_dependents(&self, dependency_id: &str) -> Result<Vec<String>> {
-        let node_index = self.node_indices
+        let node_index = self
+            .node_indices
             .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?;
 
-        let dependents: Vec<String> = self.graph
+        let dependents: Vec<String> = self
+            .graph
             .neighbors_directed(*node_index, petgraph::Direction::Outgoing)
             .filter_map(|idx| self.reverse_indices.get(&idx).cloned())
             .collect();
@@ -240,11 +251,13 @@ impl DependencyGraph {
 
     /// Get all dependencies that a given dependency depends on
     pub fn get_dependencies(&self, dependency_id: &str) -> Result<Vec<String>> {
-        let node_index = self.node_indices
+        let node_index = self
+            .node_indices
             .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?;
 
-        let dependencies: Vec<String> = self.graph
+        let dependencies: Vec<String> = self
+            .graph
             .neighbors_directed(*node_index, petgraph::Direction::Incoming)
             .filter_map(|idx| self.reverse_indices.get(&idx).cloned())
             .collect();
@@ -254,7 +267,8 @@ impl DependencyGraph {
 
     /// Get all dependencies of a specific type
     pub fn get_dependencies_by_type(&self, dependency_type: DependencyType) -> Result<Vec<String>> {
-        let dependencies: Vec<String> = self.graph
+        let dependencies: Vec<String> = self
+            .graph
             .node_indices()
             .filter_map(|idx| {
                 let node = &self.graph[idx];
@@ -271,7 +285,8 @@ impl DependencyGraph {
 
     /// Get all dependencies with a specific health status
     pub fn get_dependencies_by_health(&self, health_status: HealthStatus) -> Result<Vec<String>> {
-        let dependencies: Vec<String> = self.graph
+        let dependencies: Vec<String> = self
+            .graph
             .node_indices()
             .filter_map(|idx| {
                 let node = &self.graph[idx];
@@ -287,8 +302,13 @@ impl DependencyGraph {
     }
 
     /// Update the health status of a dependency
-    pub fn update_health_status(&mut self, dependency_id: &str, health_status: HealthStatus) -> Result<()> {
-        let node_index = self.node_indices
+    pub fn update_health_status(
+        &mut self,
+        dependency_id: &str,
+        health_status: HealthStatus,
+    ) -> Result<()> {
+        let node_index = self
+            .node_indices
             .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?;
 
@@ -300,8 +320,13 @@ impl DependencyGraph {
     }
 
     /// Update the health metrics of a dependency
-    pub fn update_health_metrics(&mut self, dependency_id: &str, health_metrics: ImpactScore) -> Result<()> {
-        let node_index = self.node_indices
+    pub fn update_health_metrics(
+        &mut self,
+        dependency_id: &str,
+        health_metrics: ImpactScore,
+    ) -> Result<()> {
+        let node_index = self
+            .node_indices
             .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?;
 
@@ -314,7 +339,8 @@ impl DependencyGraph {
 
     /// Get the dependency configuration
     pub fn get_dependency_config(&self, dependency_id: &str) -> Result<&DependencyConfig> {
-        let node_index = self.node_indices
+        let node_index = self
+            .node_indices
             .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?;
 
@@ -371,16 +397,24 @@ impl DependencyGraph {
                 HealthStatus::Down => "red",
                 HealthStatus::Unknown => "gray",
             };
-            writeln!(&mut dot, "  \"{}\" [label=\"{}\", fillcolor={}];", 
-                node.id, node.config.name, color).unwrap();
+            writeln!(
+                &mut dot,
+                "  \"{}\" [label=\"{}\", fillcolor={}];",
+                node.id, node.config.name, color
+            )
+            .unwrap();
         }
 
         // Add edges
         for edge in self.graph.edge_indices() {
             let (source, target) = self.graph.edge_endpoints(edge).unwrap();
             let edge_data = &self.graph[edge];
-            writeln!(&mut dot, "  \"{}\" -> \"{}\" [label=\"{}\"];", 
-                edge_data.source, edge_data.target, edge_data.relationship_type).unwrap();
+            writeln!(
+                &mut dot,
+                "  \"{}\" -> \"{}\" [label=\"{}\"];",
+                edge_data.source, edge_data.target, edge_data.relationship_type
+            )
+            .unwrap();
         }
 
         writeln!(&mut dot, "}}").unwrap();
@@ -399,14 +433,19 @@ mod tests {
     use super::*;
     use crate::types::DependencyConfig;
 
-    fn create_test_config(id: &str, name: &str, dependency_type: DependencyType) -> DependencyConfig {
+    fn create_test_config(
+        id: &str,
+        name: &str,
+        dependency_type: DependencyType,
+    ) -> DependencyConfig {
         DependencyConfig::new(
             id.to_string(),
             name.to_string(),
             dependency_type,
             "test-target".to_string(),
             vec!["test-operation".to_string()],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[test]
@@ -421,7 +460,7 @@ mod tests {
     fn test_add_node() {
         let mut graph = DependencyGraph::new();
         let config = create_test_config("test-1", "Test 1", DependencyType::ApiCall);
-        
+
         assert!(graph.add_node(config).is_ok());
         assert_eq!(graph.node_count(), 1);
         assert!(!graph.is_empty());
@@ -432,7 +471,7 @@ mod tests {
         let mut graph = DependencyGraph::new();
         let config1 = create_test_config("test-1", "Test 1", DependencyType::ApiCall);
         let config2 = create_test_config("test-1", "Test 2", DependencyType::DataFlow);
-        
+
         assert!(graph.add_node(config1).is_ok());
         assert!(graph.add_node(config2).is_err());
     }
@@ -442,11 +481,19 @@ mod tests {
         let mut graph = DependencyGraph::new();
         let config1 = create_test_config("test-1", "Test 1", DependencyType::ApiCall);
         let config2 = create_test_config("test-2", "Test 2", DependencyType::DataFlow);
-        
+
         graph.add_node(config1).unwrap();
         graph.add_node(config2).unwrap();
-        
-        assert!(graph.add_edge("test-1", "test-2", "depends_on".to_string(), 0.8, vec!["read".to_string()]).is_ok());
+
+        assert!(graph
+            .add_edge(
+                "test-1",
+                "test-2",
+                "depends_on".to_string(),
+                0.8,
+                vec!["read".to_string()]
+            )
+            .is_ok());
         assert_eq!(graph.edge_count(), 1);
     }
 
@@ -456,17 +503,41 @@ mod tests {
         let config1 = create_test_config("test-1", "Test 1", DependencyType::ApiCall);
         let config2 = create_test_config("test-2", "Test 2", DependencyType::DataFlow);
         let config3 = create_test_config("test-3", "Test 3", DependencyType::Infrastructure);
-        
+
         graph.add_node(config1).unwrap();
         graph.add_node(config2).unwrap();
         graph.add_node(config3).unwrap();
-        
+
         // Create a cycle: test-1 -> test-2 -> test-3 -> test-1
-        graph.add_edge("test-1", "test-2", "depends_on".to_string(), 0.8, vec!["read".to_string()]).unwrap();
-        graph.add_edge("test-2", "test-3", "depends_on".to_string(), 0.8, vec!["read".to_string()]).unwrap();
-        
+        graph
+            .add_edge(
+                "test-1",
+                "test-2",
+                "depends_on".to_string(),
+                0.8,
+                vec!["read".to_string()],
+            )
+            .unwrap();
+        graph
+            .add_edge(
+                "test-2",
+                "test-3",
+                "depends_on".to_string(),
+                0.8,
+                vec!["read".to_string()],
+            )
+            .unwrap();
+
         // This should fail due to circular dependency
-        assert!(graph.add_edge("test-3", "test-1", "depends_on".to_string(), 0.8, vec!["read".to_string()]).is_err());
+        assert!(graph
+            .add_edge(
+                "test-3",
+                "test-1",
+                "depends_on".to_string(),
+                0.8,
+                vec!["read".to_string()]
+            )
+            .is_err());
     }
 
     #[test]
@@ -475,14 +546,30 @@ mod tests {
         let config1 = create_test_config("test-1", "Test 1", DependencyType::ApiCall);
         let config2 = create_test_config("test-2", "Test 2", DependencyType::DataFlow);
         let config3 = create_test_config("test-3", "Test 3", DependencyType::Infrastructure);
-        
+
         graph.add_node(config1).unwrap();
         graph.add_node(config2).unwrap();
         graph.add_node(config3).unwrap();
-        
-        graph.add_edge("test-1", "test-2", "depends_on".to_string(), 0.8, vec!["read".to_string()]).unwrap();
-        graph.add_edge("test-1", "test-3", "depends_on".to_string(), 0.8, vec!["read".to_string()]).unwrap();
-        
+
+        graph
+            .add_edge(
+                "test-1",
+                "test-2",
+                "depends_on".to_string(),
+                0.8,
+                vec!["read".to_string()],
+            )
+            .unwrap();
+        graph
+            .add_edge(
+                "test-1",
+                "test-3",
+                "depends_on".to_string(),
+                0.8,
+                vec!["read".to_string()],
+            )
+            .unwrap();
+
         let dependents = graph.get_dependents("test-1").unwrap();
         assert_eq!(dependents.len(), 2);
         assert!(dependents.contains(&"test-2".to_string()));
@@ -493,12 +580,17 @@ mod tests {
     fn test_update_health_status() {
         let mut graph = DependencyGraph::new();
         let config = create_test_config("test-1", "Test 1", DependencyType::ApiCall);
-        
+
         graph.add_node(config).unwrap();
-        graph.update_health_status("test-1", HealthStatus::Healthy).unwrap();
-        
+        graph
+            .update_health_status("test-1", HealthStatus::Healthy)
+            .unwrap();
+
         let node_index = graph.node_indices.get("test-1").unwrap();
-        assert_eq!(graph.graph[*node_index].health_status, HealthStatus::Healthy);
+        assert_eq!(
+            graph.graph[*node_index].health_status,
+            HealthStatus::Healthy
+        );
     }
 
     #[test]
@@ -506,15 +598,23 @@ mod tests {
         let mut graph = DependencyGraph::new();
         let config1 = create_test_config("test-1", "Test 1", DependencyType::ApiCall);
         let config2 = create_test_config("test-2", "Test 2", DependencyType::DataFlow);
-        
+
         graph.add_node(config1).unwrap();
         graph.add_node(config2).unwrap();
-        graph.add_edge("test-1", "test-2", "depends_on".to_string(), 0.8, vec!["read".to_string()]).unwrap();
-        
+        graph
+            .add_edge(
+                "test-1",
+                "test-2",
+                "depends_on".to_string(),
+                0.8,
+                vec!["read".to_string()],
+            )
+            .unwrap();
+
         let dot = graph.to_dot();
         assert!(dot.contains("digraph DependencyGraph"));
         assert!(dot.contains("test-1"));
         assert!(dot.contains("test-2"));
         assert!(dot.contains("depends_on"));
     }
-} 
+}

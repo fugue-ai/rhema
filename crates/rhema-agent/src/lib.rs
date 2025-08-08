@@ -15,31 +15,34 @@
  */
 
 pub mod agent;
-pub mod executor;
-pub mod coordinator;
-pub mod registry;
-pub mod lifecycle;
-pub mod communication;
 pub mod capabilities;
-pub mod policies;
-pub mod metrics;
-pub mod workflow;
+pub mod communication;
+pub mod coordinator;
 pub mod error;
+pub mod executor;
+pub mod lifecycle;
+pub mod metrics;
+pub mod policies;
+pub mod registry;
+pub mod workflow;
 // Re-export main components for easy access
 pub use agent::{
-    Agent, AgentId, AgentType, AgentCapability, AgentState, AgentConfig,
-    AgentContext, AgentMessage, AgentResponse, AgentRequest, BaseAgent
+    Agent, AgentCapability, AgentConfig, AgentContext, AgentId, AgentMessage, AgentRequest,
+    AgentResponse, AgentState, AgentType, BaseAgent,
 };
-pub use executor::{AgentExecutor, ExecutionContext, ExecutionResult, ExecutionPolicy};
-pub use coordinator::{AgentCoordinator, CoordinationPolicy, CoordinationResult};
-pub use registry::{AgentRegistry, RegistryEntry, RegistryQuery};
-pub use lifecycle::{AgentLifecycle, LifecycleEvent, LifecycleState};
-pub use communication::{MessageBroker, MessageHandler, MessageType, MessagePriority};
 pub use capabilities::{CapabilityManager, CapabilityRequest, CapabilityResponse};
-pub use policies::{PolicyEngine, Policy, PolicyViolation, PolicyEnforcement};
-pub use metrics::{AgentMetrics, MetricsCollector, PerformanceMetrics};
-pub use workflow::{WorkflowEngine, WorkflowDefinition, WorkflowStep, WorkflowStepType, WorkflowCondition, WorkflowStatus, WorkflowExecutionContext, WorkflowStats};
+pub use communication::{MessageBroker, MessageHandler, MessagePriority, MessageType};
+pub use coordinator::{AgentCoordinator, CoordinationPolicy, CoordinationResult};
 pub use error::{AgentError, AgentResult};
+pub use executor::{AgentExecutor, ExecutionContext, ExecutionPolicy, ExecutionResult};
+pub use lifecycle::{AgentLifecycle, LifecycleEvent, LifecycleState};
+pub use metrics::{AgentMetrics, MetricsCollector, PerformanceMetrics};
+pub use policies::{Policy, PolicyEnforcement, PolicyEngine, PolicyViolation};
+pub use registry::{AgentRegistry, RegistryEntry, RegistryQuery};
+pub use workflow::{
+    WorkflowCondition, WorkflowDefinition, WorkflowEngine, WorkflowExecutionContext, WorkflowStats,
+    WorkflowStatus, WorkflowStep, WorkflowStepType,
+};
 
 /// Main agent framework for Rhema
 pub struct RhemaAgentFramework {
@@ -65,7 +68,7 @@ impl RhemaAgentFramework {
         let registry = AgentRegistry::new();
         let coordinator = AgentCoordinator::new();
         let executor = AgentExecutor::new(registry.clone());
-        
+
         Self {
             registry: registry.clone(),
             coordinator: coordinator.clone(),
@@ -86,23 +89,23 @@ impl RhemaAgentFramework {
         self.capability_manager.initialize().await?;
         self.policy_engine.initialize().await?;
         self.metrics_collector.initialize().await?;
-        
+
         Ok(())
     }
 
     /// Register an agent with the framework
     pub async fn register_agent(&mut self, agent: Box<dyn Agent>) -> AgentResult<AgentId> {
         let agent_id = agent.id().clone();
-        
+
         // Register with registry
         self.registry.register(agent).await?;
-        
+
         // Register with coordinator
         self.coordinator.register_agent(&agent_id).await?;
-        
+
         // Register with message broker
         self.message_broker.register_agent(&agent_id).await?;
-        
+
         Ok(agent_id)
     }
 
@@ -110,10 +113,10 @@ impl RhemaAgentFramework {
     pub async fn start_agent(&mut self, agent_id: &AgentId) -> AgentResult<()> {
         // Start the agent lifecycle
         self.registry.start_agent(agent_id).await?;
-        
+
         // Notify coordinator
         self.coordinator.agent_started(agent_id).await?;
-        
+
         Ok(())
     }
 
@@ -121,10 +124,10 @@ impl RhemaAgentFramework {
     pub async fn stop_agent(&mut self, agent_id: &AgentId) -> AgentResult<()> {
         // Stop the agent lifecycle
         self.registry.stop_agent(agent_id).await?;
-        
+
         // Notify coordinator
         self.coordinator.agent_stopped(agent_id).await?;
-        
+
         Ok(())
     }
 
@@ -134,7 +137,11 @@ impl RhemaAgentFramework {
     }
 
     /// Execute a task with an agent
-    pub async fn execute_task(&self, agent_id: &AgentId, task: AgentRequest) -> AgentResult<AgentResponse> {
+    pub async fn execute_task(
+        &self,
+        agent_id: &AgentId,
+        task: AgentRequest,
+    ) -> AgentResult<AgentResponse> {
         let executor = AgentExecutor::new(self.registry.clone());
         executor.execute(agent_id, task).await
     }
@@ -147,7 +154,7 @@ impl RhemaAgentFramework {
     /// Get framework statistics
     pub async fn get_framework_stats(&self) -> AgentResult<FrameworkStats> {
         let workflow_stats = self.workflow_engine.get_workflow_stats().await;
-        
+
         Ok(FrameworkStats {
             total_agents: self.registry.count_agents().await,
             active_agents: self.registry.count_active_agents().await,
@@ -169,12 +176,19 @@ impl RhemaAgentFramework {
         workflow_id: &str,
         input_parameters: std::collections::HashMap<String, serde_json::Value>,
     ) -> AgentResult<String> {
-        self.workflow_engine.start_workflow(workflow_id, input_parameters).await
+        self.workflow_engine
+            .start_workflow(workflow_id, input_parameters)
+            .await
     }
 
     /// Get workflow execution status
-    pub async fn get_workflow_status(&self, execution_id: &str) -> AgentResult<Option<WorkflowExecutionContext>> {
-        self.workflow_engine.get_execution_status(execution_id).await
+    pub async fn get_workflow_status(
+        &self,
+        execution_id: &str,
+    ) -> AgentResult<Option<WorkflowExecutionContext>> {
+        self.workflow_engine
+            .get_execution_status(execution_id)
+            .await
     }
 
     /// Get all active workflow executions
@@ -194,13 +208,16 @@ impl RhemaAgentFramework {
         for agent_id in agent_ids {
             let _ = self.stop_agent(&agent_id).await;
         }
-        
+
         // Cancel all active workflows
         let active_workflows = self.workflow_engine.get_active_executions().await;
         for workflow in active_workflows {
-            let _ = self.workflow_engine.cancel_execution(&workflow.execution_id).await;
+            let _ = self
+                .workflow_engine
+                .cancel_execution(&workflow.execution_id)
+                .await;
         }
-        
+
         // Shutdown components
         self.registry.shutdown().await?;
         self.coordinator.shutdown().await?;
@@ -208,7 +225,7 @@ impl RhemaAgentFramework {
         self.capability_manager.shutdown().await?;
         self.policy_engine.shutdown().await?;
         self.metrics_collector.shutdown().await?;
-        
+
         Ok(())
     }
 }
@@ -262,4 +279,4 @@ mod tests {
         framework.initialize().await.unwrap();
         assert!(framework.shutdown().await.is_ok());
     }
-} 
+}

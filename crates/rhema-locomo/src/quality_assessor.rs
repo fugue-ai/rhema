@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
 
 use crate::types::{Context, LocomoError, OptimizationStrategy};
 use rhema_core::RhemaResult;
@@ -67,7 +67,7 @@ impl ContextQualityScore {
             self.cross_scope_score,
             self.evolution_score,
         ];
-        
+
         self.overall_score = scores.iter().sum::<f64>() / scores.len() as f64;
     }
 }
@@ -142,14 +142,19 @@ impl RelevanceScorer {
         }
     }
 
-    async fn calculate_semantic_similarity(&self, context: &Context, query: &str) -> RhemaResult<f64> {
+    async fn calculate_semantic_similarity(
+        &self,
+        context: &Context,
+        query: &str,
+    ) -> RhemaResult<f64> {
         // Simple semantic similarity based on word overlap
         let query_words: std::collections::HashSet<&str> = query.split_whitespace().collect();
-        let context_words: std::collections::HashSet<&str> = context.content.split_whitespace().collect();
-        
+        let context_words: std::collections::HashSet<&str> =
+            context.content.split_whitespace().collect();
+
         let intersection = query_words.intersection(&context_words).count();
         let union = query_words.union(&context_words).count();
-        
+
         if union == 0 {
             Ok(0.0)
         } else {
@@ -157,47 +162,58 @@ impl RelevanceScorer {
         }
     }
 
-    async fn calculate_keyword_matching(&self, context: &Context, query: Option<&str>) -> RhemaResult<f64> {
+    async fn calculate_keyword_matching(
+        &self,
+        context: &Context,
+        query: Option<&str>,
+    ) -> RhemaResult<f64> {
         // Calculate keyword matching score
         let mut score = 0.0;
-        
+
         if let Some(query) = query {
             let query_lower = query.to_lowercase();
             let context_lower = context.content.to_lowercase();
-            
+
             let query_words: Vec<&str> = query_lower.split_whitespace().collect();
             let mut matches = 0;
-            
+
             for word in &query_words {
                 if context_lower.contains(word) {
                     matches += 1;
                 }
             }
-            
+
             if !query_words.is_empty() {
                 score = matches as f64 / query_words.len() as f64;
             }
         }
-        
+
         Ok(score)
     }
 
     async fn calculate_context_coherence(&self, context: &Context) -> RhemaResult<f64> {
         // Calculate context coherence based on content structure
         let content = &context.content;
-        
+
         // Check for structured content (headers, lists, etc.)
-        let has_structure = content.contains("#") || content.contains("- ") || content.contains("1. ");
+        let has_structure =
+            content.contains("#") || content.contains("- ") || content.contains("1. ");
         let structure_score = if has_structure { 0.8 } else { 0.5 };
-        
+
         // Check for logical flow (paragraphs, sentences)
         let sentences: Vec<&str> = content.split('.').collect();
-        let avg_sentence_length = if sentences.is_empty() { 0.0 } else {
+        let avg_sentence_length = if sentences.is_empty() {
+            0.0
+        } else {
             sentences.iter().map(|s| s.len()).sum::<usize>() as f64 / sentences.len() as f64
         };
-        
-        let length_score = if avg_sentence_length > 10.0 && avg_sentence_length < 100.0 { 0.8 } else { 0.5 };
-        
+
+        let length_score = if avg_sentence_length > 10.0 && avg_sentence_length < 100.0 {
+            0.8
+        } else {
+            0.5
+        };
+
         Ok((structure_score + length_score) / 2.0)
     }
 
@@ -205,9 +221,9 @@ impl RelevanceScorer {
         // Calculate freshness based on last modification time
         let now = chrono::Utc::now();
         let age = now.signed_duration_since(context.metadata.last_modified);
-        
+
         let days_old = age.num_days() as f64;
-        
+
         // Score decreases with age, but not linearly
         let freshness_score = if days_old < 1.0 {
             1.0
@@ -220,33 +236,33 @@ impl RelevanceScorer {
         } else {
             0.5
         };
-        
+
         Ok(freshness_score)
     }
 
     async fn calculate_authority(&self, context: &Context) -> RhemaResult<f64> {
         // Calculate authority score based on metadata
         let mut authority_score: f64 = 0.5; // Base score
-        
+
         // Author presence
         if context.metadata.author.is_some() {
             authority_score += 0.2;
         }
-        
+
         // Version information
         if !context.metadata.version.is_empty() {
             authority_score += 0.1;
         }
-        
+
         // Tags and dependencies
         if !context.metadata.tags.is_empty() {
             authority_score += 0.1;
         }
-        
+
         if !context.metadata.dependencies.is_empty() {
             authority_score += 0.1;
         }
-        
+
         Ok(authority_score.min(1.0))
     }
 }
@@ -281,26 +297,41 @@ impl CompressionAnalyzer {
         Self { config }
     }
 
-    pub async fn analyze(&self, original_context: &Context, compressed_context: &Context) -> RhemaResult<f64> {
-        let compression_ratio = compressed_context.content.len() as f64 / original_context.content.len() as f64;
-        let quality_preservation = self.calculate_quality_preservation(original_context, compressed_context).await?;
-        let algorithm_efficiency = self.calculate_algorithm_efficiency(original_context, compressed_context).await?;
-        
+    pub async fn analyze(
+        &self,
+        original_context: &Context,
+        compressed_context: &Context,
+    ) -> RhemaResult<f64> {
+        let compression_ratio =
+            compressed_context.content.len() as f64 / original_context.content.len() as f64;
+        let quality_preservation = self
+            .calculate_quality_preservation(original_context, compressed_context)
+            .await?;
+        let algorithm_efficiency = self
+            .calculate_algorithm_efficiency(original_context, compressed_context)
+            .await?;
+
         // Weighted score
-        let score = (quality_preservation * self.config.quality_preservation_weight) +
-                   (algorithm_efficiency * self.config.algorithm_efficiency_weight);
-        
+        let score = (quality_preservation * self.config.quality_preservation_weight)
+            + (algorithm_efficiency * self.config.algorithm_efficiency_weight);
+
         Ok(score)
     }
 
-    async fn calculate_quality_preservation(&self, original: &Context, compressed: &Context) -> RhemaResult<f64> {
+    async fn calculate_quality_preservation(
+        &self,
+        original: &Context,
+        compressed: &Context,
+    ) -> RhemaResult<f64> {
         // Calculate how well the compressed content preserves the original quality
-        let original_words: std::collections::HashSet<&str> = original.content.split_whitespace().collect();
-        let compressed_words: std::collections::HashSet<&str> = compressed.content.split_whitespace().collect();
-        
+        let original_words: std::collections::HashSet<&str> =
+            original.content.split_whitespace().collect();
+        let compressed_words: std::collections::HashSet<&str> =
+            compressed.content.split_whitespace().collect();
+
         let intersection = original_words.intersection(&compressed_words).count();
         let union = original_words.union(&compressed_words).count();
-        
+
         if union == 0 {
             Ok(0.0)
         } else {
@@ -308,10 +339,14 @@ impl CompressionAnalyzer {
         }
     }
 
-    async fn calculate_algorithm_efficiency(&self, original: &Context, compressed: &Context) -> RhemaResult<f64> {
+    async fn calculate_algorithm_efficiency(
+        &self,
+        original: &Context,
+        compressed: &Context,
+    ) -> RhemaResult<f64> {
         // Calculate algorithm efficiency based on compression ratio and speed
         let compression_ratio = compressed.content.len() as f64 / original.content.len() as f64;
-        
+
         // Ideal compression ratio is around 0.7
         let ratio_score = if compression_ratio <= 0.7 {
             1.0
@@ -322,7 +357,7 @@ impl CompressionAnalyzer {
         } else {
             0.4
         };
-        
+
         Ok(ratio_score)
     }
 }
@@ -375,43 +410,48 @@ impl PersistenceTracker {
 
     pub async fn track(&self, context: &Context) -> RhemaResult<f64> {
         let mut tracking_data = self.tracking_data.write().await;
-        
+
         let persistence_data = PersistenceData {
             context_id: context.id.clone(),
             version: context.metadata.version.clone(),
             created_at: context.metadata.created_at,
             last_accessed: chrono::Utc::now(),
-            access_count: 1, // This would be incremented in real implementation
+            access_count: 1,       // This would be incremented in real implementation
             modification_count: 0, // This would be tracked in real implementation
             cross_session_access: true, // Simulated
         };
-        
+
         tracking_data.insert(context.id.clone(), persistence_data);
-        
+
         // Calculate persistence score
-        let version_control_score = self.calculate_version_control_score(&context.metadata).await?;
+        let version_control_score = self
+            .calculate_version_control_score(&context.metadata)
+            .await?;
         let cross_session_score = self.calculate_cross_session_score(&context).await?;
-        
-        let score = (version_control_score * self.config.version_control_weight) +
-                   (cross_session_score * self.config.cross_session_weight);
-        
+
+        let score = (version_control_score * self.config.version_control_weight)
+            + (cross_session_score * self.config.cross_session_weight);
+
         Ok(score)
     }
 
-    async fn calculate_version_control_score(&self, metadata: &crate::types::ContextMetadata) -> RhemaResult<f64> {
+    async fn calculate_version_control_score(
+        &self,
+        metadata: &crate::types::ContextMetadata,
+    ) -> RhemaResult<f64> {
         // Calculate version control score
         let mut score: f64 = 0.5; // Base score
-        
+
         // Version information
         if !metadata.version.is_empty() {
             score += 0.3;
         }
-        
+
         // Creation and modification timestamps
         if metadata.created_at != metadata.last_modified {
             score += 0.2;
         }
-        
+
         Ok(score.min(1.0))
     }
 
@@ -457,12 +497,12 @@ impl AIConsumptionAnalyzer {
         let readability = self.calculate_readability(context).await?;
         let structure = self.calculate_structure(context).await?;
         let semantic_clarity = self.calculate_semantic_clarity(context).await?;
-        
-        let score = (token_efficiency * self.config.token_efficiency_weight) +
-                   (readability * self.config.readability_weight) +
-                   (structure * self.config.structure_weight) +
-                   (semantic_clarity * self.config.semantic_clarity_weight);
-        
+
+        let score = (token_efficiency * self.config.token_efficiency_weight)
+            + (readability * self.config.readability_weight)
+            + (structure * self.config.structure_weight)
+            + (semantic_clarity * self.config.semantic_clarity_weight);
+
         Ok(score)
     }
 
@@ -470,85 +510,116 @@ impl AIConsumptionAnalyzer {
         // Calculate token efficiency (shorter, more concise content is better)
         let word_count = context.content.split_whitespace().count();
         let char_count = context.content.len();
-        
+
         // Ideal content length for AI consumption
-        let word_efficiency = if word_count < 100 { 0.9 } else if word_count < 500 { 0.8 } else { 0.6 };
-        let char_efficiency = if char_count < 1000 { 0.9 } else if char_count < 5000 { 0.8 } else { 0.6 };
-        
+        let word_efficiency = if word_count < 100 {
+            0.9
+        } else if word_count < 500 {
+            0.8
+        } else {
+            0.6
+        };
+        let char_efficiency = if char_count < 1000 {
+            0.9
+        } else if char_count < 5000 {
+            0.8
+        } else {
+            0.6
+        };
+
         Ok((word_efficiency + char_efficiency) / 2.0)
     }
 
     async fn calculate_readability(&self, context: &Context) -> RhemaResult<f64> {
         // Calculate readability score
         let content = &context.content;
-        
+
         // Check for clear sentence structure
         let sentences: Vec<&str> = content.split('.').collect();
-        let avg_sentence_length = if sentences.is_empty() { 0.0 } else {
+        let avg_sentence_length = if sentences.is_empty() {
+            0.0
+        } else {
             sentences.iter().map(|s| s.len()).sum::<usize>() as f64 / sentences.len() as f64
         };
-        
-        let sentence_score = if avg_sentence_length > 10.0 && avg_sentence_length < 80.0 { 0.8 } else { 0.5 };
-        
+
+        let sentence_score = if avg_sentence_length > 10.0 && avg_sentence_length < 80.0 {
+            0.8
+        } else {
+            0.5
+        };
+
         // Check for paragraph structure
         let paragraphs: Vec<&str> = content.split("\n\n").collect();
         let paragraph_score = if paragraphs.len() > 1 { 0.8 } else { 0.5 };
-        
+
         Ok((sentence_score + paragraph_score) / 2.0)
     }
 
     async fn calculate_structure(&self, context: &Context) -> RhemaResult<f64> {
         // Calculate structure score
         let content = &context.content;
-        
+
         let mut structure_score: f64 = 0.5; // Base score
-        
+
         // Headers
         if content.contains("#") {
             structure_score += 0.2;
         }
-        
+
         // Lists
         if content.contains("- ") || content.contains("1. ") {
             structure_score += 0.2;
         }
-        
+
         // Code blocks
         if content.contains("```") {
             structure_score += 0.1;
         }
-        
+
         Ok(structure_score.min(1.0))
     }
 
     async fn calculate_semantic_clarity(&self, context: &Context) -> RhemaResult<f64> {
         // Calculate semantic clarity score
         let content = &context.content;
-        
+
         // Check for technical terms and definitions
-        let technical_terms = vec!["function", "class", "method", "interface", "algorithm", "pattern"];
+        let technical_terms = vec![
+            "function",
+            "class",
+            "method",
+            "interface",
+            "algorithm",
+            "pattern",
+        ];
         let mut term_count = 0;
-        
+
         for term in technical_terms {
             if content.to_lowercase().contains(term) {
                 term_count += 1;
             }
         }
-        
+
         let term_score = if term_count > 0 { 0.8 } else { 0.5 };
-        
+
         // Check for clear explanations
-        let explanation_indicators = vec!["because", "therefore", "however", "for example", "specifically"];
+        let explanation_indicators = vec![
+            "because",
+            "therefore",
+            "however",
+            "for example",
+            "specifically",
+        ];
         let mut explanation_count = 0;
-        
+
         for indicator in explanation_indicators {
             if content.to_lowercase().contains(indicator) {
                 explanation_count += 1;
             }
         }
-        
+
         let explanation_score = if explanation_count > 0 { 0.7 } else { 0.5 };
-        
+
         Ok((term_score + explanation_score) / 2.0)
     }
 }
@@ -568,7 +639,11 @@ impl ContextQualityAssessor {
         }
     }
 
-    pub async fn assess_context_quality(&self, context: &Context, query: Option<&str>) -> RhemaResult<ContextQualityScore> {
+    pub async fn assess_context_quality(
+        &self,
+        context: &Context,
+        query: Option<&str>,
+    ) -> RhemaResult<ContextQualityScore> {
         let mut score = ContextQualityScore::new();
 
         // Assess relevance
@@ -610,11 +685,15 @@ impl ContextQualityAssessor {
         score
     }
 
-    async fn generate_recommendations(&self, score: &ContextQualityScore) -> RhemaResult<Vec<String>> {
+    async fn generate_recommendations(
+        &self,
+        score: &ContextQualityScore,
+    ) -> RhemaResult<Vec<String>> {
         let mut recommendations = Vec::new();
 
         if score.relevance_score < 0.8 {
-            recommendations.push("Improve context relevance by adding more specific keywords".to_string());
+            recommendations
+                .push("Improve context relevance by adding more specific keywords".to_string());
         }
 
         if score.compression_score < 0.7 {
@@ -622,7 +701,8 @@ impl ContextQualityAssessor {
         }
 
         if score.ai_consumption_score < 0.8 {
-            recommendations.push("Optimize context structure for better AI consumption".to_string());
+            recommendations
+                .push("Optimize context structure for better AI consumption".to_string());
         }
 
         if score.cross_scope_score < 0.8 {
@@ -632,7 +712,11 @@ impl ContextQualityAssessor {
         Ok(recommendations)
     }
 
-    pub async fn optimize_context_for_ai(&self, context: &mut Context, target_score: f64) -> RhemaResult<Vec<String>> {
+    pub async fn optimize_context_for_ai(
+        &self,
+        context: &mut Context,
+        target_score: f64,
+    ) -> RhemaResult<Vec<String>> {
         let mut optimizations = Vec::new();
 
         // Assess current quality
@@ -659,4 +743,4 @@ impl ContextQualityAssessor {
 
         Ok(optimizations)
     }
-} 
+}

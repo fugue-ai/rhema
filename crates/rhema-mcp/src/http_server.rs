@@ -16,7 +16,10 @@
 
 use axum::{
     extract::{Path, Query, State, WebSocketUpgrade},
-    http::{HeaderMap, StatusCode, Method, header::{AUTHORIZATION, CONTENT_TYPE}},
+    http::{
+        header::{AUTHORIZATION, CONTENT_TYPE},
+        HeaderMap, Method, StatusCode,
+    },
     response::{IntoResponse, Json},
     routing::{get, post},
     Router,
@@ -27,22 +30,22 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::net::UnixListener;
 
-use tower_http::cors::{CorsLayer, AllowOrigin};
-use tower_http::trace::TraceLayer;
-use tower_http::compression::CompressionLayer;
-use tracing::{error, info, warn, instrument};
-use std::time::{Instant, Duration};
 use dashmap::DashMap;
+use std::time::{Duration, Instant};
+use tower_http::compression::CompressionLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
+use tower_http::trace::TraceLayer;
+use tracing::{error, info, instrument, warn};
 
-use std::hash::{Hash, Hasher};
-use std::collections::hash_map::DefaultHasher;
 use futures::future::join_all;
-use tokio::sync::Semaphore;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicBool, AtomicUsize};
+use std::sync::atomic::{AtomicU64, Ordering};
+use tokio::sync::Semaphore;
 
-use crate::mcp::{McpConfig, McpDaemon, ClientType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::mcp::{ClientType, McpConfig, McpDaemon};
+use rhema_core::{RhemaError, RhemaResult};
 
 /// Performance metrics for monitoring
 #[derive(Debug)]
@@ -56,9 +59,9 @@ pub struct PerformanceMetrics {
     pub is_healthy: AtomicBool,
     // Enhanced metrics
     pub slow_requests: AtomicU64, // requests taking > 1 second
-    pub memory_usage: AtomicU64, // in bytes
-    pub cpu_usage: AtomicU64, // percentage * 100
-    pub request_size: AtomicU64, // total request size in bytes
+    pub memory_usage: AtomicU64,  // in bytes
+    pub cpu_usage: AtomicU64,     // percentage * 100
+    pub request_size: AtomicU64,  // total request size in bytes
     pub response_size: AtomicU64, // total response size in bytes
     pub concurrent_requests: AtomicUsize,
     pub error_rate: AtomicU64, // error rate percentage * 100
@@ -88,9 +91,12 @@ impl PerformanceMetrics {
 
     pub fn record_request(&self, duration: Duration, request_size: usize, response_size: usize) {
         self.request_count.fetch_add(1, Ordering::Relaxed);
-        self.total_response_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
-        self.request_size.fetch_add(request_size as u64, Ordering::Relaxed);
-        self.response_size.fetch_add(response_size as u64, Ordering::Relaxed);
+        self.total_response_time
+            .fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.request_size
+            .fetch_add(request_size as u64, Ordering::Relaxed);
+        self.response_size
+            .fetch_add(response_size as u64, Ordering::Relaxed);
 
         // Track slow requests
         if duration > Duration::from_secs(1) {
@@ -111,7 +117,7 @@ impl PerformanceMetrics {
 
     pub fn record_error(&self) {
         self.error_count.fetch_add(1, Ordering::Relaxed);
-        
+
         // Update error rate
         let total_requests = self.request_count.load(Ordering::Relaxed);
         let total_errors = self.error_count.load(Ordering::Relaxed);
@@ -170,7 +176,8 @@ impl PerformanceMetrics {
         // For now, we'll use a simple approach
         let total_requests = self.request_count.load(Ordering::Relaxed);
         // Assuming 1 second window for simplicity
-        self.throughput.store(total_requests * 100, Ordering::Relaxed);
+        self.throughput
+            .store(total_requests * 100, Ordering::Relaxed);
     }
 
     pub fn update_memory_usage(&self, bytes: u64) {
@@ -178,7 +185,8 @@ impl PerformanceMetrics {
     }
 
     pub fn update_cpu_usage(&self, percentage: f64) {
-        self.cpu_usage.store((percentage * 100.0) as u64, Ordering::Relaxed);
+        self.cpu_usage
+            .store((percentage * 100.0) as u64, Ordering::Relaxed);
     }
 
     pub fn increment_concurrent_requests(&self) {
@@ -205,7 +213,9 @@ impl ConnectionPool {
     }
 
     pub async fn acquire(&self) -> Result<ConnectionGuard, RhemaError> {
-        self.semaphore.acquire().await
+        self.semaphore
+            .acquire()
+            .await
             .map(|_| ConnectionGuard { pool: self })
             .map_err(|_| RhemaError::InvalidInput("Connection pool exhausted".to_string()))
     }
@@ -262,8 +272,6 @@ pub struct HttpServer {
     response_cache: Arc<DashMap<String, (Value, Instant)>>,
     rate_limit_cache: Arc<DashMap<String, (u32, Instant)>>,
 }
-
-
 
 /// Query parameters for resource listing
 #[derive(Debug, Deserialize)]
@@ -541,36 +549,43 @@ impl HttpServer {
     async fn check_rate_limit_optimized(&self, client_id: &str) -> bool {
         let now = Instant::now();
         let window = Duration::from_secs(60); // 1 minute window
-        
+
         if let Some(entry) = self.rate_limit_cache.get(client_id) {
             let (count, timestamp) = entry.value();
             if now.duration_since(*timestamp) < window {
-                if *count >= 100 { // 100 requests per minute
+                if *count >= 100 {
+                    // 100 requests per minute
                     return false;
                 }
                 // Update count atomically
-                self.rate_limit_cache.insert(client_id.to_string(), (*count + 1, *timestamp));
+                self.rate_limit_cache
+                    .insert(client_id.to_string(), (*count + 1, *timestamp));
             } else {
                 // Reset counter for new window
-                self.rate_limit_cache.insert(client_id.to_string(), (1, now));
+                self.rate_limit_cache
+                    .insert(client_id.to_string(), (1, now));
             }
         } else {
             // First request
-            self.rate_limit_cache.insert(client_id.to_string(), (1, now));
+            self.rate_limit_cache
+                .insert(client_id.to_string(), (1, now));
         }
         true
     }
 
     /// Start the HTTP server
     pub async fn start(&self) -> RhemaResult<()> {
-        info!("Starting HTTP server on {}:{}", self.config.host, self.config.port);
+        info!(
+            "Starting HTTP server on {}:{}",
+            self.config.host, self.config.port
+        );
 
         let app = self.create_router();
 
         // Start HTTP server
         let http_addr = format!("{}:{}", self.config.host, self.config.port);
         let listener = tokio::net::TcpListener::bind(&http_addr).await?;
-        
+
         info!("HTTP server listening on {}", http_addr);
 
         axum::serve(listener, app).await?;
@@ -587,7 +602,7 @@ impl HttpServer {
             let _ = std::fs::remove_file(socket_path);
 
             let _listener = UnixListener::bind(socket_path)?;
-            
+
             info!("Unix socket server listening on {:?}", socket_path);
 
             let _app = self.create_router();
@@ -627,20 +642,41 @@ impl HttpServer {
             .route("/search/stats", get(Self::search_stats_handler))
             .route("/scopes", get(Self::scopes_handler))
             .route("/scopes/:scope_id", get(Self::scope_handler))
-            .route("/scopes/:scope_id/knowledge", get(Self::scope_knowledge_handler))
+            .route(
+                "/scopes/:scope_id/knowledge",
+                get(Self::scope_knowledge_handler),
+            )
             .route("/scopes/:scope_id/todos", get(Self::scope_todos_handler))
-            .route("/scopes/:scope_id/decisions", get(Self::scope_decisions_handler))
-            .route("/scopes/:scope_id/patterns", get(Self::scope_patterns_handler))
+            .route(
+                "/scopes/:scope_id/decisions",
+                get(Self::scope_decisions_handler),
+            )
+            .route(
+                "/scopes/:scope_id/patterns",
+                get(Self::scope_patterns_handler),
+            )
             .route("/stats", get(Self::stats_handler))
             .route("/performance", get(Self::performance_handler))
             .route("/ws", get(Self::websocket_handler))
             // Validation endpoints
             .route("/validation/context", get(Self::validate_context_handler))
-            .route("/validation/scope/:scope_id", get(Self::validate_scope_handler))
-            .route("/validation/cross-references", get(Self::validate_cross_references_handler))
-            .route("/validation/consistency", get(Self::validate_consistency_handler))
+            .route(
+                "/validation/scope/:scope_id",
+                get(Self::validate_scope_handler),
+            )
+            .route(
+                "/validation/cross-references",
+                get(Self::validate_cross_references_handler),
+            )
+            .route(
+                "/validation/consistency",
+                get(Self::validate_consistency_handler),
+            )
             .route("/validation/temporal", get(Self::validate_temporal_handler))
-            .route("/validation/dependencies", get(Self::validate_dependencies_handler))
+            .route(
+                "/validation/dependencies",
+                get(Self::validate_dependencies_handler),
+            )
             .layer(cors)
             .layer(security_headers)
             .layer(TraceLayer::new_for_http())
@@ -653,7 +689,11 @@ impl HttpServer {
             // When using wildcard origin, we cannot allow credentials
             AllowOrigin::any()
         } else {
-            let origins: Vec<_> = self.config.auth.allowed_origins.iter()
+            let origins: Vec<_> = self
+                .config
+                .auth
+                .allowed_origins
+                .iter()
                 .filter_map(|origin| origin.parse().ok())
                 .collect();
             if origins.is_empty() {
@@ -670,16 +710,37 @@ impl HttpServer {
             .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
 
         // Only allow credentials if we're not using wildcard origin
-        if !self.config.auth.allowed_origins.contains(&"*".to_string()) && !self.config.auth.allowed_origins.is_empty() {
+        if !self.config.auth.allowed_origins.contains(&"*".to_string())
+            && !self.config.auth.allowed_origins.is_empty()
+        {
             cors_layer = cors_layer.allow_credentials(true);
         }
 
         cors_layer
     }
 
-    fn create_security_headers_layer(&self) -> tower::ServiceBuilder<tower::layer::util::Stack<tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>, tower::layer::util::Stack<tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>, tower::layer::util::Stack<tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>, tower::layer::util::Stack<tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>, tower::layer::util::Stack<tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>, tower::layer::util::Identity>>>>>> {
+    fn create_security_headers_layer(
+        &self,
+    ) -> tower::ServiceBuilder<
+        tower::layer::util::Stack<
+            tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>,
+            tower::layer::util::Stack<
+                tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>,
+                tower::layer::util::Stack<
+                    tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>,
+                    tower::layer::util::Stack<
+                        tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>,
+                        tower::layer::util::Stack<
+                            tower_http::set_header::SetResponseHeaderLayer<axum::http::HeaderValue>,
+                            tower::layer::util::Identity,
+                        >,
+                    >,
+                >,
+            >,
+        >,
+    > {
+        use axum::http::{HeaderName, HeaderValue};
         use tower_http::set_header::SetResponseHeaderLayer;
-        use axum::http::{HeaderValue, HeaderName};
 
         tower::ServiceBuilder::new()
             .layer(SetResponseHeaderLayer::overriding(
@@ -711,7 +772,7 @@ impl HttpServer {
         headers: HeaderMap,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Acquire connection from pool
         let _connection_guard = match server.connection_pool.acquire().await {
             Ok(guard) => guard,
@@ -741,10 +802,15 @@ impl HttpServer {
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 server.metrics.record_error();
@@ -763,7 +829,7 @@ impl HttpServer {
         // Use zero-copy strings for common values
         let status = server.string_cache.get_or_insert("healthy");
         let health = server.daemon.health().await;
-        
+
         let response = HealthResponse {
             status: status.to_string(),
             uptime: health.uptime,
@@ -777,13 +843,13 @@ impl HttpServer {
         };
 
         let response_value = serde_json::to_value(response).unwrap_or_default();
-        
+
         // Cache the response for 30 seconds
         server.cache_response(cache_key, response_value.clone());
-        
+
         let duration = start_time.elapsed();
         server.metrics.record_request(duration, 0, 0);
-        
+
         // Log performance metrics if response time is high
         if duration > Duration::from_millis(50) {
             warn!("Slow health check response: {:?}", duration);
@@ -802,16 +868,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -860,16 +936,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -919,16 +1005,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -940,14 +1036,22 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "resources:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "resources:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Get resources from context provider
         let resources = match server.daemon.get_context_provider().list_resources().await {
             Ok(resources) => resources,
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get resources").into_response(),
+            Err(_) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get resources")
+                    .into_response()
+            }
         };
 
         let response = serde_json::json!({
@@ -968,16 +1072,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -989,12 +1103,22 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "resources:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "resources:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Get resource from context provider
-        let resource = match server.daemon.get_context_provider().get_resource(&uri).await {
+        let resource = match server
+            .daemon
+            .get_context_provider()
+            .get_resource(&uri)
+            .await
+        {
             Ok(resource) => resource,
             Err(_) => return (StatusCode::NOT_FOUND, "Resource not found").into_response(),
         };
@@ -1018,16 +1142,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1039,14 +1173,27 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "query:execute").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "query:execute")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Execute query
-        let results = match server.daemon.get_context_provider().execute_query(&request.query).await {
+        let results = match server
+            .daemon
+            .get_context_provider()
+            .execute_query(&request.query)
+            .await
+        {
             Ok(results) => results,
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to execute query").into_response(),
+            Err(_) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to execute query")
+                    .into_response()
+            }
         };
 
         let response = serde_json::json!({
@@ -1066,7 +1213,7 @@ impl HttpServer {
         Json(request): Json<SearchRequest>,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Acquire connection from pool
         let _connection_guard = match server.connection_pool.acquire().await {
             Ok(guard) => guard,
@@ -1097,10 +1244,15 @@ impl HttpServer {
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 server.metrics.record_error();
@@ -1114,7 +1266,12 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "search:execute").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "search:execute")
+            .await
+        {
             server.metrics.record_error();
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
@@ -1123,98 +1280,174 @@ impl HttpServer {
         server.daemon.increment_request_count().await;
 
         let search_start_time = Instant::now();
-        
+
         // Determine search type and execute appropriate search
         let search_type = request.search_type.as_deref().unwrap_or("fulltext");
         let search_type_str = server.string_cache.get_or_insert(search_type);
-        
+
         let results = match search_type {
             "regex" => {
                 // Use regex search with parallel processing
-                let query_results = match server.daemon.get_context_provider().search_regex(&request.query, None).await {
+                let query_results = match server
+                    .daemon
+                    .get_context_provider()
+                    .search_regex(&request.query, None)
+                    .await
+                {
                     Ok(results) => results,
                     Err(_) => {
                         server.metrics.record_error();
-                        return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to execute regex search").into_response();
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            "Failed to execute regex search",
+                        )
+                            .into_response();
                     }
                 };
-                
+
                 // Convert to search results with parallel processing
-                let results_futures: Vec<_> = query_results.into_iter().map(|qr| {
-                    let server = server.clone();
-                    async move {
-                        let id = format!("{}:{}", qr.scope, qr.file);
-                        let path = qr.file;
-                        let score = qr.metadata.get("search_score").and_then(|v| v.as_f64()).unwrap_or(0.0);
-                        let content_preview = qr.data.as_str().unwrap_or("").chars().take(200).collect();
-                        let highlights = qr.metadata.get("highlights")
-                            .and_then(|v| v.as_sequence())
-                            .map(|seq| seq.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect())
-                            .unwrap_or_default();
-                        let metadata = qr.metadata.clone().into_iter().map(|(k, v)| (k, Self::convert_yaml_to_json(v))).collect();
-                        let doc_type = qr.metadata.get("doc_type").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-                        let file_size = qr.metadata.get("file_size").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
-                        
-                        SearchResultResponse {
-                            id,
-                            path,
-                            score,
-                            content_preview,
-                            highlights,
-                            metadata,
-                            doc_type,
-                            file_size,
+                let results_futures: Vec<_> = query_results
+                    .into_iter()
+                    .map(|qr| {
+                        let server = server.clone();
+                        async move {
+                            let id = format!("{}:{}", qr.scope, qr.file);
+                            let path = qr.file;
+                            let score = qr
+                                .metadata
+                                .get("search_score")
+                                .and_then(|v| v.as_f64())
+                                .unwrap_or(0.0);
+                            let content_preview =
+                                qr.data.as_str().unwrap_or("").chars().take(200).collect();
+                            let highlights = qr
+                                .metadata
+                                .get("highlights")
+                                .and_then(|v| v.as_sequence())
+                                .map(|seq| {
+                                    seq.iter()
+                                        .filter_map(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                        .collect()
+                                })
+                                .unwrap_or_default();
+                            let metadata = qr
+                                .metadata
+                                .clone()
+                                .into_iter()
+                                .map(|(k, v)| (k, Self::convert_yaml_to_json(v)))
+                                .collect();
+                            let doc_type = qr
+                                .metadata
+                                .get("doc_type")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("unknown")
+                                .to_string();
+                            let file_size = qr
+                                .metadata
+                                .get("file_size")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0) as usize;
+
+                            SearchResultResponse {
+                                id,
+                                path,
+                                score,
+                                content_preview,
+                                highlights,
+                                metadata,
+                                doc_type,
+                                file_size,
+                            }
                         }
-                    }
-                }).collect();
-                
+                    })
+                    .collect();
+
                 join_all(results_futures).await
             }
             _ => {
                 // Use full-text search (default) with parallel processing
-                let query_results = match server.daemon.get_context_provider().search_regex(&request.query, None).await {
+                let query_results = match server
+                    .daemon
+                    .get_context_provider()
+                    .search_regex(&request.query, None)
+                    .await
+                {
                     Ok(results) => results,
                     Err(_) => {
                         server.metrics.record_error();
-                        return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to execute full-text search").into_response();
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            "Failed to execute full-text search",
+                        )
+                            .into_response();
                     }
                 };
-                
+
                 // Convert to search results with parallel processing
-                let results_futures: Vec<_> = query_results.into_iter().map(|qr| {
-                    let server = server.clone();
-                    async move {
-                        let id = format!("{}:{}", qr.scope, qr.file);
-                        let path = qr.file;
-                        let score = qr.metadata.get("search_score").and_then(|v| v.as_f64()).unwrap_or(0.0);
-                        let content_preview = qr.data.as_str().unwrap_or("").chars().take(200).collect();
-                        let highlights = qr.metadata.get("highlights")
-                            .and_then(|v| v.as_sequence())
-                            .map(|seq| seq.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect())
-                            .unwrap_or_default();
-                        let metadata = qr.metadata.clone().into_iter().map(|(k, v)| (k, Self::convert_yaml_to_json(v))).collect();
-                        let doc_type = qr.metadata.get("doc_type").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-                        let file_size = qr.metadata.get("file_size").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
-                        
-                        SearchResultResponse {
-                            id,
-                            path,
-                            score,
-                            content_preview,
-                            highlights,
-                            metadata,
-                            doc_type,
-                            file_size,
+                let results_futures: Vec<_> = query_results
+                    .into_iter()
+                    .map(|qr| {
+                        let server = server.clone();
+                        async move {
+                            let id = format!("{}:{}", qr.scope, qr.file);
+                            let path = qr.file;
+                            let score = qr
+                                .metadata
+                                .get("search_score")
+                                .and_then(|v| v.as_f64())
+                                .unwrap_or(0.0);
+                            let content_preview =
+                                qr.data.as_str().unwrap_or("").chars().take(200).collect();
+                            let highlights = qr
+                                .metadata
+                                .get("highlights")
+                                .and_then(|v| v.as_sequence())
+                                .map(|seq| {
+                                    seq.iter()
+                                        .filter_map(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                        .collect()
+                                })
+                                .unwrap_or_default();
+                            let metadata = qr
+                                .metadata
+                                .clone()
+                                .into_iter()
+                                .map(|(k, v)| (k, Self::convert_yaml_to_json(v)))
+                                .collect();
+                            let doc_type = qr
+                                .metadata
+                                .get("doc_type")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("unknown")
+                                .to_string();
+                            let file_size = qr
+                                .metadata
+                                .get("file_size")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0) as usize;
+
+                            SearchResultResponse {
+                                id,
+                                path,
+                                score,
+                                content_preview,
+                                highlights,
+                                metadata,
+                                doc_type,
+                                file_size,
+                            }
                         }
-                    }
-                }).collect();
-                
+                    })
+                    .collect();
+
                 join_all(results_futures).await
             }
         };
 
         let search_execution_time = search_start_time.elapsed();
-        
+
         let results_len = results.len();
         let response = SearchResponse {
             results,
@@ -1225,16 +1458,19 @@ impl HttpServer {
         };
 
         let response_value = serde_json::to_value(response).unwrap_or_default();
-        
+
         // Cache the response for 2 minutes
         server.cache_response(cache_key, response_value.clone());
-        
+
         let total_duration = start_time.elapsed();
         server.metrics.record_request(total_duration, 0, 0);
-        
+
         // Log performance metrics if response time is high
         if total_duration > Duration::from_millis(50) {
-            warn!("Slow search response: {:?} (search: {:?})", total_duration, search_execution_time);
+            warn!(
+                "Slow search response: {:?} (search: {:?})",
+                total_duration, search_execution_time
+            );
         }
 
         (StatusCode::OK, Json(response_value)).into_response()
@@ -1251,16 +1487,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1272,7 +1518,12 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "search:execute").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "search:execute")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
@@ -1280,30 +1531,69 @@ impl HttpServer {
         server.daemon.increment_request_count().await;
 
         let start_time = std::time::Instant::now();
-        
+
         // Execute regex search
-        let query_results = match server.daemon.get_context_provider().search_regex(&request.pattern, request.file_filter.as_deref()).await {
+        let query_results = match server
+            .daemon
+            .get_context_provider()
+            .search_regex(&request.pattern, request.file_filter.as_deref())
+            .await
+        {
             Ok(results) => results,
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to execute regex search").into_response(),
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to execute regex search",
+                )
+                    .into_response()
+            }
         };
-        
+
         // Convert to search results
-        let results: Vec<SearchResultResponse> = query_results.into_iter().map(|qr| SearchResultResponse {
-            id: format!("{}:{}", qr.scope, qr.file),
-            path: qr.file,
-            score: qr.metadata.get("search_score").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            content_preview: qr.data.as_str().unwrap_or("").chars().take(200).collect(),
-            highlights: qr.metadata.get("highlights")
-                .and_then(|v| v.as_sequence())
-                .map(|seq| seq.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect())
-                .unwrap_or_default(),
-            metadata: qr.metadata.clone().into_iter().map(|(k, v)| (k, Self::convert_yaml_to_json(v))).collect(),
-            doc_type: qr.metadata.get("doc_type").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
-            file_size: qr.metadata.get("file_size").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
-        }).collect();
+        let results: Vec<SearchResultResponse> = query_results
+            .into_iter()
+            .map(|qr| SearchResultResponse {
+                id: format!("{}:{}", qr.scope, qr.file),
+                path: qr.file,
+                score: qr
+                    .metadata
+                    .get("search_score")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(0.0),
+                content_preview: qr.data.as_str().unwrap_or("").chars().take(200).collect(),
+                highlights: qr
+                    .metadata
+                    .get("highlights")
+                    .and_then(|v| v.as_sequence())
+                    .map(|seq| {
+                        seq.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|s| s.to_string())
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                metadata: qr
+                    .metadata
+                    .clone()
+                    .into_iter()
+                    .map(|(k, v)| (k, Self::convert_yaml_to_json(v)))
+                    .collect(),
+                doc_type: qr
+                    .metadata
+                    .get("doc_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string(),
+                file_size: qr
+                    .metadata
+                    .get("file_size")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0) as usize,
+            })
+            .collect();
 
         let execution_time = start_time.elapsed();
-        
+
         let results_len = results.len();
         let response = SearchResponse {
             results,
@@ -1327,16 +1617,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1348,7 +1648,12 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "search:execute").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "search:execute")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
@@ -1356,30 +1661,69 @@ impl HttpServer {
         server.daemon.increment_request_count().await;
 
         let start_time = std::time::Instant::now();
-        
+
         // Execute full-text search (using regex search as fallback for now)
-        let query_results = match server.daemon.get_context_provider().search_regex(&request.query, None).await {
+        let query_results = match server
+            .daemon
+            .get_context_provider()
+            .search_regex(&request.query, None)
+            .await
+        {
             Ok(results) => results,
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to execute full-text search").into_response(),
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to execute full-text search",
+                )
+                    .into_response()
+            }
         };
-        
+
         // Convert to search results
-        let results: Vec<SearchResultResponse> = query_results.into_iter().map(|qr| SearchResultResponse {
-            id: format!("{}:{}", qr.scope, qr.file),
-            path: qr.file,
-            score: qr.metadata.get("search_score").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            content_preview: qr.data.as_str().unwrap_or("").chars().take(200).collect(),
-            highlights: qr.metadata.get("highlights")
-                .and_then(|v| v.as_sequence())
-                .map(|seq| seq.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect())
-                .unwrap_or_default(),
-            metadata: qr.metadata.clone().into_iter().map(|(k, v)| (k, Self::convert_yaml_to_json(v))).collect(),
-            doc_type: qr.metadata.get("doc_type").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
-            file_size: qr.metadata.get("file_size").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
-        }).collect();
+        let results: Vec<SearchResultResponse> = query_results
+            .into_iter()
+            .map(|qr| SearchResultResponse {
+                id: format!("{}:{}", qr.scope, qr.file),
+                path: qr.file,
+                score: qr
+                    .metadata
+                    .get("search_score")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(0.0),
+                content_preview: qr.data.as_str().unwrap_or("").chars().take(200).collect(),
+                highlights: qr
+                    .metadata
+                    .get("highlights")
+                    .and_then(|v| v.as_sequence())
+                    .map(|seq| {
+                        seq.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|s| s.to_string())
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                metadata: qr
+                    .metadata
+                    .clone()
+                    .into_iter()
+                    .map(|(k, v)| (k, Self::convert_yaml_to_json(v)))
+                    .collect(),
+                doc_type: qr
+                    .metadata
+                    .get("doc_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string(),
+                file_size: qr
+                    .metadata
+                    .get("file_size")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0) as usize,
+            })
+            .collect();
 
         let execution_time = start_time.elapsed();
-        
+
         let results_len = results.len();
         let response = SearchResponse {
             results,
@@ -1403,16 +1747,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1424,7 +1778,12 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "search:suggestions").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "search:suggestions")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
@@ -1461,16 +1820,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1482,7 +1851,12 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "search:stats").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "search:stats")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
@@ -1511,16 +1885,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1532,14 +1916,21 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "scopes:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "scopes:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Get scopes from context provider
         let scopes = match server.daemon.get_context_provider().get_scopes().await {
             Ok(scopes) => scopes,
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get scopes").into_response(),
+            Err(_) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get scopes").into_response()
+            }
         };
 
         (StatusCode::OK, Json(scopes)).into_response()
@@ -1556,16 +1947,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1577,12 +1978,22 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "scopes:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "scopes:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Get scope from context provider
-        let scope = match server.daemon.get_context_provider().get_scope(&scope_id).await {
+        let scope = match server
+            .daemon
+            .get_context_provider()
+            .get_scope(&scope_id)
+            .await
+        {
             Ok(scope) => scope,
             Err(_) => return (StatusCode::NOT_FOUND, "Scope not found").into_response(),
         };
@@ -1601,16 +2012,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1622,15 +2043,28 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "knowledge:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "knowledge:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Get knowledge from context provider
-        let knowledge = match server.daemon.get_context_provider().get_knowledge(&scope_id).await {
+        let knowledge = match server
+            .daemon
+            .get_context_provider()
+            .get_knowledge(&scope_id)
+            .await
+        {
             Ok(Some(knowledge)) => knowledge,
             Ok(None) => return (StatusCode::NOT_FOUND, "Knowledge not found").into_response(),
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get knowledge").into_response(),
+            Err(_) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get knowledge")
+                    .into_response()
+            }
         };
 
         (StatusCode::OK, Json(knowledge)).into_response()
@@ -1647,16 +2081,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1668,15 +2112,27 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "todos:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "todos:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Get todos from context provider
-        let todos = match server.daemon.get_context_provider().get_todos(&scope_id).await {
+        let todos = match server
+            .daemon
+            .get_context_provider()
+            .get_todos(&scope_id)
+            .await
+        {
             Ok(Some(todos)) => todos,
             Ok(None) => return (StatusCode::NOT_FOUND, "Todos not found").into_response(),
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get todos").into_response(),
+            Err(_) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get todos").into_response()
+            }
         };
 
         (StatusCode::OK, Json(todos)).into_response()
@@ -1693,16 +2149,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1714,15 +2180,28 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "decisions:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "decisions:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Get decisions from context provider
-        let decisions = match server.daemon.get_context_provider().get_decisions(&scope_id).await {
+        let decisions = match server
+            .daemon
+            .get_context_provider()
+            .get_decisions(&scope_id)
+            .await
+        {
             Ok(Some(decisions)) => decisions,
             Ok(None) => return (StatusCode::NOT_FOUND, "Decisions not found").into_response(),
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get decisions").into_response(),
+            Err(_) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get decisions")
+                    .into_response()
+            }
         };
 
         (StatusCode::OK, Json(decisions)).into_response()
@@ -1739,16 +2218,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1760,15 +2249,28 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "patterns:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "patterns:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Get patterns from context provider
-        let patterns = match server.daemon.get_context_provider().get_patterns(&scope_id).await {
+        let patterns = match server
+            .daemon
+            .get_context_provider()
+            .get_patterns(&scope_id)
+            .await
+        {
             Ok(Some(patterns)) => patterns,
             Ok(None) => return (StatusCode::NOT_FOUND, "Patterns not found").into_response(),
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get patterns").into_response(),
+            Err(_) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get patterns")
+                    .into_response()
+            }
         };
 
         (StatusCode::OK, Json(patterns)).into_response()
@@ -1784,16 +2286,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "http").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "http")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1805,7 +2317,12 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "stats:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "stats:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
@@ -1824,25 +2341,35 @@ impl HttpServer {
         headers: HeaderMap,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Check authentication
         let client_info = Self::extract_client_info(&headers);
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => return (StatusCode::UNAUTHORIZED, "Authentication failed").into_response(),
         };
 
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "performance:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "performance:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         let metrics = &server.metrics;
         let uptime = server.daemon.get_uptime().await;
         let memory_usage = server.daemon.get_memory_usage().await;
-        
+
         let response = PerformanceResponse {
             average_response_time_ms: metrics.get_average_response_time().as_millis() as u64,
             request_count: metrics.request_count.load(Ordering::Relaxed),
@@ -1881,16 +2408,26 @@ impl HttpServer {
 
         // Check rate limiting
         if let Some(ref client_id) = client_id {
-            if !server.daemon.get_auth_manager().check_rate_limit(client_id, "websocket").await {
+            if !server
+                .daemon
+                .get_auth_manager()
+                .check_rate_limit(client_id, "websocket")
+                .await
+            {
                 return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
             }
         }
 
         // Authenticate request
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Authentication error").into_response();
@@ -1902,25 +2439,30 @@ impl HttpServer {
         }
 
         // Check permissions
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "websocket:connect").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "websocket:connect")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Track connection
         if let Some(client_id) = Self::get_client_id(&headers) {
-            let _ = server.daemon.track_connection(client_id, ClientType::WebSocket).await;
+            let _ = server
+                .daemon
+                .track_connection(client_id, ClientType::WebSocket)
+                .await;
         }
 
         ws.on_upgrade(|socket| Self::handle_websocket(server, socket))
     }
 
     /// Handle WebSocket connection
-    async fn handle_websocket(
-        server: Arc<Self>,
-        mut socket: axum::extract::ws::WebSocket,
-    ) {
+    async fn handle_websocket(server: Arc<Self>, mut socket: axum::extract::ws::WebSocket) {
         info!("WebSocket connection established");
-        
+
         while let Some(msg) = socket.recv().await {
             match msg {
                 Ok(axum::extract::ws::Message::Text(text)) => {
@@ -1934,9 +2476,11 @@ impl HttpServer {
                                     result: Some(result),
                                     error: None,
                                 };
-                                
+
                                 if let Ok(response_text) = serde_json::to_string(&response) {
-                                    let _ = socket.send(axum::extract::ws::Message::Text(response_text)).await;
+                                    let _ = socket
+                                        .send(axum::extract::ws::Message::Text(response_text))
+                                        .await;
                                 }
                             }
                             Err(e) => {
@@ -1945,16 +2489,18 @@ impl HttpServer {
                                     message: e.to_string(),
                                     data: None,
                                 };
-                                
+
                                 let response = JsonRpcResponse {
                                     jsonrpc: "2.0".to_string(),
                                     id: request.id,
                                     result: None,
                                     error: Some(error),
                                 };
-                                
+
                                 if let Ok(response_text) = serde_json::to_string(&response) {
-                                    let _ = socket.send(axum::extract::ws::Message::Text(response_text)).await;
+                                    let _ = socket
+                                        .send(axum::extract::ws::Message::Text(response_text))
+                                        .await;
                                 }
                             }
                         }
@@ -1972,8 +2518,6 @@ impl HttpServer {
             }
         }
     }
-
-
 
     /// Get client ID from headers
     fn get_client_id(headers: &HeaderMap) -> Option<String> {
@@ -2013,30 +2557,43 @@ impl HttpServer {
     }
 
     /// Handle RPC method calls with performance optimization
-    async fn handle_rpc_method(
-        server: &Arc<Self>,
-        request: &JsonRpcRequest,
-    ) -> RhemaResult<Value> {
+    async fn handle_rpc_method(server: &Arc<Self>, request: &JsonRpcRequest) -> RhemaResult<Value> {
         let start_time = Instant::now();
-        
+
         let result = match request.method.as_str() {
             "resources/list" => {
-                let resources = server.daemon.get_context_provider().list_resources().await?;
+                let resources = server
+                    .daemon
+                    .get_context_provider()
+                    .list_resources()
+                    .await?;
                 Ok(serde_json::to_value(resources)?)
             }
             "resources/get" => {
-                let params = request.params.as_ref()
+                let params = request
+                    .params
+                    .as_ref()
                     .ok_or_else(|| RhemaError::InvalidInput("Missing params".to_string()))?;
                 let params: GetResourceParams = serde_json::from_value(params.clone())?;
-                let resource = server.daemon.get_context_provider().get_resource(&params.uri).await?;
+                let resource = server
+                    .daemon
+                    .get_context_provider()
+                    .get_resource(&params.uri)
+                    .await?;
                 Ok(serde_json::to_value(resource)?)
             }
             "query/execute" => {
-                let params = request.params.as_ref()
+                let params = request
+                    .params
+                    .as_ref()
                     .ok_or_else(|| RhemaError::InvalidInput("Missing params".to_string()))?;
                 let params: ExecuteQueryParams = serde_json::from_value(params.clone())?;
                 let query_start_time = Instant::now();
-                let results = server.daemon.get_context_provider().execute_query(&params.query).await?;
+                let results = server
+                    .daemon
+                    .get_context_provider()
+                    .execute_query(&params.query)
+                    .await?;
                 let execution_time = query_start_time.elapsed();
                 Ok(serde_json::json!({
                     "results": results,
@@ -2044,12 +2601,18 @@ impl HttpServer {
                     "execution_time_ms": execution_time.as_millis()
                 }))
             }
-            _ => Err(RhemaError::InvalidInput(format!("Unknown method: {}", request.method)))
+            _ => Err(RhemaError::InvalidInput(format!(
+                "Unknown method: {}",
+                request.method
+            ))),
         };
 
         let duration = start_time.elapsed();
         if duration > Duration::from_millis(50) {
-            warn!("Slow RPC method execution: {} took {:?}", request.method, duration);
+            warn!(
+                "Slow RPC method execution: {} took {:?}",
+                request.method, duration
+            );
         }
 
         result
@@ -2060,7 +2623,12 @@ impl HttpServer {
         let mut buffer = Vec::with_capacity(1024); // Pre-allocate buffer
         let mut serializer = serde_json::Serializer::new(&mut buffer);
         value.serialize(&mut serializer)?;
-        String::from_utf8(buffer).map_err(|_| serde_json::Error::io(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid UTF-8")))
+        String::from_utf8(buffer).map_err(|_| {
+            serde_json::Error::io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Invalid UTF-8",
+            ))
+        })
     }
 
     /// Zero-copy string concatenation for common patterns
@@ -2089,7 +2657,10 @@ impl HttpServer {
                 if let Some(i) = n.as_i64() {
                     serde_json::Value::Number(serde_json::Number::from(i))
                 } else if let Some(f) = n.as_f64() {
-                    serde_json::Value::Number(serde_json::Number::from_f64(f).unwrap_or_else(|| serde_json::Number::from(0)))
+                    serde_json::Value::Number(
+                        serde_json::Number::from_f64(f)
+                            .unwrap_or_else(|| serde_json::Number::from(0)),
+                    )
                 } else {
                     serde_json::Value::String(n.to_string())
                 }
@@ -2121,33 +2692,52 @@ impl HttpServer {
         headers: HeaderMap,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Check authentication
         let client_info = Self::extract_client_info(&headers);
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => return (StatusCode::UNAUTHORIZED, "Authentication failed").into_response(),
         };
 
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "validation:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "validation:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Perform comprehensive context validation
-        match server.daemon.get_context_provider().validate_context_data().await {
+        match server
+            .daemon
+            .get_context_provider()
+            .validate_context_data()
+            .await
+        {
             Ok(validation_result) => {
                 let duration = start_time.elapsed();
                 server.metrics.record_request(duration, 0, 0);
-                
+
                 (StatusCode::OK, Json(validation_result)).into_response()
             }
             Err(e) => {
                 server.metrics.record_error();
                 error!("Context validation failed: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Validation failed: {}", e)).into_response()
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Validation failed: {}", e),
+                )
+                    .into_response()
             }
         }
     }
@@ -2159,33 +2749,52 @@ impl HttpServer {
         Path(scope_id): Path<String>,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Check authentication
         let client_info = Self::extract_client_info(&headers);
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => return (StatusCode::UNAUTHORIZED, "Authentication failed").into_response(),
         };
 
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "validation:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "validation:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Validate the specific scope
-        match server.daemon.get_context_provider().validate_scope_context(&scope_id).await {
+        match server
+            .daemon
+            .get_context_provider()
+            .validate_scope_context(&scope_id)
+            .await
+        {
             Ok(scope_result) => {
                 let duration = start_time.elapsed();
                 server.metrics.record_request(duration, 0, 0);
-                
+
                 (StatusCode::OK, Json(scope_result)).into_response()
             }
             Err(e) => {
                 server.metrics.record_error();
                 error!("Scope validation failed for {}: {}", scope_id, e);
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Scope validation failed: {}", e)).into_response()
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Scope validation failed: {}", e),
+                )
+                    .into_response()
             }
         }
     }
@@ -2196,33 +2805,52 @@ impl HttpServer {
         headers: HeaderMap,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Check authentication
         let client_info = Self::extract_client_info(&headers);
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => return (StatusCode::UNAUTHORIZED, "Authentication failed").into_response(),
         };
 
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "validation:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "validation:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Validate cross-references
-        match server.daemon.get_context_provider().validate_cross_references().await {
+        match server
+            .daemon
+            .get_context_provider()
+            .validate_cross_references()
+            .await
+        {
             Ok(cross_ref_result) => {
                 let duration = start_time.elapsed();
                 server.metrics.record_request(duration, 0, 0);
-                
+
                 (StatusCode::OK, Json(cross_ref_result)).into_response()
             }
             Err(e) => {
                 server.metrics.record_error();
                 error!("Cross-reference validation failed: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Cross-reference validation failed: {}", e)).into_response()
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Cross-reference validation failed: {}", e),
+                )
+                    .into_response()
             }
         }
     }
@@ -2233,33 +2861,52 @@ impl HttpServer {
         headers: HeaderMap,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Check authentication
         let client_info = Self::extract_client_info(&headers);
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => return (StatusCode::UNAUTHORIZED, "Authentication failed").into_response(),
         };
 
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "validation:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "validation:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Validate consistency
-        match server.daemon.get_context_provider().validate_consistency().await {
+        match server
+            .daemon
+            .get_context_provider()
+            .validate_consistency()
+            .await
+        {
             Ok(consistency_result) => {
                 let duration = start_time.elapsed();
                 server.metrics.record_request(duration, 0, 0);
-                
+
                 (StatusCode::OK, Json(consistency_result)).into_response()
             }
             Err(e) => {
                 server.metrics.record_error();
                 error!("Consistency validation failed: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Consistency validation failed: {}", e)).into_response()
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Consistency validation failed: {}", e),
+                )
+                    .into_response()
             }
         }
     }
@@ -2270,33 +2917,52 @@ impl HttpServer {
         headers: HeaderMap,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Check authentication
         let client_info = Self::extract_client_info(&headers);
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => return (StatusCode::UNAUTHORIZED, "Authentication failed").into_response(),
         };
 
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "validation:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "validation:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Validate temporal consistency
-        match server.daemon.get_context_provider().validate_temporal_consistency().await {
+        match server
+            .daemon
+            .get_context_provider()
+            .validate_temporal_consistency()
+            .await
+        {
             Ok(temporal_result) => {
                 let duration = start_time.elapsed();
                 server.metrics.record_request(duration, 0, 0);
-                
+
                 (StatusCode::OK, Json(temporal_result)).into_response()
             }
             Err(e) => {
                 server.metrics.record_error();
                 error!("Temporal validation failed: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Temporal validation failed: {}", e)).into_response()
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Temporal validation failed: {}", e),
+                )
+                    .into_response()
             }
         }
     }
@@ -2307,33 +2973,52 @@ impl HttpServer {
         headers: HeaderMap,
     ) -> impl IntoResponse {
         let start_time = Instant::now();
-        
+
         // Check authentication
         let client_info = Self::extract_client_info(&headers);
-        let auth_result = match server.daemon.get_auth_manager().authenticate(
-            headers.get("authorization").and_then(|h| h.to_str().ok()),
-            client_info,
-        ).await {
+        let auth_result = match server
+            .daemon
+            .get_auth_manager()
+            .authenticate(
+                headers.get("authorization").and_then(|h| h.to_str().ok()),
+                client_info,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(_) => return (StatusCode::UNAUTHORIZED, "Authentication failed").into_response(),
         };
 
-        if !server.daemon.get_auth_manager().has_permission(&auth_result, "validation:read").await {
+        if !server
+            .daemon
+            .get_auth_manager()
+            .has_permission(&auth_result, "validation:read")
+            .await
+        {
             return (StatusCode::FORBIDDEN, "Insufficient permissions").into_response();
         }
 
         // Validate dependencies
-        match server.daemon.get_context_provider().validate_scope_dependencies().await {
+        match server
+            .daemon
+            .get_context_provider()
+            .validate_scope_dependencies()
+            .await
+        {
             Ok(dependency_result) => {
                 let duration = start_time.elapsed();
                 server.metrics.record_request(duration, 0, 0);
-                
+
                 (StatusCode::OK, Json(dependency_result)).into_response()
             }
             Err(e) => {
                 server.metrics.record_error();
                 error!("Dependency validation failed: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Dependency validation failed: {}", e)).into_response()
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Dependency validation failed: {}", e),
+                )
+                    .into_response()
             }
         }
     }
@@ -2378,19 +3063,26 @@ impl EnhancedConnectionPool {
 
     pub async fn acquire(&self) -> Result<EnhancedConnectionGuard, RhemaError> {
         let start_time = Instant::now();
-        
-        let permit = self.semaphore.acquire().await.map_err(|_| {
-            RhemaError::SystemError("Connection pool exhausted".to_string())
-        })?;
+
+        let permit = self
+            .semaphore
+            .acquire()
+            .await
+            .map_err(|_| RhemaError::SystemError("Connection pool exhausted".to_string()))?;
 
         let wait_time = start_time.elapsed();
-        self.connection_wait_time.fetch_add(wait_time.as_nanos() as u64, Ordering::Relaxed);
+        self.connection_wait_time
+            .fetch_add(wait_time.as_nanos() as u64, Ordering::Relaxed);
         self.active_connections.fetch_add(1, Ordering::Relaxed);
         self.total_connections.fetch_add(1, Ordering::Relaxed);
 
         // Update pool statistics
-        self.pool_stats.insert("wait_time_ns".to_string(), wait_time.as_nanos() as u64);
-        self.pool_stats.insert("active_connections".to_string(), self.active_connections.load(Ordering::Relaxed) as u64);
+        self.pool_stats
+            .insert("wait_time_ns".to_string(), wait_time.as_nanos() as u64);
+        self.pool_stats.insert(
+            "active_connections".to_string(),
+            self.active_connections.load(Ordering::Relaxed) as u64,
+        );
 
         Ok(EnhancedConnectionGuard {
             pool: self,
@@ -2402,7 +3094,7 @@ impl EnhancedConnectionPool {
         let total_connections = self.total_connections.load(Ordering::Relaxed);
         let active_connections = self.active_connections.load(Ordering::Relaxed);
         let total_wait_time = self.connection_wait_time.load(Ordering::Relaxed);
-        
+
         let avg_wait_time = if total_connections > 0 {
             Duration::from_nanos(total_wait_time / total_connections)
         } else {
@@ -2441,4 +3133,4 @@ impl<'a> Drop for EnhancedConnectionGuard<'a> {
     fn drop(&mut self) {
         self.pool.active_connections.fetch_sub(1, Ordering::Relaxed);
     }
-} 
+}

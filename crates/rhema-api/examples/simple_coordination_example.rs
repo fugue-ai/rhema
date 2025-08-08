@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-use rhema_core::RhemaResult;
 use rhema_ai::agent::real_time_coordination::{
-    AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority,
-    CoordinationConfig, AgentPerformanceMetrics
+    AgentInfo, AgentMessage, AgentPerformanceMetrics, AgentStatus, CoordinationConfig,
+    MessagePriority, MessageType,
 };
+use rhema_core::RhemaResult;
 use std::collections::HashMap;
 
 #[tokio::main]
@@ -76,12 +76,16 @@ async fn main() -> RhemaResult<()> {
     println!("✅ Test message created");
 
     println!("📊 Example Data:");
-    println!("  Agent: {} ({}) - {:?}", agent.name, agent.id, agent.status);
+    println!(
+        "  Agent: {} ({}) - {:?}",
+        agent.name, agent.id, agent.status
+    );
     println!("  Message: {} - {}", message.id, message.content);
-    println!("  Config: {} participants, {}s timeout", 
-             coordination_config.max_session_participants, 
-             coordination_config.message_timeout_seconds);
+    println!(
+        "  Config: {} participants, {}s timeout",
+        coordination_config.max_session_participants, coordination_config.message_timeout_seconds
+    );
 
     println!("🎉 Example completed successfully!");
     Ok(())
-} 
+}

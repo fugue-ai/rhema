@@ -1,14 +1,14 @@
 //! Comprehensive test suite for Rhema CLI
 //! Orchestrates all testing infrastructure components
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
-use serde::{Serialize, Deserialize};
 
-use rhema_core::RhemaResult;
-use crate::runners::test_runner::{TestRunner, TestRunnerReport};
 use crate::common::enhanced_fixtures::EnhancedFixtures;
 use crate::config::test_config::TestConfig;
+use crate::runners::test_runner::{TestRunner, TestRunnerReport};
+use rhema_core::RhemaResult;
 
 /// Comprehensive test suite configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -211,7 +211,7 @@ impl ComprehensiveTestSuite {
         let (_temp_dir, _rhema) = EnhancedFixtures::advanced()?;
         let test_config = TestConfig::new();
         let test_runner = TestRunner::new(test_config);
-        
+
         Ok(Self {
             config,
             fixtures: EnhancedFixtures,
@@ -223,221 +223,231 @@ impl ComprehensiveTestSuite {
     pub fn run_complete_suite(&mut self) -> RhemaResult<TestSuiteReport> {
         println!("🚀 Starting Comprehensive Rhema CLI Test Suite");
         println!("Configuration: {:?}", self.config);
-        
+
         let mut report = TestSuiteReport::new();
-        
+
         // Run unit tests
         if self.config.unit_tests.enabled {
             report.unit_tests = Some(self.run_unit_tests()?);
         }
-        
+
         // Run integration tests
         if self.config.integration_tests.enabled {
             report.integration_tests = Some(self.run_integration_tests()?);
         }
-        
+
         // Run performance tests
         if self.config.performance_tests.enabled {
             report.performance_tests = Some(self.run_performance_tests()?);
         }
-        
+
         // Run security tests
         if self.config.security_tests.enabled {
             report.security_tests = Some(self.run_security_tests()?);
         }
-        
+
         // Run property tests
         if self.config.property_tests.enabled {
             report.property_tests = Some(self.run_property_tests()?);
         }
-        
+
         // Run stress tests
         if self.config.stress_tests.enabled {
             report.stress_tests = Some(self.run_stress_tests()?);
         }
-        
+
         // Run load tests
         if self.config.load_tests.enabled {
             report.load_tests = Some(self.run_load_tests()?);
         }
-        
+
         // Generate reports
         self.generate_reports(&report)?;
-        
+
         // Print summary
         self.print_summary(&report);
-        
+
         Ok(report)
     }
 
     /// Run unit tests
     fn run_unit_tests(&self) -> RhemaResult<UnitTestReport> {
         println!("📋 Running Unit Tests");
-        
+
         let mut report = UnitTestReport::new();
-        
+
         // Run core module tests
         report.core_tests = self.run_core_unit_tests()?;
-        
+
         // Run command tests
         report.command_tests = self.run_command_unit_tests()?;
-        
+
         // Run utility tests
         report.utility_tests = self.run_utility_unit_tests()?;
-        
+
         // Run coverage analysis if enabled
         if self.config.unit_tests.coverage_analysis {
             report.coverage = Some(self.run_coverage_analysis()?);
         }
-        
+
         Ok(report)
     }
 
     /// Run integration tests
     fn run_integration_tests(&self) -> RhemaResult<IntegrationTestReport> {
         println!("🔗 Running Integration Tests");
-        
+
         let mut report = IntegrationTestReport::new();
-        
+
         // Run end-to-end tests
         if self.config.integration_tests.end_to_end_tests {
             report.end_to_end_tests = self.run_end_to_end_tests()?;
         }
-        
+
         // Run service integration tests
         if self.config.integration_tests.service_integration {
             report.service_integration_tests = self.run_service_integration_tests()?;
         }
-        
+
         // Run file system integration tests
         if self.config.integration_tests.file_system_integration {
             report.file_system_integration_tests = self.run_file_system_integration_tests()?;
         }
-        
+
         // Run git integration tests
         if self.config.integration_tests.git_integration {
             report.git_integration_tests = self.run_git_integration_tests()?;
         }
-        
+
         // Run cross-platform tests
         if self.config.integration_tests.cross_platform {
             report.cross_platform_tests = self.run_cross_platform_tests()?;
         }
-        
+
         Ok(report)
     }
 
     /// Run performance tests
     fn run_performance_tests(&self) -> RhemaResult<PerformanceTestReport> {
         println!("⚡ Running Performance Tests");
-        
+
         let mut report = PerformanceTestReport::new();
-        
+
         // Run query benchmarking
         if self.config.performance_tests.query_benchmarking {
             report.query_benchmarks = self.run_query_benchmarks()?;
         }
-        
+
         // Run large repository testing
         if self.config.performance_tests.large_repository_testing {
             report.large_repository_tests = self.run_large_repository_tests()?;
         }
-        
+
         // Run memory usage testing
         if self.config.performance_tests.memory_usage_testing {
             report.memory_usage_tests = self.run_memory_usage_tests()?;
         }
-        
+
         // Run load testing
         if self.config.performance_tests.load_testing {
-            report.load_tests = self.run_load_test_suite()?.into_iter().map(|_| TestResult::new("load_test")).next().unwrap_or_else(|| TestResult::new("load_test"));
+            report.load_tests = self
+                .run_load_test_suite()?
+                .into_iter()
+                .map(|_| TestResult::new("load_test"))
+                .next()
+                .unwrap_or_else(|| TestResult::new("load_test"));
         }
-        
+
         // Run stress testing
         if self.config.performance_tests.stress_testing {
-            report.stress_tests = self.run_stress_test_suite()?.into_iter().map(|_| TestResult::new("stress_test")).next().unwrap_or_else(|| TestResult::new("stress_test"));
+            report.stress_tests = self
+                .run_stress_test_suite()?
+                .into_iter()
+                .map(|_| TestResult::new("stress_test"))
+                .next()
+                .unwrap_or_else(|| TestResult::new("stress_test"));
         }
-        
+
         // Run regression testing
         if self.config.performance_tests.regression_testing {
             report.regression_tests = self.run_regression_tests()?;
         }
-        
+
         Ok(report)
     }
 
     /// Run security tests
     fn run_security_tests(&self) -> RhemaResult<SecurityTestReport> {
         println!("🔒 Running Security Tests");
-        
+
         let mut report = SecurityTestReport::new();
-        
+
         // Run input validation tests
         if self.config.security_tests.input_validation {
             report.input_validation_tests = self.run_input_validation_tests()?;
         }
-        
+
         // Run file permission tests
         if self.config.security_tests.file_permissions {
             report.file_permission_tests = self.run_file_permission_tests()?;
         }
-        
+
         // Run YAML injection tests
         if self.config.security_tests.yaml_injection {
             report.yaml_injection_tests = self.run_yaml_injection_tests()?;
         }
-        
+
         // Run path traversal tests
         if self.config.security_tests.path_traversal {
             report.path_traversal_tests = self.run_path_traversal_tests()?;
         }
-        
+
         // Run authentication tests
         if self.config.security_tests.authentication {
             report.authentication_tests = self.run_authentication_tests()?;
         }
-        
+
         // Run authorization tests
         if self.config.security_tests.authorization {
             report.authorization_tests = self.run_authorization_tests()?;
         }
-        
+
         Ok(report)
     }
 
     /// Run property tests
     fn run_property_tests(&self) -> RhemaResult<PropertyTestReport> {
         println!("🎲 Running Property Tests");
-        
+
         let mut report = PropertyTestReport::new();
-        
+
         // Run property tests using proptest
         report.property_test_results = self.run_property_test_suite()?;
-        
+
         Ok(report)
     }
 
     /// Run stress tests
     fn run_stress_tests(&self) -> RhemaResult<StressTestReport> {
         println!("💪 Running Stress Tests");
-        
+
         let mut report = StressTestReport::new();
-        
+
         // Run stress tests
         report.stress_test_results = self.run_stress_test_suite()?;
-        
+
         Ok(report)
     }
 
     /// Run load tests
     fn run_load_tests(&self) -> RhemaResult<LoadTestReport> {
         println!("📊 Running Load Tests");
-        
+
         let mut report = LoadTestReport::new();
-        
+
         // Run load tests
         report.load_test_results = self.run_load_test_suite()?;
-        
+
         Ok(report)
     }
 
@@ -502,8 +512,6 @@ impl ComprehensiveTestSuite {
         Ok(TestResult::new("memory_usage_tests"))
     }
 
-
-
     fn run_regression_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run regression tests
         Ok(TestResult::new("regression_tests"))
@@ -557,27 +565,27 @@ impl ComprehensiveTestSuite {
     /// Generate test reports
     fn generate_reports(&self, report: &TestSuiteReport) -> RhemaResult<()> {
         println!("📊 Generating Test Reports");
-        
+
         // Generate HTML report
         if self.config.reporting.generate_html_report {
             self.generate_html_report(report)?;
         }
-        
+
         // Generate JSON report
         if self.config.reporting.generate_json_report {
             self.generate_json_report(report)?;
         }
-        
+
         // Generate JUnit report
         if self.config.reporting.generate_junit_report {
             self.generate_junit_report(report)?;
         }
-        
+
         // Generate coverage report
         if self.config.reporting.generate_coverage_report {
             self.generate_coverage_report(report)?;
         }
-        
+
         Ok(())
     }
 
@@ -618,7 +626,7 @@ impl ComprehensiveTestSuite {
         println!("Failed: {}", report.total_failed());
         println!("Skipped: {}", report.total_skipped());
         println!("Success Rate: {:.1}%", report.success_rate() * 100.0);
-        
+
         if report.total_failed() > 0 {
             println!("❌ Some tests failed!");
             std::process::exit(1);
@@ -655,49 +663,105 @@ impl TestSuiteReport {
 
     pub fn total_tests(&self) -> usize {
         let mut total = 0;
-        if let Some(ref report) = self.unit_tests { total += report.total_tests(); }
-        if let Some(ref report) = self.integration_tests { total += report.total_tests(); }
-        if let Some(ref report) = self.performance_tests { total += report.total_tests(); }
-        if let Some(ref report) = self.security_tests { total += report.total_tests(); }
-        if let Some(ref report) = self.property_tests { total += report.total_tests(); }
-        if let Some(ref report) = self.stress_tests { total += report.total_tests(); }
-        if let Some(ref report) = self.load_tests { total += report.total_tests(); }
+        if let Some(ref report) = self.unit_tests {
+            total += report.total_tests();
+        }
+        if let Some(ref report) = self.integration_tests {
+            total += report.total_tests();
+        }
+        if let Some(ref report) = self.performance_tests {
+            total += report.total_tests();
+        }
+        if let Some(ref report) = self.security_tests {
+            total += report.total_tests();
+        }
+        if let Some(ref report) = self.property_tests {
+            total += report.total_tests();
+        }
+        if let Some(ref report) = self.stress_tests {
+            total += report.total_tests();
+        }
+        if let Some(ref report) = self.load_tests {
+            total += report.total_tests();
+        }
         total
     }
 
     pub fn total_passed(&self) -> usize {
         let mut total = 0;
-        if let Some(ref report) = self.unit_tests { total += report.total_passed(); }
-        if let Some(ref report) = self.integration_tests { total += report.total_passed(); }
-        if let Some(ref report) = self.performance_tests { total += report.total_passed(); }
-        if let Some(ref report) = self.security_tests { total += report.total_passed(); }
-        if let Some(ref report) = self.property_tests { total += report.total_passed(); }
-        if let Some(ref report) = self.stress_tests { total += report.total_passed(); }
-        if let Some(ref report) = self.load_tests { total += report.total_passed(); }
+        if let Some(ref report) = self.unit_tests {
+            total += report.total_passed();
+        }
+        if let Some(ref report) = self.integration_tests {
+            total += report.total_passed();
+        }
+        if let Some(ref report) = self.performance_tests {
+            total += report.total_passed();
+        }
+        if let Some(ref report) = self.security_tests {
+            total += report.total_passed();
+        }
+        if let Some(ref report) = self.property_tests {
+            total += report.total_passed();
+        }
+        if let Some(ref report) = self.stress_tests {
+            total += report.total_passed();
+        }
+        if let Some(ref report) = self.load_tests {
+            total += report.total_passed();
+        }
         total
     }
 
     pub fn total_failed(&self) -> usize {
         let mut total = 0;
-        if let Some(ref report) = self.unit_tests { total += report.total_failed(); }
-        if let Some(ref report) = self.integration_tests { total += report.total_failed(); }
-        if let Some(ref report) = self.performance_tests { total += report.total_failed(); }
-        if let Some(ref report) = self.security_tests { total += report.total_failed(); }
-        if let Some(ref report) = self.property_tests { total += report.total_failed(); }
-        if let Some(ref report) = self.stress_tests { total += report.total_failed(); }
-        if let Some(ref report) = self.load_tests { total += report.total_failed(); }
+        if let Some(ref report) = self.unit_tests {
+            total += report.total_failed();
+        }
+        if let Some(ref report) = self.integration_tests {
+            total += report.total_failed();
+        }
+        if let Some(ref report) = self.performance_tests {
+            total += report.total_failed();
+        }
+        if let Some(ref report) = self.security_tests {
+            total += report.total_failed();
+        }
+        if let Some(ref report) = self.property_tests {
+            total += report.total_failed();
+        }
+        if let Some(ref report) = self.stress_tests {
+            total += report.total_failed();
+        }
+        if let Some(ref report) = self.load_tests {
+            total += report.total_failed();
+        }
         total
     }
 
     pub fn total_skipped(&self) -> usize {
         let mut total = 0;
-        if let Some(ref report) = self.unit_tests { total += report.total_skipped(); }
-        if let Some(ref report) = self.integration_tests { total += report.total_skipped(); }
-        if let Some(ref report) = self.performance_tests { total += report.total_skipped(); }
-        if let Some(ref report) = self.security_tests { total += report.total_skipped(); }
-        if let Some(ref report) = self.property_tests { total += report.total_skipped(); }
-        if let Some(ref report) = self.stress_tests { total += report.total_skipped(); }
-        if let Some(ref report) = self.load_tests { total += report.total_skipped(); }
+        if let Some(ref report) = self.unit_tests {
+            total += report.total_skipped();
+        }
+        if let Some(ref report) = self.integration_tests {
+            total += report.total_skipped();
+        }
+        if let Some(ref report) = self.performance_tests {
+            total += report.total_skipped();
+        }
+        if let Some(ref report) = self.security_tests {
+            total += report.total_skipped();
+        }
+        if let Some(ref report) = self.property_tests {
+            total += report.total_skipped();
+        }
+        if let Some(ref report) = self.stress_tests {
+            total += report.total_skipped();
+        }
+        if let Some(ref report) = self.load_tests {
+            total += report.total_skipped();
+        }
         total
     }
 
@@ -730,7 +794,9 @@ impl UnitTestReport {
     }
 
     pub fn total_tests(&self) -> usize {
-        self.core_tests.total_tests + self.command_tests.total_tests + self.utility_tests.total_tests
+        self.core_tests.total_tests
+            + self.command_tests.total_tests
+            + self.utility_tests.total_tests
     }
 
     pub fn total_passed(&self) -> usize {
@@ -767,27 +833,35 @@ impl IntegrationTestReport {
     }
 
     pub fn total_tests(&self) -> usize {
-        self.end_to_end_tests.total_tests + self.service_integration_tests.total_tests + 
-        self.file_system_integration_tests.total_tests + self.git_integration_tests.total_tests + 
-        self.cross_platform_tests.total_tests
+        self.end_to_end_tests.total_tests
+            + self.service_integration_tests.total_tests
+            + self.file_system_integration_tests.total_tests
+            + self.git_integration_tests.total_tests
+            + self.cross_platform_tests.total_tests
     }
 
     pub fn total_passed(&self) -> usize {
-        self.end_to_end_tests.passed + self.service_integration_tests.passed + 
-        self.file_system_integration_tests.passed + self.git_integration_tests.passed + 
-        self.cross_platform_tests.passed
+        self.end_to_end_tests.passed
+            + self.service_integration_tests.passed
+            + self.file_system_integration_tests.passed
+            + self.git_integration_tests.passed
+            + self.cross_platform_tests.passed
     }
 
     pub fn total_failed(&self) -> usize {
-        self.end_to_end_tests.failed + self.service_integration_tests.failed + 
-        self.file_system_integration_tests.failed + self.git_integration_tests.failed + 
-        self.cross_platform_tests.failed
+        self.end_to_end_tests.failed
+            + self.service_integration_tests.failed
+            + self.file_system_integration_tests.failed
+            + self.git_integration_tests.failed
+            + self.cross_platform_tests.failed
     }
 
     pub fn total_skipped(&self) -> usize {
-        self.end_to_end_tests.skipped + self.service_integration_tests.skipped + 
-        self.file_system_integration_tests.skipped + self.git_integration_tests.skipped + 
-        self.cross_platform_tests.skipped
+        self.end_to_end_tests.skipped
+            + self.service_integration_tests.skipped
+            + self.file_system_integration_tests.skipped
+            + self.git_integration_tests.skipped
+            + self.cross_platform_tests.skipped
     }
 }
 
@@ -814,23 +888,35 @@ impl PerformanceTestReport {
     }
 
     pub fn total_tests(&self) -> usize {
-        self.large_repository_tests.total_tests + self.memory_usage_tests.total_tests + 
-        self.load_tests.total_tests + self.stress_tests.total_tests + self.regression_tests.total_tests
+        self.large_repository_tests.total_tests
+            + self.memory_usage_tests.total_tests
+            + self.load_tests.total_tests
+            + self.stress_tests.total_tests
+            + self.regression_tests.total_tests
     }
 
     pub fn total_passed(&self) -> usize {
-        self.large_repository_tests.passed + self.memory_usage_tests.passed + 
-        self.load_tests.passed + self.stress_tests.passed + self.regression_tests.passed
+        self.large_repository_tests.passed
+            + self.memory_usage_tests.passed
+            + self.load_tests.passed
+            + self.stress_tests.passed
+            + self.regression_tests.passed
     }
 
     pub fn total_failed(&self) -> usize {
-        self.large_repository_tests.failed + self.memory_usage_tests.failed + 
-        self.load_tests.failed + self.stress_tests.failed + self.regression_tests.failed
+        self.large_repository_tests.failed
+            + self.memory_usage_tests.failed
+            + self.load_tests.failed
+            + self.stress_tests.failed
+            + self.regression_tests.failed
     }
 
     pub fn total_skipped(&self) -> usize {
-        self.large_repository_tests.skipped + self.memory_usage_tests.skipped + 
-        self.load_tests.skipped + self.stress_tests.skipped + self.regression_tests.skipped
+        self.large_repository_tests.skipped
+            + self.memory_usage_tests.skipped
+            + self.load_tests.skipped
+            + self.stress_tests.skipped
+            + self.regression_tests.skipped
     }
 }
 
@@ -857,27 +943,39 @@ impl SecurityTestReport {
     }
 
     pub fn total_tests(&self) -> usize {
-        self.input_validation_tests.total_tests + self.file_permission_tests.total_tests + 
-        self.yaml_injection_tests.total_tests + self.path_traversal_tests.total_tests + 
-        self.authentication_tests.total_tests + self.authorization_tests.total_tests
+        self.input_validation_tests.total_tests
+            + self.file_permission_tests.total_tests
+            + self.yaml_injection_tests.total_tests
+            + self.path_traversal_tests.total_tests
+            + self.authentication_tests.total_tests
+            + self.authorization_tests.total_tests
     }
 
     pub fn total_passed(&self) -> usize {
-        self.input_validation_tests.passed + self.file_permission_tests.passed + 
-        self.yaml_injection_tests.passed + self.path_traversal_tests.passed + 
-        self.authentication_tests.passed + self.authorization_tests.passed
+        self.input_validation_tests.passed
+            + self.file_permission_tests.passed
+            + self.yaml_injection_tests.passed
+            + self.path_traversal_tests.passed
+            + self.authentication_tests.passed
+            + self.authorization_tests.passed
     }
 
     pub fn total_failed(&self) -> usize {
-        self.input_validation_tests.failed + self.file_permission_tests.failed + 
-        self.yaml_injection_tests.failed + self.path_traversal_tests.failed + 
-        self.authentication_tests.failed + self.authorization_tests.failed
+        self.input_validation_tests.failed
+            + self.file_permission_tests.failed
+            + self.yaml_injection_tests.failed
+            + self.path_traversal_tests.failed
+            + self.authentication_tests.failed
+            + self.authorization_tests.failed
     }
 
     pub fn total_skipped(&self) -> usize {
-        self.input_validation_tests.skipped + self.file_permission_tests.skipped + 
-        self.yaml_injection_tests.skipped + self.path_traversal_tests.skipped + 
-        self.authentication_tests.skipped + self.authorization_tests.skipped
+        self.input_validation_tests.skipped
+            + self.file_permission_tests.skipped
+            + self.yaml_injection_tests.skipped
+            + self.path_traversal_tests.skipped
+            + self.authentication_tests.skipped
+            + self.authorization_tests.skipped
     }
 }
 
@@ -898,11 +996,17 @@ impl PropertyTestReport {
     }
 
     pub fn total_passed(&self) -> usize {
-        self.property_test_results.iter().filter(|r| r.passed).count()
+        self.property_test_results
+            .iter()
+            .filter(|r| r.passed)
+            .count()
     }
 
     pub fn total_failed(&self) -> usize {
-        self.property_test_results.iter().filter(|r| !r.passed).count()
+        self.property_test_results
+            .iter()
+            .filter(|r| !r.passed)
+            .count()
     }
 
     pub fn total_skipped(&self) -> usize {
@@ -931,7 +1035,10 @@ impl StressTestReport {
     }
 
     pub fn total_failed(&self) -> usize {
-        self.stress_test_results.iter().filter(|r| !r.passed).count()
+        self.stress_test_results
+            .iter()
+            .filter(|r| !r.passed)
+            .count()
     }
 
     pub fn total_skipped(&self) -> usize {
@@ -1106,13 +1213,13 @@ mod tests {
     #[test]
     fn test_test_suite_report_calculation() {
         let mut report = TestSuiteReport::new();
-        
+
         // Add some test results
         report.unit_tests = Some(UnitTestReport::new());
         report.integration_tests = Some(IntegrationTestReport::new());
-        
+
         assert!(report.total_tests() > 0);
         assert!(report.total_passed() > 0);
         assert_eq!(report.total_failed(), 0);
     }
-} 
+}

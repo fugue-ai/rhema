@@ -175,7 +175,9 @@ impl SchemaValidator {
                 let full_path = format!("{}/{}", base_path, filename);
                 if let Ok(schema) = self.load_schema_from_file(&full_path) {
                     let mut schemas = self.schemas.try_write().map_err(|_| {
-                        ConfigError::ValidationError("Failed to acquire write lock for schemas".to_string())
+                        ConfigError::ValidationError(
+                            "Failed to acquire write lock for schemas".to_string(),
+                        )
                     })?;
                     schemas.insert(name.to_string(), schema);
                     info!("Loaded schema: {} from {}", name, full_path);
@@ -195,18 +197,24 @@ impl SchemaValidator {
     pub fn load_schema_from_file<P: AsRef<Path>>(&self, path: P) -> RhemaResult<JSONSchema> {
         let path = path.as_ref();
         debug!("Attempting to load schema from: {}", path.display());
-        
+
         if !path.exists() {
-            return Err(ConfigError::ValidationError(format!("Schema file not found: {}", path.display())).into());
+            return Err(ConfigError::ValidationError(format!(
+                "Schema file not found: {}",
+                path.display()
+            ))
+            .into());
         }
-        
+
         let content = std::fs::read_to_string(path)?;
         let schema_value: Value = serde_json::from_str(&content)?;
         let schema = JSONSchema::options()
             .with_draft(Draft::Draft7)
             .compile(&schema_value)
-            .map_err(|e| ConfigError::ValidationError(format!("Schema compilation error: {}", e)))?;
-        
+            .map_err(|e| {
+                ConfigError::ValidationError(format!("Schema compilation error: {}", e))
+            })?;
+
         debug!("Successfully loaded schema from: {}", path.display());
         Ok(schema)
     }
@@ -231,10 +239,7 @@ impl SchemaValidator {
         if let Some(schema) = schemas.get(schema_name) {
             self.validate_with_schema(config, schema, schema_name).await
         } else {
-            Err(ConfigError::ValidationError(format!(
-                "Schema not found: {}",
-                schema_name
-            )).into())
+            Err(ConfigError::ValidationError(format!("Schema not found: {}", schema_name)).into())
         }
     }
 
@@ -285,7 +290,9 @@ impl SchemaValidator {
         issues.extend(semantic_issues);
 
         let _duration = start_time.elapsed();
-        let valid = issues.iter().all(|issue| issue.severity != ConfigIssueSeverity::Error);
+        let valid = issues
+            .iter()
+            .all(|issue| issue.severity != ConfigIssueSeverity::Error);
 
         Ok(SchemaValidationResult {
             valid,
@@ -341,7 +348,10 @@ impl SchemaValidator {
     }
 
     /// Validate Rhema-specific semantic rules
-    async fn validate_rhema_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_rhema_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check version compatibility
@@ -363,13 +373,26 @@ impl SchemaValidator {
     }
 
     /// Validate scope-specific semantic rules
-    async fn validate_scope_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_scope_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check scope type validity
-        if let Some(scope_type) = config.get("rhema").and_then(|r| r.get("scope")).and_then(|s| s.get("type")) {
+        if let Some(scope_type) = config
+            .get("rhema")
+            .and_then(|r| r.get("scope"))
+            .and_then(|s| s.get("type"))
+        {
             if let Some(type_str) = scope_type.as_str() {
-                let valid_types = ["repository", "service", "application", "library", "component"];
+                let valid_types = [
+                    "repository",
+                    "service",
+                    "application",
+                    "library",
+                    "component",
+                ];
                 if !valid_types.contains(&type_str) {
                     issues.push(SchemaValidationIssue {
                         severity: ConfigIssueSeverity::Error,
@@ -391,7 +414,8 @@ impl SchemaValidator {
                             issues.push(SchemaValidationIssue {
                                 severity: ConfigIssueSeverity::Warning,
                                 path: "dependencies".to_string(),
-                                message: "Dependency missing required fields: name or version".to_string(),
+                                message: "Dependency missing required fields: name or version"
+                                    .to_string(),
                                 code: "INCOMPLETE_DEPENDENCY".to_string(),
                                 details: None,
                             });
@@ -405,7 +429,10 @@ impl SchemaValidator {
     }
 
     /// Validate knowledge-specific semantic rules
-    async fn validate_knowledge_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_knowledge_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check for duplicate knowledge entries
@@ -432,14 +459,17 @@ impl SchemaValidator {
     }
 
     /// Validate todos-specific semantic rules
-    async fn validate_todos_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_todos_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check for circular dependencies in todos
         if let Some(todos) = config.get("todos") {
             if let Some(todos_array) = todos.as_array() {
                 let mut dependencies = std::collections::HashMap::new();
-                
+
                 for (_index, todo) in todos_array.iter().enumerate() {
                     if let Some(id) = todo.get("id").and_then(|i| i.as_str()) {
                         if let Some(deps) = todo.get("dependencies").and_then(|d| d.as_array()) {
@@ -454,7 +484,11 @@ impl SchemaValidator {
 
                 // Check for circular dependencies
                 for (id, _deps) in &dependencies {
-                    if self.has_circular_dependency(id, &dependencies, &mut std::collections::HashSet::new()) {
+                    if self.has_circular_dependency(
+                        id,
+                        &dependencies,
+                        &mut std::collections::HashSet::new(),
+                    ) {
                         issues.push(SchemaValidationIssue {
                             severity: ConfigIssueSeverity::Error,
                             path: format!("todos.{}", id),
@@ -471,7 +505,10 @@ impl SchemaValidator {
     }
 
     /// Validate decisions-specific semantic rules
-    async fn validate_decisions_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_decisions_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check for decision status consistency
@@ -479,7 +516,13 @@ impl SchemaValidator {
             if let Some(decisions_array) = decisions.as_array() {
                 for (index, decision) in decisions_array.iter().enumerate() {
                     if let Some(status) = decision.get("status").and_then(|s| s.as_str()) {
-                        let valid_statuses = ["proposed", "accepted", "rejected", "deprecated", "superseded"];
+                        let valid_statuses = [
+                            "proposed",
+                            "accepted",
+                            "rejected",
+                            "deprecated",
+                            "superseded",
+                        ];
                         if !valid_statuses.contains(&status) {
                             issues.push(SchemaValidationIssue {
                                 severity: ConfigIssueSeverity::Warning,
@@ -498,7 +541,10 @@ impl SchemaValidator {
     }
 
     /// Validate patterns-specific semantic rules
-    async fn validate_patterns_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_patterns_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check for pattern category consistency
@@ -506,7 +552,8 @@ impl SchemaValidator {
             if let Some(patterns_array) = patterns.as_array() {
                 for (index, pattern) in patterns_array.iter().enumerate() {
                     if let Some(category) = pattern.get("category").and_then(|c| c.as_str()) {
-                        let valid_categories = ["architectural", "design", "coding", "testing", "deployment"];
+                        let valid_categories =
+                            ["architectural", "design", "coding", "testing", "deployment"];
                         if !valid_categories.contains(&category) {
                             issues.push(SchemaValidationIssue {
                                 severity: ConfigIssueSeverity::Warning,
@@ -525,7 +572,10 @@ impl SchemaValidator {
     }
 
     /// Validate conventions-specific semantic rules
-    async fn validate_conventions_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_conventions_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check for convention scope consistency
@@ -552,14 +602,17 @@ impl SchemaValidator {
     }
 
     /// Validate lock-specific semantic rules
-    async fn validate_lock_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_lock_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check for lock consistency
         if let Some(locks) = config.get("locks") {
             if let Some(locks_obj) = locks.as_object() {
                 let mut agent_locks = std::collections::HashMap::new();
-                
+
                 for (resource, lock_info) in locks_obj {
                     if let Some(agent) = lock_info.get("agent").and_then(|a| a.as_str()) {
                         if agent_locks.contains_key(agent) {
@@ -582,7 +635,10 @@ impl SchemaValidator {
     }
 
     /// Validate action-specific semantic rules
-    async fn validate_action_semantics(&self, config: &Value) -> RhemaResult<Vec<SchemaValidationIssue>> {
+    async fn validate_action_semantics(
+        &self,
+        config: &Value,
+    ) -> RhemaResult<Vec<SchemaValidationIssue>> {
         let mut issues = Vec::new();
 
         // Check for action type consistency
@@ -626,7 +682,7 @@ impl SchemaValidator {
         }
 
         visited.insert(id.to_string());
-        
+
         if let Some(deps) = dependencies.get(id) {
             for dep in deps {
                 if self.has_circular_dependency(dep, dependencies, visited) {
@@ -698,7 +754,7 @@ mod tests {
     #[tokio::test]
     async fn test_rhema_schema_validation() {
         let validator = SchemaValidator::new().unwrap();
-        
+
         let valid_config = json!({
             "scope": {
                 "type": "repository",
@@ -706,12 +762,14 @@ mod tests {
             }
         });
 
-        let result = validator.validate_against_schema(&valid_config, &SchemaType::Scope).await;
+        let result = validator
+            .validate_against_schema(&valid_config, &SchemaType::Scope)
+            .await;
         if let Err(e) = &result {
             eprintln!("Validation error: {:?}", e);
         }
         assert!(result.is_ok());
-        
+
         let validation_result = result.unwrap();
         assert!(validation_result.valid);
     }
@@ -719,7 +777,7 @@ mod tests {
     #[tokio::test]
     async fn test_invalid_schema_validation() {
         let validator = SchemaValidator::new().unwrap();
-        
+
         let invalid_config = json!({
             "scope": {
                 "type": "invalid-type",
@@ -727,12 +785,14 @@ mod tests {
             }
         });
 
-        let result = validator.validate_against_schema(&invalid_config, &SchemaType::Scope).await;
+        let result = validator
+            .validate_against_schema(&invalid_config, &SchemaType::Scope)
+            .await;
         if let Err(e) = &result {
             eprintln!("Validation error: {:?}", e);
         }
         assert!(result.is_ok());
-        
+
         let validation_result = result.unwrap();
         // Should have issues due to invalid scope type and empty name
         assert!(!validation_result.issues.is_empty());
@@ -742,6 +802,9 @@ mod tests {
     async fn test_schema_type_conversion() {
         assert_eq!(SchemaType::Rhema.as_str(), "rhema");
         assert_eq!(SchemaType::from_str("rhema"), SchemaType::Rhema);
-        assert_eq!(SchemaType::from_str("custom"), SchemaType::Custom("custom".to_string()));
+        assert_eq!(
+            SchemaType::from_str("custom"),
+            SchemaType::Custom("custom".to_string())
+        );
     }
-} 
+}

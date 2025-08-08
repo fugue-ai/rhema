@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
+use crate::{ActionIntent, ActionResult, SafetyLevel, ToolResult};
 use async_trait::async_trait;
-use crate::{ActionIntent, ActionResult, ToolResult, SafetyLevel};
 
 /// Trait for transformation tools
 #[async_trait]
 pub trait TransformationTool: Send + Sync {
     /// Execute the tool with the given intent
     async fn execute(&self, intent: &ActionIntent) -> ActionResult<ToolResult>;
-    
+
     /// Check if the tool supports the given language
     fn supports_language(&self, language: &str) -> bool;
-    
+
     /// Get the safety level of this tool
     fn safety_level(&self) -> SafetyLevel;
-    
+
     /// Get the name of this tool
     fn name(&self) -> &str;
-    
+
     /// Get the version of this tool
     fn version(&self) -> &str;
-    
+
     /// Check if the tool is available
     async fn is_available(&self) -> bool;
 }
@@ -44,13 +44,13 @@ pub trait TransformationTool: Send + Sync {
 pub trait ValidationTool: Send + Sync {
     /// Run validation with the given intent
     async fn validate(&self, intent: &ActionIntent) -> ActionResult<ToolResult>;
-    
+
     /// Get the name of this tool
     fn name(&self) -> &str;
-    
+
     /// Get the version of this tool
     fn version(&self) -> &str;
-    
+
     /// Check if the tool is available
     async fn is_available(&self) -> bool;
 }
@@ -60,13 +60,13 @@ pub trait ValidationTool: Send + Sync {
 pub trait SafetyTool: Send + Sync {
     /// Run safety check with the given intent
     async fn check(&self, intent: &ActionIntent) -> ActionResult<ToolResult>;
-    
+
     /// Get the name of this tool
     fn name(&self) -> &str;
-    
+
     /// Get the version of this tool
     fn version(&self) -> &str;
-    
+
     /// Check if the tool is available
     async fn is_available(&self) -> bool;
-} 
+}

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use chrono::{DateTime, Utc};
 
 /// Key rotation policy
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -110,4 +110,4 @@ pub struct KeyStats {
     pub expired_keys: usize,
     pub last_rotation: Option<DateTime<Utc>>,
     pub next_rotation: Option<DateTime<Utc>>,
-} 
+}

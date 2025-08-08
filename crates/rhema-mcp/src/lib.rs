@@ -25,16 +25,25 @@ pub mod watcher;
 
 // Re-export configuration types
 pub use mcp::{
-    McpConfig, McpDaemon, HealthStatus, MemoryUsage, ClientConnection, ClientType,
-    DaemonStatistics, RateLimitConfig, StartupConfig, AuthConfig, WatcherConfig, CacheConfig, LoggingConfig
+    AuthConfig, CacheConfig, ClientConnection, ClientType, DaemonStatistics, HealthStatus,
+    LoggingConfig, McpConfig, McpDaemon, MemoryUsage, RateLimitConfig, StartupConfig,
+    WatcherConfig,
 };
 
-pub use auth::{AuthManager, AuthResult, AuthToken, AuthStats, ClientInfo, SecurityEventType, SecuritySeverity, AuditEventType, AuditResult};
+pub use auth::{
+    AuditEventType, AuditResult, AuthManager, AuthResult, AuthStats, AuthToken, ClientInfo,
+    SecurityEventType, SecuritySeverity,
+};
 pub use cache::{CacheManager, CacheStatistics};
 pub use context::ContextProvider;
-pub use http_server::{HttpServer, PerformanceMetrics, ConnectionPool, ConnectionGuard, StringCache, EnhancedConnectionPool, EnhancedConnectionGuard, ConnectionPoolStats};
+pub use http_server::{
+    ConnectionGuard, ConnectionPool, ConnectionPoolStats, EnhancedConnectionGuard,
+    EnhancedConnectionPool, HttpServer, PerformanceMetrics, StringCache,
+};
 pub use official_sdk::{OfficialRhemaMcpServer, MCP_VERSION, SUPPORTED_VERSIONS};
-pub use sdk::{RhemaMcpServer, Resource, Tool, Prompt, PromptSegment, ToolResult, ContextProviderExt};
+pub use sdk::{
+    ContextProviderExt, Prompt, PromptSegment, Resource, RhemaMcpServer, Tool, ToolResult,
+};
 pub use watcher::{FileWatcher, WatcherConfig as FileWatcherConfig};
 
 /// Main MCP service that coordinates all components
@@ -46,9 +55,12 @@ pub struct RhemaMcpService {
 
 impl RhemaMcpService {
     /// Create a new MCP service
-    pub async fn new(config: McpConfig, repo_root: std::path::PathBuf) -> rhema_core::RhemaResult<Self> {
+    pub async fn new(
+        config: McpConfig,
+        repo_root: std::path::PathBuf,
+    ) -> rhema_core::RhemaResult<Self> {
         let daemon = McpDaemon::new(config.clone(), repo_root).await?;
-        
+
         Ok(Self {
             daemon,
             http_server: None,
@@ -63,7 +75,8 @@ impl RhemaMcpService {
 
         // Start HTTP server if enabled
         if self.daemon.config().port > 0 {
-            let http_server = HttpServer::new(self.daemon.config().clone(), Arc::new(self.daemon.clone()));
+            let http_server =
+                HttpServer::new(self.daemon.config().clone(), Arc::new(self.daemon.clone()));
             self.http_server = Some(http_server);
         }
 
@@ -75,15 +88,16 @@ impl RhemaMcpService {
                 Arc::new(self.daemon.get_file_watcher().clone()),
                 Arc::new(self.daemon.get_auth_manager().clone()),
                 self.daemon.config(),
-            ).await?;
-            
+            )
+            .await?;
+
             self.official_sdk_server = Some(official_sdk_server);
-            
+
             // Start the official SDK server
             if let Some(ref mut server) = self.official_sdk_server {
                 server.start(self.daemon.config()).await?;
             }
-            
+
             tracing::info!("Official SDK server started successfully");
         }
 
@@ -96,14 +110,14 @@ impl RhemaMcpService {
         if let Some(ref mut server) = self.official_sdk_server {
             server.stop().await?;
         }
-        
+
         // Stop the daemon
         self.daemon.stop().await?;
-        
+
         // Clean up servers
         self.http_server = None;
         self.official_sdk_server = None;
-        
+
         Ok(())
     }
 

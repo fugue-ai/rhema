@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+use notify::{RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -21,11 +22,10 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, instrument, warn};
-use notify::{Watcher, RecursiveMode};
 
 use crate::types::{
-    ContentType, KnowledgeResult, AgentSessionContext,
-    WorkflowContext, ContextSuggestion, SuggestionAction, Priority, WorkflowType,
+    AgentSessionContext, ContentType, ContextSuggestion, KnowledgeResult, Priority,
+    SuggestionAction, WorkflowContext, WorkflowType,
 };
 
 use super::engine::UnifiedKnowledgeEngine;
@@ -35,19 +35,19 @@ use super::engine::UnifiedKnowledgeEngine;
 pub enum ProactiveError {
     #[error("File analysis error: {0}")]
     FileAnalysisError(String),
-    
+
     #[error("Usage analysis error: {0}")]
     UsageAnalysisError(String),
-    
+
     #[error("Suggestion generation error: {0}")]
     SuggestionGenerationError(String),
-    
+
     #[error("Cache warming error: {0}")]
     CacheWarmingError(String),
-    
+
     #[error("Workflow analysis error: {0}")]
     WorkflowAnalysisError(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
 }
@@ -231,7 +231,7 @@ impl ProactiveContextManager {
         let file_watcher = Arc::new(FileWatcher::new(FileWatcherConfig::default()));
         let usage_analyzer = Arc::new(UsageAnalyzer::new(UsageAnalyzerConfig::default()));
         let suggestion_engine = Arc::new(SuggestionEngine::new(SuggestionEngineConfig::default()));
-        
+
         Self {
             unified_engine,
             file_watcher,
@@ -240,70 +240,88 @@ impl ProactiveContextManager {
             config: ProactiveConfig::default(),
         }
     }
-    
+
     /// Initialize the proactive context manager
     pub async fn initialize(&self) -> KnowledgeResult<()> {
         info!("Initializing proactive context manager");
-        
+
         // Initialize usage analyzer
         self.usage_analyzer.initialize().await?;
-        
+
         // Initialize suggestion engine
         self.suggestion_engine.initialize().await?;
-        
+
         // Initialize file watcher with proper mutable access using RwLock
         {
             let mut _file_watcher_guard = self.file_watcher.watched_files.write().await;
             // The file watcher initialization is handled separately since it requires mutable access
             // We'll initialize it when needed in individual operations
         }
-        
+
         info!("Proactive context manager initialized successfully");
         Ok(())
     }
-    
+
     /// Suggest context for a specific file
     #[instrument(skip(self, file_path))]
-    pub async fn suggest_context_for_file(&self, file_path: &str) -> KnowledgeResult<Vec<ContextSuggestion>> {
+    pub async fn suggest_context_for_file(
+        &self,
+        file_path: &str,
+    ) -> KnowledgeResult<Vec<ContextSuggestion>> {
         if !self.config.enabled || !self.config.file_analysis_enabled {
             return Ok(vec![]);
         }
-        
+
         info!("Generating context suggestions for file: {}", file_path);
-        
+
         // Add file to watcher if not already watching
         let file_path_buf = PathBuf::from(file_path);
         self.file_watcher.watch_file(file_path_buf).await?;
-        
+
         // Analyze file content to understand context
         let file_context = self.analyze_file_context(file_path).await?;
-        
+
         // Find relevant knowledge using semantic search
-        let search_results = self.unified_engine.search_semantic(&file_context, 10).await?;
-        
+        let search_results = self
+            .unified_engine
+            .search_semantic(&file_context, 10)
+            .await?;
+
         // Convert search results to context suggestions
-        let suggestions = self.convert_to_context_suggestions(search_results, file_path).await?;
-        
+        let suggestions = self
+            .convert_to_context_suggestions(search_results, file_path)
+            .await?;
+
         // Filter by relevance threshold
         let filtered_suggestions: Vec<ContextSuggestion> = suggestions
             .into_iter()
             .filter(|s| s.relevance_score >= self.config.suggestion_threshold)
             .take(self.config.suggestion_limit)
             .collect();
-        
-        debug!("Generated {} context suggestions for file: {}", filtered_suggestions.len(), file_path);
+
+        debug!(
+            "Generated {} context suggestions for file: {}",
+            filtered_suggestions.len(),
+            file_path
+        );
         Ok(filtered_suggestions)
     }
-    
+
     /// Suggest context for a workflow
     #[instrument(skip(self, workflow_context))]
-    pub async fn suggest_context_for_workflow(&self, workflow_context: &WorkflowContext) -> KnowledgeResult<Vec<ContextSuggestion>> {
+    pub async fn suggest_context_for_workflow(
+        &self,
+        workflow_context: &WorkflowContext,
+    ) -> KnowledgeResult<Vec<ContextSuggestion>> {
         if !self.config.enabled || !self.config.workflow_analysis_enabled {
             return Ok(vec![]);
         }
-        
-        info!("Generating context suggestions for workflow: {}", workflow_context.workflow_id);
-        
+
+        info!(
+            "Generating context suggestions for workflow: {}",
+            workflow_context.workflow_id
+        );
+
         // Analyze workflow to predict needed context
         let workflow_query = format!(
             "workflow: {} step: {} type: {}",
@@ -311,152 +329,217 @@ impl ProactiveContextManager {
             workflow_context.current_step,
             WorkflowTypeExt::to_string(&workflow_context.workflow_type)
         );
-        
+
         // Search for relevant content
-        let search_results = self.unified_engine.search_semantic(&workflow_query, 10).await?;
-        
+        let search_results = self
+            .unified_engine
+            .search_semantic(&workflow_query, 10)
+            .await?;
+
         // Convert to context suggestions
-        let suggestions = self.convert_to_context_suggestions(search_results, &workflow_context.workflow_id).await?;
-        
+        let suggestions = self
+            .convert_to_context_suggestions(search_results, &workflow_context.workflow_id)
+            .await?;
+
         // Filter by relevance threshold
         let filtered_suggestions: Vec<ContextSuggestion> = suggestions
             .into_iter()
             .filter(|s| s.relevance_score >= self.config.suggestion_threshold)
             .take(self.config.suggestion_limit)
             .collect();
-        
-        debug!("Generated {} workflow context suggestions", filtered_suggestions.len());
+
+        debug!(
+            "Generated {} workflow context suggestions",
+            filtered_suggestions.len()
+        );
         Ok(filtered_suggestions)
     }
-    
+
     /// Warm cache for a workflow
     #[instrument(skip(self, workflow_context))]
-    pub async fn warm_cache_for_workflow(&self, workflow_context: &WorkflowContext) -> KnowledgeResult<()> {
+    pub async fn warm_cache_for_workflow(
+        &self,
+        workflow_context: &WorkflowContext,
+    ) -> KnowledgeResult<()> {
         if !self.config.enabled || !self.config.warm_cache_enabled {
             return Ok(());
         }
-        
-        info!("Warming cache for workflow: {}", workflow_context.workflow_id);
-        
+
+        info!(
+            "Warming cache for workflow: {}",
+            workflow_context.workflow_id
+        );
+
         // Analyze workflow to predict needed context
-        let predicted_context = self.usage_analyzer.predict_context_needs(workflow_context).await?;
-        
+        let predicted_context = self
+            .usage_analyzer
+            .predict_context_needs(workflow_context)
+            .await?;
+
         // Pre-load relevant context into cache
-        for context_item in predicted_context.iter().take(self.config.cache_warming_limit) {
-            self.unified_engine.prewarm_agent_context("default", context_item).await?;
+        for context_item in predicted_context
+            .iter()
+            .take(self.config.cache_warming_limit)
+        {
+            self.unified_engine
+                .prewarm_agent_context("default", context_item)
+                .await?;
         }
-        
-        debug!("Warmed cache with {} context items for workflow", predicted_context.len());
+
+        debug!(
+            "Warmed cache with {} context items for workflow",
+            predicted_context.len()
+        );
         Ok(())
     }
-    
+
     /// Warm cache for an agent session
     #[instrument(skip(self, agent_id, session_context))]
-    pub async fn warm_cache_for_agent_session(&self, agent_id: &str, session_context: &AgentSessionContext) -> KnowledgeResult<()> {
+    pub async fn warm_cache_for_agent_session(
+        &self,
+        agent_id: &str,
+        session_context: &AgentSessionContext,
+    ) -> KnowledgeResult<()> {
         if !self.config.enabled || !self.config.warm_cache_enabled {
             return Ok(());
         }
-        
+
         info!("Warming cache for agent session: {}", agent_id);
-        
+
         // Analyze agent session to predict needed context
-        let predicted_context = self.usage_analyzer.predict_agent_context_needs(agent_id, session_context).await?;
-        
+        let predicted_context = self
+            .usage_analyzer
+            .predict_agent_context_needs(agent_id, session_context)
+            .await?;
+
         // Pre-load relevant context into agent-specific cache
-        for context_item in predicted_context.iter().take(self.config.cache_warming_limit) {
-            self.unified_engine.prewarm_agent_context(agent_id, context_item).await?;
+        for context_item in predicted_context
+            .iter()
+            .take(self.config.cache_warming_limit)
+        {
+            self.unified_engine
+                .prewarm_agent_context(agent_id, context_item)
+                .await?;
         }
-        
-        debug!("Warmed cache with {} context items for agent session", predicted_context.len());
+
+        debug!(
+            "Warmed cache with {} context items for agent session",
+            predicted_context.len()
+        );
         Ok(())
     }
-    
+
     /// Share context between agents
     #[instrument(skip(self, source_agent_id, target_agent_id, context_key))]
-    pub async fn share_context_across_agents(&self, source_agent_id: &str, target_agent_id: &str, context_key: &str) -> KnowledgeResult<()> {
+    pub async fn share_context_across_agents(
+        &self,
+        source_agent_id: &str,
+        target_agent_id: &str,
+        context_key: &str,
+    ) -> KnowledgeResult<()> {
         if !self.config.enabled {
             return Ok(());
         }
-        
-        info!("Sharing context from agent {} to agent {}: {}", source_agent_id, target_agent_id, context_key);
-        
+
+        info!(
+            "Sharing context from agent {} to agent {}: {}",
+            source_agent_id, target_agent_id, context_key
+        );
+
         // Share cached context from one agent session to another
-        if let Some(cached_context) = self.unified_engine.get_agent_context(source_agent_id, context_key).await? {
-            self.unified_engine.set_agent_context(target_agent_id, context_key, &cached_context.data).await?;
+        if let Some(cached_context) = self
+            .unified_engine
+            .get_agent_context(source_agent_id, context_key)
+            .await?
+        {
+            self.unified_engine
+                .set_agent_context(target_agent_id, context_key, &cached_context.data)
+                .await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Track agent session activity
     #[instrument(skip(self, agent_id, session_context))]
-    pub async fn track_agent_session(&self, agent_id: &str, session_context: &AgentSessionContext) -> KnowledgeResult<()> {
+    pub async fn track_agent_session(
+        &self,
+        agent_id: &str,
+        session_context: &AgentSessionContext,
+    ) -> KnowledgeResult<()> {
         if !self.config.enabled || !self.config.agent_session_tracking {
             return Ok(());
         }
-        
+
         // Update agent session tracking
-        self.usage_analyzer.update_agent_session(agent_id, session_context).await?;
-        
+        self.usage_analyzer
+            .update_agent_session(agent_id, session_context)
+            .await?;
+
         Ok(())
     }
-    
+
     /// Watch a directory for changes
     #[instrument(skip(self, dir_path))]
     pub async fn watch_directory(&self, dir_path: &str) -> KnowledgeResult<()> {
         if !self.config.enabled || !self.config.file_analysis_enabled {
             return Ok(());
         }
-        
+
         info!("Watching directory for changes: {}", dir_path);
-        
+
         let dir_path_buf = PathBuf::from(dir_path);
         self.file_watcher.watch_directory(dir_path_buf).await?;
-        
+
         Ok(())
     }
-    
+
     /// Get file watch statistics
     pub async fn get_file_watch_stats(&self) -> KnowledgeResult<FileWatchStats> {
         Ok(self.file_watcher.get_stats().await)
     }
-    
+
     /// Get changed files
     pub async fn get_changed_files(&self) -> KnowledgeResult<Vec<PathBuf>> {
         self.file_watcher.check_for_changes().await
     }
-    
+
     /// Get files matching a pattern
     pub async fn get_matching_files(&self, pattern: &str) -> KnowledgeResult<Vec<PathBuf>> {
         self.file_watcher.get_matching_files(pattern).await
     }
-    
+
     /// Stop watching a file
     pub async fn unwatch_file(&self, file_path: &str) -> KnowledgeResult<()> {
         let file_path_buf = PathBuf::from(file_path);
         self.file_watcher.unwatch_file(&file_path_buf).await
     }
-    
+
     /// Analyze file context for suggestions
     async fn analyze_file_context(&self, file_path: &str) -> KnowledgeResult<String> {
         // Simple file context analysis
         let path = PathBuf::from(file_path);
-        
+
         // Extract file extension and name
-        let extension = path.extension()
+        let extension = path
+            .extension()
             .and_then(|ext| ext.to_str())
             .unwrap_or("unknown");
-        
-        let file_name = path.file_name()
+
+        let file_name = path
+            .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("unknown");
-        
+
         // Create context string for search
-        let context = format!("file:{} extension:{} name:{}", file_path, extension, file_name);
-        
+        let context = format!(
+            "file:{} extension:{} name:{}",
+            file_path, extension, file_name
+        );
+
         Ok(context)
     }
-    
+
     /// Convert search results to context suggestions
     async fn convert_to_context_suggestions(
         &self,
@@ -464,7 +547,7 @@ impl ProactiveContextManager {
         file_path: &str,
     ) -> KnowledgeResult<Vec<ContextSuggestion>> {
         let mut suggestions = Vec::new();
-        
+
         for result in search_results {
             let suggestion = ContextSuggestion {
                 suggestion_id: uuid::Uuid::new_v4().to_string(),
@@ -480,7 +563,7 @@ impl ProactiveContextManager {
             };
             suggestions.push(suggestion);
         }
-        
+
         Ok(suggestions)
     }
 }
@@ -494,11 +577,12 @@ impl FileWatcher {
             event_sender: None,
         }
     }
-    
+
     /// Initialize the file watcher with real-time monitoring
     pub async fn initialize(&mut self) -> KnowledgeResult<()> {
-        let (event_sender, mut event_receiver) = tokio::sync::mpsc::unbounded_channel::<notify::Event>();
-        
+        let (event_sender, mut event_receiver) =
+            tokio::sync::mpsc::unbounded_channel::<notify::Event>();
+
         // Create the file system watcher
         let event_sender_clone = event_sender.clone();
         let mut watcher = notify::recommended_watcher(move |res: Result<notify::Event, _>| {
@@ -506,7 +590,7 @@ impl FileWatcher {
                 let _ = event_sender_clone.send(event);
             }
         })?;
-        
+
         // Start watching the configured directories
         for pattern in &self.config.watch_patterns {
             if let Some(dir) = self.extract_directory_from_pattern(pattern) {
@@ -515,10 +599,10 @@ impl FileWatcher {
                 }
             }
         }
-        
+
         self.watcher = Some(watcher);
         self.event_sender = Some(event_sender);
-        
+
         // Spawn event processing task
         let watched_files = self.watched_files.clone();
         tokio::spawn(async move {
@@ -526,23 +610,26 @@ impl FileWatcher {
                 Self::process_file_event(&watched_files, event).await;
             }
         });
-        
+
         Ok(())
     }
-    
+
     /// Add a file to watch
     pub async fn watch_file(&self, file_path: PathBuf) -> KnowledgeResult<()> {
         let mut watched_files = self.watched_files.write().await;
-        
+
         if watched_files.len() >= self.config.max_watched_files {
-            return Err(crate::types::KnowledgeError::ProactiveError(ProactiveError::ConfigurationError(
-                format!("Maximum watched files limit reached: {}", self.config.max_watched_files)
-            )));
+            return Err(crate::types::KnowledgeError::ProactiveError(
+                ProactiveError::ConfigurationError(format!(
+                    "Maximum watched files limit reached: {}",
+                    self.config.max_watched_files
+                )),
+            ));
         }
-        
+
         // Calculate content hash
         let content_hash = self.calculate_file_hash(&file_path).await?;
-        
+
         let file_info = FileWatchInfo {
             path: file_path.clone(),
             last_modified: chrono::Utc::now(),
@@ -550,9 +637,9 @@ impl FileWatcher {
             change_count: 0,
             last_accessed: chrono::Utc::now(),
         };
-        
+
         watched_files.insert(file_path.clone(), file_info);
-        
+
         // Add to file system watcher if available
         // TODO: Implement file system watching when we have proper mutable access
         // if let Some(watcher) = &mut self.watcher {
@@ -562,10 +649,10 @@ impl FileWatcher {
         //         }
         //     }
         // }
-        
+
         Ok(())
     }
-    
+
     /// Watch an entire directory recursively
     pub async fn watch_directory(&self, dir_path: PathBuf) -> KnowledgeResult<()> {
         // TODO: Implement directory watching when we have proper mutable access
@@ -578,15 +665,15 @@ impl FileWatcher {
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Check for file changes (polling fallback)
     pub async fn check_for_changes(&self) -> KnowledgeResult<Vec<PathBuf>> {
         let mut changed_files = Vec::new();
         let mut watched_files = self.watched_files.write().await;
-        
+
         for (path, info) in watched_files.iter_mut() {
             if let Ok(metadata) = std::fs::metadata(path) {
                 if let Ok(modified) = metadata.modified() {
@@ -604,48 +691,51 @@ impl FileWatcher {
                 }
             }
         }
-        
+
         Ok(changed_files)
     }
-    
+
     /// Get files that match a pattern
     pub async fn get_matching_files(&self, pattern: &str) -> KnowledgeResult<Vec<PathBuf>> {
         let watched_files = self.watched_files.read().await;
         let mut matching_files = Vec::new();
-        
+
         for path in watched_files.keys() {
             if self.matches_pattern(path, pattern) {
                 matching_files.push(path.clone());
             }
         }
-        
+
         Ok(matching_files)
     }
-    
+
     /// Remove a file from watching
     pub async fn unwatch_file(&self, file_path: &PathBuf) -> KnowledgeResult<()> {
         let mut watched_files = self.watched_files.write().await;
         watched_files.remove(file_path);
         Ok(())
     }
-    
+
     /// Get file watch statistics
     pub async fn get_stats(&self) -> FileWatchStats {
         let watched_files = self.watched_files.read().await;
         let total_files = watched_files.len();
         let total_changes = watched_files.values().map(|info| info.change_count).sum();
-        
+
         FileWatchStats {
             total_watched_files: total_files,
             total_changes: total_changes,
             max_files: self.config.max_watched_files,
         }
     }
-    
+
     /// Process file system events
-    async fn process_file_event(watched_files: &Arc<RwLock<HashMap<PathBuf, FileWatchInfo>>>, event: notify::Event) {
+    async fn process_file_event(
+        watched_files: &Arc<RwLock<HashMap<PathBuf, FileWatchInfo>>>,
+        event: notify::Event,
+    ) {
         let mut files = watched_files.write().await;
-        
+
         for path in event.paths {
             if let Some(info) = files.get_mut(&path) {
                 info.last_modified = chrono::Utc::now();
@@ -654,11 +744,11 @@ impl FileWatcher {
             }
         }
     }
-    
+
     /// Calculate file content hash
     async fn calculate_file_hash(&self, file_path: &PathBuf) -> KnowledgeResult<String> {
-        use sha2::{Sha256, Digest};
-        
+        use sha2::{Digest, Sha256};
+
         match tokio::fs::read(file_path).await {
             Ok(content) => {
                 let mut hasher = Sha256::new();
@@ -668,7 +758,7 @@ impl FileWatcher {
             Err(_) => Ok("".to_string()), // Return empty hash for non-existent files
         }
     }
-    
+
     /// Check if a file should be watched based on patterns
     fn should_watch_file(&self, path: &PathBuf) -> bool {
         // Check ignore patterns first
@@ -677,17 +767,17 @@ impl FileWatcher {
                 return false;
             }
         }
-        
+
         // Check watch patterns
         for watch_pattern in &self.config.watch_patterns {
             if self.matches_pattern(path, watch_pattern) {
                 return true;
             }
         }
-        
+
         false
     }
-    
+
     /// Check if a path matches a pattern
     fn matches_pattern(&self, path: &PathBuf, pattern: &str) -> bool {
         if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
@@ -702,7 +792,7 @@ impl FileWatcher {
         }
         false
     }
-    
+
     /// Extract directory from a file pattern
     fn extract_directory_from_pattern(&self, pattern: &str) -> Option<PathBuf> {
         if pattern.starts_with("*.") {
@@ -726,17 +816,20 @@ impl UsageAnalyzer {
             config,
         }
     }
-    
+
     pub async fn initialize(&self) -> KnowledgeResult<()> {
         info!("Initializing usage analyzer");
         // Initialize any required resources
         Ok(())
     }
-    
+
     /// Predict context needs for a workflow
-    pub async fn predict_context_needs(&self, workflow_context: &WorkflowContext) -> KnowledgeResult<Vec<String>> {
+    pub async fn predict_context_needs(
+        &self,
+        workflow_context: &WorkflowContext,
+    ) -> KnowledgeResult<Vec<String>> {
         let mut predicted_context = Vec::new();
-        
+
         // Look for patterns based on workflow type
         let patterns = self.usage_patterns.read().await;
         for pattern in patterns.values() {
@@ -744,24 +837,31 @@ impl UsageAnalyzer {
                 predicted_context.extend(pattern.context_keys.clone());
             }
         }
-        
+
         // Add workflow-specific context requirements
         for requirement in &workflow_context.context_requirements {
-            predicted_context.push(format!("requirement:{}", requirement.requirement_type.to_string()));
+            predicted_context.push(format!(
+                "requirement:{}",
+                requirement.requirement_type.to_string()
+            ));
         }
-        
+
         // Remove duplicates and limit results
         predicted_context.sort();
         predicted_context.dedup();
         predicted_context.truncate(10);
-        
+
         Ok(predicted_context)
     }
-    
+
     /// Predict context needs for an agent session
-    pub async fn predict_agent_context_needs(&self, agent_id: &str, session_context: &AgentSessionContext) -> KnowledgeResult<Vec<String>> {
+    pub async fn predict_agent_context_needs(
+        &self,
+        agent_id: &str,
+        session_context: &AgentSessionContext,
+    ) -> KnowledgeResult<Vec<String>> {
         let mut predicted_context = Vec::new();
-        
+
         // Look for patterns based on agent preferences
         let patterns = self.usage_patterns.read().await;
         for pattern in patterns.values() {
@@ -769,34 +869,43 @@ impl UsageAnalyzer {
                 predicted_context.extend(pattern.context_keys.clone());
             }
         }
-        
+
         // Add agent-specific cached keys
         predicted_context.extend(session_context.cache_keys.clone());
-        
+
         // Remove duplicates and limit results
         predicted_context.sort();
         predicted_context.dedup();
         predicted_context.truncate(10);
-        
+
         Ok(predicted_context)
     }
-    
+
     /// Update agent session tracking
-    pub async fn update_agent_session(&self, agent_id: &str, session_context: &AgentSessionContext) -> KnowledgeResult<()> {
+    pub async fn update_agent_session(
+        &self,
+        agent_id: &str,
+        session_context: &AgentSessionContext,
+    ) -> KnowledgeResult<()> {
         let mut agent_sessions = self.agent_sessions.write().await;
         agent_sessions.insert(agent_id.to_string(), session_context.clone());
         Ok(())
     }
-    
+
     /// Learn from usage patterns
-    pub async fn learn_pattern(&self, agent_id: &str, workflow_type: WorkflowType, context_keys: Vec<String>) -> KnowledgeResult<()> {
+    pub async fn learn_pattern(
+        &self,
+        agent_id: &str,
+        workflow_type: WorkflowType,
+        context_keys: Vec<String>,
+    ) -> KnowledgeResult<()> {
         if !self.config.enable_learning {
             return Ok(());
         }
-        
+
         let pattern_id = format!("{}:{}", agent_id, workflow_type.to_string());
         let mut patterns = self.usage_patterns.write().await;
-        
+
         if let Some(pattern) = patterns.get_mut(&pattern_id) {
             pattern.frequency += 1;
             pattern.last_used = chrono::Utc::now();
@@ -816,7 +925,7 @@ impl UsageAnalyzer {
             };
             patterns.insert(pattern_id, new_pattern);
         }
-        
+
         Ok(())
     }
 }
@@ -828,20 +937,26 @@ impl SuggestionEngine {
             config,
         }
     }
-    
+
     pub async fn initialize(&self) -> KnowledgeResult<()> {
         info!("Initializing suggestion engine");
         // Initialize any required resources
         Ok(())
     }
-    
+
     /// Generate suggestions based on templates
-    pub async fn generate_suggestions(&self, context: &str, content_type: ContentType) -> KnowledgeResult<Vec<ContextSuggestion>> {
+    pub async fn generate_suggestions(
+        &self,
+        context: &str,
+        content_type: ContentType,
+    ) -> KnowledgeResult<Vec<ContextSuggestion>> {
         let mut suggestions = Vec::new();
         let templates = self.suggestion_templates.read().await;
-        
+
         for template in templates.values() {
-            if template.content_type == content_type && self.matches_trigger_conditions(template, context).await? {
+            if template.content_type == content_type
+                && self.matches_trigger_conditions(template, context).await?
+            {
                 let suggestion = ContextSuggestion {
                     suggestion_id: uuid::Uuid::new_v4().to_string(),
                     title: template.name.clone(),
@@ -857,12 +972,16 @@ impl SuggestionEngine {
                 suggestions.push(suggestion);
             }
         }
-        
+
         Ok(suggestions)
     }
-    
+
     /// Check if context matches trigger conditions
-    async fn matches_trigger_conditions(&self, template: &SuggestionTemplate, context: &str) -> KnowledgeResult<bool> {
+    async fn matches_trigger_conditions(
+        &self,
+        template: &SuggestionTemplate,
+        context: &str,
+    ) -> KnowledgeResult<bool> {
         for trigger in &template.trigger_conditions {
             match trigger {
                 SuggestionTrigger::FileType(file_type) => {
@@ -922,4 +1041,4 @@ impl ContextRequirementTypeExt for crate::types::ContextRequirementType {
             crate::types::ContextRequirementType::Configuration => "configuration".to_string(),
         }
     }
-} 
+}

@@ -1,0 +1,54 @@
+[package]
+name = "syneidesis-config"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Centralized configuration management for the Syneidesis ecosystem"
+license.workspace = true
+repository.workspace = true
+keywords = ["configuration", "config", "settings", "management", "yaml", "json", "toml"]
+categories = ["configuration", "development-tools"]
+
+[dependencies]
+# Core dependencies
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+toml = "0.8"
+tokio.workspace = true
+
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Logging
+tracing.workspace = true
+
+# Async utilities
+async-trait.workspace = true
+
+# Environment and file system
+config = "0.14"
+dotenvy = "0.15"
+pathdiff = "0.2"
+
+# Validation
+validator = { version = "0.16", features = ["derive"] }
+
+# Time and UUID
+chrono.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tempfile = "3.8"
+assert_fs = "1.1"
+predicates = "3.0"
+tokio-test = "0.4"
+
+[[example]]
+name = "basic_usage"
+path = "examples/basic_usage.rs"
+
+[[example]]
+name = "integration"
+path = "examples/integration.rs" 

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 use crate::RhemaResult;
 use std::collections::HashMap;
 use std::time::Duration;

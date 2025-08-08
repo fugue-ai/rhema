@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-use crate::ai_service::{AIService, AIRequest, AIResponse};
+use crate::agent::real_time_coordination::{AgentInfo, AgentMessage};
+use crate::ai_service::{AIRequest, AIResponse, AIService};
 use crate::coordination_integration::CoordinationIntegration;
-use crate::agent::real_time_coordination::{
-    AgentInfo, AgentMessage
-};
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, instrument};
-use chrono::{DateTime, Utc};
 
 /// Production-ready integration between AI service and coordination system
 pub struct ProductionIntegration {
@@ -296,7 +294,10 @@ impl ProductionIntegration {
         coordination: CoordinationIntegration,
         config: ProductionConfig,
     ) -> RhemaResult<Self> {
-        info!("Initializing production integration with config: {:?}", config);
+        info!(
+            "Initializing production integration with config: {:?}",
+            config
+        );
 
         let ai_service = Arc::new(ai_service);
         let coordination = Arc::new(coordination);
@@ -363,7 +364,7 @@ impl ProductionIntegration {
         // Check circuit breaker
         if !self.check_circuit_breaker().await? {
             return Err(rhema_core::RhemaError::ServiceUnavailable(
-                "Circuit breaker is open".to_string()
+                "Circuit breaker is open".to_string(),
             ));
         }
 
@@ -388,7 +389,8 @@ impl ProductionIntegration {
 
         // Update metrics
         let duration = start_time.elapsed();
-        self.update_metrics(duration.as_millis() as u64, result.is_ok()).await;
+        self.update_metrics(duration.as_millis() as u64, result.is_ok())
+            .await;
 
         result
     }
@@ -399,7 +401,7 @@ impl ProductionIntegration {
         // Check circuit breaker
         if !self.check_circuit_breaker().await? {
             return Err(rhema_core::RhemaError::ServiceUnavailable(
-                "Circuit breaker is open".to_string()
+                "Circuit breaker is open".to_string(),
             ));
         }
 
@@ -409,7 +411,11 @@ impl ProductionIntegration {
         }
 
         // Send message
-        match self.coordination.send_message_with_coordination(message).await {
+        match self
+            .coordination
+            .send_message_with_coordination(message)
+            .await
+        {
             Ok(()) => {
                 self.record_success().await;
                 Ok(())
@@ -427,7 +433,7 @@ impl ProductionIntegration {
         // Check circuit breaker
         if !self.check_circuit_breaker().await? {
             return Err(rhema_core::RhemaError::ServiceUnavailable(
-                "Circuit breaker is open".to_string()
+                "Circuit breaker is open".to_string(),
             ));
         }
 
@@ -467,13 +473,12 @@ impl ProductionIntegration {
         let coordination = self.coordination.clone();
 
         tokio::spawn(async move {
-            let mut interval_timer = tokio::time::interval(
-                std::time::Duration::from_secs(interval)
-            );
+            let mut interval_timer =
+                tokio::time::interval(std::time::Duration::from_secs(interval));
 
             loop {
                 interval_timer.tick().await;
-                
+
                 let mut monitor = health_monitor.write().await;
                 monitor.last_check = Utc::now();
 
@@ -492,7 +497,7 @@ impl ProductionIntegration {
                         last_check: Utc::now(),
                         response_time_ms: 0,
                         error_message: Some(e.to_string()),
-                    }
+                    },
                 };
 
                 // Check coordination health
@@ -504,11 +509,17 @@ impl ProductionIntegration {
                     error_message: None,
                 };
 
-                monitor.components.insert("ai_service".to_string(), ai_health);
-                monitor.components.insert("coordination".to_string(), coord_health);
+                monitor
+                    .components
+                    .insert("ai_service".to_string(), ai_health);
+                monitor
+                    .components
+                    .insert("coordination".to_string(), coord_health);
 
                 // Update overall health status
-                let unhealthy_components = monitor.components.values()
+                let unhealthy_components = monitor
+                    .components
+                    .values()
                     .filter(|c| c.status == HealthStatus::Unhealthy)
                     .count();
 
@@ -528,7 +539,7 @@ impl ProductionIntegration {
     /// Check circuit breaker status
     async fn check_circuit_breaker(&self) -> RhemaResult<bool> {
         let mut breaker = self.circuit_breaker.write().await;
-        
+
         match breaker.state {
             CircuitBreakerState::Closed => Ok(true),
             CircuitBreakerState::Open => {
@@ -578,7 +589,7 @@ impl ProductionIntegration {
     /// Select node for load balancing
     async fn select_node(&self) -> RhemaResult<Option<String>> {
         let mut balancer = self.load_balancer.write().await;
-        
+
         if balancer.nodes.is_empty() {
             return Ok(None);
         }
@@ -589,12 +600,12 @@ impl ProductionIntegration {
                 balancer.current_index = (balancer.current_index + 1) % balancer.nodes.len();
                 node_id
             }
-            LoadBalancingStrategy::LeastConnections => {
-                balancer.nodes.iter()
-                    .min_by_key(|node| node.current_load)
-                    .map(|node| node.id.clone())
-                    .unwrap_or_default()
-            }
+            LoadBalancingStrategy::LeastConnections => balancer
+                .nodes
+                .iter()
+                .min_by_key(|node| node.current_load)
+                .map(|node| node.id.clone())
+                .unwrap_or_default(),
             LoadBalancingStrategy::WeightedRoundRobin => {
                 // Simplified weighted round robin
                 let node_id = balancer.nodes[balancer.current_index].id.clone();
@@ -607,7 +618,9 @@ impl ProductionIntegration {
             }
             LoadBalancingStrategy::Adaptive => {
                 // Simplified adaptive - use least connections
-                balancer.nodes.iter()
+                balancer
+                    .nodes
+                    .iter()
                     .min_by_key(|node| node.current_load)
                     .map(|node| node.id.clone())
                     .unwrap_or_default()
@@ -633,7 +646,8 @@ impl ProductionIntegration {
         }
 
         // Update average response time
-        let total_time = metrics.avg_response_time_ms * (metrics.total_requests - 1) + response_time_ms;
+        let total_time =
+            metrics.avg_response_time_ms * (metrics.total_requests - 1) + response_time_ms;
         metrics.avg_response_time_ms = total_time / metrics.total_requests;
     }
 
@@ -746,17 +760,12 @@ mod tests {
         };
 
         let ai_service = AIService::new(ai_config).await.unwrap();
-        let coordination = CoordinationIntegration::new(
-            RealTimeCoordinationSystem::new(),
-            None
-        ).await.unwrap();
+        let coordination = CoordinationIntegration::new(RealTimeCoordinationSystem::new(), None)
+            .await
+            .unwrap();
         let config = ProductionConfig::default();
 
-        let integration = ProductionIntegration::new(
-            ai_service,
-            coordination,
-            config
-        ).await;
+        let integration = ProductionIntegration::new(ai_service, coordination, config).await;
 
         assert!(integration.is_ok());
     }
@@ -790,18 +799,15 @@ mod tests {
         };
 
         let ai_service = AIService::new(ai_config).await.unwrap();
-        let coordination = CoordinationIntegration::new(
-            RealTimeCoordinationSystem::new(),
-            None
-        ).await.unwrap();
+        let coordination = CoordinationIntegration::new(RealTimeCoordinationSystem::new(), None)
+            .await
+            .unwrap();
         let mut config = ProductionConfig::default();
         config.circuit_breaker.failure_threshold = 2;
 
-        let integration = ProductionIntegration::new(
-            ai_service,
-            coordination,
-            config
-        ).await.unwrap();
+        let integration = ProductionIntegration::new(ai_service, coordination, config)
+            .await
+            .unwrap();
 
         // Initially circuit breaker should be closed
         let status = integration.get_circuit_breaker_status().await;
@@ -812,4 +818,4 @@ mod tests {
         let status = integration.get_circuit_breaker_status().await;
         assert!(matches!(status, CircuitBreakerState::Closed));
     }
-} 
+}

@@ -220,7 +220,9 @@ pub struct ImpactAnalysisResult {
 }
 
 /// Risk level enumeration
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub enum RiskLevel {
     Low,
     Medium,
@@ -276,4 +278,4 @@ mod tests {
         assert!(RiskLevel::Medium < RiskLevel::High);
         assert!(RiskLevel::High < RiskLevel::Critical);
     }
-} 
+}

@@ -1,4 +1,8 @@
-use crate::git::workflow::{WorkflowConfig, WorkflowType, BranchConventions, ContextRules, ReleaseManagement, PullRequestSettings, AutomationSettings, AdvancedWorkflowFeatures, ContextAwareWorkflowSettings, WorkflowIntegrationSettings};
+use crate::git::workflow::{
+    AdvancedWorkflowFeatures, AutomationSettings, BranchConventions, ContextAwareWorkflowSettings,
+    ContextRules, PullRequestSettings, ReleaseManagement, WorkflowConfig,
+    WorkflowIntegrationSettings, WorkflowType,
+};
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -31,7 +35,8 @@ impl WorkflowTemplateManager {
         match template_type {
             WorkflowTemplateType::GitFlow => Ok(WorkflowTemplate {
                 name: "GitFlow".to_string(),
-                description: "A branching model designed for teams working on software projects".to_string(),
+                description: "A branching model designed for teams working on software projects"
+                    .to_string(),
                 template_type: WorkflowTemplateType::GitFlow,
                 config: Self::default_git_flow_config(),
             }),
@@ -53,7 +58,9 @@ impl WorkflowTemplateManager {
                 template_type: WorkflowTemplateType::TrunkBased,
                 config: Self::default_trunk_based_config(),
             }),
-            WorkflowTemplateType::Custom(_) => Err(RhemaError::ConfigError("Custom templates not supported yet".to_string())),
+            WorkflowTemplateType::Custom(_) => Err(RhemaError::ConfigError(
+                "Custom templates not supported yet".to_string(),
+            )),
         }
     }
 
@@ -68,7 +75,10 @@ impl WorkflowTemplateManager {
     }
 
     /// Apply customization to template
-    pub fn apply_customization(template: &WorkflowTemplate, customizations: &HashMap<String, serde_json::Value>) -> RhemaResult<WorkflowConfig> {
+    pub fn apply_customization(
+        template: &WorkflowTemplate,
+        customizations: &HashMap<String, serde_json::Value>,
+    ) -> RhemaResult<WorkflowConfig> {
         // Implementation for applying customizations
         Ok(template.config.clone())
     }
@@ -148,31 +158,34 @@ impl WorkflowTemplateManager {
                 context_backup_workflows: true,
             },
             context_aware: ContextAwareWorkflowSettings {
-                context_aware_feature_branching: crate::git::workflow::ContextAwareFeatureBranching {
-                    auto_isolate_context: true,
-                    auto_sync_parent: true,
-                    auto_validate_before_merge: true,
-                    auto_resolve_conflicts: true,
-                    inheritance_rules: vec![],
-                    boundary_rules: vec![],
-                    validation_rules: vec![],
-                },
-                context_aware_release_management: crate::git::workflow::ContextAwareReleaseManagement {
-                    auto_prepare_context: true,
-                    auto_validate_release_context: true,
-                    auto_generate_release_notes: true,
-                    auto_update_version: true,
-                    validation_rules: vec![],
-                    preparation_steps: vec![],
-                    cleanup_steps: vec![],
-                },
-                context_aware_hotfix_management: crate::git::workflow::ContextAwareHotfixManagement {
-                    auto_isolate_context: true,
-                    auto_validate_context: true,
-                    auto_merge_context: true,
-                    validation_rules: vec![],
-                    merge_strategies: vec![],
-                },
+                context_aware_feature_branching:
+                    crate::git::workflow::ContextAwareFeatureBranching {
+                        auto_isolate_context: true,
+                        auto_sync_parent: true,
+                        auto_validate_before_merge: true,
+                        auto_resolve_conflicts: true,
+                        inheritance_rules: vec![],
+                        boundary_rules: vec![],
+                        validation_rules: vec![],
+                    },
+                context_aware_release_management:
+                    crate::git::workflow::ContextAwareReleaseManagement {
+                        auto_prepare_context: true,
+                        auto_validate_release_context: true,
+                        auto_generate_release_notes: true,
+                        auto_update_version: true,
+                        validation_rules: vec![],
+                        preparation_steps: vec![],
+                        cleanup_steps: vec![],
+                    },
+                context_aware_hotfix_management:
+                    crate::git::workflow::ContextAwareHotfixManagement {
+                        auto_isolate_context: true,
+                        auto_validate_context: true,
+                        auto_merge_context: true,
+                        validation_rules: vec![],
+                        merge_strategies: vec![],
+                    },
                 context_aware_pr_analysis: crate::git::workflow::ContextAwarePrAnalysis {
                     auto_analyze_context_changes: true,
                     auto_detect_conflicts: true,
@@ -245,4 +258,4 @@ impl WorkflowTemplateManager {
     fn default_trunk_based_config() -> WorkflowConfig {
         Self::default_git_flow_config()
     }
-} 
+}

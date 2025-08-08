@@ -1,10 +1,10 @@
+use chrono::{DateTime, Duration, Utc};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc, Duration};
-use reqwest::Client;
-use sha2::{Sha256, Digest};
 
 use crate::error::{Error, Result};
 use crate::types::{DependencyConfig, DependencyType, HealthStatus};
@@ -303,10 +303,7 @@ impl Default for SecurityScannerConfig {
                 "https://nvd.nist.gov/vuln/data-feeds".to_string(),
                 "https://cve.mitre.org/data/downloads/".to_string(),
             ],
-            compliance_standards: vec![
-                ComplianceStandard::OwaspTop10,
-                ComplianceStandard::NistCsf,
-            ],
+            compliance_standards: vec![ComplianceStandard::OwaspTop10, ComplianceStandard::NistCsf],
             minimum_severity: VulnerabilitySeverity::Medium,
             scan_timeout: std::time::Duration::from_secs(300), // 5 minutes
             cache_ttl: Duration::hours(24),
@@ -355,7 +352,10 @@ impl SecurityScanner {
     }
 
     /// Scan a dependency for security issues
-    pub async fn scan_dependency(&self, dependency: &DependencyConfig) -> Result<SecurityScanResult> {
+    pub async fn scan_dependency(
+        &self,
+        dependency: &DependencyConfig,
+    ) -> Result<SecurityScanResult> {
         let start_time = std::time::Instant::now();
 
         // Check cache first
@@ -389,7 +389,8 @@ impl SecurityScanner {
         let recommendations = self.generate_recommendations(&vulnerabilities, &compliance_checks);
 
         // Perform risk assessment
-        let risk_assessment = self.perform_risk_assessment(dependency, &vulnerabilities, &compliance_checks);
+        let risk_assessment =
+            self.perform_risk_assessment(dependency, &vulnerabilities, &compliance_checks);
 
         let scan_duration = start_time.elapsed();
 
@@ -415,7 +416,10 @@ impl SecurityScanner {
     }
 
     /// Scan for vulnerabilities
-    async fn scan_vulnerabilities(&self, dependency: &DependencyConfig) -> Result<Vec<Vulnerability>> {
+    async fn scan_vulnerabilities(
+        &self,
+        dependency: &DependencyConfig,
+    ) -> Result<Vec<Vulnerability>> {
         // Check cache first
         {
             let cache = self.vulnerability_cache.read().await;
@@ -447,9 +451,12 @@ impl SecurityScanner {
     }
 
     /// Check known vulnerabilities database
-    async fn check_known_vulnerabilities(&self, dependency: &DependencyConfig) -> Result<Vec<Vulnerability>> {
+    async fn check_known_vulnerabilities(
+        &self,
+        dependency: &DependencyConfig,
+    ) -> Result<Vec<Vulnerability>> {
         let known_vulns = self.known_vulnerabilities.read().await;
-        
+
         // This is a simplified implementation
         // In a real implementation, you would check against a comprehensive vulnerability database
         let mut vulnerabilities = Vec::new();
@@ -480,13 +487,17 @@ impl SecurityScanner {
                     vulnerabilities.push(Vulnerability {
                         id: "SEC-002".to_string(),
                         title: "Potential SQL Injection Risk".to_string(),
-                        description: "Database dependency may be vulnerable to SQL injection".to_string(),
+                        description: "Database dependency may be vulnerable to SQL injection"
+                            .to_string(),
                         severity: VulnerabilitySeverity::High,
                         cvss_score: 8.0,
                         affected_versions: vec!["all".to_string()],
                         fixed_versions: vec![],
                         vulnerability_type: VulnerabilityType::SqlInjection,
-                        references: vec!["https://owasp.org/www-project-top-ten/2017/A1_2017-Injection".to_string()],
+                        references: vec![
+                            "https://owasp.org/www-project-top-ten/2017/A1_2017-Injection"
+                                .to_string(),
+                        ],
                         published_date: None,
                         last_updated: Utc::now(),
                     });
@@ -499,19 +510,25 @@ impl SecurityScanner {
     }
 
     /// Check external vulnerability databases
-    async fn check_external_databases(&self, _dependency: &DependencyConfig) -> Result<Vec<Vulnerability>> {
+    async fn check_external_databases(
+        &self,
+        _dependency: &DependencyConfig,
+    ) -> Result<Vec<Vulnerability>> {
         // This is a placeholder for external database checks
         // In a real implementation, you would:
         // 1. Query NVD API
         // 2. Query CVE database
         // 3. Query vendor-specific vulnerability databases
         // 4. Query security advisories
-        
+
         Ok(Vec::new())
     }
 
     /// Check compliance with security standards
-    async fn check_compliance(&self, dependency: &DependencyConfig) -> Result<Vec<ComplianceCheck>> {
+    async fn check_compliance(
+        &self,
+        dependency: &DependencyConfig,
+    ) -> Result<Vec<ComplianceCheck>> {
         // Check cache first
         {
             let cache = self.compliance_cache.read().await;
@@ -558,7 +575,10 @@ impl SecurityScanner {
     }
 
     /// Check OWASP Top 10 compliance
-    async fn check_owasp_compliance(&self, dependency: &DependencyConfig) -> Result<ComplianceCheck> {
+    async fn check_owasp_compliance(
+        &self,
+        dependency: &DependencyConfig,
+    ) -> Result<ComplianceCheck> {
         let mut failed_requirements = Vec::new();
         let mut passed_requirements = Vec::new();
         let mut recommendations = Vec::new();
@@ -605,7 +625,10 @@ impl SecurityScanner {
     }
 
     /// Check NIST CSF compliance
-    async fn check_nist_compliance(&self, _dependency: &DependencyConfig) -> Result<ComplianceCheck> {
+    async fn check_nist_compliance(
+        &self,
+        _dependency: &DependencyConfig,
+    ) -> Result<ComplianceCheck> {
         // Simplified NIST CSF compliance check
         Ok(ComplianceCheck {
             standard: ComplianceStandard::NistCsf,
@@ -646,9 +669,11 @@ impl SecurityScanner {
 
         // Consider compliance scores
         if !compliance_checks.is_empty() {
-            let avg_compliance_score = compliance_checks.iter()
+            let avg_compliance_score = compliance_checks
+                .iter()
                 .map(|check| check.score)
-                .sum::<f64>() / compliance_checks.len() as f64;
+                .sum::<f64>()
+                / compliance_checks.len() as f64;
             score = (score + avg_compliance_score) / 2.0;
         }
 
@@ -661,11 +686,13 @@ impl SecurityScanner {
         security_score: f64,
         vulnerabilities: &[Vulnerability],
     ) -> SecurityStatus {
-        let critical_vulns = vulnerabilities.iter()
+        let critical_vulns = vulnerabilities
+            .iter()
             .filter(|v| v.severity == VulnerabilitySeverity::Critical)
             .count();
 
-        let high_vulns = vulnerabilities.iter()
+        let high_vulns = vulnerabilities
+            .iter()
             .filter(|v| v.severity == VulnerabilitySeverity::High)
             .count();
 
@@ -736,7 +763,10 @@ impl SecurityScanner {
                 recommendations.push(SecurityRecommendation {
                     id: format!("COMP-{}", check.standard.to_string()),
                     title: format!("Improve {} compliance", check.standard.to_string()),
-                    description: format!("Address failed compliance requirements for {}", check.standard.to_string()),
+                    description: format!(
+                        "Address failed compliance requirements for {}",
+                        check.standard.to_string()
+                    ),
                     priority: RecommendationPriority::High,
                     effort: ImplementationEffort::Medium,
                     impact: SecurityImpact::High,
@@ -834,7 +864,7 @@ impl SecurityScanner {
     /// Clear expired cache entries
     pub async fn clear_expired_cache(&self) {
         let now = Utc::now();
-        
+
         // Clear scan cache
         {
             let mut cache = self.scan_cache.write().await;
@@ -864,12 +894,14 @@ impl SecurityScanner {
         let total_vulnerabilities = vuln_cache.values().map(|v| v.len()).sum();
         let total_compliance_checks = comp_cache.values().map(|v| v.len()).sum();
 
-        let critical_vulns = scan_cache.values()
+        let critical_vulns = scan_cache
+            .values()
             .flat_map(|result| &result.vulnerabilities)
             .filter(|v| v.severity == VulnerabilitySeverity::Critical)
             .count();
 
-        let high_vulns = scan_cache.values()
+        let high_vulns = scan_cache
+            .values()
             .flat_map(|result| &result.vulnerabilities)
             .filter(|v| v.severity == VulnerabilitySeverity::High)
             .count();
@@ -880,9 +912,11 @@ impl SecurityScanner {
             total_compliance_checks,
             critical_vulnerabilities: critical_vulns,
             high_vulnerabilities: high_vulns,
-            average_security_score: scan_cache.values()
+            average_security_score: scan_cache
+                .values()
                 .map(|result| result.security_score)
-                .sum::<f64>() / total_scans.max(1) as f64,
+                .sum::<f64>()
+                / total_scans.max(1) as f64,
         }
     }
 }
@@ -909,14 +943,19 @@ mod tests {
     use super::*;
     use crate::types::DependencyConfig;
 
-    fn create_test_dependency(id: &str, name: &str, dependency_type: DependencyType) -> DependencyConfig {
+    fn create_test_dependency(
+        id: &str,
+        name: &str,
+        dependency_type: DependencyType,
+    ) -> DependencyConfig {
         DependencyConfig::new(
             id.to_string(),
             name.to_string(),
             dependency_type,
             "test-target".to_string(),
             vec!["test".to_string()],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[tokio::test]
@@ -929,8 +968,9 @@ mod tests {
     #[tokio::test]
     async fn test_scan_dependency() {
         let scanner = SecurityScanner::new();
-        let dependency = create_test_dependency("test-dep", "Test Dependency", DependencyType::ApiCall);
-        
+        let dependency =
+            create_test_dependency("test-dep", "Test Dependency", DependencyType::ApiCall);
+
         let result = scanner.scan_dependency(&dependency).await.unwrap();
         assert_eq!(result.dependency_id, "test-dep");
         assert!(result.security_score >= 0.0 && result.security_score <= 1.0);
@@ -939,21 +979,19 @@ mod tests {
     #[tokio::test]
     async fn test_calculate_security_score() {
         let scanner = SecurityScanner::new();
-        let vulnerabilities = vec![
-            Vulnerability {
-                id: "TEST-001".to_string(),
-                title: "Test Vulnerability".to_string(),
-                description: "Test description".to_string(),
-                severity: VulnerabilitySeverity::Medium,
-                cvss_score: 5.0,
-                affected_versions: vec!["1.0.0".to_string()],
-                fixed_versions: vec!["1.0.1".to_string()],
-                vulnerability_type: VulnerabilityType::InformationDisclosure,
-                references: vec![],
-                published_date: None,
-                last_updated: Utc::now(),
-            }
-        ];
+        let vulnerabilities = vec![Vulnerability {
+            id: "TEST-001".to_string(),
+            title: "Test Vulnerability".to_string(),
+            description: "Test description".to_string(),
+            severity: VulnerabilitySeverity::Medium,
+            cvss_score: 5.0,
+            affected_versions: vec!["1.0.0".to_string()],
+            fixed_versions: vec!["1.0.1".to_string()],
+            vulnerability_type: VulnerabilityType::InformationDisclosure,
+            references: vec![],
+            published_date: None,
+            last_updated: Utc::now(),
+        }];
         let compliance_checks = vec![];
 
         let score = scanner.calculate_security_score(&vulnerabilities, &compliance_checks);
@@ -963,23 +1001,21 @@ mod tests {
     #[test]
     fn test_determine_security_status() {
         let scanner = SecurityScanner::new();
-        let vulnerabilities = vec![
-            Vulnerability {
-                id: "TEST-001".to_string(),
-                title: "Critical Vulnerability".to_string(),
-                description: "Critical test".to_string(),
-                severity: VulnerabilitySeverity::Critical,
-                cvss_score: 9.0,
-                affected_versions: vec!["1.0.0".to_string()],
-                fixed_versions: vec![],
-                vulnerability_type: VulnerabilityType::RemoteCodeExecution,
-                references: vec![],
-                published_date: None,
-                last_updated: Utc::now(),
-            }
-        ];
+        let vulnerabilities = vec![Vulnerability {
+            id: "TEST-001".to_string(),
+            title: "Critical Vulnerability".to_string(),
+            description: "Critical test".to_string(),
+            severity: VulnerabilitySeverity::Critical,
+            cvss_score: 9.0,
+            affected_versions: vec!["1.0.0".to_string()],
+            fixed_versions: vec![],
+            vulnerability_type: VulnerabilityType::RemoteCodeExecution,
+            references: vec![],
+            published_date: None,
+            last_updated: Utc::now(),
+        }];
 
         let status = scanner.determine_security_status(0.8, &vulnerabilities);
         assert_eq!(status, SecurityStatus::CriticalRisk);
     }
-} 
+}

@@ -15,8 +15,8 @@
  */
 
 use rhema_mcp::{
-    AuthManager, CacheManager, ContextProvider, FileWatcher, McpConfig, OfficialRhemaMcpServer,
-    PerformanceMetrics, EnhancedConnectionPool, ConnectionPoolStats,
+    AuthManager, CacheManager, ConnectionPoolStats, ContextProvider, EnhancedConnectionPool,
+    FileWatcher, McpConfig, OfficialRhemaMcpServer, PerformanceMetrics,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -42,16 +42,17 @@ async fn test_enhanced_jwt_token_validation() {
     let permissions = vec!["read".to_string(), "write".to_string()];
     let ttl_hours = 1;
 
-    let jwt_token = auth_manager.create_jwt_token(user_id, permissions.clone(), ttl_hours).await;
+    let jwt_token = auth_manager
+        .create_jwt_token(user_id, permissions.clone(), ttl_hours)
+        .await;
     assert!(jwt_token.is_ok(), "JWT token creation should succeed");
 
     let token = jwt_token.unwrap();
 
     // Test JWT token validation
-    let auth_result = auth_manager.authenticate(
-        Some(&format!("Bearer {}", token)),
-        None,
-    ).await;
+    let auth_result = auth_manager
+        .authenticate(Some(&format!("Bearer {}", token)), None)
+        .await;
     assert!(auth_result.is_ok(), "JWT token validation should succeed");
 
     let result = auth_result.unwrap();
@@ -77,33 +78,45 @@ async fn test_refresh_token_functionality() {
     let refresh_ttl_hours = 24;
 
     // Create refresh token
-    let refresh_token = auth_manager.create_refresh_token(user_id, refresh_ttl_hours).await;
-    assert!(refresh_token.is_ok(), "Refresh token creation should succeed");
+    let refresh_token = auth_manager
+        .create_refresh_token(user_id, refresh_ttl_hours)
+        .await;
+    assert!(
+        refresh_token.is_ok(),
+        "Refresh token creation should succeed"
+    );
 
     let refresh_token = refresh_token.unwrap();
 
     // Test refresh token validation
-    let auth_result = auth_manager.authenticate(
-        Some(&format!("Bearer {}", refresh_token)),
-        None,
-    ).await;
-    assert!(auth_result.is_ok(), "Refresh token validation should succeed");
+    let auth_result = auth_manager
+        .authenticate(Some(&format!("Bearer {}", refresh_token)), None)
+        .await;
+    assert!(
+        auth_result.is_ok(),
+        "Refresh token validation should succeed"
+    );
 
     let result = auth_result.unwrap();
-    assert!(result.authenticated, "User should be authenticated with refresh token");
+    assert!(
+        result.authenticated,
+        "User should be authenticated with refresh token"
+    );
     assert_eq!(result.user_id, Some(user_id.to_string()));
 
     // Test access token refresh
     let new_access_token = auth_manager.refresh_access_token(&refresh_token, 1).await;
-    assert!(new_access_token.is_ok(), "Access token refresh should succeed");
+    assert!(
+        new_access_token.is_ok(),
+        "Access token refresh should succeed"
+    );
 
     let new_token = new_access_token.unwrap();
-    
+
     // Validate the new access token
-    let auth_result = auth_manager.authenticate(
-        Some(&format!("Bearer {}", new_token)),
-        None,
-    ).await;
+    let auth_result = auth_manager
+        .authenticate(Some(&format!("Bearer {}", new_token)), None)
+        .await;
     assert!(auth_result.is_ok(), "New access token should be valid");
 }
 
@@ -126,26 +139,33 @@ async fn test_enhanced_api_key_management() {
     let description = Some("Test API key for enhanced features".to_string());
 
     // Create enhanced API key
-    let api_key = auth_manager.create_enhanced_api_key(
-        user_id,
-        permissions.clone(),
-        ttl_hours,
-        max_usage,
-        description,
-    ).await;
+    let api_key = auth_manager
+        .create_enhanced_api_key(
+            user_id,
+            permissions.clone(),
+            ttl_hours,
+            max_usage,
+            description,
+        )
+        .await;
     assert!(api_key.is_ok(), "Enhanced API key creation should succeed");
 
     let api_key = api_key.unwrap();
 
     // Test API key validation
-    let auth_result = auth_manager.authenticate(
-        Some(&format!("Bearer {}", api_key)),
-        None,
-    ).await;
-    assert!(auth_result.is_ok(), "Enhanced API key validation should succeed");
+    let auth_result = auth_manager
+        .authenticate(Some(&format!("Bearer {}", api_key)), None)
+        .await;
+    assert!(
+        auth_result.is_ok(),
+        "Enhanced API key validation should succeed"
+    );
 
     let result = auth_result.unwrap();
-    assert!(result.authenticated, "User should be authenticated with enhanced API key");
+    assert!(
+        result.authenticated,
+        "User should be authenticated with enhanced API key"
+    );
     assert_eq!(result.user_id, Some(user_id.to_string()));
     assert_eq!(result.permissions, permissions);
 }
@@ -176,22 +196,29 @@ async fn test_secure_session_management() {
     };
 
     // Create secure session
-    let session_id = auth_manager.create_secure_session(
-        user_id,
-        permissions.clone(),
-        Some(client_info.clone()),
-        session_ttl_hours,
-    ).await;
+    let session_id = auth_manager
+        .create_secure_session(
+            user_id,
+            permissions.clone(),
+            Some(client_info.clone()),
+            session_ttl_hours,
+        )
+        .await;
     assert!(session_id.is_ok(), "Secure session creation should succeed");
 
     let session_id = session_id.unwrap();
 
     // Test session validation
-    let auth_result = auth_manager.validate_session_enhanced(&session_id, Some(client_info.clone())).await;
+    let auth_result = auth_manager
+        .validate_session_enhanced(&session_id, Some(client_info.clone()))
+        .await;
     assert!(auth_result.is_ok(), "Session validation should succeed");
 
     let result = auth_result.unwrap();
-    assert!(result.authenticated, "User should be authenticated with session");
+    assert!(
+        result.authenticated,
+        "User should be authenticated with session"
+    );
     assert_eq!(result.user_id, Some(user_id.to_string()));
     assert_eq!(result.permissions, permissions);
     assert_eq!(result.session_id, Some(session_id.clone()));
@@ -204,12 +231,23 @@ async fn test_secure_session_management() {
         fingerprint: Some("test-fingerprint".to_string()),
     };
 
-    let auth_result = auth_manager.validate_session_enhanced(&session_id, Some(different_client_info)).await;
-    assert!(auth_result.is_ok(), "Session validation with different IP should succeed");
+    let auth_result = auth_manager
+        .validate_session_enhanced(&session_id, Some(different_client_info))
+        .await;
+    assert!(
+        auth_result.is_ok(),
+        "Session validation with different IP should succeed"
+    );
 
     let result = auth_result.unwrap();
-    assert!(!result.authenticated, "Session should be invalidated due to IP change");
-    assert!(result.error.is_some(), "Should have error message for IP change");
+    assert!(
+        !result.authenticated,
+        "Session should be invalidated due to IP change"
+    );
+    assert!(
+        result.error.is_some(),
+        "Should have error message for IP change"
+    );
 }
 
 #[tokio::test]
@@ -255,14 +293,34 @@ async fn test_enhanced_performance_metrics() {
     let response_size = 2048;
 
     metrics.record_request(duration, request_size, response_size);
-    assert_eq!(metrics.request_count.load(std::sync::atomic::Ordering::Relaxed), 1);
-    assert_eq!(metrics.request_size.load(std::sync::atomic::Ordering::Relaxed), request_size as u64);
-    assert_eq!(metrics.response_size.load(std::sync::atomic::Ordering::Relaxed), response_size as u64);
+    assert_eq!(
+        metrics
+            .request_count
+            .load(std::sync::atomic::Ordering::Relaxed),
+        1
+    );
+    assert_eq!(
+        metrics
+            .request_size
+            .load(std::sync::atomic::Ordering::Relaxed),
+        request_size as u64
+    );
+    assert_eq!(
+        metrics
+            .response_size
+            .load(std::sync::atomic::Ordering::Relaxed),
+        response_size as u64
+    );
 
     // Test slow request tracking
     let slow_duration = Duration::from_secs(2);
     metrics.record_request(slow_duration, 512, 1024);
-    assert_eq!(metrics.slow_requests.load(std::sync::atomic::Ordering::Relaxed), 1);
+    assert_eq!(
+        metrics
+            .slow_requests
+            .load(std::sync::atomic::Ordering::Relaxed),
+        1
+    );
 
     // Test error rate calculation
     metrics.record_error();
@@ -285,7 +343,12 @@ async fn test_enhanced_performance_metrics() {
     metrics.increment_concurrent_requests();
     metrics.increment_concurrent_requests();
     metrics.decrement_concurrent_requests();
-    assert_eq!(metrics.concurrent_requests.load(std::sync::atomic::Ordering::Relaxed), 1);
+    assert_eq!(
+        metrics
+            .concurrent_requests
+            .load(std::sync::atomic::Ordering::Relaxed),
+        1
+    );
 }
 
 #[tokio::test]
@@ -303,12 +366,18 @@ async fn test_connection_pool_performance() {
 
     // Test pool exhaustion
     let guard = pool.acquire().await;
-    assert!(guard.is_err(), "Connection should be denied when pool is full");
+    assert!(
+        guard.is_err(),
+        "Connection should be denied when pool is full"
+    );
 
     // Test connection release
     guards.pop(); // Release one connection
     let guard = pool.acquire().await;
-    assert!(guard.is_ok(), "Connection should be available after release");
+    assert!(
+        guard.is_ok(),
+        "Connection should be available after release"
+    );
 
     // Test pool statistics
     let stats = pool.get_stats();
@@ -338,26 +407,42 @@ async fn test_security_monitoring() {
 
     // Test failed attempt tracking
     for i in 0..3 {
-        let locked_out = auth_manager.security_monitor().record_failed_attempt(identifier).await;
-        assert!(!locked_out, "User should not be locked out after {} attempts", i + 1);
+        let locked_out = auth_manager
+            .security_monitor()
+            .record_failed_attempt(identifier)
+            .await;
+        assert!(
+            !locked_out,
+            "User should not be locked out after {} attempts",
+            i + 1
+        );
     }
 
     // Test lockout after max attempts
-    let locked_out = auth_manager.security_monitor().record_failed_attempt(identifier).await;
+    let locked_out = auth_manager
+        .security_monitor()
+        .record_failed_attempt(identifier)
+        .await;
     assert!(locked_out, "User should be locked out after max attempts");
 
     // Test lockout status
-    let is_locked = auth_manager.security_monitor().is_locked_out(identifier).await;
+    let is_locked = auth_manager
+        .security_monitor()
+        .is_locked_out(identifier)
+        .await;
     assert!(is_locked, "User should be locked out");
 
     // Test security event recording
-    auth_manager.security_monitor().record_security_event(
-        rhema_mcp::SecurityEventType::BruteForceAttempt,
-        Some("192.168.1.100".to_string()),
-        Some(identifier.to_string()),
-        "Multiple failed login attempts detected".to_string(),
-        rhema_mcp::SecuritySeverity::High,
-    ).await;
+    auth_manager
+        .security_monitor()
+        .record_security_event(
+            rhema_mcp::SecurityEventType::BruteForceAttempt,
+            Some("192.168.1.100".to_string()),
+            Some(identifier.to_string()),
+            "Multiple failed login attempts detected".to_string(),
+            rhema_mcp::SecuritySeverity::High,
+        )
+        .await;
 
     let events = auth_manager.security_monitor().get_security_events().await;
     assert!(!events.is_empty(), "Security events should be recorded");
@@ -382,17 +467,20 @@ async fn test_audit_logging() {
     let user_agent = "TestClient/1.0";
 
     // Test audit logging
-    auth_manager.audit_logger().log(
-        rhema_mcp::AuditEventType::Authentication,
-        "test_login",
-        rhema_mcp::AuditResult::Success,
-        Some(user_id.to_string()),
-        Some(client_ip.to_string()),
-        Some(user_agent.to_string()),
-        Some("/api/login".to_string()),
-        Some("session-123".to_string()),
-        std::collections::HashMap::new(),
-    ).await;
+    auth_manager
+        .audit_logger()
+        .log(
+            rhema_mcp::AuditEventType::Authentication,
+            "test_login",
+            rhema_mcp::AuditResult::Success,
+            Some(user_id.to_string()),
+            Some(client_ip.to_string()),
+            Some(user_agent.to_string()),
+            Some("/api/login".to_string()),
+            Some("session-123".to_string()),
+            std::collections::HashMap::new(),
+        )
+        .await;
 
     // Note: In a real test, we would verify the audit log file contents
     // For now, we just ensure the logging doesn't panic
@@ -427,14 +515,16 @@ async fn test_comprehensive_security_integration() {
     let file_watcher_future = FileWatcher::new(&file_watcher_config, repo_root);
     let file_watcher = Arc::new(file_watcher_future.await.unwrap());
     let auth_manager = Arc::new(AuthManager::new(&config.auth).unwrap());
-    
+
     let server = OfficialRhemaMcpServer::new(
         context_provider,
         cache_manager,
         file_watcher,
         auth_manager,
         &config,
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     // Test server health
     let health = server.health().await;
@@ -472,7 +562,10 @@ async fn test_performance_optimization_features() {
     let test_value = serde_json::json!({"data": "test", "timestamp": chrono::Utc::now()});
 
     // Test cache operations
-    cache_manager.set(test_key, test_value.clone()).await.unwrap();
+    cache_manager
+        .set(test_key, test_value.clone())
+        .await
+        .unwrap();
     let cached_value = cache_manager.get(test_key).await.unwrap();
     assert!(cached_value.is_some(), "Value should be cached");
 
@@ -482,7 +575,7 @@ async fn test_performance_optimization_features() {
 
     // Test performance under load
     let start_time = std::time::Instant::now();
-    
+
     // Simulate multiple concurrent operations
     let mut handles = Vec::new();
     for i in 0..10 {
@@ -503,9 +596,12 @@ async fn test_performance_optimization_features() {
     }
 
     let duration = start_time.elapsed();
-    assert!(duration < Duration::from_secs(5), "Performance test should complete quickly");
+    assert!(
+        duration < Duration::from_secs(5),
+        "Performance test should complete quickly"
+    );
 
     // Test memory usage tracking
     let memory_usage = cache_manager.memory_usage().await;
     assert!(memory_usage > 0, "Memory usage should be tracked");
-} 
+}

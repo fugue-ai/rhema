@@ -1,13 +1,11 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::{RwLock, broadcast};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::{broadcast, RwLock};
 use tokio::time::{Duration, Instant};
 
-use super::{
-    PatternContext, PatternResult, PatternError, PatternPhase, PatternPerformanceMetrics
-};
+use super::{PatternContext, PatternError, PatternPerformanceMetrics, PatternPhase, PatternResult};
 
 /// Monitoring event types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,7 +188,7 @@ pub struct PatternMonitor {
 impl PatternMonitor {
     pub fn new(config: MonitoringConfig) -> Self {
         let (event_sender, _) = broadcast::channel(1000);
-        
+
         Self {
             config,
             events: Arc::new(RwLock::new(Vec::new())),
@@ -204,7 +202,7 @@ impl PatternMonitor {
     /// Start monitoring a pattern
     pub async fn start_monitoring(&self, pattern_id: &str, context: &PatternContext) {
         let start_time = Instant::now();
-        
+
         {
             let mut start_times = self.start_times.write().await;
             start_times.insert(pattern_id.to_string(), start_time);
@@ -285,7 +283,7 @@ impl PatternMonitor {
         {
             let mut events = self.events.write().await;
             events.push(event.clone());
-            
+
             // Maintain event limit
             if events.len() > self.config.max_events_in_memory {
                 events.remove(0);
@@ -297,7 +295,13 @@ impl PatternMonitor {
     }
 
     /// Update pattern phase
-    pub async fn update_phase(&self, pattern_id: &str, from_phase: PatternPhase, to_phase: PatternPhase, progress: f64) {
+    pub async fn update_phase(
+        &self,
+        pattern_id: &str,
+        from_phase: PatternPhase,
+        to_phase: PatternPhase,
+        progress: f64,
+    ) {
         let event = MonitoringEvent::PhaseChanged {
             pattern_id: pattern_id.to_string(),
             timestamp: Utc::now(),
@@ -314,7 +318,7 @@ impl PatternMonitor {
             updated_metrics.current_phase = to_phase;
             updated_metrics.progress_percentage = progress;
             updated_metrics.timestamp = Utc::now();
-            
+
             {
                 let mut metrics_map = self.metrics.write().await;
                 metrics_map.insert(pattern_id.to_string(), updated_metrics);
@@ -346,7 +350,7 @@ impl PatternMonitor {
     /// Update resource usage
     pub async fn update_resource_usage(&self, pattern_id: &str, context: &PatternContext) {
         let resource_snapshot = self.create_resource_snapshot(context);
-        
+
         // Record memory usage
         let memory_utilization = resource_snapshot.memory_utilization;
         if memory_utilization > self.config.alert_thresholds.max_memory_utilization {
@@ -354,7 +358,10 @@ impl PatternMonitor {
                 pattern_id: pattern_id.to_string(),
                 timestamp: Utc::now(),
                 warning_type: "high_memory_usage".to_string(),
-                warning_message: format!("Memory utilization at {:.1}%", memory_utilization * 100.0),
+                warning_message: format!(
+                    "Memory utilization at {:.1}%",
+                    memory_utilization * 100.0
+                ),
             };
             self.record_event(event).await;
         }
@@ -378,7 +385,10 @@ impl PatternMonitor {
                 pattern_id: pattern_id.to_string(),
                 timestamp: Utc::now(),
                 warning_type: "high_network_usage".to_string(),
-                warning_message: format!("Network utilization at {:.1}%", network_utilization * 100.0),
+                warning_message: format!(
+                    "Network utilization at {:.1}%",
+                    network_utilization * 100.0
+                ),
             };
             self.record_event(event).await;
         }
@@ -388,7 +398,7 @@ impl PatternMonitor {
             let mut updated_metrics = metrics.clone();
             updated_metrics.resource_utilization = resource_snapshot;
             updated_metrics.timestamp = Utc::now();
-            
+
             {
                 let mut metrics_map = self.metrics.write().await;
                 metrics_map.insert(pattern_id.to_string(), updated_metrics);
@@ -429,7 +439,12 @@ impl PatternMonitor {
     }
 
     /// Record error
-    pub async fn record_error(&self, pattern_id: &str, error: &PatternError, severity: ErrorSeverity) {
+    pub async fn record_error(
+        &self,
+        pattern_id: &str,
+        error: &PatternError,
+        severity: ErrorSeverity,
+    ) {
         let event = MonitoringEvent::Error {
             pattern_id: pattern_id.to_string(),
             timestamp: Utc::now(),
@@ -445,7 +460,7 @@ impl PatternMonitor {
             let mut updated_metrics = metrics.clone();
             updated_metrics.error_count += 1;
             updated_metrics.timestamp = Utc::now();
-            
+
             {
                 let mut metrics_map = self.metrics.write().await;
                 metrics_map.insert(pattern_id.to_string(), updated_metrics);
@@ -466,23 +481,46 @@ impl PatternMonitor {
     }
 
     /// Get monitoring events
-    pub async fn get_events(&self, pattern_id: Option<&str>, limit: Option<usize>) -> Vec<MonitoringEvent> {
+    pub async fn get_events(
+        &self,
+        pattern_id: Option<&str>,
+        limit: Option<usize>,
+    ) -> Vec<MonitoringEvent> {
         let events = self.events.read().await;
         let limit = limit.unwrap_or(100);
-        
-        let filtered_events: Vec<MonitoringEvent> = events.iter()
+
+        let filtered_events: Vec<MonitoringEvent> = events
+            .iter()
             .filter(|event| {
                 if let Some(pid) = pattern_id {
                     match event {
-                        MonitoringEvent::PatternStarted { pattern_id: pid2, .. } => pid2 == pid,
-                        MonitoringEvent::PatternCompleted { pattern_id: pid2, .. } => pid2 == pid,
-                        MonitoringEvent::PatternFailed { pattern_id: pid2, .. } => pid2 == pid,
-                        MonitoringEvent::PhaseChanged { pattern_id: pid2, .. } => pid2 == pid,
-                        MonitoringEvent::AgentStatusChanged { pattern_id: pid2, .. } => pid2 == pid,
-                        MonitoringEvent::ResourceUsageChanged { pattern_id: pid2, .. } => pid2 == pid,
-                        MonitoringEvent::PerformanceMetric { pattern_id: pid2, .. } => pid2 == pid,
-                        MonitoringEvent::Error { pattern_id: pid2, .. } => pid2 == pid,
-                        MonitoringEvent::Warning { pattern_id: pid2, .. } => pid2 == pid,
+                        MonitoringEvent::PatternStarted {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
+                        MonitoringEvent::PatternCompleted {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
+                        MonitoringEvent::PatternFailed {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
+                        MonitoringEvent::PhaseChanged {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
+                        MonitoringEvent::AgentStatusChanged {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
+                        MonitoringEvent::ResourceUsageChanged {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
+                        MonitoringEvent::PerformanceMetric {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
+                        MonitoringEvent::Error {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
+                        MonitoringEvent::Warning {
+                            pattern_id: pid2, ..
+                        } => pid2 == pid,
                     }
                 } else {
                     true
@@ -492,7 +530,7 @@ impl PatternMonitor {
             .take(limit)
             .cloned()
             .collect();
-        
+
         filtered_events
     }
 
@@ -512,7 +550,7 @@ impl PatternMonitor {
         let events = self.events.read().await;
         let metrics = self.metrics.read().await;
         let profiles = self.performance_profiles.read().await;
-        
+
         // Count unique patterns from events
         let mut unique_patterns = std::collections::HashSet::new();
         for event in events.iter() {
@@ -529,7 +567,7 @@ impl PatternMonitor {
             };
             unique_patterns.insert(pattern_id.clone());
         }
-        
+
         let mut stats = MonitoringStatistics {
             total_patterns_monitored: unique_patterns.len(),
             active_patterns: metrics.len(),
@@ -562,12 +600,16 @@ impl PatternMonitor {
 
             // Calculate statistics
             match event {
-                MonitoringEvent::PatternCompleted { duration_seconds, .. } => {
+                MonitoringEvent::PatternCompleted {
+                    duration_seconds, ..
+                } => {
                     total_execution_time += duration_seconds;
                     successful_patterns += 1;
                     total_patterns += 1;
                 }
-                MonitoringEvent::PatternFailed { duration_seconds, .. } => {
+                MonitoringEvent::PatternFailed {
+                    duration_seconds, ..
+                } => {
                     total_execution_time += duration_seconds;
                     total_patterns += 1;
                 }
@@ -595,12 +637,20 @@ impl PatternMonitor {
         let pattern_id = pattern_id.to_string();
         let monitor = self.clone();
         let config = self.config.clone();
-        
+
         // Clone necessary data from context to avoid lifetime issues
         let agent_count = context.agents.len();
-        let active_agents_count = context.agents.iter().filter(|a| a.status == super::AgentStatus::Working).count();
-        let idle_agents_count = context.agents.iter().filter(|a| a.status == super::AgentStatus::Idle).count();
-        
+        let active_agents_count = context
+            .agents
+            .iter()
+            .filter(|a| a.status == super::AgentStatus::Working)
+            .count();
+        let idle_agents_count = context
+            .agents
+            .iter()
+            .filter(|a| a.status == super::AgentStatus::Idle)
+            .count();
+
         // Clone resource data
         let memory_pool = context.resources.memory_pool.clone();
         let cpu_allocator = context.resources.cpu_allocator.clone();
@@ -609,11 +659,12 @@ impl PatternMonitor {
         let file_locks_len = context.resources.file_locks.len();
 
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(config.metrics_interval_seconds));
-            
+            let mut interval =
+                tokio::time::interval(Duration::from_secs(config.metrics_interval_seconds));
+
             loop {
                 interval.tick().await;
-                
+
                 // Check if pattern is still being monitored
                 let start_times = monitor.start_times.read().await;
                 if !start_times.contains_key(&pattern_id) {
@@ -637,7 +688,8 @@ impl PatternMonitor {
                     };
 
                     let network_utilization = {
-                        let total_bandwidth = network_resources.available_bandwidth + network_resources.allocated_bandwidth;
+                        let total_bandwidth = network_resources.available_bandwidth
+                            + network_resources.allocated_bandwidth;
                         if total_bandwidth > 0 {
                             network_resources.allocated_bandwidth as f64 / total_bandwidth as f64
                         } else {
@@ -695,27 +747,33 @@ impl PatternMonitor {
     /// Get execution time for a pattern
     async fn get_execution_time(&self, pattern_id: &str) -> Option<f64> {
         let start_times = self.start_times.read().await;
-        start_times.get(pattern_id).map(|start_time| start_time.elapsed().as_secs_f64())
+        start_times
+            .get(pattern_id)
+            .map(|start_time| start_time.elapsed().as_secs_f64())
     }
 
     /// Create resource usage snapshot
     fn create_resource_snapshot(&self, context: &PatternContext) -> ResourceUsageSnapshot {
         let memory_utilization = if context.resources.memory_pool.total_memory > 0 {
-            context.resources.memory_pool.allocated_memory as f64 / context.resources.memory_pool.total_memory as f64
+            context.resources.memory_pool.allocated_memory as f64
+                / context.resources.memory_pool.total_memory as f64
         } else {
             0.0
         };
 
         let cpu_utilization = if context.resources.cpu_allocator.total_cores > 0 {
-            context.resources.cpu_allocator.allocated_cores as f64 / context.resources.cpu_allocator.total_cores as f64
+            context.resources.cpu_allocator.allocated_cores as f64
+                / context.resources.cpu_allocator.total_cores as f64
         } else {
             0.0
         };
 
         let network_utilization = {
-            let total_bandwidth = context.resources.network_resources.available_bandwidth + context.resources.network_resources.allocated_bandwidth;
+            let total_bandwidth = context.resources.network_resources.available_bandwidth
+                + context.resources.network_resources.allocated_bandwidth;
             if total_bandwidth > 0 {
-                context.resources.network_resources.allocated_bandwidth as f64 / total_bandwidth as f64
+                context.resources.network_resources.allocated_bandwidth as f64
+                    / total_bandwidth as f64
             } else {
                 0.0
             }
@@ -774,14 +832,17 @@ impl PerformanceProfile {
     }
 
     pub fn record_metric(&mut self, name: &str, value: f64, unit: &str) {
-        let entry = self.metrics.entry(name.to_string()).or_insert_with(|| MetricHistory {
-            name: name.to_string(),
-            unit: unit.to_string(),
-            values: Vec::new(),
-            min_value: f64::MAX,
-            max_value: f64::MIN,
-            average_value: 0.0,
-        });
+        let entry = self
+            .metrics
+            .entry(name.to_string())
+            .or_insert_with(|| MetricHistory {
+                name: name.to_string(),
+                unit: unit.to_string(),
+                values: Vec::new(),
+                min_value: f64::MAX,
+                max_value: f64::MIN,
+                average_value: 0.0,
+            });
 
         entry.values.push(MetricValue {
             value,
@@ -791,7 +852,7 @@ impl PerformanceProfile {
         // Update statistics
         entry.min_value = entry.min_value.min(value);
         entry.max_value = entry.max_value.max(value);
-        
+
         let total: f64 = entry.values.iter().map(|v| v.value).sum();
         entry.average_value = total / entry.values.len() as f64;
 
@@ -842,19 +903,18 @@ impl Default for PatternMonitor {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::{
-        PatternState, PatternPhase, PatternStatus, PatternConfig,
-        AgentInfo, AgentStatus, AgentPerformanceMetrics,
-        ResourcePool, MemoryPool, CpuAllocator, NetworkResources,
-        PatternResult, PatternPerformanceMetrics
+        AgentInfo, AgentPerformanceMetrics, AgentStatus, CpuAllocator, MemoryPool,
+        NetworkResources, PatternConfig, PatternPerformanceMetrics, PatternPhase, PatternResult,
+        PatternState, PatternStatus, ResourcePool,
     };
+    use super::*;
 
     #[tokio::test]
     async fn test_monitor_creation() {
         let config = MonitoringConfig::default();
         let monitor = PatternMonitor::new(config);
-        
+
         assert_eq!(monitor.events.read().await.len(), 0);
         assert_eq!(monitor.metrics.read().await.len(), 0);
     }
@@ -863,20 +923,31 @@ mod tests {
     async fn test_pattern_monitoring_lifecycle() {
         let monitor = PatternMonitor::new(MonitoringConfig::default());
         let context = create_test_context();
-        
+
         // Start monitoring
         monitor.start_monitoring("test_pattern", &context).await;
-        
+
         // Check that monitoring started
-        assert!(monitor.start_times.read().await.contains_key("test_pattern"));
-        
+        assert!(monitor
+            .start_times
+            .read()
+            .await
+            .contains_key("test_pattern"));
+
         // Update phase
-        monitor.update_phase("test_pattern", PatternPhase::Initializing, PatternPhase::Executing, 0.5).await;
-        
+        monitor
+            .update_phase(
+                "test_pattern",
+                PatternPhase::Initializing,
+                PatternPhase::Executing,
+                0.5,
+            )
+            .await;
+
         // Check events
         let events = monitor.get_events(Some("test_pattern"), None).await;
         assert!(events.len() >= 2); // Started + phase change
-        
+
         // Stop monitoring
         let result = PatternResult {
             pattern_id: "test_pattern".to_string(),
@@ -894,18 +965,22 @@ mod tests {
             execution_time_ms: 10000,
             metadata: HashMap::new(),
         };
-        
+
         monitor.stop_monitoring("test_pattern", &result).await;
-        
+
         // Check that monitoring stopped
-        assert!(!monitor.start_times.read().await.contains_key("test_pattern"));
+        assert!(!monitor
+            .start_times
+            .read()
+            .await
+            .contains_key("test_pattern"));
     }
 
     #[tokio::test]
     async fn test_event_subscription() {
         let monitor = PatternMonitor::new(MonitoringConfig::default());
         let mut receiver = monitor.subscribe();
-        
+
         // Record an event
         let event = MonitoringEvent::PatternStarted {
             pattern_id: "test".to_string(),
@@ -922,30 +997,37 @@ mod tests {
                 custom_resources: HashMap::new(),
             },
         };
-        
+
         monitor.record_event(event.clone()).await;
-        
+
         // Receive the event
         let received_event = receiver.recv().await.unwrap();
-        assert!(matches!(received_event, MonitoringEvent::PatternStarted { .. }));
+        assert!(matches!(
+            received_event,
+            MonitoringEvent::PatternStarted { .. }
+        ));
     }
 
     #[tokio::test]
     async fn test_performance_profile() {
         let monitor = PatternMonitor::new(MonitoringConfig::default());
-        
+
         // Record some metrics
-        monitor.record_performance_metric("test_pattern", "execution_time", 10.5, "seconds").await;
-        monitor.record_performance_metric("test_pattern", "memory_usage", 512.0, "MB").await;
-        
+        monitor
+            .record_performance_metric("test_pattern", "execution_time", 10.5, "seconds")
+            .await;
+        monitor
+            .record_performance_metric("test_pattern", "memory_usage", 512.0, "MB")
+            .await;
+
         // Get performance profile
         let profile = monitor.get_performance_profile("test_pattern").await;
         assert!(profile.is_some());
-        
+
         let profile = profile.unwrap();
         assert_eq!(profile.pattern_id, "test_pattern");
         assert_eq!(profile.metrics.len(), 2);
-        
+
         // Check metric statistics
         if let Some(execution_metric) = profile.metrics.get("execution_time") {
             assert_eq!(execution_metric.min_value, 10.5);
@@ -959,10 +1041,10 @@ mod tests {
     async fn test_monitoring_statistics() {
         let monitor = PatternMonitor::new(MonitoringConfig::default());
         let context = create_test_context();
-        
+
         // Start and complete a pattern
         monitor.start_monitoring("test_pattern", &context).await;
-        
+
         let result = PatternResult {
             pattern_id: "test_pattern".to_string(),
             success: true,
@@ -979,9 +1061,9 @@ mod tests {
             execution_time_ms: 15000,
             metadata: HashMap::new(),
         };
-        
+
         monitor.stop_monitoring("test_pattern", &result).await;
-        
+
         // Get statistics
         let stats = monitor.get_monitoring_statistics().await;
         assert_eq!(stats.total_patterns_monitored, 1);
@@ -992,17 +1074,15 @@ mod tests {
 
     fn create_test_context() -> PatternContext {
         PatternContext {
-            agents: vec![
-                AgentInfo {
-                    id: "agent1".to_string(),
-                    name: "Test Agent".to_string(),
-                    capabilities: vec!["test".to_string()],
-                    status: AgentStatus::Idle,
-                    performance_metrics: AgentPerformanceMetrics::default(),
-                    current_workload: 0.0,
-                    assigned_tasks: vec![],
-                }
-            ],
+            agents: vec![AgentInfo {
+                id: "agent1".to_string(),
+                name: "Test Agent".to_string(),
+                capabilities: vec!["test".to_string()],
+                status: AgentStatus::Idle,
+                performance_metrics: AgentPerformanceMetrics::default(),
+                current_workload: 0.0,
+                assigned_tasks: vec![],
+            }],
             resources: ResourcePool {
                 file_locks: HashMap::new(),
                 memory_pool: MemoryPool {
@@ -1045,4 +1125,4 @@ mod tests {
             parent_pattern_id: None,
         }
     }
-} 
+}

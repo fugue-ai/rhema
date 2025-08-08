@@ -661,7 +661,8 @@ impl ConflictPreventionSystem {
                                 .map(|c| c.version.clone())
                                 .collect(),
                             involved_agents,
-                            impact_assessment: "Multiple versions of the same dependency".to_string(),
+                            impact_assessment: "Multiple versions of the same dependency"
+                                .to_string(),
                             resolution_suggestions: vec![
                                 "Standardize on a single version".to_string(),
                                 "Use dependency resolution tools".to_string(),
@@ -720,7 +721,8 @@ impl ConflictPreventionSystem {
                             resource_id: resource_id.clone(),
                             resource_type: resource_info.resource_type.clone(),
                             conflicting_agents,
-                            conflict_reason: "Multiple agents accessing the same resource".to_string(),
+                            conflict_reason: "Multiple agents accessing the same resource"
+                                .to_string(),
                             resource_state: resource_info.state.clone(),
                         }),
                         custom: None,
@@ -736,7 +738,10 @@ impl ConflictPreventionSystem {
     }
 
     /// Apply detection pattern
-    async fn apply_detection_pattern(&self, pattern: &DetectionPattern) -> RhemaResult<Vec<Conflict>> {
+    async fn apply_detection_pattern(
+        &self,
+        pattern: &DetectionPattern,
+    ) -> RhemaResult<Vec<Conflict>> {
         let mut conflicts = Vec::new();
 
         // This is a simplified implementation
@@ -789,7 +794,11 @@ impl ConflictPreventionSystem {
     }
 
     /// Resolve a conflict
-    pub async fn resolve_conflict(&mut self, conflict_id: &str, strategy: ResolutionStrategy) -> RhemaResult<ConflictResolution> {
+    pub async fn resolve_conflict(
+        &mut self,
+        conflict_id: &str,
+        strategy: ResolutionStrategy,
+    ) -> RhemaResult<ConflictResolution> {
         let start_time = Utc::now();
         let mut actions = Vec::new();
 
@@ -844,21 +853,24 @@ impl ConflictPreventionSystem {
 
         // Get conflict info before updating
         let conflict_description = {
-            let conflict = self.conflicts.get(conflict_id)
-                .ok_or_else(|| ConflictPreventionError::ConflictNotFound(conflict_id.to_string()))?;
+            let conflict = self.conflicts.get(conflict_id).ok_or_else(|| {
+                ConflictPreventionError::ConflictNotFound(conflict_id.to_string())
+            })?;
             conflict.description.clone()
         };
 
         let agents_involved = {
-            let conflict = self.conflicts.get(conflict_id)
-                .ok_or_else(|| ConflictPreventionError::ConflictNotFound(conflict_id.to_string()))?;
+            let conflict = self.conflicts.get(conflict_id).ok_or_else(|| {
+                ConflictPreventionError::ConflictNotFound(conflict_id.to_string())
+            })?;
             conflict.involved_agents.len()
         };
 
         // Update conflict status
         {
-            let conflict = self.conflicts.get_mut(conflict_id)
-                .ok_or_else(|| ConflictPreventionError::ConflictNotFound(conflict_id.to_string()))?;
+            let conflict = self.conflicts.get_mut(conflict_id).ok_or_else(|| {
+                ConflictPreventionError::ConflictNotFound(conflict_id.to_string())
+            })?;
             conflict.status = if successful {
                 ConflictStatus::Resolved
             } else {
@@ -889,7 +901,10 @@ impl ConflictPreventionSystem {
     }
 
     /// Apply automatic resolution
-    async fn apply_automatic_resolution(&self, conflict: &mut Conflict) -> RhemaResult<Vec<ResolutionAction>> {
+    async fn apply_automatic_resolution(
+        &self,
+        conflict: &mut Conflict,
+    ) -> RhemaResult<Vec<ResolutionAction>> {
         let mut actions = Vec::new();
 
         match conflict.conflict_type {
@@ -935,7 +950,10 @@ impl ConflictPreventionSystem {
     }
 
     /// Apply collaborative resolution
-    async fn apply_collaborative_resolution(&self, conflict: &mut Conflict) -> RhemaResult<Vec<ResolutionAction>> {
+    async fn apply_collaborative_resolution(
+        &self,
+        conflict: &mut Conflict,
+    ) -> RhemaResult<Vec<ResolutionAction>> {
         let mut actions = Vec::new();
 
         // Notify all involved agents
@@ -962,7 +980,10 @@ impl ConflictPreventionSystem {
     }
 
     /// Apply rollback resolution
-    async fn apply_rollback_resolution(&self, _conflict: &mut Conflict) -> RhemaResult<Vec<ResolutionAction>> {
+    async fn apply_rollback_resolution(
+        &self,
+        _conflict: &mut Conflict,
+    ) -> RhemaResult<Vec<ResolutionAction>> {
         let mut actions = Vec::new();
 
         actions.push(ResolutionAction {
@@ -1042,7 +1063,10 @@ impl ConflictPreventionSystem {
     }
 
     /// Apply merge resolution
-    async fn apply_merge_resolution(&self, _conflict: &mut Conflict) -> RhemaResult<Vec<ResolutionAction>> {
+    async fn apply_merge_resolution(
+        &self,
+        _conflict: &mut Conflict,
+    ) -> RhemaResult<Vec<ResolutionAction>> {
         let mut actions = Vec::new();
 
         actions.push(ResolutionAction {
@@ -1057,7 +1081,10 @@ impl ConflictPreventionSystem {
     }
 
     /// Apply split work resolution
-    async fn apply_split_work_resolution(&self, _conflict: &mut Conflict) -> RhemaResult<Vec<ResolutionAction>> {
+    async fn apply_split_work_resolution(
+        &self,
+        _conflict: &mut Conflict,
+    ) -> RhemaResult<Vec<ResolutionAction>> {
         let mut actions = Vec::new();
 
         actions.push(ResolutionAction {
@@ -1083,43 +1110,55 @@ impl ConflictPreventionSystem {
         if rule.id.is_empty() {
             return Err(ConflictPreventionError::InvalidRuleConfiguration(
                 "Rule ID cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if rule.name.is_empty() {
             return Err(ConflictPreventionError::InvalidRuleConfiguration(
                 "Rule name cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if rule.conditions.is_empty() {
             return Err(ConflictPreventionError::InvalidRuleConfiguration(
                 "Rule must have at least one condition".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if rule.actions.is_empty() {
             return Err(ConflictPreventionError::InvalidRuleConfiguration(
                 "Rule must have at least one action".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         Ok(())
     }
 
     /// Track file access
-    pub fn track_file_access(&mut self, file_path: PathBuf, agent: String, access_type: FileAccessType) {
+    pub fn track_file_access(
+        &mut self,
+        file_path: PathBuf,
+        agent: String,
+        access_type: FileAccessType,
+    ) {
         if !self.config.enable_file_tracking {
             return;
         }
 
-        let access_info = self.file_access_tracking.entry(file_path.clone()).or_insert(FileAccessInfo {
-            owner_agent: None,
-            access_timestamp: Utc::now(),
-            access_type: access_type.clone(),
-            file_hash: "".to_string(), // Would be calculated in real implementation
-            modification_history: Vec::new(),
-        });
+        let access_info = self
+            .file_access_tracking
+            .entry(file_path.clone())
+            .or_insert(FileAccessInfo {
+                owner_agent: None,
+                access_timestamp: Utc::now(),
+                access_type: access_type.clone(),
+                file_hash: "".to_string(), // Would be calculated in real implementation
+                modification_history: Vec::new(),
+            });
 
         access_info.access_timestamp = Utc::now();
         access_info.access_type = access_type.clone();
@@ -1137,18 +1176,26 @@ impl ConflictPreventionSystem {
     }
 
     /// Track dependency usage
-    pub fn track_dependency_usage(&mut self, dependency_name: String, version: String, agent: String) {
+    pub fn track_dependency_usage(
+        &mut self,
+        dependency_name: String,
+        version: String,
+        agent: String,
+    ) {
         if !self.config.enable_dependency_tracking {
             return;
         }
 
-        let dep_info = self.dependency_tracking.entry(dependency_name.clone()).or_insert(DependencyInfo {
-            name: dependency_name.clone(),
-            current_version: version.clone(),
-            using_agents: Vec::new(),
-            version_conflicts: Vec::new(),
-            last_updated: Utc::now(),
-        });
+        let dep_info = self
+            .dependency_tracking
+            .entry(dependency_name.clone())
+            .or_insert(DependencyInfo {
+                name: dependency_name.clone(),
+                current_version: version.clone(),
+                using_agents: Vec::new(),
+                version_conflicts: Vec::new(),
+                last_updated: Utc::now(),
+            });
 
         if !dep_info.using_agents.contains(&agent) {
             dep_info.using_agents.push(agent.clone());
@@ -1168,18 +1215,27 @@ impl ConflictPreventionSystem {
     }
 
     /// Track resource access
-    pub fn track_resource_access(&mut self, resource_id: String, resource_type: String, agent: String, access_type: String) {
+    pub fn track_resource_access(
+        &mut self,
+        resource_id: String,
+        resource_type: String,
+        agent: String,
+        access_type: String,
+    ) {
         if !self.config.enable_resource_tracking {
             return;
         }
 
-        let resource_info = self.resource_tracking.entry(resource_id.clone()).or_insert(ResourceInfo {
-            id: resource_id.clone(),
-            resource_type,
-            owner: None,
-            state: "available".to_string(),
-            access_history: Vec::new(),
-        });
+        let resource_info =
+            self.resource_tracking
+                .entry(resource_id.clone())
+                .or_insert(ResourceInfo {
+                    id: resource_id.clone(),
+                    resource_type,
+                    owner: None,
+                    state: "available".to_string(),
+                    access_history: Vec::new(),
+                });
 
         resource_info.access_history.push(ResourceAccess {
             agent,
@@ -1209,7 +1265,8 @@ impl ConflictPreventionSystem {
 
     /// Cleanup old conflicts
     fn cleanup_old_conflicts(&mut self) {
-        let resolved_conflicts: Vec<String> = self.conflicts
+        let resolved_conflicts: Vec<String> = self
+            .conflicts
             .iter()
             .filter(|(_, conflict)| conflict.status == ConflictStatus::Resolved)
             .map(|(id, _)| id.clone())
@@ -1235,7 +1292,7 @@ mod tests {
     #[tokio::test]
     async fn test_conflict_detection() {
         let mut system = ConflictPreventionSystem::new();
-        
+
         // Track file access
         system.track_file_access(
             PathBuf::from("test.txt"),
@@ -1255,7 +1312,7 @@ mod tests {
     #[tokio::test]
     async fn test_conflict_resolution() {
         let mut system = ConflictPreventionSystem::new();
-        
+
         // Create a test conflict
         let conflict = Conflict {
             id: "test-conflict".to_string(),
@@ -1281,14 +1338,17 @@ mod tests {
         let conflict_id = conflict.id.clone();
         system.conflicts.insert(conflict_id.clone(), conflict);
 
-        let resolution = system.resolve_conflict(&conflict_id, ResolutionStrategy::Automatic).await.unwrap();
+        let resolution = system
+            .resolve_conflict(&conflict_id, ResolutionStrategy::Automatic)
+            .await
+            .unwrap();
         assert!(resolution.successful);
     }
 
     #[test]
     fn test_prevention_rule_validation() {
         let mut system = ConflictPreventionSystem::new();
-        
+
         let rule = PreventionRule {
             id: "test-rule".to_string(),
             name: "Test Rule".to_string(),
@@ -1311,4 +1371,4 @@ mod tests {
 
         assert!(system.add_prevention_rule(rule).is_ok());
     }
-} 
+}

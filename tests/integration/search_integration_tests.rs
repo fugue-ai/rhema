@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-use rhema_core::{RhemaResult, scope::Scope};
-use rhema_query::search::{SearchEngine, SearchOptions, SearchType, SearchFilter};
-use std::path::Path;
-use std::collections::HashMap;
-use tempfile::TempDir;
-use std::fs;
 use rhema_core::schema::ConceptDefinition;
-use std::path::PathBuf;
 use rhema_core::schema::RhemaScope;
+use rhema_core::{scope::Scope, RhemaResult};
+use rhema_query::search::{SearchEngine, SearchFilter, SearchOptions, SearchType};
+use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+use std::path::PathBuf;
+use tempfile::TempDir;
 
 /// Integration test environment for search functionality
 pub struct SearchIntegrationTest {
@@ -36,7 +36,7 @@ impl SearchIntegrationTest {
     pub fn new() -> RhemaResult<Self> {
         let temp_dir = tempfile::tempdir()?;
         let search_engine = SearchEngine::new();
-        
+
         Ok(Self {
             temp_dir,
             search_engine,
@@ -70,7 +70,7 @@ impl SearchIntegrationTest {
         fs::create_dir_all(&scope_path)?;
 
         let mut scope_files = HashMap::new();
-        
+
         for (filename, content) in files {
             let file_path = scope_path.join(filename);
             fs::write(&file_path, content)?;
@@ -98,7 +98,9 @@ impl SearchIntegrationTest {
     /// Test regex search functionality
     pub async fn test_regex_search(&mut self) -> RhemaResult<()> {
         // Build search index
-        self.search_engine.build_index(self.temp_dir.path(), &self.test_scopes).await?;
+        self.search_engine
+            .build_index(self.temp_dir.path(), &self.test_scopes)
+            .await?;
 
         // Test basic regex search
         let options = SearchOptions {
@@ -115,13 +117,19 @@ impl SearchIntegrationTest {
             field_boosts: HashMap::new(),
         };
 
-        let results = self.search_engine.regex_search("service", Some(options)).await?;
-        assert!(!results.is_empty(), "Regex search should find results for 'service'");
+        let results = self
+            .search_engine
+            .regex_search("service", Some(options))
+            .await?;
+        assert!(
+            !results.is_empty(),
+            "Regex search should find results for 'service'"
+        );
 
         // Test regex search with file filter
         let mut filters = Vec::new();
         filters.push(SearchFilter::FileType("yaml".to_string()));
-        
+
         let options = SearchOptions {
             search_type: SearchType::Regex,
             limit: Some(10),
@@ -136,8 +144,14 @@ impl SearchIntegrationTest {
             field_boosts: HashMap::new(),
         };
 
-        let results = self.search_engine.regex_search("version", Some(options)).await?;
-        assert!(!results.is_empty(), "Regex search with file filter should find results");
+        let results = self
+            .search_engine
+            .regex_search("version", Some(options))
+            .await?;
+        assert!(
+            !results.is_empty(),
+            "Regex search with file filter should find results"
+        );
 
         Ok(())
     }
@@ -145,7 +159,9 @@ impl SearchIntegrationTest {
     /// Test full-text search functionality
     pub async fn test_fulltext_search(&mut self) -> RhemaResult<()> {
         // Build search index
-        self.search_engine.build_index(self.temp_dir.path(), &self.test_scopes).await?;
+        self.search_engine
+            .build_index(self.temp_dir.path(), &self.test_scopes)
+            .await?;
 
         // Test basic full-text search
         let options = SearchOptions {
@@ -162,13 +178,25 @@ impl SearchIntegrationTest {
             field_boosts: HashMap::new(),
         };
 
-        let results = self.search_engine.full_text_search("search", Some(options)).await?;
-        assert!(!results.is_empty(), "Full-text search should find results for 'search'");
+        let results = self
+            .search_engine
+            .full_text_search("search", Some(options))
+            .await?;
+        assert!(
+            !results.is_empty(),
+            "Full-text search should find results for 'search'"
+        );
 
         // Test search with scoring
         for result in &results {
-            assert!(result.score > 0.0, "Search results should have positive scores");
-            assert!(!result.highlights.is_empty(), "Search results should have highlights");
+            assert!(
+                result.score > 0.0,
+                "Search results should have positive scores"
+            );
+            assert!(
+                !result.highlights.is_empty(),
+                "Search results should have highlights"
+            );
         }
 
         Ok(())
@@ -177,12 +205,14 @@ impl SearchIntegrationTest {
     /// Test search filtering functionality
     pub async fn test_search_filtering(&mut self) -> RhemaResult<()> {
         // Build search index
-        self.search_engine.build_index(self.temp_dir.path(), &self.test_scopes).await?;
+        self.search_engine
+            .build_index(self.temp_dir.path(), &self.test_scopes)
+            .await?;
 
         // Test file type filtering
         let mut filters = Vec::new();
         filters.push(SearchFilter::FileType("md".to_string()));
-        
+
         let options = SearchOptions {
             search_type: SearchType::FullText,
             limit: Some(10),
@@ -197,17 +227,23 @@ impl SearchIntegrationTest {
             field_boosts: HashMap::new(),
         };
 
-        let results = self.search_engine.full_text_search("test", Some(options)).await?;
-        
+        let results = self
+            .search_engine
+            .full_text_search("test", Some(options))
+            .await?;
+
         // All results should be markdown files
         for result in &results {
-            assert!(result.path.ends_with(".md"), "All results should be markdown files");
+            assert!(
+                result.path.ends_with(".md"),
+                "All results should be markdown files"
+            );
         }
 
         // Test scope filtering
         let mut filters = Vec::new();
         filters.push(SearchFilter::Scope("service-a".to_string()));
-        
+
         let options = SearchOptions {
             search_type: SearchType::FullText,
             limit: Some(10),
@@ -222,11 +258,17 @@ impl SearchIntegrationTest {
             field_boosts: HashMap::new(),
         };
 
-        let results = self.search_engine.full_text_search("service", Some(options)).await?;
-        
+        let results = self
+            .search_engine
+            .full_text_search("service", Some(options))
+            .await?;
+
         // All results should be from service-a scope
         for result in &results {
-            assert!(result.id.starts_with("service-a:"), "All results should be from service-a scope");
+            assert!(
+                result.id.starts_with("service-a:"),
+                "All results should be from service-a scope"
+            );
         }
 
         Ok(())
@@ -235,11 +277,13 @@ impl SearchIntegrationTest {
     /// Test search performance
     pub async fn test_search_performance(&mut self) -> RhemaResult<()> {
         // Build search index
-        self.search_engine.build_index(self.temp_dir.path(), &self.test_scopes).await?;
+        self.search_engine
+            .build_index(self.temp_dir.path(), &self.test_scopes)
+            .await?;
 
         // Test search performance
         let start = std::time::Instant::now();
-        
+
         let options = SearchOptions {
             search_type: SearchType::FullText,
             limit: Some(10),
@@ -254,10 +298,13 @@ impl SearchIntegrationTest {
             field_boosts: HashMap::new(),
         };
 
-        let _results = self.search_engine.full_text_search("test", Some(options)).await?;
-        
+        let _results = self
+            .search_engine
+            .full_text_search("test", Some(options))
+            .await?;
+
         let duration = start.elapsed();
-        
+
         // Search should complete within reasonable time (100ms for small dataset)
         assert!(duration.as_millis() < 100, "Search should complete quickly");
 
@@ -267,11 +314,13 @@ impl SearchIntegrationTest {
     /// Test search suggestions
     pub async fn test_search_suggestions(&mut self) -> RhemaResult<()> {
         // Build search index
-        self.search_engine.build_index(self.temp_dir.path(), &self.test_scopes).await?;
+        self.search_engine
+            .build_index(self.temp_dir.path(), &self.test_scopes)
+            .await?;
 
         // Test search suggestions
         let suggestions = self.search_engine.get_suggestions("ser").await?;
-        
+
         // Should find suggestions for "service"
         let has_service_suggestion = suggestions.iter().any(|s| s.text.contains("service"));
         assert!(has_service_suggestion, "Should suggest 'service' for 'ser'");
@@ -282,7 +331,7 @@ impl SearchIntegrationTest {
     /// Test search statistics
     pub fn test_search_stats(&self) -> RhemaResult<()> {
         let stats = self.search_engine.get_stats();
-        
+
         // Verify stats contain expected fields
         assert!(stats.contains_key("total_documents"));
         assert!(stats.contains_key("total_terms"));
@@ -362,4 +411,4 @@ mod tests {
         test_env.test_search_performance().await?;
         Ok(())
     }
-} 
+}

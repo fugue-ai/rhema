@@ -484,8 +484,9 @@ impl AgentManager {
 
         let state_dir = Path::new(&self.persistence_config.state_dir);
         if !state_dir.exists() {
-            std::fs::create_dir_all(state_dir)
-                .map_err(|e| AgentError::PersistenceError(format!("Failed to create state directory: {}", e)))?;
+            std::fs::create_dir_all(state_dir).map_err(|e| {
+                AgentError::PersistenceError(format!("Failed to create state directory: {}", e))
+            })?;
         }
 
         let filename = format!(
@@ -494,12 +495,13 @@ impl AgentManager {
         );
         let filepath = state_dir.join(filename);
 
-        let json = serde_json::to_string_pretty(&state_data)
-            .map_err(|e| AgentError::PersistenceError(format!("Failed to serialize state: {}", e)))?;
+        let json = serde_json::to_string_pretty(&state_data).map_err(|e| {
+            AgentError::PersistenceError(format!("Failed to serialize state: {}", e))
+        })?;
 
-        tokio::fs::write(&filepath, json)
-            .await
-            .map_err(|e| AgentError::PersistenceError(format!("Failed to write state file: {}", e)))?;
+        tokio::fs::write(&filepath, json).await.map_err(|e| {
+            AgentError::PersistenceError(format!("Failed to write state file: {}", e))
+        })?;
 
         // Clean up old state files
         self.cleanup_old_state_files().await?;
@@ -516,15 +518,13 @@ impl AgentManager {
 
         // Find the most recent state file
         let mut state_files = Vec::new();
-        let mut entries = tokio::fs::read_dir(state_dir)
-            .await
-            .map_err(|e| AgentError::RecoveryError(format!("Failed to read state directory: {}", e)))?;
+        let mut entries = tokio::fs::read_dir(state_dir).await.map_err(|e| {
+            AgentError::RecoveryError(format!("Failed to read state directory: {}", e))
+        })?;
 
-        while let Some(entry) = entries
-            .next_entry()
-            .await
-            .map_err(|e| AgentError::RecoveryError(format!("Failed to read directory entry: {}", e)))?
-        {
+        while let Some(entry) = entries.next_entry().await.map_err(|e| {
+            AgentError::RecoveryError(format!("Failed to read directory entry: {}", e))
+        })? {
             if let Some(ext) = entry.path().extension() {
                 if ext == "json" {
                     state_files.push(entry.path());
@@ -540,8 +540,12 @@ impl AgentManager {
         state_files.sort_by(|a, b| {
             let a_meta = std::fs::metadata(a).unwrap_or_else(|_| std::fs::metadata(".").unwrap());
             let b_meta = std::fs::metadata(b).unwrap_or_else(|_| std::fs::metadata(".").unwrap());
-            let a_modified = a_meta.modified().unwrap_or_else(|_| std::time::SystemTime::now());
-            let b_modified = b_meta.modified().unwrap_or_else(|_| std::time::SystemTime::now());
+            let a_modified = a_meta
+                .modified()
+                .unwrap_or_else(|_| std::time::SystemTime::now());
+            let b_modified = b_meta
+                .modified()
+                .unwrap_or_else(|_| std::time::SystemTime::now());
             b_modified.cmp(&a_modified)
         });
 
@@ -550,8 +554,9 @@ impl AgentManager {
             .await
             .map_err(|e| AgentError::RecoveryError(format!("Failed to read state file: {}", e)))?;
 
-        let state_data: AgentStateData = serde_json::from_str(&json)
-            .map_err(|e| AgentError::RecoveryError(format!("Failed to deserialize state: {}", e)))?;
+        let state_data: AgentStateData = serde_json::from_str(&json).map_err(|e| {
+            AgentError::RecoveryError(format!("Failed to deserialize state: {}", e))
+        })?;
 
         // Restore state
         self.agents = state_data.agents;
@@ -569,15 +574,13 @@ impl AgentManager {
         }
 
         let mut state_files = Vec::new();
-        let mut entries = tokio::fs::read_dir(state_dir)
-            .await
-            .map_err(|e| AgentError::PersistenceError(format!("Failed to read state directory: {}", e)))?;
+        let mut entries = tokio::fs::read_dir(state_dir).await.map_err(|e| {
+            AgentError::PersistenceError(format!("Failed to read state directory: {}", e))
+        })?;
 
-        while let Some(entry) = entries
-            .next_entry()
-            .await
-            .map_err(|e| AgentError::PersistenceError(format!("Failed to read directory entry: {}", e)))?
-        {
+        while let Some(entry) = entries.next_entry().await.map_err(|e| {
+            AgentError::PersistenceError(format!("Failed to read directory entry: {}", e))
+        })? {
             if let Some(ext) = entry.path().extension() {
                 if ext == "json" {
                     state_files.push(entry.path());
@@ -593,17 +596,21 @@ impl AgentManager {
         state_files.sort_by(|a, b| {
             let a_meta = std::fs::metadata(a).unwrap_or_else(|_| std::fs::metadata(".").unwrap());
             let b_meta = std::fs::metadata(b).unwrap_or_else(|_| std::fs::metadata(".").unwrap());
-            let a_modified = a_meta.modified().unwrap_or_else(|_| std::time::SystemTime::now());
-            let b_modified = b_meta.modified().unwrap_or_else(|_| std::time::SystemTime::now());
+            let a_modified = a_meta
+                .modified()
+                .unwrap_or_else(|_| std::time::SystemTime::now());
+            let b_modified = b_meta
+                .modified()
+                .unwrap_or_else(|_| std::time::SystemTime::now());
             a_modified.cmp(&b_modified)
         });
 
         // Remove oldest files
         let files_to_remove = state_files.len() - self.persistence_config.max_state_files;
         for file in state_files.iter().take(files_to_remove) {
-            tokio::fs::remove_file(file)
-                .await
-                .map_err(|e| AgentError::PersistenceError(format!("Failed to remove old state file: {}", e)))?;
+            tokio::fs::remove_file(file).await.map_err(|e| {
+                AgentError::PersistenceError(format!("Failed to remove old state file: {}", e))
+            })?;
         }
 
         Ok(())
@@ -1004,6 +1011,9 @@ mod tests {
         assert!(new_manager.load_state().await.is_ok());
 
         // Verify state was restored
-        assert_eq!(new_manager.get_agent_state("agent1"), Some(AgentState::Working));
+        assert_eq!(
+            new_manager.get_agent_state("agent1"),
+            Some(AgentState::Working)
+        );
     }
 }

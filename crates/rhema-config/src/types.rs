@@ -16,7 +16,6 @@
 
 use serde::{Deserialize, Serialize};
 
-
 /// Configuration environment types
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ConfigEnvironment {

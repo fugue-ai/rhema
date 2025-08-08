@@ -26,9 +26,9 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupSchedule {
     pub frequency: BackupFrequency,
-    pub time: String, // HH:MM format
+    pub time: String,                // HH:MM format
     pub day_of_week: Option<String>, // For weekly backups
-    pub day_of_month: Option<u32>, // For monthly backups
+    pub day_of_month: Option<u32>,   // For monthly backups
     pub enabled: bool,
 }
 
@@ -181,10 +181,11 @@ impl BackupManager {
         let history_file = self.backup_directory.join("backup_history.json");
 
         if history_file.exists() {
-            let content = fs::read_to_string(&history_file).map_err(|e| ConfigError::IoError(e.to_string()))?;
+            let content = fs::read_to_string(&history_file)
+                .map_err(|e| ConfigError::IoError(e.to_string()))?;
 
-            self.backup_history =
-                serde_json::from_str(&content).map_err(|e| ConfigError::SerializationError(e.to_string()))?;
+            self.backup_history = serde_json::from_str(&content)
+                .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
         }
 
         Ok(())
@@ -367,8 +368,8 @@ impl BackupManager {
     fn serialize_config<T: Config>(&self, config: &T) -> RhemaResult<Vec<u8>> {
         match self.backup_format {
             BackupFormat::YAML => {
-                let content =
-                    serde_yaml::to_string(config).map_err(|e| ConfigError::YamlError(e.to_string()))?;
+                let content = serde_yaml::to_string(config)
+                    .map_err(|e| ConfigError::YamlError(e.to_string()))?;
                 Ok(content.into_bytes())
             }
             BackupFormat::JSON => {
@@ -377,13 +378,14 @@ impl BackupManager {
                 Ok(content.into_bytes())
             }
             BackupFormat::TOML => {
-                let content = toml::to_string_pretty(config).map_err(|e| {
-                    ConfigError::SerializationError(e.to_string())
-                })?;
+                let content = toml::to_string_pretty(config)
+                    .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
                 Ok(content.into_bytes())
             }
-            BackupFormat::Binary => Ok(bincode::serialize(config)
-                .map_err(|e| ConfigError::BincodeError(e.to_string()))?),
+            BackupFormat::Binary => {
+                Ok(bincode::serialize(config)
+                    .map_err(|e| ConfigError::BincodeError(e.to_string()))?)
+            }
         }
     }
 
@@ -398,7 +400,9 @@ impl BackupManager {
             .write_all(content)
             .map_err(|e| ConfigError::IoError(e.to_string()))?;
 
-        Ok(encoder.finish().map_err(|e| ConfigError::IoError(e.to_string()))?)
+        Ok(encoder
+            .finish()
+            .map_err(|e| ConfigError::IoError(e.to_string()))?)
     }
 
     /// Decompress content
@@ -458,7 +462,8 @@ impl BackupManager {
             let cutoff_time = Utc::now() - chrono::Duration::days(self.retention_days as i64);
             for backup in &sorted_history {
                 if backup.timestamp < cutoff_time && backup.backup_path.exists() {
-                    fs::remove_file(&backup.backup_path).map_err(|e| ConfigError::IoError(e.to_string()))?;
+                    fs::remove_file(&backup.backup_path)
+                        .map_err(|e| ConfigError::IoError(e.to_string()))?;
                 }
             }
         }
@@ -472,7 +477,8 @@ impl BackupManager {
         let backup_record = self.find_backup_record(config_type, backup_id)?;
 
         // Read backup file
-        let content = fs::read(&backup_record.backup_path).map_err(|e| ConfigError::IoError(e.to_string()))?;
+        let content = fs::read(&backup_record.backup_path)
+            .map_err(|e| ConfigError::IoError(e.to_string()))?;
 
         // Decrypt if needed
         let content = if backup_record.encryption_enabled {
@@ -616,7 +622,7 @@ impl BackupManager {
     /// Schedule automatic backup
     pub async fn schedule_automatic_backup(&self, schedule: &BackupSchedule) -> RhemaResult<()> {
         tracing::info!("Scheduling automatic backup with schedule: {:?}", schedule);
-        
+
         // Here we would integrate with a task scheduler
         // For now, we'll just log the schedule
         match schedule.frequency {
@@ -624,23 +630,31 @@ impl BackupManager {
                 tracing::info!("Daily backup scheduled at {}", schedule.time);
             }
             BackupFrequency::Weekly => {
-                tracing::info!("Weekly backup scheduled on {:?} at {}", schedule.day_of_week, schedule.time);
+                tracing::info!(
+                    "Weekly backup scheduled on {:?} at {}",
+                    schedule.day_of_week,
+                    schedule.time
+                );
             }
             BackupFrequency::Monthly => {
-                tracing::info!("Monthly backup scheduled on day {:?} at {}", schedule.day_of_month, schedule.time);
+                tracing::info!(
+                    "Monthly backup scheduled on day {:?} at {}",
+                    schedule.day_of_month,
+                    schedule.time
+                );
             }
             BackupFrequency::Custom(ref interval) => {
                 tracing::info!("Custom backup scheduled with interval: {}", interval);
             }
         }
-        
+
         Ok(())
     }
 
     /// Optimize compression for better performance and size
     pub async fn optimize_compression(&self, content: &[u8]) -> RhemaResult<Vec<u8>> {
         let start_time = std::time::Instant::now();
-        
+
         // Use different compression levels based on content size
         let compression_level = if content.len() > 1024 * 1024 {
             // Large content: use higher compression
@@ -655,11 +669,13 @@ impl BackupManager {
 
         let mut compressed = Vec::new();
         {
-            let mut encoder = flate2::write::DeflateEncoder::new(&mut compressed, compression_level);
+            let mut encoder =
+                flate2::write::DeflateEncoder::new(&mut compressed, compression_level);
             std::io::copy(&mut std::io::Cursor::new(content), &mut encoder)
                 .map_err(|e| ConfigError::BackupFailed(format!("Compression failed: {}", e)))?;
-            encoder.finish()
-                .map_err(|e| ConfigError::BackupFailed(format!("Compression finish failed: {}", e)))?;
+            encoder.finish().map_err(|e| {
+                ConfigError::BackupFailed(format!("Compression finish failed: {}", e))
+            })?;
         }
 
         let duration = start_time.elapsed();
@@ -691,15 +707,16 @@ impl BackupManager {
 
         // Check if file is compressed
         let is_compressed = self.is_compressed_content(&backup_content);
-        
+
         // Validate checksum if available
         if let Some(expected_checksum) = self.extract_checksum_from_filename(backup_path) {
             let actual_checksum = self.calculate_checksum(&backup_content);
             if actual_checksum != expected_checksum {
-                                  return Err(ConfigError::BackupFailed(format!(
-                      "Checksum mismatch: expected {}, got {}",
-                      expected_checksum, actual_checksum
-                  )).into());
+                return Err(ConfigError::BackupFailed(format!(
+                    "Checksum mismatch: expected {}, got {}",
+                    expected_checksum, actual_checksum
+                ))
+                .into());
             }
         }
 
@@ -710,9 +727,11 @@ impl BackupManager {
                     tracing::debug!("Backup integrity validation passed");
                     Ok(true)
                 }
-                Err(e) => {
-                    Err(ConfigError::BackupFailed(format!("Decompression failed during validation: {}", e)).into())
-                }
+                Err(e) => Err(ConfigError::BackupFailed(format!(
+                    "Decompression failed during validation: {}",
+                    e
+                ))
+                .into()),
             }
         } else {
             // For uncompressed files, try to parse as JSON/YAML to validate structure
@@ -721,7 +740,10 @@ impl BackupManager {
                     tracing::debug!("Backup integrity validation passed");
                     Ok(true)
                 } else {
-                    Err(ConfigError::BackupFailed("Backup content is not a valid JSON structure".to_string()).into())
+                    Err(ConfigError::BackupFailed(
+                        "Backup content is not a valid JSON structure".to_string(),
+                    )
+                    .into())
                 }
             } else {
                 // Try YAML parsing
@@ -729,7 +751,10 @@ impl BackupManager {
                     tracing::debug!("Backup integrity validation passed");
                     Ok(true)
                 } else {
-                    Err(ConfigError::BackupFailed("Backup content is not a valid JSON or YAML structure".to_string()).into())
+                    Err(ConfigError::BackupFailed(
+                        "Backup content is not a valid JSON or YAML structure".to_string(),
+                    )
+                    .into())
                 }
             }
         }
@@ -741,12 +766,18 @@ impl BackupManager {
         if content.len() >= 2 && content[0] == 0x1f && content[1] == 0x8b {
             return true;
         }
-        
+
         // Check for deflate magic number
-        if content.len() >= 2 && content[0] == 0x78 && (content[1] == 0x01 || content[1] == 0x5e || content[1] == 0x9c || content[1] == 0xda) {
+        if content.len() >= 2
+            && content[0] == 0x78
+            && (content[1] == 0x01
+                || content[1] == 0x5e
+                || content[1] == 0x9c
+                || content[1] == 0xda)
+        {
             return true;
         }
-        
+
         false
     }
 
@@ -777,16 +808,22 @@ impl BackupManager {
     ) -> RhemaResult<BackupRecord> {
         // Create backup
         let backup_record = self.backup_config(config, context)?;
-        
+
         // Validate backup integrity
-        if !self.validate_backup_integrity(&backup_record.backup_path).await? {
+        if !self
+            .validate_backup_integrity(&backup_record.backup_path)
+            .await?
+        {
             // Remove invalid backup
             if let Err(e) = std::fs::remove_file(&backup_record.backup_path) {
                 tracing::warn!("Failed to remove invalid backup file: {}", e);
             }
-            return Err(ConfigError::BackupFailed("Backup integrity validation failed".to_string()).into());
+            return Err(ConfigError::BackupFailed(
+                "Backup integrity validation failed".to_string(),
+            )
+            .into());
         }
-        
+
         Ok(backup_record)
     }
 
@@ -798,12 +835,18 @@ impl BackupManager {
     ) -> RhemaResult<T> {
         // Find backup record
         let backup_record = self.find_backup_record(config_type, backup_id)?;
-        
+
         // Validate backup integrity before restoration
-        if !self.validate_backup_integrity(&backup_record.backup_path).await? {
-            return Err(ConfigError::BackupFailed("Backup integrity validation failed before restoration".to_string()).into());
+        if !self
+            .validate_backup_integrity(&backup_record.backup_path)
+            .await?
+        {
+            return Err(ConfigError::BackupFailed(
+                "Backup integrity validation failed before restoration".to_string(),
+            )
+            .into());
         }
-        
+
         // Perform restoration
         self.restore_config(config_type, backup_id)
     }
@@ -819,10 +862,10 @@ impl BackupManager {
         for backup in self.list_backups(None) {
             backup_count += 1;
             total_size += backup.size_bytes;
-            
+
             // Count formats
             *format_counts.entry(backup.format.clone()).or_insert(0) += 1;
-            
+
             // Calculate age distribution
             let age_days = (chrono::Utc::now() - backup.timestamp).num_days();
             let age_category = match age_days {
@@ -832,8 +875,10 @@ impl BackupManager {
                 91..=365 => "1 year",
                 _ => "1+ years",
             };
-            *age_distribution.entry(age_category.to_string()).or_insert(0) += 1;
-            
+            *age_distribution
+                .entry(age_category.to_string())
+                .or_insert(0) += 1;
+
             // Calculate compressed size if applicable
             if backup.compression_enabled {
                 if let Ok(content) = std::fs::read(&backup.backup_path) {

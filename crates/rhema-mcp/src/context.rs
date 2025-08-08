@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+use crate::cache::CompressionAlgorithm;
+use chrono::Timelike;
 use chrono::Utc;
-use rhema_core::{schema::*, scope::Scope, RhemaError, RhemaResult, RhemaLock};
+use rhema_core::{schema::*, scope::Scope, RhemaError, RhemaLock, RhemaResult};
 use rhema_query::QueryResult;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use std::fs;
 use std::time::Duration;
+use tokio::sync::RwLock;
 use tracing::info;
-use chrono::Timelike;
-use crate::cache::CompressionAlgorithm;
 
 // Enhanced context management types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -386,7 +386,7 @@ pub struct ContextProvider {
     conventions_cache: Arc<RwLock<HashMap<String, Conventions>>>,
     // Lock file cache for AI agent context
     lock_file_cache: Arc<RwLock<Option<RhemaLock>>>,
-    
+
     // Enhanced context management features
     context_cache: Arc<RwLock<HashMap<String, ContextCacheEntry<Value>>>>,
     context_versions: Arc<RwLock<HashMap<String, Vec<ContextVersion>>>>,
@@ -397,7 +397,7 @@ pub struct ContextProvider {
     version_config: ContextVersionConfig,
     compression_config: ContextCompressionConfig,
     encryption_config: ContextEncryptionConfig,
-    
+
     // Background tasks
     sync_task: Option<tokio::task::JoinHandle<()>>,
     backup_task: Option<tokio::task::JoinHandle<()>>,
@@ -424,8 +424,8 @@ impl Clone for ContextProvider {
             version_config: self.version_config.clone(),
             compression_config: self.compression_config.clone(),
             encryption_config: self.encryption_config.clone(),
-            sync_task: None, // JoinHandle cannot be cloned
-            backup_task: None, // JoinHandle cannot be cloned
+            sync_task: None,    // JoinHandle cannot be cloned
+            backup_task: None,  // JoinHandle cannot be cloned
             cleanup_task: None, // JoinHandle cannot be cloned
         }
     }
@@ -443,7 +443,7 @@ impl ContextProvider {
             patterns_cache: Arc::new(RwLock::new(HashMap::new())),
             conventions_cache: Arc::new(RwLock::new(HashMap::new())),
             lock_file_cache: Arc::new(RwLock::new(None)),
-            
+
             // Enhanced features
             context_cache: Arc::new(RwLock::new(HashMap::new())),
             context_versions: Arc::new(RwLock::new(HashMap::new())),
@@ -460,7 +460,7 @@ impl ContextProvider {
             version_config: ContextVersionConfig::default(),
             compression_config: ContextCompressionConfig::default(),
             encryption_config: ContextEncryptionConfig::default(),
-            
+
             // Background tasks
             sync_task: None,
             backup_task: None,
@@ -578,7 +578,10 @@ impl ContextProvider {
             }
         }
 
-        Err(RhemaError::InvalidInput(format!("Resource not found: {}", uri)))
+        Err(RhemaError::InvalidInput(format!(
+            "Resource not found: {}",
+            uri
+        )))
     }
 
     /// Initialize the context provider by loading all data
@@ -665,9 +668,12 @@ impl ContextProvider {
     }
 
     /// Get lock file context for a specific scope
-    pub async fn get_scope_lock_context(&self, scope_path: &str) -> RhemaResult<Option<LockScopeContext>> {
+    pub async fn get_scope_lock_context(
+        &self,
+        scope_path: &str,
+    ) -> RhemaResult<Option<LockScopeContext>> {
         let lock_file = self.get_lock_file().await?;
-        
+
         if let Some(lock) = lock_file {
             if let Some(locked_scope) = lock.scopes.get(scope_path) {
                 return Ok(Some(LockScopeContext {
@@ -680,17 +686,20 @@ impl ContextProvider {
                 }));
             }
         }
-        
+
         Ok(None)
     }
 
     /// Get dependency version information for AI agents
-    pub async fn get_dependency_versions(&self, scope_path: &str) -> RhemaResult<Vec<DependencyVersionInfo>> {
+    pub async fn get_dependency_versions(
+        &self,
+        scope_path: &str,
+    ) -> RhemaResult<Vec<DependencyVersionInfo>> {
         let lock_context = self.get_scope_lock_context(scope_path).await?;
-        
+
         if let Some(context) = lock_context {
             let mut dependency_info = Vec::new();
-            
+
             for (dep_name, dep) in &context.dependencies {
                 dependency_info.push(DependencyVersionInfo {
                     name: dep_name.clone(),
@@ -703,17 +712,17 @@ impl ContextProvider {
                     checksum: dep.checksum.clone(),
                 });
             }
-            
+
             return Ok(dependency_info);
         }
-        
+
         Ok(Vec::new())
     }
 
     /// Get conflict prevention information for AI agents
     pub async fn get_conflict_prevention_info(&self) -> RhemaResult<ConflictPreventionInfo> {
         let lock_file = self.get_lock_file().await?;
-        
+
         if let Some(lock) = lock_file {
             let mut conflict_info = ConflictPreventionInfo {
                 total_scopes: lock.metadata.total_scopes as usize,
@@ -754,24 +763,31 @@ impl ContextProvider {
                 for dep_name in locked_scope.dependencies.keys() {
                     deps.push(dep_name.clone());
                 }
-                conflict_info.dependency_graph.insert(scope_path.clone(), deps);
+                conflict_info
+                    .dependency_graph
+                    .insert(scope_path.clone(), deps);
             }
 
             return Ok(conflict_info);
         }
-        
+
         Ok(ConflictPreventionInfo::default())
     }
 
     /// Get lock file health information for AI agents
     pub async fn get_lock_file_health(&self) -> RhemaResult<LockFileHealthInfo> {
         let lock_file = self.get_lock_file().await?;
-        
+
         if let Some(lock) = lock_file {
             let mut health_info = LockFileHealthInfo {
-                is_valid: lock.metadata.validation_status == rhema_core::schema::ValidationStatus::Valid,
+                is_valid: lock.metadata.validation_status
+                    == rhema_core::schema::ValidationStatus::Valid,
                 validation_status: format!("{:?}", lock.metadata.validation_status),
-                validation_messages: lock.metadata.validation_messages.clone().unwrap_or_default(),
+                validation_messages: lock
+                    .metadata
+                    .validation_messages
+                    .clone()
+                    .unwrap_or_default(),
                 last_validated: lock.metadata.last_validated.clone(),
                 performance_metrics: lock.metadata.performance_metrics.clone(),
                 health_score: 0.0,
@@ -781,66 +797,84 @@ impl ContextProvider {
 
             // Calculate health score
             let mut score = 100.0;
-            
+
             // Deduct points for validation issues
             if lock.metadata.validation_status != rhema_core::schema::ValidationStatus::Valid {
                 score -= 30.0;
-                health_info.issues.push("Lock file validation failed".to_string());
+                health_info
+                    .issues
+                    .push("Lock file validation failed".to_string());
             }
-            
+
             // Deduct points for circular dependencies
             if lock.metadata.circular_dependencies > 0 {
                 score -= 20.0 * lock.metadata.circular_dependencies as f64;
-                health_info.issues.push(format!("{} circular dependencies detected", lock.metadata.circular_dependencies));
+                health_info.issues.push(format!(
+                    "{} circular dependencies detected",
+                    lock.metadata.circular_dependencies
+                ));
             }
-            
+
             // Deduct points for performance issues
             if let Some(metrics) = &lock.metadata.performance_metrics {
                 if metrics.generation_time_ms > 5000 {
                     score -= 10.0;
-                    health_info.issues.push("Lock file generation took too long".to_string());
+                    health_info
+                        .issues
+                        .push("Lock file generation took too long".to_string());
                 }
-                
+
                 // Calculate cache hit rate manually
                 let total_cache_operations = metrics.cache_hits + metrics.cache_misses;
                 if total_cache_operations > 0 {
                     let hit_rate = metrics.cache_hits as f64 / total_cache_operations as f64;
                     if hit_rate < 0.5 {
                         score -= 5.0;
-                        health_info.issues.push("Low cache hit rate detected".to_string());
+                        health_info
+                            .issues
+                            .push("Low cache hit rate detected".to_string());
                     }
                 }
             }
-            
+
             health_info.health_score = score.max(0.0);
 
             // Generate recommendations
             if lock.metadata.circular_dependencies > 0 {
-                health_info.recommendations.push("Review and resolve circular dependencies".to_string());
+                health_info
+                    .recommendations
+                    .push("Review and resolve circular dependencies".to_string());
             }
-            
+
             if lock.metadata.validation_status != rhema_core::schema::ValidationStatus::Valid {
-                health_info.recommendations.push("Fix validation issues in lock file".to_string());
+                health_info
+                    .recommendations
+                    .push("Fix validation issues in lock file".to_string());
             }
-            
+
             if health_info.health_score < 70.0 {
-                health_info.recommendations.push("Consider regenerating lock file".to_string());
+                health_info
+                    .recommendations
+                    .push("Consider regenerating lock file".to_string());
             }
 
             return Ok(health_info);
         }
-        
+
         Ok(LockFileHealthInfo::default())
     }
 
     /// Get context-aware dependency recommendations for AI agents
-    pub async fn get_dependency_recommendations(&self, scope_path: &str) -> RhemaResult<Vec<DependencyRecommendation>> {
+    pub async fn get_dependency_recommendations(
+        &self,
+        scope_path: &str,
+    ) -> RhemaResult<Vec<DependencyRecommendation>> {
         let lock_context = self.get_scope_lock_context(scope_path).await?;
         let health_info = self.get_lock_file_health().await?;
         let conflict_info = self.get_conflict_prevention_info().await?;
-        
+
         let mut recommendations = Vec::new();
-        
+
         if let Some(context) = lock_context {
             // Check for outdated dependencies
             for (dep_name, dep) in &context.dependencies {
@@ -857,7 +891,7 @@ impl ContextProvider {
                 }
             }
         }
-        
+
         // Add recommendations based on health issues
         for issue in &health_info.issues {
             if issue.contains("circular dependencies") {
@@ -871,7 +905,7 @@ impl ContextProvider {
                 });
             }
         }
-        
+
         // Add recommendations based on conflicts
         for conflict in &conflict_info.potential_conflicts {
             recommendations.push(DependencyRecommendation {
@@ -883,7 +917,7 @@ impl ContextProvider {
                 impact: "May cause runtime issues".to_string(),
             });
         }
-        
+
         Ok(recommendations)
     }
 
@@ -900,14 +934,23 @@ impl ContextProvider {
     ) -> RhemaResult<(Value, HashMap<String, Value>)> {
         let result = rhema_query::query::execute_query(&self.repo_root, query)?;
         let mut stats = HashMap::new();
-        
+
         // Add lock file statistics
         if let Some(lock_file) = self.get_lock_file().await? {
-            stats.insert("lock_file_scopes".to_string(), serde_json::to_value(lock_file.metadata.total_scopes)?);
-            stats.insert("lock_file_dependencies".to_string(), serde_json::to_value(lock_file.metadata.total_dependencies)?);
-            stats.insert("lock_file_validation_status".to_string(), serde_json::to_value(format!("{:?}", lock_file.metadata.validation_status))?);
+            stats.insert(
+                "lock_file_scopes".to_string(),
+                serde_json::to_value(lock_file.metadata.total_scopes)?,
+            );
+            stats.insert(
+                "lock_file_dependencies".to_string(),
+                serde_json::to_value(lock_file.metadata.total_dependencies)?,
+            );
+            stats.insert(
+                "lock_file_validation_status".to_string(),
+                serde_json::to_value(format!("{:?}", lock_file.metadata.validation_status))?,
+            );
         }
-        
+
         Ok((serde_json::to_value(result)?, stats))
     }
 
@@ -979,11 +1022,11 @@ impl ContextProvider {
 
         // Get all scopes
         let scopes = self.get_scopes().await?;
-        
+
         for scope in &scopes {
             let scope_path = scope.path.to_string_lossy();
             let scope_result = self.validate_scope_context(&scope_path).await?;
-            
+
             total_entries += scope_result.errors.len() + scope_result.warnings.len();
             errors.extend(scope_result.errors.clone());
             warnings.extend(scope_result.warnings.clone());
@@ -999,8 +1042,10 @@ impl ContextProvider {
                     scope_path: Some(broken_ref.source_scope.clone()),
                     resource_type: Some(broken_ref.source_resource.clone()),
                     resource_id: Some(broken_ref.source_id.clone()),
-                    message: format!("Broken reference to {} in {}", 
-                        broken_ref.referenced_id, broken_ref.referenced_resource),
+                    message: format!(
+                        "Broken reference to {} in {}",
+                        broken_ref.referenced_id, broken_ref.referenced_resource
+                    ),
                     severity: ValidationSeverity::Error,
                     field_path: Some("references".to_string()),
                     suggested_fix: Some("Update or remove the broken reference".to_string()),
@@ -1057,7 +1102,9 @@ impl ContextProvider {
             validation_score,
         };
 
-        let recommendations = self.generate_validation_recommendations(&errors, &warnings).await;
+        let recommendations = self
+            .generate_validation_recommendations(&errors, &warnings)
+            .await;
 
         Ok(ContextValidationResult {
             is_valid,
@@ -1071,7 +1118,10 @@ impl ContextProvider {
     }
 
     /// Validate context for a specific scope
-    pub async fn validate_scope_context(&self, scope_path: &str) -> RhemaResult<ScopeValidationResult> {
+    pub async fn validate_scope_context(
+        &self,
+        scope_path: &str,
+    ) -> RhemaResult<ScopeValidationResult> {
         let mut errors = Vec::new();
         let warnings = Vec::new();
         let mut knowledge_valid = true;
@@ -1083,7 +1133,7 @@ impl ContextProvider {
         // Validate knowledge
         if let Some(_knowledge) = self.get_knowledge(scope_path).await? {
             match self.validate_knowledge(scope_path).await {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     knowledge_valid = false;
                     errors.push(ValidationError {
@@ -1103,7 +1153,7 @@ impl ContextProvider {
         // Validate todos
         if let Some(_todos) = self.get_todos(scope_path).await? {
             match self.validate_todos(scope_path).await {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     todos_valid = false;
                     errors.push(ValidationError {
@@ -1123,7 +1173,7 @@ impl ContextProvider {
         // Validate decisions
         if let Some(_decisions) = self.get_decisions(scope_path).await? {
             match self.validate_decisions(scope_path).await {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     decisions_valid = false;
                     errors.push(ValidationError {
@@ -1143,7 +1193,7 @@ impl ContextProvider {
         // Validate patterns
         if let Some(_patterns) = self.get_patterns(scope_path).await? {
             match self.validate_patterns(scope_path).await {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     patterns_valid = false;
                     errors.push(ValidationError {
@@ -1163,7 +1213,7 @@ impl ContextProvider {
         // Validate conventions
         if let Some(_conventions) = self.get_conventions(scope_path).await? {
             match self.validate_conventions(scope_path).await {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     conventions_valid = false;
                     errors.push(ValidationError {
@@ -1269,7 +1319,8 @@ impl ContextProvider {
 
                 // Validate status transitions
                 if let Some(completed_at) = todo.completed_at {
-                    if todo.status != TodoStatus::Completed && todo.status != TodoStatus::Cancelled {
+                    if todo.status != TodoStatus::Completed && todo.status != TodoStatus::Cancelled
+                    {
                         return Err(RhemaError::ValidationError(
                             "Todo with completion timestamp must have Completed or Cancelled status".to_string(),
                         ));
@@ -1545,45 +1596,48 @@ impl ContextProvider {
         let circular_references = Vec::new();
 
         let scopes = self.get_scopes().await?;
-        
+
         // Build a map of all valid IDs across all scopes
         let mut valid_ids = HashMap::new();
-        
+
         for scope in &scopes {
             let scope_path = scope.path.to_string_lossy();
-            
+
             // Collect knowledge IDs
             if let Some(knowledge) = self.get_knowledge(&scope_path).await? {
                 for entry in &knowledge.entries {
                     valid_ids.insert(entry.id.clone(), ("knowledge", scope_path.to_string()));
                 }
             }
-            
+
             // Collect todo IDs
             if let Some(todos) = self.get_todos(&scope_path).await? {
                 for todo in &todos.todos {
                     valid_ids.insert(todo.id.clone(), ("todos", scope_path.to_string()));
                 }
             }
-            
+
             // Collect decision IDs
             if let Some(decisions) = self.get_decisions(&scope_path).await? {
                 for decision in &decisions.decisions {
                     valid_ids.insert(decision.id.clone(), ("decisions", scope_path.to_string()));
                 }
             }
-            
+
             // Collect pattern IDs
             if let Some(patterns) = self.get_patterns(&scope_path).await? {
                 for pattern in &patterns.patterns {
                     valid_ids.insert(pattern.id.clone(), ("patterns", scope_path.to_string()));
                 }
             }
-            
+
             // Collect convention IDs
             if let Some(conventions) = self.get_conventions(&scope_path).await? {
                 for convention in &conventions.conventions {
-                    valid_ids.insert(convention.id.clone(), ("conventions", scope_path.to_string()));
+                    valid_ids.insert(
+                        convention.id.clone(),
+                        ("conventions", scope_path.to_string()),
+                    );
                 }
             }
         }
@@ -1591,7 +1645,7 @@ impl ContextProvider {
         // Check for broken references
         for scope in &scopes {
             let scope_path = scope.path.to_string_lossy();
-            
+
             // Check todo references to knowledge
             if let Some(todos) = self.get_todos(&scope_path).await? {
                 for todo in &todos.todos {
@@ -1612,7 +1666,7 @@ impl ContextProvider {
                     }
                 }
             }
-            
+
             // Check pattern references to other patterns
             if let Some(patterns) = self.get_patterns(&scope_path).await? {
                 for pattern in &patterns.patterns {
@@ -1635,7 +1689,9 @@ impl ContextProvider {
             }
         }
 
-        let is_valid = broken_references.is_empty() && orphaned_entries.is_empty() && circular_references.is_empty();
+        let is_valid = broken_references.is_empty()
+            && orphaned_entries.is_empty()
+            && circular_references.is_empty();
 
         Ok(CrossReferenceValidation {
             is_valid,
@@ -1652,7 +1708,7 @@ impl ContextProvider {
         let conflicting_information = Vec::new();
 
         let scopes = self.get_scopes().await?;
-        
+
         // Check for naming conflicts across scopes
         let mut scope_names: HashMap<String, String> = HashMap::new();
         for scope in &scopes {
@@ -1678,7 +1734,7 @@ impl ContextProvider {
 
         for scope in &scopes {
             let scope_path = scope.path.to_string_lossy();
-            
+
             // Check knowledge titles
             if let Some(knowledge) = self.get_knowledge(&scope_path).await? {
                 for entry in &knowledge.entries {
@@ -1695,7 +1751,7 @@ impl ContextProvider {
                     }
                 }
             }
-            
+
             // Check todo titles
             if let Some(todos) = self.get_todos(&scope_path).await? {
                 for todo in &todos.todos {
@@ -1712,7 +1768,7 @@ impl ContextProvider {
                     }
                 }
             }
-            
+
             // Check decision titles
             if let Some(decisions) = self.get_decisions(&scope_path).await? {
                 for decision in &decisions.decisions {
@@ -1729,7 +1785,7 @@ impl ContextProvider {
                     }
                 }
             }
-            
+
             // Check pattern names
             if let Some(patterns) = self.get_patterns(&scope_path).await? {
                 for pattern in &patterns.patterns {
@@ -1746,7 +1802,7 @@ impl ContextProvider {
                     }
                 }
             }
-            
+
             // Check convention names
             if let Some(conventions) = self.get_conventions(&scope_path).await? {
                 for convention in &conventions.conventions {
@@ -1765,7 +1821,9 @@ impl ContextProvider {
             }
         }
 
-        let is_consistent = naming_conflicts.is_empty() && duplicate_entries.is_empty() && conflicting_information.is_empty();
+        let is_consistent = naming_conflicts.is_empty()
+            && duplicate_entries.is_empty()
+            && conflicting_information.is_empty();
 
         Ok(ConsistencyValidation {
             is_consistent,
@@ -1783,10 +1841,10 @@ impl ContextProvider {
         let current_time = Utc::now();
 
         let scopes = self.get_scopes().await?;
-        
+
         for scope in &scopes {
             let scope_path = scope.path.to_string_lossy();
-            
+
             // Check knowledge entries
             if let Some(knowledge) = self.get_knowledge(&scope_path).await? {
                 for entry in &knowledge.entries {
@@ -1801,7 +1859,7 @@ impl ContextProvider {
                             current_date: current_time,
                         });
                     }
-                    
+
                     // Check for future update dates
                     if let Some(updated_at) = entry.updated_at {
                         if updated_at > current_time {
@@ -1814,7 +1872,7 @@ impl ContextProvider {
                                 current_date: current_time,
                             });
                         }
-                        
+
                         // Check sequence
                         if updated_at < entry.created_at {
                             invalid_timestamp_sequences.push(TimestampSequence {
@@ -1830,7 +1888,7 @@ impl ContextProvider {
                     }
                 }
             }
-            
+
             // Check todo entries
             if let Some(todos) = self.get_todos(&scope_path).await? {
                 for todo in &todos.todos {
@@ -1845,7 +1903,7 @@ impl ContextProvider {
                             current_date: current_time,
                         });
                     }
-                    
+
                     // Check due dates
                     if let Some(due_date) = todo.due_date {
                         if due_date < current_time {
@@ -1860,7 +1918,7 @@ impl ContextProvider {
                             });
                         }
                     }
-                    
+
                     // Check completion dates
                     if let Some(completed_at) = todo.completed_at {
                         if completed_at > current_time {
@@ -1873,7 +1931,7 @@ impl ContextProvider {
                                 current_date: current_time,
                             });
                         }
-                        
+
                         // Check sequence
                         if completed_at < todo.created_at {
                             invalid_timestamp_sequences.push(TimestampSequence {
@@ -1889,7 +1947,7 @@ impl ContextProvider {
                     }
                 }
             }
-            
+
             // Check decision entries
             if let Some(decisions) = self.get_decisions(&scope_path).await? {
                 for decision in &decisions.decisions {
@@ -1904,7 +1962,7 @@ impl ContextProvider {
                             current_date: current_time,
                         });
                     }
-                    
+
                     // Check review dates
                     if let Some(review_date) = decision.review_date {
                         if review_date > current_time {
@@ -1917,7 +1975,7 @@ impl ContextProvider {
                                 current_date: current_time,
                             });
                         }
-                        
+
                         // Check sequence
                         if review_date < decision.decided_at {
                             invalid_timestamp_sequences.push(TimestampSequence {
@@ -1935,9 +1993,9 @@ impl ContextProvider {
             }
         }
 
-        let is_temporally_consistent = future_dates_in_past.is_empty() && 
-                                     invalid_timestamp_sequences.is_empty() && 
-                                     expired_entries.is_empty();
+        let is_temporally_consistent = future_dates_in_past.is_empty()
+            && invalid_timestamp_sequences.is_empty()
+            && expired_entries.is_empty();
 
         Ok(TemporalValidation {
             is_temporally_consistent,
@@ -1956,32 +2014,32 @@ impl ContextProvider {
         let start_time = std::time::Instant::now();
 
         let scopes = self.get_scopes().await?;
-        
+
         // Build dependency graph
         let mut dependency_graph = HashMap::new();
         let mut scope_versions = HashMap::new();
-        
+
         for scope in &scopes {
             let scope_path = scope.path.to_string_lossy();
             scope_versions.insert(scope_path.to_string(), scope.definition.version.clone());
-            
+
             if let Some(deps) = &scope.definition.dependencies {
                 let mut dependencies = Vec::new();
                 for dep in deps {
                     dependencies.push(dep.path.clone());
-                    
+
                     // Check if dependency exists
                     let dep_exists = scopes.iter().any(|s| s.path.to_string_lossy() == dep.path);
                     if !dep_exists {
                         missing_dependencies.push(format!("{} -> {}", scope_path, dep.path));
                     }
-                    
+
                     // Check version conflicts
                     if let Some(dep_version) = &dep.version {
                         if let Some(existing_version) = scope_versions.get(&dep.path) {
                             if dep_version != existing_version {
                                 version_conflicts.push(format!(
-                                    "{} requires {} but found {}", 
+                                    "{} requires {} but found {}",
                                     dep.path, dep_version, existing_version
                                 ));
                             }
@@ -1991,20 +2049,22 @@ impl ContextProvider {
                 dependency_graph.insert(scope_path.to_string(), dependencies);
             }
         }
-        
+
         // Check for circular dependencies using DFS
         for scope in &scopes {
             let scope_path = scope.path.to_string_lossy();
-            if let Some(circular) = self.detect_circular_dependencies(&dependency_graph, &scope_path) {
+            if let Some(circular) =
+                self.detect_circular_dependencies(&dependency_graph, &scope_path)
+            {
                 circular_dependencies.push(circular);
             }
         }
 
         let validation_time = start_time.elapsed().as_millis() as u64;
-        let is_valid = circular_dependencies.is_empty() && 
-                      missing_dependencies.is_empty() && 
-                      version_conflicts.is_empty() && 
-                      unresolved_dependencies.is_empty();
+        let is_valid = circular_dependencies.is_empty()
+            && missing_dependencies.is_empty()
+            && version_conflicts.is_empty()
+            && unresolved_dependencies.is_empty();
 
         Ok(DependencyValidation {
             is_valid,
@@ -2023,41 +2083,41 @@ impl ContextProvider {
     /// Estimate memory usage of the context provider
     async fn estimate_memory_usage(&self) -> u64 {
         let mut total_bytes = 0u64;
-        
+
         // Estimate scopes memory
         let scopes = self.scopes.read().await;
         total_bytes += (scopes.len() * 1024) as u64; // Rough estimate per scope
-        
+
         // Estimate knowledge cache memory
         let knowledge = self.knowledge_cache.read().await;
         for (_, knowledge_data) in knowledge.iter() {
             total_bytes += (knowledge_data.entries.len() * 2048) as u64; // Rough estimate per entry
         }
-        
+
         // Estimate todos cache memory
         let todos = self.todos_cache.read().await;
         for (_, todos_data) in todos.iter() {
             total_bytes += (todos_data.todos.len() * 1024) as u64; // Rough estimate per todo
         }
-        
+
         // Estimate decisions cache memory
         let decisions = self.decisions_cache.read().await;
         for (_, decisions_data) in decisions.iter() {
             total_bytes += (decisions_data.decisions.len() * 1536) as u64; // Rough estimate per decision
         }
-        
+
         // Estimate patterns cache memory
         let patterns = self.patterns_cache.read().await;
         for (_, patterns_data) in patterns.iter() {
             total_bytes += (patterns_data.patterns.len() * 1792) as u64; // Rough estimate per pattern
         }
-        
+
         // Estimate conventions cache memory
         let conventions = self.conventions_cache.read().await;
         for (_, conventions_data) in conventions.iter() {
             total_bytes += (conventions_data.conventions.len() * 1280) as u64; // Rough estimate per convention
         }
-        
+
         total_bytes
     }
 
@@ -2068,13 +2128,13 @@ impl ContextProvider {
         warnings: &[ValidationWarning],
     ) -> Vec<String> {
         let mut recommendations = Vec::new();
-        
+
         // Count error types
         let mut error_counts = HashMap::new();
         for error in errors {
             *error_counts.entry(&error.error_type).or_insert(0) += 1;
         }
-        
+
         // Generate recommendations based on error patterns
         if let Some(&count) = error_counts.get(&ValidationErrorType::SchemaViolation) {
             if count > 0 {
@@ -2084,7 +2144,7 @@ impl ContextProvider {
                 ));
             }
         }
-        
+
         if let Some(&count) = error_counts.get(&ValidationErrorType::CrossReferenceError) {
             if count > 0 {
                 recommendations.push(format!(
@@ -2093,7 +2153,7 @@ impl ContextProvider {
                 ));
             }
         }
-        
+
         if let Some(&count) = error_counts.get(&ValidationErrorType::TemporalError) {
             if count > 0 {
                 recommendations.push(format!(
@@ -2102,7 +2162,7 @@ impl ContextProvider {
                 ));
             }
         }
-        
+
         if let Some(&count) = error_counts.get(&ValidationErrorType::DuplicateEntry) {
             if count > 0 {
                 recommendations.push(format!(
@@ -2111,17 +2171,19 @@ impl ContextProvider {
                 ));
             }
         }
-        
+
         // Add general recommendations
         if !errors.is_empty() {
             recommendations.push("Run validation regularly to catch issues early".to_string());
-            recommendations.push("Consider implementing automated validation in your CI/CD pipeline".to_string());
+            recommendations.push(
+                "Consider implementing automated validation in your CI/CD pipeline".to_string(),
+            );
         }
-        
+
         if !warnings.is_empty() {
             recommendations.push("Review warnings to improve data quality".to_string());
         }
-        
+
         recommendations
     }
 
@@ -2134,7 +2196,7 @@ impl ContextProvider {
         let mut visited = std::collections::HashSet::new();
         let mut rec_stack = std::collections::HashSet::new();
         let mut path = Vec::new();
-        
+
         if self.dfs_has_cycle(graph, start, &mut visited, &mut rec_stack, &mut path) {
             Some(path.join(" -> "))
         } else {
@@ -2154,7 +2216,7 @@ impl ContextProvider {
         visited.insert(node.to_string());
         rec_stack.insert(node.to_string());
         path.push(node.to_string());
-        
+
         if let Some(dependencies) = graph.get(node) {
             for dep in dependencies {
                 if !visited.contains(dep) {
@@ -2168,7 +2230,7 @@ impl ContextProvider {
                 }
             }
         }
-        
+
         rec_stack.remove(node);
         path.pop();
         false
@@ -2186,7 +2248,7 @@ impl ContextProvider {
 
     async fn load_lock_file(&self) -> RhemaResult<()> {
         let lock_file_path = self.repo_root.join("rhema.lock");
-        
+
         if lock_file_path.exists() {
             match rhema_core::lock::LockFileOps::read_lock_file(&lock_file_path) {
                 Ok(lock_file) => {
@@ -2201,7 +2263,7 @@ impl ContextProvider {
         } else {
             tracing::info!("No lock file found at {:?}", lock_file_path);
         }
-        
+
         Ok(())
     }
 
@@ -2355,7 +2417,11 @@ impl ContextProvider {
     }
 
     /// Create a new context version
-    pub async fn create_context_version(&self, scope_path: &str, changes: Vec<String>) -> RhemaResult<String> {
+    pub async fn create_context_version(
+        &self,
+        scope_path: &str,
+        changes: Vec<String>,
+    ) -> RhemaResult<String> {
         if !self.version_config.enabled {
             return Ok("no_versioning".to_string());
         }
@@ -2376,7 +2442,9 @@ impl ContextProvider {
         };
 
         let mut versions = self.context_versions.write().await;
-        let scope_versions = versions.entry(scope_path.to_string()).or_insert_with(Vec::new);
+        let scope_versions = versions
+            .entry(scope_path.to_string())
+            .or_insert_with(Vec::new);
         scope_versions.push(context_version);
 
         // Limit versions per scope
@@ -2384,7 +2452,10 @@ impl ContextProvider {
             scope_versions.remove(0);
         }
 
-        info!("Created context version {} for scope {}", version, scope_path);
+        info!(
+            "Created context version {} for scope {}",
+            version, scope_path
+        );
         Ok(version)
     }
 
@@ -2395,17 +2466,27 @@ impl ContextProvider {
     }
 
     /// Restore context to a specific version
-    pub async fn restore_context_version(&self, scope_path: &str, version: &str) -> RhemaResult<()> {
+    pub async fn restore_context_version(
+        &self,
+        scope_path: &str,
+        version: &str,
+    ) -> RhemaResult<()> {
         let versions = self.context_versions.read().await;
         if let Some(scope_versions) = versions.get(scope_path) {
             if let Some(_target_version) = scope_versions.iter().find(|v| v.version_id == version) {
-                info!("Restoring context to version {} for scope {}", version, scope_path);
+                info!(
+                    "Restoring context to version {} for scope {}",
+                    version, scope_path
+                );
                 // In a real implementation, you would restore the actual context data
                 return Ok(());
             }
         }
 
-        Err(RhemaError::InvalidInput(format!("Version {} not found for scope {}", version, scope_path)))
+        Err(RhemaError::InvalidInput(format!(
+            "Version {} not found for scope {}",
+            version, scope_path
+        )))
     }
 
     /// Compress context data
@@ -2489,9 +2570,12 @@ impl ContextProvider {
     /// Restore context from backup
     pub async fn restore_context_backup(&self, backup_id: &str) -> RhemaResult<()> {
         let backup_path = self.get_backup_path(backup_id).await?;
-        
+
         if !backup_path.exists() {
-            return Err(RhemaError::InvalidInput(format!("Backup {} not found", backup_id)));
+            return Err(RhemaError::InvalidInput(format!(
+                "Backup {} not found",
+                backup_id
+            )));
         }
 
         let json_data = fs::read_to_string(&backup_path)?;
@@ -2569,20 +2653,24 @@ impl ContextProvider {
     }
 
     /// Evict oldest cache entries
-    async fn evict_oldest_cache_entries(&self, cache: &mut HashMap<String, ContextCacheEntry<Value>>) {
+    async fn evict_oldest_cache_entries(
+        &self,
+        cache: &mut HashMap<String, ContextCacheEntry<Value>>,
+    ) {
         // Collect all entries and sort them by creation time
         let mut entries: Vec<_> = cache.iter().collect();
         entries.sort_by(|a, b| a.1.created_at.cmp(&b.1.created_at));
 
         // Calculate how many to remove (oldest 10%)
         let to_remove = (entries.len() / 10).max(1);
-        
+
         // Extract the keys to remove
-        let keys_to_remove: Vec<String> = entries.iter()
+        let keys_to_remove: Vec<String> = entries
+            .iter()
             .take(to_remove)
             .map(|(key, _)| (*key).clone())
             .collect();
-        
+
         // Now remove the entries from the cache
         for key in keys_to_remove {
             let _ = cache.remove(&key);
@@ -2615,7 +2703,8 @@ impl ContextProvider {
 
     /// Generate version string
     async fn generate_version(&self) -> String {
-        format!("v{}.{}.{}", 
+        format!(
+            "v{}.{}.{}",
             Utc::now().timestamp() / 86400, // Days since epoch
             Utc::now().hour(),
             Utc::now().minute()
@@ -2645,7 +2734,10 @@ impl ContextProvider {
         Ok(HashMap::from([
             ("cached_entries".to_string(), cache.len()),
             ("versioned_scopes".to_string(), versions.len()),
-            ("total_versions".to_string(), versions.values().map(|v| v.len()).sum()),
+            (
+                "total_versions".to_string(),
+                versions.values().map(|v| v.len()).sum(),
+            ),
         ]))
     }
 
@@ -2668,7 +2760,7 @@ impl Default for ContextCacheConfig {
     fn default() -> Self {
         Self {
             enabled: true,
-            max_size_mb: 100, // 100MB
+            max_size_mb: 100,  // 100MB
             ttl_seconds: 3600, // 1 hour
             eviction_policy: "LRU".to_string(),
             compression_enabled: false,
@@ -2745,7 +2837,7 @@ mod tests {
     async fn test_context_validation_basic() {
         let temp_dir = tempfile::tempdir().unwrap();
         let context_provider = ContextProvider::new(temp_dir.path().to_path_buf()).unwrap();
-        
+
         // Test validation with empty context (should be valid)
         let result = context_provider.validate_context_data().await.unwrap();
         assert!(result.is_valid);
@@ -2810,17 +2902,23 @@ mod tests {
         // Test serialization
         let json = serde_json::to_string(&result).unwrap();
         let deserialized: ContextValidationResult = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(result.is_valid, deserialized.is_valid);
-        assert_eq!(result.recommendations.len(), deserialized.recommendations.len());
+        assert_eq!(
+            result.recommendations.len(),
+            deserialized.recommendations.len()
+        );
     }
 
     #[tokio::test]
     async fn test_temporal_validation() {
         let temp_dir = tempfile::tempdir().unwrap();
         let context_provider = ContextProvider::new(temp_dir.path().to_path_buf()).unwrap();
-        
-        let result = context_provider.validate_temporal_consistency().await.unwrap();
+
+        let result = context_provider
+            .validate_temporal_consistency()
+            .await
+            .unwrap();
         assert!(result.is_temporally_consistent);
         assert_eq!(result.future_dates_in_past.len(), 0);
         assert_eq!(result.invalid_timestamp_sequences.len(), 0);
@@ -2831,7 +2929,7 @@ mod tests {
     async fn test_consistency_validation() {
         let temp_dir = tempfile::tempdir().unwrap();
         let context_provider = ContextProvider::new(temp_dir.path().to_path_buf()).unwrap();
-        
+
         let result = context_provider.validate_consistency().await.unwrap();
         assert!(result.is_consistent);
         assert_eq!(result.naming_conflicts.len(), 0);
@@ -2843,7 +2941,7 @@ mod tests {
     async fn test_cross_reference_validation() {
         let temp_dir = tempfile::tempdir().unwrap();
         let context_provider = ContextProvider::new(temp_dir.path().to_path_buf()).unwrap();
-        
+
         let result = context_provider.validate_cross_references().await.unwrap();
         assert!(result.is_valid);
         assert_eq!(result.broken_references.len(), 0);

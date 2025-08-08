@@ -70,8 +70,6 @@ pub enum SdkToolResult {
     Image { data: Vec<u8>, mime_type: String },
 }
 
-
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AuthConfig {
     pub enabled: bool,
@@ -95,7 +93,9 @@ impl Default for McpConfig {
             use_official_sdk: true,
             auth: AuthConfig { enabled: false },
             watcher: WatcherConfig { enabled: true },
-            cache: CacheConfig { memory_enabled: true },
+            cache: CacheConfig {
+                memory_enabled: true,
+            },
         }
     }
 }
@@ -121,7 +121,11 @@ impl ContextProvider {
         Ok(vec![])
     }
 
-    pub async fn search_regex(&self, _pattern: &str, _options: Option<serde_json::Value>) -> Result<Vec<SdkResource>, String> {
+    pub async fn search_regex(
+        &self,
+        _pattern: &str,
+        _options: Option<serde_json::Value>,
+    ) -> Result<Vec<SdkResource>, String> {
         Ok(vec![])
     }
 
@@ -139,7 +143,10 @@ impl ContextProvider {
 }
 
 impl FileWatcher {
-    pub async fn new(_config: &WatcherConfig, _repo_root: std::path::PathBuf) -> Result<Self, String> {
+    pub async fn new(
+        _config: &WatcherConfig,
+        _repo_root: std::path::PathBuf,
+    ) -> Result<Self, String> {
         Ok(Self)
     }
 }
@@ -166,7 +173,11 @@ impl RhemaMcpServer {
         vec![]
     }
 
-    pub async fn execute_tool(&self, _tool_name: &str, _args: serde_json::Value) -> Result<SdkToolResult, String> {
+    pub async fn execute_tool(
+        &self,
+        _tool_name: &str,
+        _args: serde_json::Value,
+    ) -> Result<SdkToolResult, String> {
         Ok(SdkToolResult::Text {
             text: "Mock tool execution result".to_string(),
         })
@@ -177,27 +188,30 @@ impl RhemaMcpServer {
     }
 }
 use rhema_core::RhemaResult;
+use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tempfile::TempDir;
-use std::fs;
-use std::collections::HashMap;
 
 // Mock implementation for rhema::mcp::sdk::PromptSegment
 mod rhema {
     pub mod mcp {
         pub mod sdk {
             use super::super::super::*;
-            
+
             #[derive(Debug, Clone)]
             pub struct PromptSegment {
                 pub content: String,
                 pub segment_type: String,
             }
-            
+
             impl PromptSegment {
                 pub fn new(content: String, segment_type: String) -> Self {
-                    Self { content, segment_type }
+                    Self {
+                        content,
+                        segment_type,
+                    }
                 }
             }
         }

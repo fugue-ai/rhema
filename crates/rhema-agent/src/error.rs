@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use thiserror::Error;
 use std::fmt;
+use thiserror::Error;
 
 /// Agent framework error types
 #[derive(Error, Debug)]
@@ -163,7 +163,7 @@ impl AgentError {
             | AgentError::InitializationFailed { .. }
             | AgentError::ShutdownFailed { .. }
             | AgentError::Unknown { .. } => ErrorSeverity::Critical,
-            | AgentError::WorkflowError { .. } => ErrorSeverity::Error,
+            AgentError::WorkflowError { .. } => ErrorSeverity::Error,
         }
     }
 }
@@ -256,15 +256,15 @@ impl ContextualAgentError {
 impl fmt::Display for ContextualAgentError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.error)?;
-        
+
         if let Some(ref agent_id) = self.context.agent_id {
             write!(f, " (Agent: {})", agent_id)?;
         }
-        
+
         if let Some(ref operation) = self.context.operation {
             write!(f, " (Operation: {})", operation)?;
         }
-        
+
         write!(f, " at {}", self.context.timestamp)
     }
 }
@@ -314,7 +314,10 @@ mod tests {
 
         assert_eq!(context.agent_id, Some("test-agent".to_string()));
         assert_eq!(context.operation, Some("test-operation".to_string()));
-        assert_eq!(context.additional_info.get("key"), Some(&"value".to_string()));
+        assert_eq!(
+            context.additional_info.get("key"),
+            Some(&"value".to_string())
+        );
     }
 
     #[test]
@@ -327,4 +330,4 @@ mod tests {
 
         assert!(contextual_error.to_string().contains("test-agent"));
     }
-} 
+}

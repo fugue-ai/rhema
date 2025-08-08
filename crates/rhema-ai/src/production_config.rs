@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-use crate::persistence::{PersistenceConfig, PersistenceManager};
-use crate::distributed::{DistributedConfig, DistributedManager};
 use crate::advanced_features::{AdvancedFeaturesConfig, AdvancedFeaturesManager};
 use crate::agent::real_time_coordination::RealTimeCoordinationSystem;
 use crate::coordination_integration::CoordinationIntegration;
+use crate::distributed::{DistributedConfig, DistributedManager};
+use crate::persistence::{PersistenceConfig, PersistenceManager};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -377,7 +377,7 @@ impl Default for ProductionConfig {
                 },
                 caching: CachingConfig {
                     enabled: true,
-                    ttl_seconds: 3600, // 1 hour
+                    ttl_seconds: 3600,                 // 1 hour
                     max_size_bytes: 100 * 1024 * 1024, // 100MB
                     storage_backend: CacheStorageBackend::Memory,
                     enable_warming: false,
@@ -448,14 +448,18 @@ pub struct ProductionAIService {
 impl ProductionAIService {
     /// Create a new production AI service
     pub async fn new(config: ProductionConfig) -> RhemaResult<Self> {
-        info!("Initializing Production AI Service with configuration: {:?}", config);
+        info!(
+            "Initializing Production AI Service with configuration: {:?}",
+            config
+        );
 
         // Initialize persistence manager
-        let persistence_manager = if config.persistence.backend != crate::persistence::StorageBackend::Memory {
-            Some(PersistenceManager::new(config.persistence.clone()).await?)
-        } else {
-            None
-        };
+        let persistence_manager =
+            if config.persistence.backend != crate::persistence::StorageBackend::Memory {
+                Some(PersistenceManager::new(config.persistence.clone()).await?)
+            } else {
+                None
+            };
 
         // Initialize distributed manager
         let distributed_manager = if let Some(distributed_config) = &config.distributed {
@@ -465,16 +469,19 @@ impl ProductionAIService {
         };
 
         // Initialize advanced features manager
-        let advanced_features_manager = Some(AdvancedFeaturesManager::new(config.advanced_features.clone()).await?);
+        let advanced_features_manager =
+            Some(AdvancedFeaturesManager::new(config.advanced_features.clone()).await?);
 
         // Initialize coordination system
         let coordination_system = if config.coordination.enabled {
             let mut system = RealTimeCoordinationSystem::new();
-            
+
             if let Some(advanced_config) = &config.coordination.advanced {
-                system.enable_advanced_features(advanced_config.clone()).await?;
+                system
+                    .enable_advanced_features(advanced_config.clone())
+                    .await?;
             }
-            
+
             Some(Arc::new(system))
         } else {
             None
@@ -491,11 +498,11 @@ impl ProductionAIService {
                 enable_health_monitoring: true,
                 syneidesis: config.coordination.syneidesis.clone(),
             };
-            
-            Some(Arc::new(CoordinationIntegration::new(
-                system.as_ref().clone(),
-                Some(integration_config),
-            ).await?))
+
+            Some(Arc::new(
+                CoordinationIntegration::new(system.as_ref().clone(), Some(integration_config))
+                    .await?,
+            ))
         } else {
             None
         };
@@ -560,10 +567,15 @@ impl ProductionAIService {
         if let Some(persistence_manager) = &self.persistence_manager {
             match persistence_manager.validate().await {
                 Ok(_) => {
-                    health.components.insert("persistence".to_string(), ComponentHealth::Healthy);
+                    health
+                        .components
+                        .insert("persistence".to_string(), ComponentHealth::Healthy);
                 }
                 Err(e) => {
-                    health.components.insert("persistence".to_string(), ComponentHealth::Unhealthy(e.to_string()));
+                    health.components.insert(
+                        "persistence".to_string(),
+                        ComponentHealth::Unhealthy(e.to_string()),
+                    );
                     health.status = ServiceStatus::Degraded;
                 }
             }
@@ -576,17 +588,24 @@ impl ProductionAIService {
                     let component_health = match cluster_health.status {
                         crate::distributed::ClusterStatus::Healthy => ComponentHealth::Healthy,
                         crate::distributed::ClusterStatus::Degraded => ComponentHealth::Degraded,
-                        crate::distributed::ClusterStatus::Unhealthy => ComponentHealth::Unhealthy("Cluster unhealthy".to_string()),
+                        crate::distributed::ClusterStatus::Unhealthy => {
+                            ComponentHealth::Unhealthy("Cluster unhealthy".to_string())
+                        }
                         crate::distributed::ClusterStatus::Forming => ComponentHealth::Degraded,
                     };
-                    health.components.insert("distributed".to_string(), component_health);
-                    
+                    health
+                        .components
+                        .insert("distributed".to_string(), component_health);
+
                     if cluster_health.status == crate::distributed::ClusterStatus::Unhealthy {
                         health.status = ServiceStatus::Unhealthy;
                     }
                 }
                 Err(e) => {
-                    health.components.insert("distributed".to_string(), ComponentHealth::Unhealthy(e.to_string()));
+                    health.components.insert(
+                        "distributed".to_string(),
+                        ComponentHealth::Unhealthy(e.to_string()),
+                    );
                     health.status = ServiceStatus::Degraded;
                 }
             }
@@ -595,13 +614,26 @@ impl ProductionAIService {
         // Check advanced features health
         if let Some(advanced_features_manager) = &self.advanced_features_manager {
             let alerts = advanced_features_manager.get_performance_alerts();
-            let critical_alerts = alerts.iter().filter(|a| matches!(a.severity, crate::advanced_features::AlertSeverity::Critical)).count();
-            
+            let critical_alerts = alerts
+                .iter()
+                .filter(|a| {
+                    matches!(
+                        a.severity,
+                        crate::advanced_features::AlertSeverity::Critical
+                    )
+                })
+                .count();
+
             if critical_alerts > 0 {
-                health.components.insert("advanced_features".to_string(), ComponentHealth::Unhealthy(format!("{} critical alerts", critical_alerts)));
+                health.components.insert(
+                    "advanced_features".to_string(),
+                    ComponentHealth::Unhealthy(format!("{} critical alerts", critical_alerts)),
+                );
                 health.status = ServiceStatus::Degraded;
             } else {
-                health.components.insert("advanced_features".to_string(), ComponentHealth::Healthy);
+                health
+                    .components
+                    .insert("advanced_features".to_string(), ComponentHealth::Healthy);
             }
         }
 
@@ -698,4 +730,4 @@ pub struct AdvancedFeaturesStats {
     pub performance_metrics: Vec<crate::advanced_features::PerformanceMetric>,
     pub performance_alerts: Vec<crate::advanced_features::PerformanceAlert>,
     pub key_stats: crate::advanced_features::key_management::KeyStats,
-} 
+}

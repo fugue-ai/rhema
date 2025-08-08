@@ -28,21 +28,21 @@ impl InteractiveCommandParser {
             .split_whitespace()
             .map(|s| s.trim_matches('"').to_string())
             .collect();
-        
+
         Self {
             parts,
             current_index: 0,
         }
     }
-    
+
     pub fn command(&self) -> Option<&str> {
         self.parts.first().map(|s| s.as_str())
     }
-    
+
     pub fn args(&self) -> Vec<&str> {
         self.parts.iter().skip(1).map(|s| s.as_str()).collect()
     }
-    
+
     pub fn next(&mut self) -> Option<&str> {
         if self.current_index < self.parts.len() {
             let part = &self.parts[self.current_index];
@@ -52,7 +52,7 @@ impl InteractiveCommandParser {
             None
         }
     }
-    
+
     pub fn peek(&self) -> Option<&str> {
         if self.current_index < self.parts.len() {
             Some(&self.parts[self.current_index])
@@ -60,41 +60,45 @@ impl InteractiveCommandParser {
             None
         }
     }
-    
+
     pub fn remaining(&self) -> Vec<&str> {
-        self.parts.iter().skip(self.current_index).map(|s| s.as_str()).collect()
+        self.parts
+            .iter()
+            .skip(self.current_index)
+            .map(|s| s.as_str())
+            .collect()
     }
-    
+
     pub fn has_more(&self) -> bool {
         self.current_index < self.parts.len()
     }
-    
+
     pub fn reset(&mut self) {
         self.current_index = 0;
     }
 }
 use rhema_core::RhemaResult;
-use tempfile::TempDir;
-use std::path::PathBuf;
-use std::fs;
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use tempfile::TempDir;
 
 // Mock implementation for interactive_builder
 mod interactive_builder {
     use super::*;
-    
+
     #[derive(Debug)]
     pub struct InteractiveBuilder {
         pub config: HashMap<String, String>,
     }
-    
+
     impl InteractiveBuilder {
         pub fn new() -> Self {
             Self {
                 config: HashMap::new(),
             }
         }
-        
+
         pub fn build(&self) -> RhemaResult<()> {
             Ok(())
         }
@@ -202,12 +206,12 @@ fn test_reset() {
 
 #[test]
 fn test_interactive_builder_integration() {
-    use rhema_cli::{Rhema, RhemaResult};
     use interactive_builder::InteractiveBuilder;
-    
+    use rhema_cli::{Rhema, RhemaResult};
+
     // Test that we can create a builder instance
     let builder = InteractiveBuilder::new();
-    
+
     // Test that the builder can be created successfully
     assert!(true); // Just verify it doesn't panic
 }
@@ -216,12 +220,36 @@ fn test_interactive_builder_integration() {
 fn test_interactive_parser_comprehensive() {
     // Test comprehensive parsing scenarios
     let test_cases = vec![
-        ("todo add \"Simple task\"", vec!["todo", "add", "Simple task"]),
-        ("todo add \"Task with spaces\" --priority high", vec!["todo", "add", "Task with spaces", "--priority", "high"]),
-        ("insight record \"Database optimization\" --content \"Optimized queries\"", vec!["insight", "record", "Database optimization", "--content", "Optimized queries"]),
-        ("pattern add \"Test Pattern\" --description \"A test pattern\"", vec!["pattern", "add", "Test Pattern", "--description", "A test pattern"]),
+        (
+            "todo add \"Simple task\"",
+            vec!["todo", "add", "Simple task"],
+        ),
+        (
+            "todo add \"Task with spaces\" --priority high",
+            vec!["todo", "add", "Task with spaces", "--priority", "high"],
+        ),
+        (
+            "insight record \"Database optimization\" --content \"Optimized queries\"",
+            vec![
+                "insight",
+                "record",
+                "Database optimization",
+                "--content",
+                "Optimized queries",
+            ],
+        ),
+        (
+            "pattern add \"Test Pattern\" --description \"A test pattern\"",
+            vec![
+                "pattern",
+                "add",
+                "Test Pattern",
+                "--description",
+                "A test pattern",
+            ],
+        ),
     ];
-    
+
     for (input, expected) in test_cases {
         let parser = InteractiveCommandParser::new(input);
         assert_eq!(parser.parts, expected, "Failed for input: {}", input);

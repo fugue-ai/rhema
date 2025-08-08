@@ -1,26 +1,36 @@
 use std::process::Command;
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 fn main() {
     println!("Testing MCP Daemon functionality...");
-    
+
     // Start the daemon in background
     let mut daemon_process = Command::new("cargo")
-        .args(&["run", "--bin", "rhema", "--", "daemon", "start", "--foreground", "--port", "8081"])
+        .args(&[
+            "run",
+            "--bin",
+            "rhema",
+            "--",
+            "daemon",
+            "start",
+            "--foreground",
+            "--port",
+            "8081",
+        ])
         .spawn()
         .expect("Failed to start daemon");
-    
+
     println!("Daemon started with PID: {}", daemon_process.id());
-    
+
     // Wait for daemon to start
     thread::sleep(Duration::from_secs(5));
-    
+
     // Test health endpoint using curl
     let output = Command::new("curl")
         .args(&["-s", "http://127.0.0.1:8081/health"])
         .output();
-    
+
     match output {
         Ok(output) => {
             if output.status.success() {
@@ -35,12 +45,12 @@ fn main() {
             println!("❌ Failed to test health endpoint: {}", e);
         }
     }
-    
+
     // Test stats endpoint
     let output = Command::new("curl")
         .args(&["-s", "http://127.0.0.1:8081/stats"])
         .output();
-    
+
     match output {
         Ok(output) => {
             if output.status.success() {
@@ -55,10 +65,10 @@ fn main() {
             println!("❌ Failed to test stats endpoint: {}", e);
         }
     }
-    
+
     // Stop the daemon
     println!("Stopping daemon...");
     let _ = daemon_process.kill();
     let _ = daemon_process.wait();
     println!("Daemon stopped");
-} 
+}

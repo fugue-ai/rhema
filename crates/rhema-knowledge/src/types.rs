@@ -26,49 +26,49 @@ use thiserror::Error;
 pub enum KnowledgeError {
     #[error("Embedding error: {0}")]
     EmbeddingError(#[from] crate::embedding::EmbeddingError),
-    
+
     #[error("Vector storage error: {0}")]
     VectorError(#[from] crate::vector::VectorError),
-    
+
     #[error("Search error: {0}")]
     SearchError(#[from] crate::search::SearchError),
-    
+
     #[error("Storage error: {0}")]
     StorageError(#[from] crate::storage::StorageError),
-    
+
     #[error("Synthesis error: {0}")]
     SynthesisError(#[from] crate::synthesis::SynthesisError),
-    
+
     #[error("Cache error: {0}")]
     CacheError(#[from] crate::cache::CacheError),
-    
+
     #[error("Serialization error: {0}")]
     SerializationError(#[from] bincode::Error),
-    
+
     #[error("Compression error: {0}")]
     CompressionError(String),
-    
+
     #[error("File system error: {0}")]
     FileSystemError(#[from] std::io::Error),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
-    
+
     #[error("Invalid data: {0}")]
     InvalidData(String),
-    
+
     #[error("Timeout error: {0}")]
     TimeoutError(String),
-    
+
     #[error("Network error: {0}")]
     NetworkError(String),
-    
+
     #[error("Engine error: {0}")]
     EngineError(#[from] crate::engine::EngineError),
-    
+
     #[error("Indexing error: {0}")]
     IndexingError(#[from] crate::indexing::IndexingError),
-    
+
     #[error("Proactive error: {0}")]
     ProactiveError(#[from] crate::proactive::ProactiveError),
     #[error("File watching error: {0}")]
@@ -77,7 +77,7 @@ pub enum KnowledgeError {
     RedisError(#[from] redis::RedisError),
     #[error("Serde JSON error: {0}")]
     SerdeJsonError(#[from] serde_json::Error),
-    
+
     #[error("Anyhow error: {0}")]
     AnyhowError(#[from] anyhow::Error),
 }
@@ -695,7 +695,7 @@ pub struct PerformanceMetrics {
     pub average_embedding_time_ms: u64,
     pub compression_ratio: f32,
     pub memory_pressure_percent: f32,
-} 
+}
 
 // Vector module types are defined in the vector module itself
-// No circular dependencies should be created here 
+// No circular dependencies should be created here

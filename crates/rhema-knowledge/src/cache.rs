@@ -26,9 +26,8 @@ use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 
 use crate::types::{
-    CacheTier, CompressionAlgorithm, ContentType,
-    DistanceMetric, EvictionPolicy, KnowledgeResult, SemanticCacheEntry,
-    UnifiedCacheResult,
+    CacheTier, CompressionAlgorithm, ContentType, DistanceMetric, EvictionPolicy, KnowledgeResult,
+    SemanticCacheEntry, UnifiedCacheResult,
 };
 use crate::vector::VectorStoreWrapper;
 
@@ -37,31 +36,31 @@ use crate::vector::VectorStoreWrapper;
 pub enum CacheError {
     #[error("Memory cache error: {0}")]
     MemoryCacheError(String),
-    
+
     #[error("Disk cache error: {0}")]
     DiskCacheError(String),
-    
+
     #[error("Network cache error: {0}")]
     NetworkCacheError(String),
-    
+
     #[error("Serialization error: {0}")]
     SerializationError(String),
-    
+
     #[error("Compression error: {0}")]
     CompressionError(String),
-    
+
     #[error("File system error: {0}")]
     FileSystemError(String),
-    
+
     #[error("Redis error: {0}")]
     RedisError(String),
-    
+
     #[error("Invalid configuration: {0}")]
     ConfigurationError(String),
-    
+
     #[error("Cache full: {0}")]
     CacheFull(String),
-    
+
     #[error("Object too large: {0}")]
     ObjectTooLarge(String),
 }
@@ -124,7 +123,7 @@ impl<'de> serde::Deserialize<'de> for CacheStats {
             pub memory_usage_bytes: u64,
             pub semantic_hit_count: u64,
         }
-        
+
         let helper = CacheStatsHelper::deserialize(deserializer)?;
         Ok(CacheStats {
             total_entries: helper.total_entries,
@@ -141,8 +140,15 @@ impl<'de> serde::Deserialize<'de> for CacheStats {
 /// Semantic eviction policy trait
 #[async_trait]
 pub trait SemanticEvictionPolicy: Send + Sync {
-    async fn select_for_eviction(&self, entries: &DashMap<String, SemanticCacheEntry>) -> Vec<String>;
-    async fn should_evict(&self, entry: &SemanticCacheEntry, new_entry: &SemanticCacheEntry) -> bool;
+    async fn select_for_eviction(
+        &self,
+        entries: &DashMap<String, SemanticCacheEntry>,
+    ) -> Vec<String>;
+    async fn should_evict(
+        &self,
+        entry: &SemanticCacheEntry,
+        new_entry: &SemanticCacheEntry,
+    ) -> bool;
 }
 
 /// LRU eviction policy
@@ -150,21 +156,32 @@ pub struct LRUEvictionPolicy;
 
 #[async_trait]
 impl SemanticEvictionPolicy for LRUEvictionPolicy {
-    async fn select_for_eviction(&self, entries: &DashMap<String, SemanticCacheEntry>) -> Vec<String> {
+    async fn select_for_eviction(
+        &self,
+        entries: &DashMap<String, SemanticCacheEntry>,
+    ) -> Vec<String> {
         let mut entries_vec: Vec<(String, SemanticCacheEntry)> = entries
             .iter()
             .map(|entry| (entry.key().clone(), entry.value().clone()))
             .collect();
-        
+
         // Sort by last accessed time (oldest first)
         entries_vec.sort_by(|a, b| a.1.metadata.accessed_at.cmp(&b.1.metadata.accessed_at));
-        
+
         // Return keys of oldest entries (up to 10% of cache)
         let evict_count = (entries_vec.len() / 10).max(1);
-        entries_vec.into_iter().take(evict_count).map(|(k, _)| k).collect()
+        entries_vec
+            .into_iter()
+            .take(evict_count)
+            .map(|(k, _)| k)
+            .collect()
     }
-    
-    async fn should_evict(&self, entry: &SemanticCacheEntry, new_entry: &SemanticCacheEntry) -> bool {
+
+    async fn should_evict(
+        &self,
+        entry: &SemanticCacheEntry,
+        new_entry: &SemanticCacheEntry,
+    ) -> bool {
         entry.metadata.accessed_at < new_entry.metadata.accessed_at
     }
 }
@@ -176,35 +193,51 @@ pub struct SemanticLRUEvictionPolicy {
 
 impl SemanticLRUEvictionPolicy {
     pub fn new(similarity_threshold: f32) -> Self {
-        Self { similarity_threshold }
+        Self {
+            similarity_threshold,
+        }
     }
 }
 
 #[async_trait]
 impl SemanticEvictionPolicy for SemanticLRUEvictionPolicy {
-    async fn select_for_eviction(&self, entries: &DashMap<String, SemanticCacheEntry>) -> Vec<String> {
+    async fn select_for_eviction(
+        &self,
+        entries: &DashMap<String, SemanticCacheEntry>,
+    ) -> Vec<String> {
         let mut entries_vec: Vec<(String, SemanticCacheEntry)> = entries
             .iter()
             .map(|entry| (entry.key().clone(), entry.value().clone()))
             .collect();
-        
+
         // Sort by semantic relevance and access time
         entries_vec.sort_by(|a, b| {
-            let a_score = a.1.access_patterns.semantic_relevance + 
-                         (a.1.metadata.access_count as f32 * 0.1);
-            let b_score = b.1.access_patterns.semantic_relevance + 
-                         (b.1.metadata.access_count as f32 * 0.1);
-            a_score.partial_cmp(&b_score).unwrap_or(std::cmp::Ordering::Equal)
+            let a_score =
+                a.1.access_patterns.semantic_relevance + (a.1.metadata.access_count as f32 * 0.1);
+            let b_score =
+                b.1.access_patterns.semantic_relevance + (b.1.metadata.access_count as f32 * 0.1);
+            a_score
+                .partial_cmp(&b_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
-        
+
         // Return keys of least relevant entries
         let evict_count = (entries_vec.len() / 10).max(1);
-        entries_vec.into_iter().take(evict_count).map(|(k, _)| k).collect()
+        entries_vec
+            .into_iter()
+            .take(evict_count)
+            .map(|(k, _)| k)
+            .collect()
     }
-    
-    async fn should_evict(&self, entry: &SemanticCacheEntry, new_entry: &SemanticCacheEntry) -> bool {
+
+    async fn should_evict(
+        &self,
+        entry: &SemanticCacheEntry,
+        new_entry: &SemanticCacheEntry,
+    ) -> bool {
         // Evict if new entry has higher semantic relevance
-        new_entry.access_patterns.semantic_relevance > entry.access_patterns.semantic_relevance + self.similarity_threshold
+        new_entry.access_patterns.semantic_relevance
+            > entry.access_patterns.semantic_relevance + self.similarity_threshold
     }
 }
 
@@ -213,21 +246,32 @@ pub struct LFUEvictionPolicy;
 
 #[async_trait]
 impl SemanticEvictionPolicy for LFUEvictionPolicy {
-    async fn select_for_eviction(&self, entries: &DashMap<String, SemanticCacheEntry>) -> Vec<String> {
+    async fn select_for_eviction(
+        &self,
+        entries: &DashMap<String, SemanticCacheEntry>,
+    ) -> Vec<String> {
         let mut entries_vec: Vec<(String, SemanticCacheEntry)> = entries
             .iter()
             .map(|entry| (entry.key().clone(), entry.value().clone()))
             .collect();
-        
+
         // Sort by access count (least frequently used first)
         entries_vec.sort_by(|a, b| a.1.metadata.access_count.cmp(&b.1.metadata.access_count));
-        
+
         // Return keys of least frequently used entries
         let evict_count = (entries_vec.len() / 10).max(1);
-        entries_vec.into_iter().take(evict_count).map(|(k, _)| k).collect()
+        entries_vec
+            .into_iter()
+            .take(evict_count)
+            .map(|(k, _)| k)
+            .collect()
     }
-    
-    async fn should_evict(&self, entry: &SemanticCacheEntry, new_entry: &SemanticCacheEntry) -> bool {
+
+    async fn should_evict(
+        &self,
+        entry: &SemanticCacheEntry,
+        new_entry: &SemanticCacheEntry,
+    ) -> bool {
         entry.metadata.access_count < new_entry.metadata.access_count
     }
 }
@@ -260,7 +304,7 @@ impl AdaptiveEvictionPolicy {
     async fn update_performance(&self, hit_rate: f64) {
         let mut history = self.performance_history.write().await;
         history.push(hit_rate);
-        
+
         // Keep only last 50 observations
         if history.len() > 50 {
             history.remove(0);
@@ -269,30 +313,31 @@ impl AdaptiveEvictionPolicy {
 
     async fn should_switch_strategy(&self) -> bool {
         let history = self.performance_history.read().await;
-        
+
         if history.len() < self.min_observations {
             return false;
         }
-        
+
         // Calculate recent performance trend
         let recent_window = history.len().saturating_sub(10);
-        let recent_avg: f64 = history[recent_window..].iter().sum::<f64>() / (history.len() - recent_window) as f64;
+        let recent_avg: f64 =
+            history[recent_window..].iter().sum::<f64>() / (history.len() - recent_window) as f64;
         let overall_avg: f64 = history.iter().sum::<f64>() / history.len() as f64;
-        
+
         // Switch if recent performance is significantly worse
         (overall_avg - recent_avg).abs() > self.strategy_switch_threshold
     }
 
     async fn select_best_strategy(&self) -> EvictionStrategy {
         let history = self.performance_history.read().await;
-        
+
         if history.len() < self.min_observations {
             return EvictionStrategy::LRU; // Default strategy
         }
-        
+
         // Analyze patterns to select best strategy
         let recent_trend = self.calculate_trend(&history);
-        
+
         match recent_trend {
             Trend::Declining => EvictionStrategy::LFU, // Try LFU for declining performance
             Trend::Stable => EvictionStrategy::LRU,    // Keep LRU for stable performance
@@ -304,12 +349,18 @@ impl AdaptiveEvictionPolicy {
         if history.len() < 5 {
             return Trend::Stable;
         }
-        
-        let recent: f64 = history[history.len().saturating_sub(5)..].iter().sum::<f64>() / 5.0;
-        let earlier: f64 = history[..history.len().saturating_sub(5)].iter().sum::<f64>() / (history.len() - 5) as f64;
-        
+
+        let recent: f64 = history[history.len().saturating_sub(5)..]
+            .iter()
+            .sum::<f64>()
+            / 5.0;
+        let earlier: f64 = history[..history.len().saturating_sub(5)]
+            .iter()
+            .sum::<f64>()
+            / (history.len() - 5) as f64;
+
         let change = recent - earlier;
-        
+
         if change > 0.05 {
             Trend::Improving
         } else if change < -0.05 {
@@ -329,7 +380,10 @@ enum Trend {
 
 #[async_trait]
 impl SemanticEvictionPolicy for AdaptiveEvictionPolicy {
-    async fn select_for_eviction(&self, entries: &DashMap<String, SemanticCacheEntry>) -> Vec<String> {
+    async fn select_for_eviction(
+        &self,
+        entries: &DashMap<String, SemanticCacheEntry>,
+    ) -> Vec<String> {
         // Update strategy if needed
         if self.should_switch_strategy().await {
             let new_strategy = self.select_best_strategy().await;
@@ -338,7 +392,7 @@ impl SemanticEvictionPolicy for AdaptiveEvictionPolicy {
             *current = new_strategy;
             debug!("Switched eviction strategy to {}", strategy_name);
         }
-        
+
         // Use current strategy
         let strategy = self.current_strategy.read().await;
         match &*strategy {
@@ -356,8 +410,12 @@ impl SemanticEvictionPolicy for AdaptiveEvictionPolicy {
             }
         }
     }
-    
-    async fn should_evict(&self, entry: &SemanticCacheEntry, new_entry: &SemanticCacheEntry) -> bool {
+
+    async fn should_evict(
+        &self,
+        entry: &SemanticCacheEntry,
+        new_entry: &SemanticCacheEntry,
+    ) -> bool {
         let strategy = self.current_strategy.read().await;
         match &*strategy {
             EvictionStrategy::LRU => {
@@ -394,15 +452,17 @@ impl SemanticMemoryCache {
             })),
         }
     }
-    
+
     pub fn new(config: SemanticCacheConfig) -> Self {
         let eviction_policy: Arc<dyn SemanticEvictionPolicy> = match config.eviction_policy {
             EvictionPolicy::LRU => Arc::new(LRUEvictionPolicy),
-            EvictionPolicy::SemanticLRU => Arc::new(SemanticLRUEvictionPolicy::new(config.semantic_similarity_threshold)),
+            EvictionPolicy::SemanticLRU => Arc::new(SemanticLRUEvictionPolicy::new(
+                config.semantic_similarity_threshold,
+            )),
             EvictionPolicy::LFU => Arc::new(LFUEvictionPolicy),
             EvictionPolicy::Adaptive => Arc::new(AdaptiveEvictionPolicy::new(0.1)), // 10% threshold for strategy switching
         };
-        
+
         Self {
             entries: Arc::new(DashMap::new()),
             semantic_index: Arc::new(RwLock::new(HashMap::new())),
@@ -419,7 +479,7 @@ impl SemanticMemoryCache {
             })),
         }
     }
-    
+
     pub async fn get(&self, key: &str) -> KnowledgeResult<Option<UnifiedCacheResult>> {
         if let Some(entry) = self.entries.get(key) {
             // Update access statistics
@@ -427,10 +487,10 @@ impl SemanticMemoryCache {
             entry.metadata.accessed_at = chrono::Utc::now();
             entry.metadata.access_count += 1;
             self.entries.insert(key.to_string(), entry.clone());
-            
+
             // Update stats
             self.update_stats_hit().await;
-            
+
             debug!("Memory cache hit for key: {}", key);
             return Ok(Some(UnifiedCacheResult {
                 data: entry.data,
@@ -447,64 +507,74 @@ impl SemanticMemoryCache {
                 access_patterns: entry.access_patterns,
             }));
         }
-        
+
         self.update_stats_miss().await;
         debug!("Memory cache miss for key: {}", key);
         Ok(None)
     }
-    
+
     pub async fn set(&self, key: String, entry: SemanticCacheEntry) -> KnowledgeResult<()> {
         // Check if we need to evict entries
         if self.entries.len() >= self.config.max_entries {
             self.evict_entries().await?;
         }
-        
+
         // Check memory usage
         let entry_size = entry.data.len();
         if entry_size > self.config.max_size_mb * 1024 * 1024 {
-            return Err(CacheError::ObjectTooLarge(
-                format!("Entry size {} bytes exceeds limit {} MB", entry_size, self.config.max_size_mb)
-            ).into());
+            return Err(CacheError::ObjectTooLarge(format!(
+                "Entry size {} bytes exceeds limit {} MB",
+                entry_size, self.config.max_size_mb
+            ))
+            .into());
         }
-        
+
         // Update semantic index
         if self.config.enable_semantic_indexing {
             self.update_semantic_index(&key, &entry.semantic_tags).await;
         }
-        
+
         // Store entry
         self.entries.insert(key.clone(), entry);
-        
+
         // Update stats
         self.update_stats_set(entry_size).await;
-        
-        debug!("Stored entry in memory cache: {} ({} bytes)", key, entry_size);
+
+        debug!(
+            "Stored entry in memory cache: {} ({} bytes)",
+            key, entry_size
+        );
         Ok(())
     }
-    
+
     pub async fn delete(&self, key: &str) -> KnowledgeResult<()> {
         if let Some(entry) = self.entries.remove(key) {
             // Remove from semantic index
             if self.config.enable_semantic_indexing {
-                self.remove_from_semantic_index(key, &entry.1.semantic_tags).await;
+                self.remove_from_semantic_index(key, &entry.1.semantic_tags)
+                    .await;
             }
-            
+
             // Update stats
             self.update_stats_delete(entry.1.data.len()).await;
-            
+
             debug!("Deleted entry from memory cache: {}", key);
         }
         Ok(())
     }
-    
-    pub async fn search_semantic(&self, query_tags: &[String], limit: usize) -> KnowledgeResult<Vec<UnifiedCacheResult>> {
+
+    pub async fn search_semantic(
+        &self,
+        query_tags: &[String],
+        limit: usize,
+    ) -> KnowledgeResult<Vec<UnifiedCacheResult>> {
         if !self.config.enable_semantic_indexing {
             return Ok(vec![]);
         }
-        
+
         let semantic_index = self.semantic_index.read().await;
         let mut results = Vec::new();
-        
+
         for tag in query_tags {
             if let Some(keys) = semantic_index.get(tag) {
                 for key in keys.iter().take(limit) {
@@ -528,21 +598,24 @@ impl SemanticMemoryCache {
                 }
             }
         }
-        
+
         // Sort by relevance score
         results.sort_by(|a, b| {
-            b.semantic_info.as_ref().unwrap().relevance_score
+            b.semantic_info
+                .as_ref()
+                .unwrap()
+                .relevance_score
                 .partial_cmp(&a.semantic_info.as_ref().unwrap().relevance_score)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
-        
+
         results.truncate(limit);
-        
+
         self.update_stats_semantic_hit().await;
         debug!("Semantic search returned {} results", results.len());
         Ok(results)
     }
-    
+
     pub async fn stats(&self) -> CacheStats {
         self.stats.read().await.clone()
     }
@@ -551,7 +624,7 @@ impl SemanticMemoryCache {
     pub async fn calculate_hit_rate(&self) -> f64 {
         let stats = self.stats.read().await;
         let total_requests = stats.hit_count + stats.miss_count;
-        
+
         if total_requests == 0 {
             0.0
         } else {
@@ -565,33 +638,40 @@ impl SemanticMemoryCache {
         // Note: hit_rate is calculated on-demand, not stored
         stats
     }
-    
+
     async fn evict_entries(&self) -> KnowledgeResult<()> {
-        let keys_to_evict = self.eviction_policy.select_for_eviction(&self.entries).await;
-        
+        let keys_to_evict = self
+            .eviction_policy
+            .select_for_eviction(&self.entries)
+            .await;
+
         for key in &keys_to_evict {
             if let Some(entry) = self.entries.remove(key) {
                 // Remove from semantic index
                 if self.config.enable_semantic_indexing {
-                    self.remove_from_semantic_index(&key, &entry.1.semantic_tags).await;
+                    self.remove_from_semantic_index(&key, &entry.1.semantic_tags)
+                        .await;
                 }
-                
+
                 // Update stats
                 self.update_stats_eviction(entry.1.data.len()).await;
             }
         }
-        
+
         debug!("Evicted {} entries from memory cache", keys_to_evict.len());
         Ok(())
     }
-    
+
     async fn update_semantic_index(&self, key: &str, tags: &[String]) {
         let mut index = self.semantic_index.write().await;
         for tag in tags {
-            index.entry(tag.clone()).or_insert_with(Vec::new).push(key.to_string());
+            index
+                .entry(tag.clone())
+                .or_insert_with(Vec::new)
+                .push(key.to_string());
         }
     }
-    
+
     async fn remove_from_semantic_index(&self, key: &str, tags: &[String]) {
         let mut index = self.semantic_index.write().await;
         for tag in tags {
@@ -600,33 +680,33 @@ impl SemanticMemoryCache {
             }
         }
     }
-    
+
     async fn update_stats_hit(&self) {
         let mut stats = self.stats.write().await;
         stats.hit_count += 1;
         stats.last_updated = Instant::now();
     }
-    
+
     async fn update_stats_miss(&self) {
         let mut stats = self.stats.write().await;
         stats.miss_count += 1;
         stats.last_updated = Instant::now();
     }
-    
+
     async fn update_stats_set(&self, size_bytes: usize) {
         let mut stats = self.stats.write().await;
         stats.total_entries += 1;
         stats.memory_usage_bytes += size_bytes as u64;
         stats.last_updated = Instant::now();
     }
-    
+
     async fn update_stats_delete(&self, size_bytes: usize) {
         let mut stats = self.stats.write().await;
         stats.total_entries = stats.total_entries.saturating_sub(1);
         stats.memory_usage_bytes = stats.memory_usage_bytes.saturating_sub(size_bytes as u64);
         stats.last_updated = Instant::now();
     }
-    
+
     async fn update_stats_eviction(&self, size_bytes: usize) {
         let mut stats = self.stats.write().await;
         stats.eviction_count += 1;
@@ -634,7 +714,7 @@ impl SemanticMemoryCache {
         stats.memory_usage_bytes = stats.memory_usage_bytes.saturating_sub(size_bytes as u64);
         stats.last_updated = Instant::now();
     }
-    
+
     async fn update_stats_semantic_hit(&self) {
         let mut stats = self.stats.write().await;
         stats.semantic_hit_count += 1;
@@ -710,11 +790,13 @@ impl SemanticDiskCache {
     pub fn new_dummy() -> Self {
         Self {
             cache_dir: PathBuf::from("/tmp/rhema_cache"),
-            vector_store: Arc::new(VectorStoreWrapper::Mock(crate::vector::MockVectorStore::new(
-                "cache_collection".to_string(),
-                384,
-                DistanceMetric::Cosine,
-            ))),
+            vector_store: Arc::new(VectorStoreWrapper::Mock(
+                crate::vector::MockVectorStore::new(
+                    "cache_collection".to_string(),
+                    384,
+                    DistanceMetric::Cosine,
+                ),
+            )),
             index: Arc::new(RwLock::new(SemanticDiskIndex {
                 key_to_vector: HashMap::new(),
                 semantic_clusters: vec![],
@@ -733,12 +815,12 @@ impl SemanticDiskCache {
             })),
         }
     }
-    
+
     pub async fn new(config: SemanticDiskConfig) -> KnowledgeResult<Self> {
         // Create cache directory
         std::fs::create_dir_all(&config.cache_dir)
             .map_err(|e| CacheError::FileSystemError(e.to_string()))?;
-        
+
         // Initialize vector store if enabled
         let vector_store = if config.enable_vector_storage {
             let vector_config = crate::types::VectorStoreConfig {
@@ -769,7 +851,7 @@ impl SemanticDiskCache {
                 DistanceMetric::Cosine,
             ))
         };
-        
+
         // Load or create index
         let index_path = config.cache_dir.join("index.bin");
         let index = if index_path.exists() {
@@ -784,7 +866,7 @@ impl SemanticDiskCache {
                 access_patterns: HashMap::new(),
             }
         };
-        
+
         Ok(Self {
             cache_dir: config.cache_dir.clone(),
             vector_store,
@@ -802,19 +884,19 @@ impl SemanticDiskCache {
             })),
         })
     }
-    
+
     pub async fn get(&self, key: &str) -> KnowledgeResult<Option<UnifiedCacheResult>> {
         let file_path = self.cache_dir.join(format!("{}.cache", key));
-        
+
         if !file_path.exists() {
             self.update_stats_miss().await;
             return Ok(None);
         }
-        
+
         // Read and deserialize entry
-        let data = std::fs::read(&file_path)
-            .map_err(|e| CacheError::FileSystemError(e.to_string()))?;
-        
+        let data =
+            std::fs::read(&file_path).map_err(|e| CacheError::FileSystemError(e.to_string()))?;
+
         let entry: SemanticCacheEntry = if self.compression_enabled {
             let decompressed = zstd::decode_all(&*data)
                 .map_err(|e| CacheError::CompressionError(e.to_string()))?;
@@ -824,13 +906,13 @@ impl SemanticDiskCache {
             bincode::deserialize(&data)
                 .map_err(|e| CacheError::SerializationError(e.to_string()))?
         };
-        
+
         // Update access pattern
         self.update_access_pattern(key).await;
-        
+
         // Update stats
         self.update_stats_hit().await;
-        
+
         debug!("Disk cache hit for key: {}", key);
         Ok(Some(UnifiedCacheResult {
             data: entry.data,
@@ -847,135 +929,143 @@ impl SemanticDiskCache {
             access_patterns: entry.access_patterns,
         }))
     }
-    
+
     pub async fn set(&self, key: String, entry: SemanticCacheEntry) -> KnowledgeResult<()> {
         let file_path = self.cache_dir.join(format!("{}.cache", key));
-        
+
         // Serialize and optionally compress
         let serialized = bincode::serialize(&entry)
             .map_err(|e| CacheError::SerializationError(e.to_string()))?;
-        
+
         let data = if self.compression_enabled {
             zstd::encode_all(&*serialized, 0)
                 .map_err(|e| CacheError::CompressionError(e.to_string()))?
         } else {
             serialized
         };
-        
+
         // Write to disk
         std::fs::write(&file_path, &data)
             .map_err(|e| CacheError::FileSystemError(e.to_string()))?;
-        
+
         // Store in vector store if enabled
         if self.config.enable_vector_storage {
             if let Some(embedding) = &entry.embedding {
-                self.vector_store.store_with_metadata(
-                    &key,
-                    embedding,
-                    "cached_content",
-                    Some(entry.metadata.clone())
-                ).await?;
+                self.vector_store
+                    .store_with_metadata(
+                        &key,
+                        embedding,
+                        "cached_content",
+                        Some(entry.metadata.clone()),
+                    )
+                    .await?;
             }
         }
-        
+
         // Update index
         self.update_index(&key, &entry).await;
-        
+
         // Update stats
         self.update_stats_set(data.len()).await;
-        
+
         debug!("Stored entry in disk cache: {} ({} bytes)", key, data.len());
         Ok(())
     }
-    
+
     pub async fn delete(&self, key: &str) -> KnowledgeResult<()> {
         let file_path = self.cache_dir.join(format!("{}.cache", key));
-        
+
         if file_path.exists() {
             std::fs::remove_file(&file_path)
                 .map_err(|e| CacheError::FileSystemError(e.to_string()))?;
-            
+
             // Remove from vector store
             if self.config.enable_vector_storage {
                 self.vector_store.delete(key).await?;
             }
-            
+
             // Update index
             self.remove_from_index(key).await;
-            
+
             // Update stats
             self.update_stats_delete(0).await; // Size unknown after deletion
         }
-        
+
         debug!("Deleted entry from disk cache: {}", key);
         Ok(())
     }
-    
+
     async fn update_access_pattern(&self, key: &str) {
         let mut index = self.index.write().await;
         let now = chrono::Utc::now();
-        
-        let pattern = index.access_patterns.entry(key.to_string()).or_insert(AccessPattern {
-            frequency: 0.0,
-            recency: 0.0,
-            last_accessed: now,
-            access_count: 0,
-        });
-        
+
+        let pattern = index
+            .access_patterns
+            .entry(key.to_string())
+            .or_insert(AccessPattern {
+                frequency: 0.0,
+                recency: 0.0,
+                last_accessed: now,
+                access_count: 0,
+            });
+
         pattern.access_count += 1;
         pattern.last_accessed = now;
         pattern.frequency = pattern.access_count as f32;
         pattern.recency = 1.0; // Will be updated by background task
     }
-    
+
     async fn update_index(&self, key: &str, entry: &SemanticCacheEntry) {
         let mut index = self.index.write().await;
-        
+
         // Update access patterns
-        index.access_patterns.insert(key.to_string(), AccessPattern {
-            frequency: entry.access_patterns.frequency,
-            recency: entry.access_patterns.recency,
-            last_accessed: entry.metadata.accessed_at,
-            access_count: entry.metadata.access_count,
-        });
-        
+        index.access_patterns.insert(
+            key.to_string(),
+            AccessPattern {
+                frequency: entry.access_patterns.frequency,
+                recency: entry.access_patterns.recency,
+                last_accessed: entry.metadata.accessed_at,
+                access_count: entry.metadata.access_count,
+            },
+        );
+
         // Update vector mapping
         if let Some(embedding) = &entry.embedding {
             index.key_to_vector.insert(key.to_string(), key.to_string());
         }
     }
-    
+
     async fn remove_from_index(&self, key: &str) {
         let mut index = self.index.write().await;
         index.access_patterns.remove(key);
         index.key_to_vector.remove(key);
     }
-    
+
     async fn update_stats_hit(&self) {
         let mut stats = self.stats.write().await;
         stats.hit_count += 1;
         stats.last_updated = Instant::now();
     }
-    
+
     async fn update_stats_miss(&self) {
         let mut stats = self.stats.write().await;
         stats.miss_count += 1;
         stats.last_updated = Instant::now();
     }
-    
+
     async fn update_stats_set(&self, size_bytes: usize) {
         let mut stats = self.stats.write().await;
         stats.total_entries += 1;
         stats.memory_usage_bytes += size_bytes as u64;
         stats.last_updated = Instant::now();
     }
-    
+
     async fn update_stats_delete(&self, _size_bytes: usize) {
         let mut stats = self.stats.write().await;
         stats.total_entries = stats.total_entries.saturating_sub(1);
         stats.last_updated = Instant::now();
     }
-    
+
     pub async fn stats(&self) -> CacheStats {
         self.stats.read().await.clone()
     }
@@ -984,7 +1074,7 @@ impl SemanticDiskCache {
     pub async fn calculate_hit_rate(&self) -> f64 {
         let stats = self.stats.read().await;
         let total_requests = stats.hit_count + stats.miss_count;
-        
+
         if total_requests == 0 {
             0.0
         } else {
@@ -1011,26 +1101,41 @@ impl MockVectorStore {
 
 #[async_trait::async_trait]
 impl crate::vector::VectorStore for MockVectorStore {
-    async fn store(&self, _id: &str, _embedding: &[f32], _metadata: Option<crate::types::SearchResultMetadata>) -> KnowledgeResult<()> {
+    async fn store(
+        &self,
+        _id: &str,
+        _embedding: &[f32],
+        _metadata: Option<crate::types::SearchResultMetadata>,
+    ) -> KnowledgeResult<()> {
         Ok(())
     }
-    
-    async fn store_with_metadata(&self, _id: &str, _embedding: &[f32], _content: &str, _metadata: Option<crate::types::CacheEntryMetadata>) -> KnowledgeResult<()> {
+
+    async fn store_with_metadata(
+        &self,
+        _id: &str,
+        _embedding: &[f32],
+        _content: &str,
+        _metadata: Option<crate::types::CacheEntryMetadata>,
+    ) -> KnowledgeResult<()> {
         Ok(())
     }
-    
-    async fn search(&self, _query_embedding: &[f32], _limit: usize) -> KnowledgeResult<Vec<crate::vector::VectorSearchResult>> {
+
+    async fn search(
+        &self,
+        _query_embedding: &[f32],
+        _limit: usize,
+    ) -> KnowledgeResult<Vec<crate::vector::VectorSearchResult>> {
         Ok(vec![])
     }
-    
+
     async fn delete(&self, _id: &str) -> KnowledgeResult<()> {
         Ok(())
     }
-    
+
     async fn get(&self, _id: &str) -> KnowledgeResult<Option<crate::vector::VectorRecord>> {
         Ok(None)
     }
-    
+
     async fn collection_info(&self) -> KnowledgeResult<crate::vector::VectorCollectionInfo> {
         Ok(crate::vector::VectorCollectionInfo {
             name: "mock".to_string(),
@@ -1040,7 +1145,7 @@ impl crate::vector::VectorStore for MockVectorStore {
             size_bytes: 0,
         })
     }
-    
+
     async fn clear(&self) -> KnowledgeResult<()> {
         Ok(())
     }
@@ -1116,7 +1221,7 @@ impl UnifiedCacheManager {
         // Weighted average based on cache usage
         let memory_stats = self.memory_cache.stats().await;
         let disk_stats = self.disk_cache.stats().await;
-        
+
         let memory_requests = memory_stats.hit_count + memory_stats.miss_count;
         let disk_requests = disk_stats.hit_count + disk_stats.miss_count;
         let total_requests = memory_requests + disk_requests;
@@ -1126,7 +1231,7 @@ impl UnifiedCacheManager {
         } else {
             let memory_weight = memory_requests as f64 / total_requests as f64;
             let disk_weight = disk_requests as f64 / total_requests as f64;
-            
+
             memory_hit_rate * memory_weight + disk_hit_rate * disk_weight
         }
     }
@@ -1135,9 +1240,9 @@ impl UnifiedCacheManager {
     pub async fn get_cache_stats(&self) -> UnifiedCacheStats {
         let memory_stats = self.memory_cache.stats().await;
         let disk_stats = self.disk_cache.stats().await;
-        
+
         let overall_hit_rate = self.calculate_hit_rate().await;
-        
+
         UnifiedCacheStats {
             memory_cache_stats: memory_stats.clone(),
             disk_cache_stats: disk_stats.clone(),
@@ -1177,17 +1282,28 @@ impl UnifiedCacheManager {
     }
 
     /// Warm memory cache with frequently accessed items
-    async fn warm_memory_cache(&self, key: &str, result: &UnifiedCacheResult) -> KnowledgeResult<()> {
+    async fn warm_memory_cache(
+        &self,
+        key: &str,
+        result: &UnifiedCacheResult,
+    ) -> KnowledgeResult<()> {
         // Check if this item should be warmed based on access patterns
         if self.should_warm_item(result).await {
             let entry = SemanticCacheEntry {
                 data: result.data.clone(),
-                embedding: result.semantic_info.as_ref().and_then(|si| si.embedding.clone()),
-                semantic_tags: result.semantic_info.as_ref().map(|si| si.semantic_tags.clone()).unwrap_or_default(),
+                embedding: result
+                    .semantic_info
+                    .as_ref()
+                    .and_then(|si| si.embedding.clone()),
+                semantic_tags: result
+                    .semantic_info
+                    .as_ref()
+                    .map(|si| si.semantic_tags.clone())
+                    .unwrap_or_default(),
                 access_patterns: result.access_patterns.clone(),
                 metadata: result.metadata.clone(),
             };
-            
+
             // Add to memory cache
             self.memory_cache.set(key.to_string(), entry).await?;
             debug!("Warmed memory cache with key: {}", key);
@@ -1201,7 +1317,7 @@ impl UnifiedCacheManager {
         let access_count = result.metadata.access_count;
         let semantic_relevance = result.access_patterns.semantic_relevance;
         let recency = result.access_patterns.recency;
-        
+
         // Warm if:
         // 1. Frequently accessed (more than 5 times)
         // 2. High semantic relevance (> 0.8)
@@ -1218,13 +1334,13 @@ impl UnifiedCacheManager {
         // Get items that should be warmed from disk cache
         let items_to_warm = self.get_items_to_warm().await?;
         let items_count = items_to_warm.len();
-        
+
         for (key, entry) in items_to_warm {
             if self.config.enable_memory_cache {
                 self.memory_cache.set(key, entry).await?;
             }
         }
-        
+
         info!("Proactively warmed {} items in memory cache", items_count);
         Ok(())
     }
@@ -1247,37 +1363,44 @@ impl UnifiedCacheManager {
             return Ok(()); // Don't compress small entries
         }
 
-        let (compressed_data, was_compressed) = match self.config.disk_cache_config.compression_algorithm {
-            CompressionAlgorithm::Zstd => {
-                let compressed = zstd::encode_all(&*entry.data, 0)
-                    .map_err(|e| CacheError::CompressionError(e.to_string()))?;
-                (compressed, true)
-            }
-            CompressionAlgorithm::LZ4 => {
-                let compressed = lz4::block::compress(&entry.data, None, false)
-                    .map_err(|e| CacheError::CompressionError(e.to_string()))?;
-                (compressed, true)
-            }
-            CompressionAlgorithm::Gzip => {
-                let mut compressed = Vec::new();
-                let mut encoder = flate2::write::GzEncoder::new(&mut compressed, flate2::Compression::default());
-                std::io::copy(&mut std::io::Cursor::new(&entry.data), &mut encoder)
-                    .map_err(|e| CacheError::CompressionError(e.to_string()))?;
-                encoder.finish()
-                    .map_err(|e| CacheError::CompressionError(e.to_string()))?;
-                (compressed, true)
-            }
-            CompressionAlgorithm::None => {
-                (entry.data.clone(), false)
-            }
-        };
+        let (compressed_data, was_compressed) =
+            match self.config.disk_cache_config.compression_algorithm {
+                CompressionAlgorithm::Zstd => {
+                    let compressed = zstd::encode_all(&*entry.data, 0)
+                        .map_err(|e| CacheError::CompressionError(e.to_string()))?;
+                    (compressed, true)
+                }
+                CompressionAlgorithm::LZ4 => {
+                    let compressed = lz4::block::compress(&entry.data, None, false)
+                        .map_err(|e| CacheError::CompressionError(e.to_string()))?;
+                    (compressed, true)
+                }
+                CompressionAlgorithm::Gzip => {
+                    let mut compressed = Vec::new();
+                    let mut encoder = flate2::write::GzEncoder::new(
+                        &mut compressed,
+                        flate2::Compression::default(),
+                    );
+                    std::io::copy(&mut std::io::Cursor::new(&entry.data), &mut encoder)
+                        .map_err(|e| CacheError::CompressionError(e.to_string()))?;
+                    encoder
+                        .finish()
+                        .map_err(|e| CacheError::CompressionError(e.to_string()))?;
+                    (compressed, true)
+                }
+                CompressionAlgorithm::None => (entry.data.clone(), false),
+            };
 
         if was_compressed {
             let compression_ratio = compressed_data.len() as f32 / original_size as f32;
             entry.metadata.compression_ratio = Some(compression_ratio);
             entry.data = compressed_data;
-            debug!("Compressed cache entry: {} -> {} (ratio: {:.2})", 
-                   original_size, entry.data.len(), compression_ratio);
+            debug!(
+                "Compressed cache entry: {} -> {} (ratio: {:.2})",
+                original_size,
+                entry.data.len(),
+                compression_ratio
+            );
         }
 
         Ok(())
@@ -1290,14 +1413,10 @@ impl UnifiedCacheManager {
         }
 
         let decompressed_data = match self.config.disk_cache_config.compression_algorithm {
-            CompressionAlgorithm::Zstd => {
-                zstd::decode_all(&*entry.data)
-                    .map_err(|e| CacheError::CompressionError(e.to_string()))?
-            }
-            CompressionAlgorithm::LZ4 => {
-                lz4::block::decompress(&entry.data, None)
-                    .map_err(|e| CacheError::CompressionError(e.to_string()))?
-            }
+            CompressionAlgorithm::Zstd => zstd::decode_all(&*entry.data)
+                .map_err(|e| CacheError::CompressionError(e.to_string()))?,
+            CompressionAlgorithm::LZ4 => lz4::block::decompress(&entry.data, None)
+                .map_err(|e| CacheError::CompressionError(e.to_string()))?,
             CompressionAlgorithm::Gzip => {
                 let mut decompressed = Vec::new();
                 let mut decoder = flate2::read::GzDecoder::new(&entry.data[..]);
@@ -1305,9 +1424,7 @@ impl UnifiedCacheManager {
                     .map_err(|e| CacheError::CompressionError(e.to_string()))?;
                 decompressed
             }
-            CompressionAlgorithm::None => {
-                entry.data.clone()
-            }
+            CompressionAlgorithm::None => entry.data.clone(),
         };
 
         entry.data = decompressed_data;
@@ -1352,12 +1469,14 @@ impl UnifiedCacheManager {
             let entries = self.memory_cache.entries.clone();
             for entry in entries.iter() {
                 let mut entry_clone = entry.value().clone();
-                
+
                 // Compress before persisting
                 self.compress_entry(&mut entry_clone).await?;
-                
+
                 // Store in disk cache
-                self.disk_cache.set(entry.key().clone(), entry_clone).await?;
+                self.disk_cache
+                    .set(entry.key().clone(), entry_clone)
+                    .await?;
             }
         }
 
@@ -1375,13 +1494,13 @@ impl UnifiedCacheManager {
         // For now, we'll implement a basic version that loads items based on access patterns
         let items_to_load = self.get_frequently_accessed_items().await?;
         let items_count = items_to_load.len();
-        
+
         for (key, entry) in items_to_load {
             if self.config.enable_memory_cache {
                 // Decompress if needed
                 let mut entry_clone = entry.clone();
                 self.decompress_entry(&mut entry_clone).await?;
-                
+
                 self.memory_cache.set(key, entry_clone).await?;
             }
         }
@@ -1391,7 +1510,9 @@ impl UnifiedCacheManager {
     }
 
     /// Get frequently accessed items from disk cache
-    async fn get_frequently_accessed_items(&self) -> KnowledgeResult<Vec<(String, SemanticCacheEntry)>> {
+    async fn get_frequently_accessed_items(
+        &self,
+    ) -> KnowledgeResult<Vec<(String, SemanticCacheEntry)>> {
         // This would query the disk cache for items with high access counts
         // For now, return an empty vector as this requires disk cache implementation
         Ok(Vec::new())
@@ -1405,10 +1526,14 @@ impl UnifiedCacheManager {
             timestamp: chrono::Utc::now(),
         };
 
-        let state_path = self.config.disk_cache_config.cache_dir.join("cache_state.json");
+        let state_path = self
+            .config
+            .disk_cache_config
+            .cache_dir
+            .join("cache_state.json");
         let state_json = serde_json::to_string_pretty(&state)
             .map_err(|e| CacheError::SerializationError(e.to_string()))?;
-        
+
         std::fs::write(&state_path, state_json)
             .map_err(|e| CacheError::FileSystemError(e.to_string()))?;
 
@@ -1418,15 +1543,19 @@ impl UnifiedCacheManager {
 
     /// Load cache state for recovery
     pub async fn load_cache_state(&self) -> KnowledgeResult<Option<CacheState>> {
-        let state_path = self.config.disk_cache_config.cache_dir.join("cache_state.json");
-        
+        let state_path = self
+            .config
+            .disk_cache_config
+            .cache_dir
+            .join("cache_state.json");
+
         if !state_path.exists() {
             return Ok(None);
         }
 
         let state_json = std::fs::read_to_string(&state_path)
             .map_err(|e| CacheError::FileSystemError(e.to_string()))?;
-        
+
         let state: CacheState = serde_json::from_str(&state_json)
             .map_err(|e| CacheError::SerializationError(e.to_string()))?;
 
@@ -1600,7 +1729,7 @@ impl CacheMonitor {
         let response_time_ms = metrics.average_response_time_ms;
         let memory_usage_percent = metrics.memory_usage_percent;
         let disk_usage_percent = metrics.disk_usage_percent;
-        
+
         metrics.historical_metrics.push(HistoricalMetric {
             timestamp,
             hit_rate,
@@ -1638,7 +1767,8 @@ impl CacheMonitor {
 
     /// Calculate eviction rate
     fn calculate_eviction_rate(&self, stats: &UnifiedCacheStats) -> f64 {
-        let total_operations = stats.memory_cache_stats.hit_count + stats.memory_cache_stats.miss_count;
+        let total_operations =
+            stats.memory_cache_stats.hit_count + stats.memory_cache_stats.miss_count;
         if total_operations == 0 {
             0.0
         } else {
@@ -1657,14 +1787,17 @@ impl CacheMonitor {
         let hit_rate = stats.overall_hit_rate;
         let memory_efficiency = 1.0 - self.calculate_memory_usage_percent(stats);
         let disk_efficiency = 1.0 - self.calculate_disk_usage_percent(stats);
-        
+
         (hit_rate * 0.6 + memory_efficiency * 0.2 + disk_efficiency * 0.2).min(1.0)
     }
 
     /// Clean up old metrics
     async fn cleanup_old_metrics(&self, metrics: &mut CacheMetrics) {
-        let cutoff_time = chrono::Utc::now() - chrono::Duration::hours(self.config.metrics_retention_hours as i64);
-        metrics.historical_metrics.retain(|m| m.timestamp > cutoff_time);
+        let cutoff_time = chrono::Utc::now()
+            - chrono::Duration::hours(self.config.metrics_retention_hours as i64);
+        metrics
+            .historical_metrics
+            .retain(|m| m.timestamp > cutoff_time);
     }
 
     /// Check for alerts based on current metrics
@@ -1675,7 +1808,10 @@ impl CacheMonitor {
         if metrics.current_hit_rate < self.config.alert_thresholds.low_hit_rate_threshold {
             alerts.push(CacheAlert {
                 alert_type: CacheAlertType::LowHitRate,
-                message: format!("Cache hit rate is low: {:.2}%", metrics.current_hit_rate * 100.0),
+                message: format!(
+                    "Cache hit rate is low: {:.2}%",
+                    metrics.current_hit_rate * 100.0
+                ),
                 severity: AlertSeverity::Warning,
                 timestamp: chrono::Utc::now(),
                 metric_value: metrics.current_hit_rate,
@@ -1687,7 +1823,10 @@ impl CacheMonitor {
         if metrics.memory_usage_percent > self.config.alert_thresholds.high_memory_usage_threshold {
             alerts.push(CacheAlert {
                 alert_type: CacheAlertType::HighMemoryUsage,
-                message: format!("Memory usage is high: {:.2}%", metrics.memory_usage_percent * 100.0),
+                message: format!(
+                    "Memory usage is high: {:.2}%",
+                    metrics.memory_usage_percent * 100.0
+                ),
                 severity: AlertSeverity::Warning,
                 timestamp: chrono::Utc::now(),
                 metric_value: metrics.memory_usage_percent,
@@ -1699,7 +1838,10 @@ impl CacheMonitor {
         if metrics.disk_usage_percent > self.config.alert_thresholds.high_disk_usage_threshold {
             alerts.push(CacheAlert {
                 alert_type: CacheAlertType::HighDiskUsage,
-                message: format!("Disk usage is high: {:.2}%", metrics.disk_usage_percent * 100.0),
+                message: format!(
+                    "Disk usage is high: {:.2}%",
+                    metrics.disk_usage_percent * 100.0
+                ),
                 severity: AlertSeverity::Error,
                 timestamp: chrono::Utc::now(),
                 metric_value: metrics.disk_usage_percent,
@@ -1711,7 +1853,10 @@ impl CacheMonitor {
         if metrics.eviction_rate > self.config.alert_thresholds.high_eviction_rate_threshold {
             alerts.push(CacheAlert {
                 alert_type: CacheAlertType::HighEvictionRate,
-                message: format!("Eviction rate is high: {:.2}%", metrics.eviction_rate * 100.0),
+                message: format!(
+                    "Eviction rate is high: {:.2}%",
+                    metrics.eviction_rate * 100.0
+                ),
                 severity: AlertSeverity::Warning,
                 timestamp: chrono::Utc::now(),
                 metric_value: metrics.eviction_rate,
@@ -1731,7 +1876,8 @@ impl CacheMonitor {
     pub async fn get_alerts(&self, hours: u64) -> Vec<CacheAlert> {
         let alerts = self.alerts.read().await;
         let cutoff_time = chrono::Utc::now() - chrono::Duration::hours(hours as i64);
-        alerts.iter()
+        alerts
+            .iter()
             .filter(|alert| alert.timestamp > cutoff_time)
             .cloned()
             .collect()
@@ -1768,15 +1914,23 @@ impl CacheMonitor {
         let mut recommendations = Vec::new();
 
         if metrics.current_hit_rate < self.config.performance_targets.target_hit_rate {
-            recommendations.push("Consider increasing cache size or improving cache warming strategy".to_string());
+            recommendations.push(
+                "Consider increasing cache size or improving cache warming strategy".to_string(),
+            );
         }
 
-        if metrics.memory_usage_percent > self.config.performance_targets.target_memory_usage_percent {
-            recommendations.push("Consider reducing memory cache size or implementing more aggressive eviction".to_string());
+        if metrics.memory_usage_percent
+            > self.config.performance_targets.target_memory_usage_percent
+        {
+            recommendations.push(
+                "Consider reducing memory cache size or implementing more aggressive eviction"
+                    .to_string(),
+            );
         }
 
         if metrics.disk_usage_percent > self.config.performance_targets.target_disk_usage_percent {
-            recommendations.push("Consider cleaning up disk cache or increasing disk space".to_string());
+            recommendations
+                .push("Consider cleaning up disk cache or increasing disk space".to_string());
         }
 
         if metrics.eviction_rate > 0.05 {
@@ -1865,7 +2019,11 @@ impl CacheOptimizer {
     }
 
     /// Run cache optimization
-    pub async fn optimize(&self, cache_manager: &mut UnifiedCacheManager, monitor: &CacheMonitor) -> KnowledgeResult<Vec<OptimizationAction>> {
+    pub async fn optimize(
+        &self,
+        cache_manager: &mut UnifiedCacheManager,
+        monitor: &CacheMonitor,
+    ) -> KnowledgeResult<Vec<OptimizationAction>> {
         if !self.config.enable_auto_optimization {
             return Ok(Vec::new());
         }
@@ -1879,12 +2037,18 @@ impl CacheOptimizer {
         }
 
         // Generate optimization actions
-        actions.extend(self.generate_optimization_actions(&metrics, cache_manager).await);
+        actions.extend(
+            self.generate_optimization_actions(&metrics, cache_manager)
+                .await,
+        );
 
         // Apply optimization actions
         for action in &mut actions {
             if let Err(e) = self.apply_optimization_action(action, cache_manager).await {
-                warn!("Failed to apply optimization action: {:?}, error: {}", action.action_type, e);
+                warn!(
+                    "Failed to apply optimization action: {:?}, error: {}",
+                    action.action_type, e
+                );
                 action.applied = false;
             } else {
                 action.applied = true;
@@ -1894,12 +2058,19 @@ impl CacheOptimizer {
         // Record optimization actions
         self.record_optimization_actions(&actions).await;
 
-        info!("Applied {} optimization actions", actions.iter().filter(|a| a.applied).count());
+        info!(
+            "Applied {} optimization actions",
+            actions.iter().filter(|a| a.applied).count()
+        );
         Ok(actions)
     }
 
     /// Generate optimization actions based on metrics
-    async fn generate_optimization_actions(&self, metrics: &CacheMetrics, _cache_manager: &UnifiedCacheManager) -> Vec<OptimizationAction> {
+    async fn generate_optimization_actions(
+        &self,
+        metrics: &CacheMetrics,
+        _cache_manager: &UnifiedCacheManager,
+    ) -> Vec<OptimizationAction> {
         let mut actions = Vec::new();
         let now = chrono::Utc::now();
 
@@ -1953,7 +2124,8 @@ impl CacheOptimizer {
 
             actions.push(OptimizationAction {
                 action_type: OptimizationActionType::AdjustCompressionThreshold,
-                description: "Adjusting compression threshold for better space utilization".to_string(),
+                description: "Adjusting compression threshold for better space utilization"
+                    .to_string(),
                 timestamp: now,
                 performance_impact: 0.1,
                 applied: false,
@@ -1977,7 +2149,11 @@ impl CacheOptimizer {
     }
 
     /// Apply optimization action
-    async fn apply_optimization_action(&self, action: &OptimizationAction, cache_manager: &mut UnifiedCacheManager) -> KnowledgeResult<()> {
+    async fn apply_optimization_action(
+        &self,
+        action: &OptimizationAction,
+        cache_manager: &mut UnifiedCacheManager,
+    ) -> KnowledgeResult<()> {
         match action.action_type {
             OptimizationActionType::WarmCache => {
                 cache_manager.warm_cache_proactively().await?;
@@ -1994,8 +2170,14 @@ impl CacheOptimizer {
             }
             OptimizationActionType::AdjustCompressionThreshold => {
                 // Adjust compression threshold
-                let current_threshold = cache_manager.config.disk_cache_config.compression_threshold_kb;
-                cache_manager.config.disk_cache_config.compression_threshold_kb = (current_threshold / 2).max(1);
+                let current_threshold = cache_manager
+                    .config
+                    .disk_cache_config
+                    .compression_threshold_kb;
+                cache_manager
+                    .config
+                    .disk_cache_config
+                    .compression_threshold_kb = (current_threshold / 2).max(1);
             }
             OptimizationActionType::CleanupExpired => {
                 // Clean up expired entries
@@ -2004,7 +2186,8 @@ impl CacheOptimizer {
             OptimizationActionType::ResizeCache => {
                 // Increase cache size
                 let current_size = cache_manager.config.memory_cache_config.max_size_mb;
-                cache_manager.config.memory_cache_config.max_size_mb = (current_size as f64 * 1.5) as usize;
+                cache_manager.config.memory_cache_config.max_size_mb =
+                    (current_size as f64 * 1.5) as usize;
             }
             OptimizationActionType::RebalanceTiers => {
                 // Rebalance between memory and disk tiers
@@ -2020,7 +2203,10 @@ impl CacheOptimizer {
     }
 
     /// Clean up expired cache entries
-    async fn cleanup_expired_entries(&self, cache_manager: &UnifiedCacheManager) -> KnowledgeResult<()> {
+    async fn cleanup_expired_entries(
+        &self,
+        cache_manager: &UnifiedCacheManager,
+    ) -> KnowledgeResult<()> {
         let now = chrono::Utc::now();
         let mut expired_keys = Vec::new();
 
@@ -2031,7 +2217,7 @@ impl CacheOptimizer {
                 let ttl = entry.value().metadata.ttl;
                 let created_at = entry.value().metadata.created_at;
                 let expires_at = created_at + chrono::Duration::from_std(ttl).unwrap_or_default();
-                
+
                 if now > expires_at {
                     expired_keys.push(entry.key().clone());
                 }
@@ -2052,7 +2238,7 @@ impl CacheOptimizer {
     async fn record_optimization_actions(&self, actions: &[OptimizationAction]) {
         let mut history = self.optimization_history.write().await;
         history.extend(actions.iter().cloned());
-        
+
         // Keep only recent actions
         let history_len = history.len();
         if history_len > 100 {
@@ -2064,7 +2250,8 @@ impl CacheOptimizer {
     pub async fn get_optimization_history(&self, hours: u64) -> Vec<OptimizationAction> {
         let history = self.optimization_history.read().await;
         let cutoff_time = chrono::Utc::now() - chrono::Duration::hours(hours as i64);
-        history.iter()
+        history
+            .iter()
             .filter(|action| action.timestamp > cutoff_time)
             .cloned()
             .collect()
@@ -2075,7 +2262,9 @@ impl CacheOptimizer {
         let mut recommendations = Vec::new();
 
         if metrics.current_hit_rate < 0.6 {
-            recommendations.push("Consider implementing cache warming for frequently accessed items".to_string());
+            recommendations.push(
+                "Consider implementing cache warming for frequently accessed items".to_string(),
+            );
             recommendations.push("Review and adjust eviction policy settings".to_string());
         }
 
@@ -2086,12 +2275,16 @@ impl CacheOptimizer {
 
         if metrics.disk_usage_percent > 0.9 {
             recommendations.push("Clean up expired cache entries".to_string());
-            recommendations.push("Consider increasing disk space or implementing cleanup policies".to_string());
+            recommendations.push(
+                "Consider increasing disk space or implementing cleanup policies".to_string(),
+            );
         }
 
         if metrics.eviction_rate > 0.1 {
-            recommendations.push("High eviction rate detected - consider increasing cache size".to_string());
-            recommendations.push("Review cache access patterns and adjust eviction policy".to_string());
+            recommendations
+                .push("High eviction rate detected - consider increasing cache size".to_string());
+            recommendations
+                .push("Review cache access patterns and adjust eviction policy".to_string());
         }
 
         recommendations
@@ -2168,7 +2361,10 @@ impl CacheValidator {
     }
 
     /// Run comprehensive cache validation
-    pub async fn validate_cache(&self, cache_manager: &UnifiedCacheManager) -> KnowledgeResult<Vec<ValidationResult>> {
+    pub async fn validate_cache(
+        &self,
+        cache_manager: &UnifiedCacheManager,
+    ) -> KnowledgeResult<Vec<ValidationResult>> {
         if !self.config.enable_validation {
             return Ok(Vec::new());
         }
@@ -2196,15 +2392,26 @@ impl CacheValidator {
         // Record validation results
         self.record_validation_results(&results).await;
 
-        info!("Cache validation completed: {} passed, {} failed", 
-              results.iter().filter(|r| matches!(r.status, ValidationStatus::Passed)).count(),
-              results.iter().filter(|r| matches!(r.status, ValidationStatus::Failed)).count());
+        info!(
+            "Cache validation completed: {} passed, {} failed",
+            results
+                .iter()
+                .filter(|r| matches!(r.status, ValidationStatus::Passed))
+                .count(),
+            results
+                .iter()
+                .filter(|r| matches!(r.status, ValidationStatus::Failed))
+                .count()
+        );
 
         Ok(results)
     }
 
     /// Validate checksums of cache entries
-    async fn validate_checksums(&self, cache_manager: &UnifiedCacheManager) -> KnowledgeResult<Vec<ValidationResult>> {
+    async fn validate_checksums(
+        &self,
+        cache_manager: &UnifiedCacheManager,
+    ) -> KnowledgeResult<Vec<ValidationResult>> {
         let mut results = Vec::new();
         let failed_keys = Vec::new();
 
@@ -2216,7 +2423,7 @@ impl CacheValidator {
 
                 // Calculate current checksum
                 let _current_checksum = self.calculate_checksum(&entry_data.data);
-                
+
                 // Check if checksum matches (if stored)
                 // TODO: Add checksum field to CacheEntryMetadata
                 // if let Some(stored_checksum) = &entry_data.metadata.checksum {
@@ -2240,7 +2447,10 @@ impl CacheValidator {
             results.push(ValidationResult {
                 validation_type: ValidationType::Checksum,
                 status: ValidationStatus::Failed,
-                message: format!("Checksum validation failed for {} entries", failed_keys.len()),
+                message: format!(
+                    "Checksum validation failed for {} entries",
+                    failed_keys.len()
+                ),
                 timestamp: chrono::Utc::now(),
                 affected_keys: failed_keys,
                 repair_actions: vec!["Remove corrupted entries".to_string()],
@@ -2251,7 +2461,10 @@ impl CacheValidator {
     }
 
     /// Validate semantic integrity of cache entries
-    async fn validate_semantic_integrity(&self, cache_manager: &UnifiedCacheManager) -> KnowledgeResult<Vec<ValidationResult>> {
+    async fn validate_semantic_integrity(
+        &self,
+        cache_manager: &UnifiedCacheManager,
+    ) -> KnowledgeResult<Vec<ValidationResult>> {
         let mut results = Vec::new();
         let mut invalid_keys = Vec::new();
 
@@ -2288,10 +2501,16 @@ impl CacheValidator {
             results.push(ValidationResult {
                 validation_type: ValidationType::Semantic,
                 status: ValidationStatus::Warning,
-                message: format!("Semantic validation issues found for {} entries", invalid_keys.len()),
+                message: format!(
+                    "Semantic validation issues found for {} entries",
+                    invalid_keys.len()
+                ),
                 timestamp: chrono::Utc::now(),
                 affected_keys: invalid_keys,
-                repair_actions: vec!["Regenerate semantic tags".to_string(), "Recompute embeddings".to_string()],
+                repair_actions: vec![
+                    "Regenerate semantic tags".to_string(),
+                    "Recompute embeddings".to_string(),
+                ],
             });
         }
 
@@ -2299,7 +2518,10 @@ impl CacheValidator {
     }
 
     /// Validate cache consistency
-    async fn validate_consistency(&self, cache_manager: &UnifiedCacheManager) -> KnowledgeResult<Vec<ValidationResult>> {
+    async fn validate_consistency(
+        &self,
+        cache_manager: &UnifiedCacheManager,
+    ) -> KnowledgeResult<Vec<ValidationResult>> {
         let mut results = Vec::new();
         let mut inconsistent_keys = Vec::new();
 
@@ -2308,14 +2530,15 @@ impl CacheValidator {
             let memory_entries = cache_manager.memory_cache.entries.clone();
             for entry in memory_entries.iter() {
                 let key = entry.key();
-                
+
                 // Check if entry exists in disk cache
                 if let Some(disk_entry) = cache_manager.disk_cache.get(key).await? {
                     let memory_entry = entry.value();
-                    
+
                     // Compare metadata
-                    if memory_entry.metadata.created_at != disk_entry.metadata.created_at ||
-                       memory_entry.metadata.access_count != disk_entry.metadata.access_count {
+                    if memory_entry.metadata.created_at != disk_entry.metadata.created_at
+                        || memory_entry.metadata.access_count != disk_entry.metadata.access_count
+                    {
                         inconsistent_keys.push(key.clone());
                     }
                 } else {
@@ -2338,7 +2561,10 @@ impl CacheValidator {
             results.push(ValidationResult {
                 validation_type: ValidationType::Consistency,
                 status: ValidationStatus::Warning,
-                message: format!("Consistency issues found for {} entries", inconsistent_keys.len()),
+                message: format!(
+                    "Consistency issues found for {} entries",
+                    inconsistent_keys.len()
+                ),
                 timestamp: chrono::Utc::now(),
                 affected_keys: inconsistent_keys,
                 repair_actions: vec!["Synchronize memory and disk cache".to_string()],
@@ -2373,7 +2599,7 @@ impl CacheValidator {
         // Check if embedding values are reasonable (not all zeros, not all same value)
         let sum: f32 = embedding.iter().sum();
         let avg = sum / embedding.len() as f32;
-        
+
         if avg.abs() < 0.001 || avg.abs() > 1000.0 {
             return false;
         }
@@ -2390,9 +2616,16 @@ impl CacheValidator {
     }
 
     /// Auto-repair validation failures
-    async fn auto_repair_failures(&self, results: &[ValidationResult], cache_manager: &UnifiedCacheManager) -> KnowledgeResult<()> {
+    async fn auto_repair_failures(
+        &self,
+        results: &[ValidationResult],
+        cache_manager: &UnifiedCacheManager,
+    ) -> KnowledgeResult<()> {
         for result in results {
-            if matches!(result.status, ValidationStatus::Failed | ValidationStatus::Warning) {
+            if matches!(
+                result.status,
+                ValidationStatus::Failed | ValidationStatus::Warning
+            ) {
                 for key in &result.affected_keys {
                     match result.validation_type {
                         ValidationType::Checksum => {
@@ -2423,7 +2656,7 @@ impl CacheValidator {
     async fn record_validation_results(&self, results: &[ValidationResult]) {
         let mut history = self.validation_history.write().await;
         history.extend(results.iter().cloned());
-        
+
         // Keep only recent results
         let history_len = history.len();
         if history_len > 1000 {
@@ -2435,7 +2668,8 @@ impl CacheValidator {
     pub async fn get_validation_history(&self, hours: u64) -> Vec<ValidationResult> {
         let history = self.validation_history.read().await;
         let cutoff_time = chrono::Utc::now() - chrono::Duration::hours(hours as i64);
-        history.iter()
+        history
+            .iter()
             .filter(|result| result.timestamp > cutoff_time)
             .cloned()
             .collect()
@@ -2444,12 +2678,24 @@ impl CacheValidator {
     /// Get validation statistics
     pub async fn get_validation_stats(&self, hours: u64) -> ValidationStats {
         let history = self.get_validation_history(hours).await;
-        
+
         let total_validations = history.len();
-        let passed = history.iter().filter(|r| matches!(r.status, ValidationStatus::Passed)).count();
-        let failed = history.iter().filter(|r| matches!(r.status, ValidationStatus::Failed)).count();
-        let warnings = history.iter().filter(|r| matches!(r.status, ValidationStatus::Warning)).count();
-        let repaired = history.iter().filter(|r| matches!(r.status, ValidationStatus::Repaired)).count();
+        let passed = history
+            .iter()
+            .filter(|r| matches!(r.status, ValidationStatus::Passed))
+            .count();
+        let failed = history
+            .iter()
+            .filter(|r| matches!(r.status, ValidationStatus::Failed))
+            .count();
+        let warnings = history
+            .iter()
+            .filter(|r| matches!(r.status, ValidationStatus::Warning))
+            .count();
+        let repaired = history
+            .iter()
+            .filter(|r| matches!(r.status, ValidationStatus::Repaired))
+            .count();
 
         ValidationStats {
             total_validations,
@@ -2457,7 +2703,11 @@ impl CacheValidator {
             failed,
             warnings,
             repaired,
-            success_rate: if total_validations > 0 { passed as f64 / total_validations as f64 } else { 0.0 },
+            success_rate: if total_validations > 0 {
+                passed as f64 / total_validations as f64
+            } else {
+                0.0
+            },
         }
     }
 }
@@ -2491,4 +2741,4 @@ pub struct CacheTierBreakdown {
     pub disk_entries: usize,
     pub memory_hit_rate: f64,
     pub disk_hit_rate: f64,
-} 
+}

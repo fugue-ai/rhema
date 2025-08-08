@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use validator::Validate;
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use std::fmt;
 use std::str::FromStr;
-use clap::ValueEnum;
+use uuid::Uuid;
+use validator::Validate;
 
 use crate::error::{ActionError, ActionResult};
 
@@ -144,13 +144,13 @@ pub struct ContextReference {
     /// File containing the context
     #[validate(length(min = 1))]
     pub file: String,
-    
+
     /// Section within the file
     pub section: Option<String>,
-    
+
     /// Specific line numbers
     pub lines: Option<(usize, usize)>,
-    
+
     /// Context tags
     pub tags: Option<Vec<String>>,
 }
@@ -161,17 +161,17 @@ pub struct TransformationConfig {
     /// Tools to use for transformation
     #[validate(length(min = 1))]
     pub tools: Vec<String>,
-    
+
     /// Validation tools to run
     pub validation: Vec<String>,
-    
+
     /// Rollback strategy
     #[serde(default = "default_rollback_strategy")]
     pub rollback_strategy: String,
-    
+
     /// Tool-specific configuration
     pub tool_config: Option<HashMap<String, serde_json::Value>>,
-    
+
     /// Transformation timeout (seconds)
     #[serde(default = "default_timeout")]
     pub timeout: u64,
@@ -190,13 +190,13 @@ fn default_timeout() -> u64 {
 pub struct SafetyChecks {
     /// Pre-execution checks
     pub pre_execution: Vec<String>,
-    
+
     /// Post-execution checks
     pub post_execution: Vec<String>,
-    
+
     /// Custom safety rules
     pub custom_rules: Option<Vec<String>>,
-    
+
     /// Safety check timeout (seconds)
     #[serde(default = "default_safety_timeout")]
     pub timeout: u64,
@@ -212,17 +212,17 @@ pub struct ApprovalWorkflow {
     /// Whether approval is required
     #[serde(default = "default_approval_required")]
     pub required: bool,
-    
+
     /// Required approvers
     pub approvers: Option<Vec<String>>,
-    
+
     /// Auto-approve conditions
     pub auto_approve_for: Option<Vec<String>>,
-    
+
     /// Approval timeout (seconds)
     #[serde(default = "default_approval_timeout")]
     pub timeout: u64,
-    
+
     /// Approval notification channels
     pub notification_channels: Option<Vec<String>>,
 }
@@ -241,52 +241,52 @@ pub struct ActionIntent {
     /// Unique identifier for the intent
     #[validate(length(min = 1))]
     pub id: String,
-    
+
     /// Action type
     pub action_type: ActionType,
-    
+
     /// Human-readable description
     #[validate(length(min = 1))]
     pub description: String,
-    
+
     /// Scope of the action (files/directories)
     #[validate(length(min = 1))]
     pub scope: Vec<String>,
-    
+
     /// Safety level
     pub safety_level: SafetyLevel,
-    
+
     /// Context references
     pub context_refs: Option<Vec<ContextReference>>,
-    
+
     /// Transformation configuration
     pub transformation: TransformationConfig,
-    
+
     /// Safety checks configuration
     pub safety_checks: SafetyChecks,
-    
+
     /// Approval workflow configuration
     pub approval_workflow: ApprovalWorkflow,
-    
+
     /// Metadata
     pub metadata: Option<HashMap<String, serde_json::Value>>,
-    
+
     /// Created timestamp
     #[serde(default = "Utc::now")]
     pub created_at: DateTime<Utc>,
-    
+
     /// Created by
     pub created_by: Option<String>,
-    
+
     /// Tags for categorization
     pub tags: Option<Vec<String>>,
-    
+
     /// Priority level
     pub priority: Option<String>,
-    
+
     /// Estimated effort
     pub estimated_effort: Option<String>,
-    
+
     /// Dependencies (other intents)
     pub dependencies: Option<Vec<String>>,
 }
@@ -343,7 +343,7 @@ impl ActionIntent {
         self.validate_scope()?;
         self.validate_tools()?;
         self.validate_safety_checks()?;
-        
+
         Ok(())
     }
 
@@ -354,7 +354,9 @@ impl ActionIntent {
                 return Err(ActionError::schema_validation("Scope path cannot be empty"));
             }
             if path.contains("..") {
-                return Err(ActionError::schema_validation("Scope path cannot contain '..'"));
+                return Err(ActionError::schema_validation(
+                    "Scope path cannot contain '..'",
+                ));
             }
         }
         Ok(())
@@ -363,50 +365,70 @@ impl ActionIntent {
     /// Validate transformation tools
     fn validate_tools(&self) -> ActionResult<()> {
         if self.transformation.tools.is_empty() {
-            return Err(ActionError::schema_validation("At least one transformation tool must be specified"));
+            return Err(ActionError::schema_validation(
+                "At least one transformation tool must be specified",
+            ));
         }
-        
+
         // Validate tool names
         let valid_tools = [
-            "jscodeshift", "comby", "ast-grep", "prettier", "eslint",
-            "typescript", "jest", "mocha", "pytest", "cargo", "npm",
+            "jscodeshift",
+            "comby",
+            "ast-grep",
+            "prettier",
+            "eslint",
+            "typescript",
+            "jest",
+            "mocha",
+            "pytest",
+            "cargo",
+            "npm",
         ];
-        
+
         for tool in &self.transformation.tools {
             if !valid_tools.contains(&tool.as_str()) {
-                return Err(ActionError::schema_validation(
-                    format!("Unknown transformation tool: {}", tool)
-                ));
+                return Err(ActionError::schema_validation(format!(
+                    "Unknown transformation tool: {}",
+                    tool
+                )));
             }
         }
-        
+
         Ok(())
     }
 
     /// Validate safety checks
     fn validate_safety_checks(&self) -> ActionResult<()> {
         let valid_checks = [
-            "syntax_validation", "type_checking", "test_coverage",
-            "build_validation", "test_execution", "lint_checking",
-            "security_scanning", "performance_check", "dependency_check",
+            "syntax_validation",
+            "type_checking",
+            "test_coverage",
+            "build_validation",
+            "test_execution",
+            "lint_checking",
+            "security_scanning",
+            "performance_check",
+            "dependency_check",
         ];
-        
+
         for check in &self.safety_checks.pre_execution {
             if !valid_checks.contains(&check.as_str()) {
-                return Err(ActionError::schema_validation(
-                    format!("Unknown pre-execution safety check: {}", check)
-                ));
+                return Err(ActionError::schema_validation(format!(
+                    "Unknown pre-execution safety check: {}",
+                    check
+                )));
             }
         }
-        
+
         for check in &self.safety_checks.post_execution {
             if !valid_checks.contains(&check.as_str()) {
-                return Err(ActionError::schema_validation(
-                    format!("Unknown post-execution safety check: {}", check)
-                ));
+                return Err(ActionError::schema_validation(format!(
+                    "Unknown post-execution safety check: {}",
+                    check
+                )));
             }
         }
-        
+
         Ok(())
     }
 
@@ -415,17 +437,21 @@ impl ActionIntent {
         if !self.approval_workflow.required {
             return false;
         }
-        
+
         // Check auto-approve conditions
         if let Some(auto_approve) = &self.approval_workflow.auto_approve_for {
-            if auto_approve.contains(&"low_risk".to_string()) && self.safety_level == SafetyLevel::Low {
+            if auto_approve.contains(&"low_risk".to_string())
+                && self.safety_level == SafetyLevel::Low
+            {
                 return false;
             }
-            if auto_approve.contains(&"test_only".to_string()) && self.action_type == ActionType::Test {
+            if auto_approve.contains(&"test_only".to_string())
+                && self.action_type == ActionType::Test
+            {
                 return false;
             }
         }
-        
+
         true
     }
 
@@ -472,7 +498,11 @@ impl ActionIntent {
         if self.approval_workflow.approvers.is_none() {
             self.approval_workflow.approvers = Some(vec![]);
         }
-        self.approval_workflow.approvers.as_mut().unwrap().push(approver.into());
+        self.approval_workflow
+            .approvers
+            .as_mut()
+            .unwrap()
+            .push(approver.into());
     }
 }
 
@@ -505,25 +535,25 @@ pub enum ActionStatus {
 pub struct ActionExecutionResult {
     /// Success status
     pub success: bool,
-    
+
     /// Execution duration
     pub duration: std::time::Duration,
-    
+
     /// Changes made
     pub changes: Vec<String>,
-    
+
     /// Validation results
     pub validation_results: HashMap<String, bool>,
-    
+
     /// Safety check results
     pub safety_results: HashMap<String, bool>,
-    
+
     /// Error messages (if any)
     pub errors: Vec<String>,
-    
+
     /// Warnings
     pub warnings: Vec<String>,
-    
+
     /// Rollback information (if applicable)
     pub rollback_info: Option<RollbackInfo>,
 }
@@ -533,16 +563,16 @@ pub struct ActionExecutionResult {
 pub struct RollbackInfo {
     /// Rollback method used
     pub method: String,
-    
+
     /// Rollback duration
     pub duration: std::time::Duration,
-    
+
     /// Files restored
     pub files_restored: Vec<String>,
-    
+
     /// Rollback success
     pub success: bool,
-    
+
     /// Rollback errors (if any)
     pub errors: Vec<String>,
 }
@@ -560,7 +590,7 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::Medium,
         );
-        
+
         assert_eq!(intent.id, "test-001");
         assert_eq!(intent.action_type, ActionType::Refactor);
         assert_eq!(intent.description, "Test refactoring");
@@ -576,10 +606,10 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::Low,
         );
-        
+
         intent.add_tool("jest");
         intent.add_validation("typescript");
-        
+
         let result = intent.validate();
         assert!(result.is_ok());
     }
@@ -593,10 +623,10 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::High,
         );
-        
+
         // High safety level should require approval by default
         assert!(intent.requires_approval());
-        
+
         // Set to not required
         intent.set_approval_required(false);
         assert!(!intent.requires_approval());
@@ -611,10 +641,10 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::Low,
         );
-        
+
         intent.approval_workflow.auto_approve_for = Some(vec!["low_risk".to_string()]);
-        
+
         // Low risk should auto-approve
         assert!(!intent.requires_approval());
     }
-} 
+}

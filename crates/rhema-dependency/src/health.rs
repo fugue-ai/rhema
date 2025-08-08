@@ -1,14 +1,14 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
 use tokio::time::{interval, sleep};
-use chrono::{DateTime, Utc};
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, HealthStatus, HealthMetrics, HealthCheckConfig};
 use crate::graph::DependencyGraph;
+use crate::types::{DependencyConfig, HealthCheckConfig, HealthMetrics, HealthStatus};
 
 /// Health check result with additional metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,7 +184,7 @@ impl HealthMonitor {
     /// Create a new health monitor
     pub fn new(graph: Arc<RwLock<DependencyGraph>>) -> Self {
         let (alert_sender, alert_receiver) = mpsc::channel(100);
-        
+
         Self {
             graph,
             health_configs: HashMap::new(),
@@ -200,7 +200,7 @@ impl HealthMonitor {
     /// Create a new health monitor with configuration
     pub fn with_config(graph: Arc<RwLock<DependencyGraph>>, config: HealthMonitorConfig) -> Self {
         let (alert_sender, alert_receiver) = mpsc::channel(100);
-        
+
         Self {
             graph,
             health_configs: HashMap::new(),
@@ -220,7 +220,8 @@ impl HealthMonitor {
 
     /// Add alert configuration
     pub fn add_alert(&mut self, alert_config: AlertConfig) {
-        self.alert_configs.insert(alert_config.name.clone(), alert_config);
+        self.alert_configs
+            .insert(alert_config.name.clone(), alert_config);
     }
 
     /// Start health monitoring
@@ -238,10 +239,10 @@ impl HealthMonitor {
 
         let task = tokio::spawn(async move {
             let mut interval = interval(Duration::from_secs(config.default_check_interval));
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Perform health checks for all configured dependencies
                 for (dependency_id, health_config) in &health_configs {
                     if let Err(e) = Self::perform_health_check(
@@ -251,7 +252,9 @@ impl HealthMonitor {
                         &health_cache,
                         &alert_configs,
                         &alert_sender,
-                    ).await {
+                    )
+                    .await
+                    {
                         tracing::error!("Health check failed for {}: {}", dependency_id, e);
                     }
                 }
@@ -286,8 +289,12 @@ impl HealthMonitor {
     }
 
     /// Perform a manual health check
-    pub async fn perform_manual_health_check(&self, dependency_id: &str) -> Result<HealthCheckResult> {
-        let health_config = self.health_configs
+    pub async fn perform_manual_health_check(
+        &self,
+        dependency_id: &str,
+    ) -> Result<HealthCheckResult> {
+        let health_config = self
+            .health_configs
             .get(dependency_id)
             .ok_or_else(|| Error::DependencyNotFound(dependency_id.to_string()))?;
 
@@ -304,19 +311,20 @@ impl HealthMonitor {
         alert_sender: &mpsc::Sender<Alert>,
     ) -> Result<()> {
         let start_time = std::time::Instant::now();
-        
+
         // Perform the health check
-        let health_result = Self::perform_health_check_internal(dependency_id, health_config).await?;
-        
+        let health_result =
+            Self::perform_health_check_internal(dependency_id, health_config).await?;
+
         // Calculate health metrics
         let health_metrics = Self::calculate_health_metrics(&health_result);
-        
+
         // Determine health status
         let health_status = Self::determine_health_status(&health_result, &health_metrics);
-        
+
         // Calculate health score
         let health_score = Self::calculate_health_score(&health_metrics);
-        
+
         // Update health cache
         let health_status_with_metrics = HealthStatusWithMetrics {
             status: health_status.clone(),
@@ -344,7 +352,8 @@ impl HealthMonitor {
             &health_metrics,
             alert_configs,
             alert_sender,
-        ).await?;
+        )
+        .await?;
 
         Ok(())
     }
@@ -355,7 +364,7 @@ impl HealthMonitor {
         health_config: &HealthCheckConfig,
     ) -> Result<HealthCheckResult> {
         let start_time = std::time::Instant::now();
-        
+
         // Create HTTP client
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(health_config.timeout_seconds))
@@ -368,7 +377,11 @@ impl HealthMonitor {
             "POST" => client.post(&health_config.url),
             "PUT" => client.put(&health_config.url),
             "DELETE" => client.delete(&health_config.url),
-            _ => return Err(Error::HealthCheckFailed("Unsupported HTTP method".to_string())),
+            _ => {
+                return Err(Error::HealthCheckFailed(
+                    "Unsupported HTTP method".to_string(),
+                ))
+            }
         };
 
         // Add headers
@@ -382,7 +395,9 @@ impl HealthMonitor {
         }
 
         // Execute request
-        let response = request.send().await
+        let response = request
+            .send()
+            .await
             .map_err(|e| Error::HealthCheckFailed(e.to_string()))?;
 
         let status_code = response.status().as_u16();
@@ -392,8 +407,10 @@ impl HealthMonitor {
         let message = if success {
             "Health check passed".to_string()
         } else {
-            format!("Health check failed: expected status {}, got {}", 
-                health_config.expected_status, status_code)
+            format!(
+                "Health check failed: expected status {}, got {}",
+                health_config.expected_status, status_code
+            )
         };
 
         Ok(HealthCheckResult {
@@ -411,17 +428,18 @@ impl HealthMonitor {
     fn calculate_health_metrics(health_result: &HealthCheckResult) -> HealthMetrics {
         let availability = if health_result.success { 1.0 } else { 0.0 };
         let error_rate = if health_result.success { 0.0 } else { 1.0 };
-        
+
         HealthMetrics::new(
             health_result.response_time_ms,
             availability,
             error_rate,
-            1.0, // Default throughput
-            0.5, // Default CPU usage
-            0.5, // Default memory usage
+            1.0,  // Default throughput
+            0.5,  // Default CPU usage
+            0.5,  // Default memory usage
             10.0, // Default network latency
-            0.5, // Default disk usage
-        ).unwrap_or_else(|_| {
+            0.5,  // Default disk usage
+        )
+        .unwrap_or_else(|_| {
             // Fallback metrics if validation fails
             HealthMetrics {
                 response_time_ms: health_result.response_time_ms,
@@ -534,7 +552,7 @@ impl HealthMonitor {
     /// Get monitoring statistics
     pub async fn get_statistics(&self) -> HealthMonitorStatistics {
         let cache = self.health_cache.read().await;
-        
+
         let mut healthy_count = 0;
         let mut degraded_count = 0;
         let mut unhealthy_count = 0;
@@ -619,7 +637,8 @@ mod tests {
             crate::types::DependencyType::ApiCall,
             "http://test.example.com".to_string(),
             vec!["GET".to_string()],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[test]
@@ -666,26 +685,27 @@ mod tests {
             metadata: HashMap::new(),
         };
 
-        let health_metrics = HealthMetrics::new(
-            150.0, 1.0, 0.0, 100.0, 0.5, 0.5, 10.0, 0.5
-        ).unwrap();
+        let health_metrics =
+            HealthMetrics::new(150.0, 1.0, 0.0, 100.0, 0.5, 0.5, 10.0, 0.5).unwrap();
 
         let alert_config = AlertConfig {
             name: "high_latency".to_string(),
             severity: AlertSeverity::Warning,
-            conditions: vec![
-                AlertCondition {
-                    metric: "response_time".to_string(),
-                    operator: ">".to_string(),
-                    threshold: 100.0,
-                    duration_seconds: 60,
-                }
-            ],
+            conditions: vec![AlertCondition {
+                metric: "response_time".to_string(),
+                operator: ">".to_string(),
+                threshold: 100.0,
+                duration_seconds: 60,
+            }],
             channels: vec![],
             cooldown_seconds: 300,
             last_triggered: None,
         };
 
-        assert!(HealthMonitor::should_trigger_alert(&alert_config, &health_result, &health_metrics));
+        assert!(HealthMonitor::should_trigger_alert(
+            &alert_config,
+            &health_result,
+            &health_metrics
+        ));
     }
-} 
+}

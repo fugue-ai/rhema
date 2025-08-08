@@ -356,55 +356,50 @@ impl ValidationRulesManager {
     /// Create an action handler for a specific action
     fn create_action_handler(&self, action: &RuleAction) -> RhemaResult<ActionHandler> {
         let action_clone = action.clone();
-        
-        let handler: Box<dyn Fn(&Value, &ValidationRule) -> RhemaResult<()> + Send + Sync> = match action.action_type {
-            ActionType::Log => {
-                Box::new(move |value: &Value, rule: &ValidationRule| {
+
+        let handler: Box<dyn Fn(&Value, &ValidationRule) -> RhemaResult<()> + Send + Sync> =
+            match action.action_type {
+                ActionType::Log => Box::new(move |value: &Value, rule: &ValidationRule| {
                     debug!("Validation rule '{}' triggered: {:?}", rule.name, value);
                     Ok(())
-                })
-            }
-            ActionType::Warn => {
-                Box::new(move |value: &Value, rule: &ValidationRule| {
+                }),
+                ActionType::Warn => Box::new(move |value: &Value, rule: &ValidationRule| {
                     warn!("Validation warning for rule '{}': {:?}", rule.name, value);
                     Ok(())
-                })
-            }
-            ActionType::Error => {
-                Box::new(move |value: &Value, rule: &ValidationRule| {
+                }),
+                ActionType::Error => Box::new(move |value: &Value, rule: &ValidationRule| {
                     Err(ConfigError::ValidationError(format!(
                         "Validation error for rule '{}': {:?}",
                         rule.name, value
-                    )).into())
-                })
-            }
-            ActionType::Fix => {
-                Box::new(move |value: &Value, rule: &ValidationRule| {
+                    ))
+                    .into())
+                }),
+                ActionType::Fix => Box::new(move |value: &Value, rule: &ValidationRule| {
                     debug!("Auto-fixing issue for rule '{}': {:?}", rule.name, value);
                     Ok(())
-                })
-            }
-            ActionType::Skip => {
-                Box::new(move |_value: &Value, _rule: &ValidationRule| {
+                }),
+                ActionType::Skip => Box::new(move |_value: &Value, _rule: &ValidationRule| {
                     debug!("Skipping validation");
                     Ok(())
-                })
-            }
-            ActionType::Transform => {
-                let parameters = action.parameters.clone();
-                Box::new(move |_value: &Value, rule: &ValidationRule| {
-                    debug!("Transforming value for rule '{}': {:?}", rule.name, parameters);
-                    Ok(())
-                })
-            }
-            ActionType::Custom => {
-                let parameters = action.parameters.clone();
-                Box::new(move |_value: &Value, rule: &ValidationRule| {
-                    debug!("Custom action for rule '{}': {:?}", rule.name, parameters);
-                    Ok(())
-                })
-            }
-        };
+                }),
+                ActionType::Transform => {
+                    let parameters = action.parameters.clone();
+                    Box::new(move |_value: &Value, rule: &ValidationRule| {
+                        debug!(
+                            "Transforming value for rule '{}': {:?}",
+                            rule.name, parameters
+                        );
+                        Ok(())
+                    })
+                }
+                ActionType::Custom => {
+                    let parameters = action.parameters.clone();
+                    Box::new(move |_value: &Value, rule: &ValidationRule| {
+                        debug!("Custom action for rule '{}': {:?}", rule.name, parameters);
+                        Ok(())
+                    })
+                }
+            };
 
         Ok(ActionHandler {
             action: action_clone,
@@ -413,18 +408,26 @@ impl ValidationRulesManager {
     }
 
     /// Evaluate a configuration against all rules
-    pub async fn evaluate_rules(&self, config: &Value, context: &str) -> RhemaResult<Vec<RuleEvaluationResult>> {
+    pub async fn evaluate_rules(
+        &self,
+        config: &Value,
+        context: &str,
+    ) -> RhemaResult<Vec<RuleEvaluationResult>> {
         let mut results = Vec::new();
 
         for (_rule_id, compiled_rule) in &self.compiled_rules {
-            if let Ok(evaluation_result) = self.evaluate_rule(compiled_rule, config, context).await {
+            if let Ok(evaluation_result) = self.evaluate_rule(compiled_rule, config, context).await
+            {
                 results.push(evaluation_result);
             }
         }
 
         // Sort results by priority and severity
         results.sort_by(|a, b| {
-            b.rule.severity.partial_cmp(&a.rule.severity).unwrap_or(std::cmp::Ordering::Equal)
+            b.rule
+                .severity
+                .partial_cmp(&a.rule.severity)
+                .unwrap_or(std::cmp::Ordering::Equal)
                 .then_with(|| a.rule.id.cmp(&b.rule.id))
         });
 
@@ -439,10 +442,10 @@ impl ValidationRulesManager {
         context: &str,
     ) -> RhemaResult<RuleEvaluationResult> {
         let start_time = std::time::Instant::now();
-        
+
         // Evaluate conditions
         let conditions_met = self.evaluate_condition_tree(&compiled_rule.condition_tree, config)?;
-        
+
         let mut actions_executed = Vec::new();
         let mut errors = Vec::new();
 
@@ -502,21 +505,36 @@ impl ValidationRulesManager {
     /// Evaluate a single condition
     fn evaluate_condition(&self, condition: &RuleCondition, config: &Value) -> RhemaResult<bool> {
         let field_value = self.get_field_value(&condition.field, config)?;
-        
+
         match condition.operator {
             ConditionOperator::Equals => Ok(field_value == condition.value),
             ConditionOperator::NotEquals => Ok(field_value != condition.value),
-            ConditionOperator::GreaterThan => self.compare_values(&field_value, &condition.value, |a, b| a > b),
-            ConditionOperator::LessThan => self.compare_values(&field_value, &condition.value, |a, b| a < b),
-            ConditionOperator::GreaterThanOrEqual => self.compare_values(&field_value, &condition.value, |a, b| a >= b),
-            ConditionOperator::LessThanOrEqual => self.compare_values(&field_value, &condition.value, |a, b| a <= b),
-            ConditionOperator::Contains => self.string_contains(&field_value, &condition.value, condition.case_sensitive),
+            ConditionOperator::GreaterThan => {
+                self.compare_values(&field_value, &condition.value, |a, b| a > b)
+            }
+            ConditionOperator::LessThan => {
+                self.compare_values(&field_value, &condition.value, |a, b| a < b)
+            }
+            ConditionOperator::GreaterThanOrEqual => {
+                self.compare_values(&field_value, &condition.value, |a, b| a >= b)
+            }
+            ConditionOperator::LessThanOrEqual => {
+                self.compare_values(&field_value, &condition.value, |a, b| a <= b)
+            }
+            ConditionOperator::Contains => {
+                self.string_contains(&field_value, &condition.value, condition.case_sensitive)
+            }
             ConditionOperator::NotContains => {
-                let contains = self.string_contains(&field_value, &condition.value, condition.case_sensitive)?;
+                let contains =
+                    self.string_contains(&field_value, &condition.value, condition.case_sensitive)?;
                 Ok(!contains)
             }
-            ConditionOperator::StartsWith => self.string_starts_with(&field_value, &condition.value, condition.case_sensitive),
-            ConditionOperator::EndsWith => self.string_ends_with(&field_value, &condition.value, condition.case_sensitive),
+            ConditionOperator::StartsWith => {
+                self.string_starts_with(&field_value, &condition.value, condition.case_sensitive)
+            }
+            ConditionOperator::EndsWith => {
+                self.string_ends_with(&field_value, &condition.value, condition.case_sensitive)
+            }
             ConditionOperator::Regex => self.regex_match(&field_value, &condition.value),
             ConditionOperator::Exists => Ok(!field_value.is_null()),
             ConditionOperator::NotExists => Ok(field_value.is_null()),
@@ -525,8 +543,12 @@ impl ValidationRulesManager {
                 let in_array = self.value_in_array(&field_value, &condition.value)?;
                 Ok(!in_array)
             }
-            ConditionOperator::IsEmpty => Ok(field_value.as_str().map(|s| s.is_empty()).unwrap_or(true)),
-            ConditionOperator::IsNotEmpty => Ok(field_value.as_str().map(|s| !s.is_empty()).unwrap_or(false)),
+            ConditionOperator::IsEmpty => {
+                Ok(field_value.as_str().map(|s| s.is_empty()).unwrap_or(true))
+            }
+            ConditionOperator::IsNotEmpty => {
+                Ok(field_value.as_str().map(|s| !s.is_empty()).unwrap_or(false))
+            }
             ConditionOperator::IsNull => Ok(field_value.is_null()),
             ConditionOperator::IsNotNull => Ok(!field_value.is_null()),
         }
@@ -566,44 +588,65 @@ impl ValidationRulesManager {
     }
 
     /// Check if string contains substring
-    fn string_contains(&self, value: &Value, pattern: &Value, case_sensitive: Option<bool>) -> RhemaResult<bool> {
+    fn string_contains(
+        &self,
+        value: &Value,
+        pattern: &Value,
+        case_sensitive: Option<bool>,
+    ) -> RhemaResult<bool> {
         let value_str = value.as_str().unwrap_or("");
         let pattern_str = pattern.as_str().unwrap_or("");
-        
+
         let case_sensitive = case_sensitive.unwrap_or(true);
-        
+
         if case_sensitive {
             Ok(value_str.contains(pattern_str))
         } else {
-            Ok(value_str.to_lowercase().contains(&pattern_str.to_lowercase()))
+            Ok(value_str
+                .to_lowercase()
+                .contains(&pattern_str.to_lowercase()))
         }
     }
 
     /// Check if string starts with pattern
-    fn string_starts_with(&self, value: &Value, pattern: &Value, case_sensitive: Option<bool>) -> RhemaResult<bool> {
+    fn string_starts_with(
+        &self,
+        value: &Value,
+        pattern: &Value,
+        case_sensitive: Option<bool>,
+    ) -> RhemaResult<bool> {
         let value_str = value.as_str().unwrap_or("");
         let pattern_str = pattern.as_str().unwrap_or("");
-        
+
         let case_sensitive = case_sensitive.unwrap_or(true);
-        
+
         if case_sensitive {
             Ok(value_str.starts_with(pattern_str))
         } else {
-            Ok(value_str.to_lowercase().starts_with(&pattern_str.to_lowercase()))
+            Ok(value_str
+                .to_lowercase()
+                .starts_with(&pattern_str.to_lowercase()))
         }
     }
 
     /// Check if string ends with pattern
-    fn string_ends_with(&self, value: &Value, pattern: &Value, case_sensitive: Option<bool>) -> RhemaResult<bool> {
+    fn string_ends_with(
+        &self,
+        value: &Value,
+        pattern: &Value,
+        case_sensitive: Option<bool>,
+    ) -> RhemaResult<bool> {
         let value_str = value.as_str().unwrap_or("");
         let pattern_str = pattern.as_str().unwrap_or("");
-        
+
         let case_sensitive = case_sensitive.unwrap_or(true);
-        
+
         if case_sensitive {
             Ok(value_str.ends_with(pattern_str))
         } else {
-            Ok(value_str.to_lowercase().ends_with(&pattern_str.to_lowercase()))
+            Ok(value_str
+                .to_lowercase()
+                .ends_with(&pattern_str.to_lowercase()))
         }
     }
 
@@ -611,10 +654,14 @@ impl ValidationRulesManager {
     fn regex_match(&self, value: &Value, pattern: &Value) -> RhemaResult<bool> {
         let value_str = value.as_str().unwrap_or("");
         let pattern_str = pattern.as_str().unwrap_or("");
-        
+
         match regex::Regex::new(pattern_str) {
             Ok(regex) => Ok(regex.is_match(value_str)),
-            Err(_) => Err(ConfigError::ValidationError(format!("Invalid regex pattern: {}", pattern_str)).into()),
+            Err(_) => Err(ConfigError::ValidationError(format!(
+                "Invalid regex pattern: {}",
+                pattern_str
+            ))
+            .into()),
         }
     }
 
@@ -716,14 +763,16 @@ mod tests {
             "test_field": "test_value"
         });
 
-        let result = manager.evaluate_condition(&condition, &config_value).unwrap();
+        let result = manager
+            .evaluate_condition(&condition, &config_value)
+            .unwrap();
         assert!(result);
     }
 
     #[test]
     fn test_rule_evaluation() {
         let mut config = ValidationRulesConfig::new();
-        
+
         let rule = ValidationRule {
             id: "test-rule".to_string(),
             name: "Test Rule".to_string(),
@@ -731,21 +780,17 @@ mod tests {
             rule_type: RuleType::Schema,
             severity: ConfigIssueSeverity::Warning,
             enabled: true,
-            conditions: vec![
-                RuleCondition {
-                    field: "test_field".to_string(),
-                    operator: ConditionOperator::Equals,
-                    value: json!("test_value"),
-                    case_sensitive: None,
-                }
-            ],
-            actions: vec![
-                RuleAction {
-                    action_type: ActionType::Log,
-                    parameters: HashMap::new(),
-                    enabled: true,
-                }
-            ],
+            conditions: vec![RuleCondition {
+                field: "test_field".to_string(),
+                operator: ConditionOperator::Equals,
+                value: json!("test_value"),
+                case_sensitive: None,
+            }],
+            actions: vec![RuleAction {
+                action_type: ActionType::Log,
+                parameters: HashMap::new(),
+                enabled: true,
+            }],
             metadata: HashMap::new(),
         };
 
@@ -764,4 +809,4 @@ mod tests {
         assert_eq!(results.len(), 1);
         assert!(results[0].conditions_met);
     }
-} 
+}

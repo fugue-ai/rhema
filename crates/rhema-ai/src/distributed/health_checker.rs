@@ -39,4 +39,4 @@ impl HealthChecker {
         // TODO: Implement health checker stop
         Ok(())
     }
-} 
+}

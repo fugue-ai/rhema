@@ -15,14 +15,14 @@
  */
 
 use rhema_config::{
-    MigrationManager, Migration, MigrationStep, MigrationStepType, MigrationCondition,
-    MigrationConditionOperator, GlobalConfig, RepositoryConfig, ScopeConfig, Config,
-    RhemaResult, CURRENT_CONFIG_VERSION,
+    Config, GlobalConfig, Migration, MigrationCondition, MigrationConditionOperator,
+    MigrationManager, MigrationStep, MigrationStepType, RepositoryConfig, RhemaResult, ScopeConfig,
+    CURRENT_CONFIG_VERSION,
 };
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 /// Example demonstrating configuration migration capabilities
 #[tokio::main]
@@ -100,10 +100,22 @@ async fn basic_version_migration(migration_manager: &MigrationManager) -> RhemaR
         .await?;
 
     info!("Basic migration completed:");
-    info!("  Migrations applied: {}", migration_report.migrations_applied.len());
-    info!("  Migrations skipped: {}", migration_report.migrations_skipped.len());
-    info!("  Migrations failed: {}", migration_report.migrations_failed.len());
-    info!("  Total changes: {}", migration_report.summary.total_changes);
+    info!(
+        "  Migrations applied: {}",
+        migration_report.migrations_applied.len()
+    );
+    info!(
+        "  Migrations skipped: {}",
+        migration_report.migrations_skipped.len()
+    );
+    info!(
+        "  Migrations failed: {}",
+        migration_report.migrations_failed.len()
+    );
+    info!(
+        "  Total changes: {}",
+        migration_report.summary.total_changes
+    );
     info!("  Duration: {}ms", migration_report.duration_ms);
 
     Ok(())
@@ -127,7 +139,10 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
                     "path": "security",
                     "field": "encryption_enabled",
                     "value": true
-                }).as_object().unwrap().clone(),
+                })
+                .as_object()
+                .unwrap()
+                .clone(),
                 condition: None,
                 rollback: None,
             },
@@ -137,7 +152,10 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
                 parameters: json!({
                     "old_path": "old_field",
                     "new_path": "new_field"
-                }).as_object().unwrap().clone(),
+                })
+                .as_object()
+                .unwrap()
+                .clone(),
                 condition: None,
                 rollback: None,
             },
@@ -147,22 +165,26 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
                 parameters: json!({
                     "path": "data",
                     "transformation": "json_to_yaml"
-                }).as_object().unwrap().clone(),
+                })
+                .as_object()
+                .unwrap()
+                .clone(),
                 condition: None,
                 rollback: None,
             },
         ],
-        rollback_steps: vec![
-            MigrationStep {
-                step_type: MigrationStepType::RemoveField,
-                description: "Remove added security field".to_string(),
-                parameters: json!({
-                    "path": "security.encryption_enabled"
-                }).as_object().unwrap().clone(),
-                condition: None,
-                rollback: None,
-            },
-        ],
+        rollback_steps: vec![MigrationStep {
+            step_type: MigrationStepType::RemoveField,
+            description: "Remove added security field".to_string(),
+            parameters: json!({
+                "path": "security.encryption_enabled"
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+            condition: None,
+            rollback: None,
+        }],
         required: true,
         automatic: false,
     };
@@ -178,8 +200,14 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
     let migration_report = manager.migrate_config(&config, "complex-migration-test")?;
 
     info!("Complex migration completed:");
-    info!("  Migrations applied: {}", migration_report.migrations_applied.len());
-    info!("  Total changes: {}", migration_report.summary.total_changes);
+    info!(
+        "  Migrations applied: {}",
+        migration_report.migrations_applied.len()
+    );
+    info!(
+        "  Total changes: {}",
+        migration_report.summary.total_changes
+    );
 
     Ok(())
 }
@@ -194,23 +222,24 @@ async fn conditional_migration(migration_manager: &MigrationManager) -> RhemaRes
         to_version: "2.0.0".to_string(),
         name: "conditional-upgrade".to_string(),
         description: "Migration that only applies under certain conditions".to_string(),
-        steps: vec![
-            MigrationStep {
-                step_type: MigrationStepType::AddField,
-                description: "Add feature flag if not present".to_string(),
-                parameters: json!({
-                    "path": "features",
-                    "field": "new_feature",
-                    "value": true
-                }).as_object().unwrap().clone(),
-                condition: Some(MigrationCondition {
-                    field: "features.new_feature",
-                    operator: MigrationConditionOperator::NotExists,
-                    value: json!(null),
-                }),
-                rollback: None,
-            },
-        ],
+        steps: vec![MigrationStep {
+            step_type: MigrationStepType::AddField,
+            description: "Add feature flag if not present".to_string(),
+            parameters: json!({
+                "path": "features",
+                "field": "new_feature",
+                "value": true
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+            condition: Some(MigrationCondition {
+                field: "features.new_feature",
+                operator: MigrationConditionOperator::NotExists,
+                value: json!(null),
+            }),
+            rollback: None,
+        }],
         rollback_steps: vec![],
         required: false,
         automatic: true,
@@ -229,8 +258,14 @@ async fn conditional_migration(migration_manager: &MigrationManager) -> RhemaRes
     let report_without = manager.migrate_config(&config_without_feature, "without-feature")?;
 
     info!("Conditional migration results:");
-    info!("  Config with feature - migrations applied: {}", report_with.migrations_applied.len());
-    info!("  Config without feature - migrations applied: {}", report_without.migrations_applied.len());
+    info!(
+        "  Config with feature - migrations applied: {}",
+        report_with.migrations_applied.len()
+    );
+    info!(
+        "  Config without feature - migrations applied: {}",
+        report_without.migrations_applied.len()
+    );
 
     Ok(())
 }
@@ -250,9 +285,18 @@ async fn migration_rollback(migration_manager: &MigrationManager) -> RhemaResult
             .await?;
 
         info!("Migration rollback completed:");
-        info!("  Original migrations: {}", migration_report.migrations_applied.len());
-        info!("  Rollback migrations: {}", rollback_report.migrations_applied.len());
-        info!("  Rollback successful: {}", rollback_report.summary.successful_migrations);
+        info!(
+            "  Original migrations: {}",
+            migration_report.migrations_applied.len()
+        );
+        info!(
+            "  Rollback migrations: {}",
+            rollback_report.migrations_applied.len()
+        );
+        info!(
+            "  Rollback successful: {}",
+            rollback_report.summary.successful_migrations
+        );
     }
 
     Ok(())
@@ -274,7 +318,10 @@ async fn migration_validation(migration_manager: &MigrationManager) -> RhemaResu
     info!("Migration validation completed:");
     info!("  Migration valid: {}", validation_result.valid);
     info!("  Validation issues: {}", validation_result.issues.len());
-    info!("  Validation warnings: {}", validation_result.warnings.len());
+    info!(
+        "  Validation warnings: {}",
+        validation_result.warnings.len()
+    );
 
     Ok(())
 }
@@ -289,25 +336,26 @@ async fn custom_migration(migration_manager: &MigrationManager) -> RhemaResult<(
         to_version: "1.1.0".to_string(),
         name: "custom-upgrade".to_string(),
         description: "Custom migration with custom step".to_string(),
-        steps: vec![
-            MigrationStep {
-                step_type: MigrationStepType::Custom,
-                description: "Custom data transformation".to_string(),
-                parameters: json!({
-                    "custom_action": "transform_data",
-                    "source_format": "old",
-                    "target_format": "new",
-                    "transformation_rules": {
-                        "field_mapping": {
-                            "old_field": "new_field",
-                            "deprecated_field": null
-                        }
+        steps: vec![MigrationStep {
+            step_type: MigrationStepType::Custom,
+            description: "Custom data transformation".to_string(),
+            parameters: json!({
+                "custom_action": "transform_data",
+                "source_format": "old",
+                "target_format": "new",
+                "transformation_rules": {
+                    "field_mapping": {
+                        "old_field": "new_field",
+                        "deprecated_field": null
                     }
-                }).as_object().unwrap().clone(),
-                condition: None,
-                rollback: None,
-            },
-        ],
+                }
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+            condition: None,
+            rollback: None,
+        }],
         rollback_steps: vec![],
         required: false,
         automatic: true,
@@ -322,8 +370,14 @@ async fn custom_migration(migration_manager: &MigrationManager) -> RhemaResult<(
     let migration_report = manager.migrate_config(&config, "custom-migration-test")?;
 
     info!("Custom migration completed:");
-    info!("  Migrations applied: {}", migration_report.migrations_applied.len());
-    info!("  Custom steps executed: {}", migration_report.summary.total_changes);
+    info!(
+        "  Migrations applied: {}",
+        migration_report.migrations_applied.len()
+    );
+    info!(
+        "  Custom steps executed: {}",
+        migration_report.summary.total_changes
+    );
 
     Ok(())
 }
@@ -342,11 +396,9 @@ async fn migration_history(migration_manager: &MigrationManager) -> RhemaResult<
     if let Some(history) = migration_manager.get_migration_history(&config_path) {
         info!("Migration history for {}:", config_path.display());
         for record in history {
-            info!("  {}: {} -> {} (success: {})", 
-                record.migration_name,
-                record.from_version,
-                record.to_version,
-                record.success
+            info!(
+                "  {}: {} -> {} (success: {})",
+                record.migration_name, record.from_version, record.to_version, record.success
             );
         }
     }
@@ -367,7 +419,10 @@ async fn migration_with_backup(migration_manager: &MigrationManager) -> RhemaRes
     let migration_report = manager.migrate_config(&config, "backup-test")?;
 
     info!("Migration with backup completed:");
-    info!("  Migrations applied: {}", migration_report.migrations_applied.len());
+    info!(
+        "  Migrations applied: {}",
+        migration_report.migrations_applied.len()
+    );
     info!("  Backup created: {}", manager.backup_before_migration);
 
     Ok(())
@@ -379,14 +434,19 @@ async fn migration_scheduling(migration_manager: &MigrationManager) -> RhemaResu
 
     // Get available migrations
     let available_migrations = migration_manager.get_available_migrations();
-    
+
     info!("Available migrations:");
     for migration in available_migrations {
-        info!("  {}: {} -> {} ({})", 
+        info!(
+            "  {}: {} -> {} ({})",
             migration.name,
             migration.from_version,
             migration.to_version,
-            if migration.automatic { "automatic" } else { "manual" }
+            if migration.automatic {
+                "automatic"
+            } else {
+                "manual"
+            }
         );
     }
 
@@ -411,13 +471,23 @@ async fn migration_testing(migration_manager: &MigrationManager) -> RhemaResult<
     // Test migrations on each config
     for (i, config) in test_configs.iter().enumerate() {
         info!("Testing migration on config {}", i + 1);
-        
-        let migration_report = migration_manager.migrate_config(config, &format!("test-config-{}", i + 1))?;
-        
+
+        let migration_report =
+            migration_manager.migrate_config(config, &format!("test-config-{}", i + 1))?;
+
         info!("  Config {} migration results:", i + 1);
-        info!("    Migrations applied: {}", migration_report.migrations_applied.len());
-        info!("    Migrations failed: {}", migration_report.migrations_failed.len());
-        info!("    Total changes: {}", migration_report.summary.total_changes);
+        info!(
+            "    Migrations applied: {}",
+            migration_report.migrations_applied.len()
+        );
+        info!(
+            "    Migrations failed: {}",
+            migration_report.migrations_failed.len()
+        );
+        info!(
+            "    Total changes: {}",
+            migration_report.summary.total_changes
+        );
     }
 
     Ok(())
@@ -514,19 +584,17 @@ mod tests {
             to_version: "1.1.0".to_string(),
             name: "test-conditional".to_string(),
             description: "Test conditional migration".to_string(),
-            steps: vec![
-                MigrationStep {
-                    step_type: MigrationStepType::AddField,
-                    description: "Add test field".to_string(),
-                    parameters: HashMap::new(),
-                    condition: Some(MigrationCondition {
-                        field: "test_field",
-                        operator: MigrationConditionOperator::NotExists,
-                        value: json!(null),
-                    }),
-                    rollback: None,
-                },
-            ],
+            steps: vec![MigrationStep {
+                step_type: MigrationStepType::AddField,
+                description: "Add test field".to_string(),
+                parameters: HashMap::new(),
+                condition: Some(MigrationCondition {
+                    field: "test_field",
+                    operator: MigrationConditionOperator::NotExists,
+                    value: json!(null),
+                }),
+                rollback: None,
+            }],
             rollback_steps: vec![],
             required: false,
             automatic: true,
@@ -539,4 +607,4 @@ mod tests {
 
         assert!(report.summary.successful_migrations >= 0);
     }
-} 
+}

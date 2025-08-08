@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use regex::Regex;
+use rhema_agent::agent::AgentCapability;
 use rhema_agent::agent::{
     Agent, AgentConfig, AgentContext, AgentId, AgentMessage, AgentRequest, AgentResponse,
     AgentType, BaseAgent, HealthStatus,
 };
-use rhema_agent::agent::AgentCapability;
 use rhema_agent::error::{AgentError, AgentResult};
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 use tokio::process::Command;
-use chrono::{DateTime, Utc};
-use regex::Regex;
 
 /// Documentation configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -357,9 +357,9 @@ impl DocumentationAgent {
                 AgentCapability::Documentation,
             ],
             max_concurrent_tasks: 5,
-            task_timeout: 600, // 10 minutes
+            task_timeout: 600,        // 10 minutes
             memory_limit: Some(1024), // 1 GB
-            cpu_limit: Some(50.0), // 50% CPU
+            cpu_limit: Some(50.0),    // 50% CPU
             retry_attempts: 2,
             retry_delay: 10,
             parameters: HashMap::new(),
@@ -379,7 +379,10 @@ impl DocumentationAgent {
     }
 
     /// Generate documentation
-    async fn generate_documentation(&mut self, request: DocumentationRequest) -> AgentResult<DocumentationResult> {
+    async fn generate_documentation(
+        &mut self,
+        request: DocumentationRequest,
+    ) -> AgentResult<DocumentationResult> {
         let doc_id = uuid::Uuid::new_v4().to_string();
         let mut result = DocumentationResult {
             doc_id: doc_id.clone(),
@@ -398,7 +401,8 @@ impl DocumentationAgent {
         };
 
         // Store active generation
-        self.active_generations.insert(doc_id.clone(), request.config.clone());
+        self.active_generations
+            .insert(doc_id.clone(), request.config.clone());
 
         let start_time = std::time::Instant::now();
 
@@ -410,8 +414,11 @@ impl DocumentationAgent {
         match self.analyze_code(&request.config, &mut result).await {
             Ok(analysis) => {
                 result.status = DocumentationStatus::Generating;
-                result.logs.push("Code analysis completed, generating documentation...".to_string());
-                self.analysis_cache.insert(request.config.source_path.clone(), analysis);
+                result
+                    .logs
+                    .push("Code analysis completed, generating documentation...".to_string());
+                self.analysis_cache
+                    .insert(request.config.source_path.clone(), analysis);
             }
             Err(e) => {
                 result.status = DocumentationStatus::Failed;
@@ -425,25 +432,32 @@ impl DocumentationAgent {
         // Generate documentation based on type
         match request.config.doc_type {
             DocumentationType::API => {
-                self.generate_api_documentation(&request.config, &mut result).await?;
+                self.generate_api_documentation(&request.config, &mut result)
+                    .await?;
             }
             DocumentationType::Code => {
-                self.generate_code_documentation(&request.config, &mut result).await?;
+                self.generate_code_documentation(&request.config, &mut result)
+                    .await?;
             }
             DocumentationType::UserGuide => {
-                self.generate_user_guide(&request.config, &mut result).await?;
+                self.generate_user_guide(&request.config, &mut result)
+                    .await?;
             }
             DocumentationType::DeveloperGuide => {
-                self.generate_developer_guide(&request.config, &mut result).await?;
+                self.generate_developer_guide(&request.config, &mut result)
+                    .await?;
             }
             DocumentationType::Architecture => {
-                self.generate_architecture_docs(&request.config, &mut result).await?;
+                self.generate_architecture_docs(&request.config, &mut result)
+                    .await?;
             }
             DocumentationType::Deployment => {
-                self.generate_deployment_docs(&request.config, &mut result).await?;
+                self.generate_deployment_docs(&request.config, &mut result)
+                    .await?;
             }
             DocumentationType::Custom(_) => {
-                self.generate_custom_documentation(&request.config, &mut result).await?;
+                self.generate_custom_documentation(&request.config, &mut result)
+                    .await?;
             }
         }
 
@@ -452,7 +466,9 @@ impl DocumentationAgent {
         result.metrics.generation_time = generation_time;
         result.status = DocumentationStatus::Completed;
 
-        result.logs.push("Documentation generation completed successfully".to_string());
+        result
+            .logs
+            .push("Documentation generation completed successfully".to_string());
 
         // Store in history
         self.doc_history.insert(doc_id.clone(), result.clone());
@@ -462,10 +478,16 @@ impl DocumentationAgent {
     }
 
     /// Analyze code structure
-    async fn analyze_code(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<CodeAnalysisResult> {
+    async fn analyze_code(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<CodeAnalysisResult> {
         let source_path = Path::new(&config.source_path);
         if !source_path.exists() {
-            return Err(AgentError::ExecutionFailed { reason: "Source path does not exist".to_string() });
+            return Err(AgentError::ExecutionFailed {
+                reason: "Source path does not exist".to_string(),
+            });
         }
 
         let mut analysis = CodeAnalysisResult {
@@ -502,9 +524,14 @@ impl DocumentationAgent {
     }
 
     /// Parse Cargo dependencies
-    async fn parse_cargo_dependencies(&self, cargo_toml_path: &Path) -> AgentResult<Vec<DependencyInfo>> {
-        let content = fs::read_to_string(cargo_toml_path)
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to read Cargo.toml: {}", e) })?;
+    async fn parse_cargo_dependencies(
+        &self,
+        cargo_toml_path: &Path,
+    ) -> AgentResult<Vec<DependencyInfo>> {
+        let content =
+            fs::read_to_string(cargo_toml_path).map_err(|e| AgentError::ExecutionFailed {
+                reason: format!("Failed to read Cargo.toml: {}", e),
+            })?;
 
         let mut dependencies = Vec::new();
 
@@ -523,7 +550,11 @@ impl DocumentationAgent {
     }
 
     /// Parse source files
-    async fn parse_source_files(&self, source_path: &Path, analysis: &mut CodeAnalysisResult) -> AgentResult<()> {
+    async fn parse_source_files(
+        &self,
+        source_path: &Path,
+        analysis: &mut CodeAnalysisResult,
+    ) -> AgentResult<()> {
         if source_path.is_file() {
             self.parse_single_file(source_path, analysis).await?;
         } else if source_path.is_dir() {
@@ -534,7 +565,11 @@ impl DocumentationAgent {
     }
 
     /// Parse single file
-    async fn parse_single_file(&self, file_path: &Path, analysis: &mut CodeAnalysisResult) -> AgentResult<()> {
+    async fn parse_single_file(
+        &self,
+        file_path: &Path,
+        analysis: &mut CodeAnalysisResult,
+    ) -> AgentResult<()> {
         if let Some(extension) = file_path.extension() {
             match extension.to_str().unwrap() {
                 "rs" => self.parse_rust_file(file_path, analysis).await?,
@@ -548,17 +583,25 @@ impl DocumentationAgent {
     }
 
     /// Parse directory recursively
-    async fn parse_directory(&self, dir_path: &Path, analysis: &mut CodeAnalysisResult) -> AgentResult<()> {
-        let entries = fs::read_dir(dir_path)
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to read directory: {}", e) })?;
+    async fn parse_directory(
+        &self,
+        dir_path: &Path,
+        analysis: &mut CodeAnalysisResult,
+    ) -> AgentResult<()> {
+        let entries = fs::read_dir(dir_path).map_err(|e| AgentError::ExecutionFailed {
+            reason: format!("Failed to read directory: {}", e),
+        })?;
 
         for entry in entries {
-            let entry = entry.map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to read entry: {}", e) })?;
+            let entry = entry.map_err(|e| AgentError::ExecutionFailed {
+                reason: format!("Failed to read entry: {}", e),
+            })?;
             let path = entry.path();
 
             if path.is_file() {
                 self.parse_single_file(&path, analysis).await?;
-            } else if path.is_dir() && !path.file_name().unwrap().to_str().unwrap().starts_with('.') {
+            } else if path.is_dir() && !path.file_name().unwrap().to_str().unwrap().starts_with('.')
+            {
                 Box::pin(self.parse_directory(&path, analysis)).await?;
             }
         }
@@ -567,12 +610,18 @@ impl DocumentationAgent {
     }
 
     /// Parse Rust file
-    async fn parse_rust_file(&self, file_path: &Path, analysis: &mut CodeAnalysisResult) -> AgentResult<()> {
-        let content = fs::read_to_string(file_path)
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to read file: {}", e) })?;
+    async fn parse_rust_file(
+        &self,
+        file_path: &Path,
+        analysis: &mut CodeAnalysisResult,
+    ) -> AgentResult<()> {
+        let content = fs::read_to_string(file_path).map_err(|e| AgentError::ExecutionFailed {
+            reason: format!("Failed to read file: {}", e),
+        })?;
 
         // Parse functions
-        let fn_regex = Regex::new(r#"pub\s+fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*([^{]+))?\s*\{?"#).unwrap();
+        let fn_regex =
+            Regex::new(r#"pub\s+fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*([^{]+))?\s*\{?"#).unwrap();
         for cap in fn_regex.captures_iter(&content) {
             let function = FunctionInfo {
                 name: cap[1].to_string(),
@@ -602,9 +651,14 @@ impl DocumentationAgent {
     }
 
     /// Parse Python file
-    async fn parse_python_file(&self, file_path: &Path, analysis: &mut CodeAnalysisResult) -> AgentResult<()> {
-        let content = fs::read_to_string(file_path)
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to read file: {}", e) })?;
+    async fn parse_python_file(
+        &self,
+        file_path: &Path,
+        analysis: &mut CodeAnalysisResult,
+    ) -> AgentResult<()> {
+        let content = fs::read_to_string(file_path).map_err(|e| AgentError::ExecutionFailed {
+            reason: format!("Failed to read file: {}", e),
+        })?;
 
         // Parse functions
         let fn_regex = Regex::new(r#"def\s+(\w+)\s*\(([^)]*)\):"#).unwrap();
@@ -639,9 +693,14 @@ impl DocumentationAgent {
     }
 
     /// Parse JavaScript/TypeScript file
-    async fn parse_javascript_file(&self, file_path: &Path, analysis: &mut CodeAnalysisResult) -> AgentResult<()> {
-        let content = fs::read_to_string(file_path)
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to read file: {}", e) })?;
+    async fn parse_javascript_file(
+        &self,
+        file_path: &Path,
+        analysis: &mut CodeAnalysisResult,
+    ) -> AgentResult<()> {
+        let content = fs::read_to_string(file_path).map_err(|e| AgentError::ExecutionFailed {
+            reason: format!("Failed to read file: {}", e),
+        })?;
 
         // Parse functions
         let fn_regex = Regex::new(r#"(?:export\s+)?(?:function\s+)?(\w+)\s*\(([^)]*)\)"#).unwrap();
@@ -663,20 +722,34 @@ impl DocumentationAgent {
 
     /// Extract Rust documentation
     async fn extract_rust_doc(&self, content: &str, function_name: &str) -> Option<String> {
-        let doc_regex = Regex::new(&format!(r#"(?s)/\*\*?\s*(.*?)\s*\*/\s*(?:pub\s+)?fn\s+{}"#, function_name)).unwrap();
-        doc_regex.captures(content).map(|cap| cap[1].trim().to_string())
+        let doc_regex = Regex::new(&format!(
+            r#"(?s)/\*\*?\s*(.*?)\s*\*/\s*(?:pub\s+)?fn\s+{}"#,
+            function_name
+        ))
+        .unwrap();
+        doc_regex
+            .captures(content)
+            .map(|cap| cap[1].trim().to_string())
     }
 
     /// Extract Python documentation
     async fn extract_python_doc(&self, content: &str, function_name: &str) -> Option<String> {
         let doc_regex = Regex::new(&format!(r#""""(.*?)"""\s*def\s+{}"#, function_name)).unwrap();
-        doc_regex.captures(content).map(|cap| cap[1].trim().to_string())
+        doc_regex
+            .captures(content)
+            .map(|cap| cap[1].trim().to_string())
     }
 
     /// Extract JavaScript documentation
     async fn extract_js_doc(&self, content: &str, function_name: &str) -> Option<String> {
-        let doc_regex = Regex::new(&format!(r#"/\*\*\s*(.*?)\s*\*/\s*(?:export\s+)?(?:function\s+)?{}"#, function_name)).unwrap();
-        doc_regex.captures(content).map(|cap| cap[1].trim().to_string())
+        let doc_regex = Regex::new(&format!(
+            r#"/\*\*\s*(.*?)\s*\*/\s*(?:export\s+)?(?:function\s+)?{}"#,
+            function_name
+        ))
+        .unwrap();
+        doc_regex
+            .captures(content)
+            .map(|cap| cap[1].trim().to_string())
     }
 
     /// Parse Rust parameters
@@ -745,11 +818,14 @@ impl DocumentationAgent {
         if source_path.is_file() {
             count = 1;
         } else if source_path.is_dir() {
-                    let entries = fs::read_dir(source_path)
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to read directory: {}", e) })?;
+            let entries = fs::read_dir(source_path).map_err(|e| AgentError::ExecutionFailed {
+                reason: format!("Failed to read directory: {}", e),
+            })?;
 
-        for entry in entries {
-            let entry = entry.map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to read entry: {}", e) })?;
+            for entry in entries {
+                let entry = entry.map_err(|e| AgentError::ExecutionFailed {
+                    reason: format!("Failed to read entry: {}", e),
+                })?;
                 let path = entry.path();
 
                 if path.is_file() {
@@ -759,7 +835,9 @@ impl DocumentationAgent {
                             _ => {}
                         }
                     }
-                } else if path.is_dir() && !path.file_name().unwrap().to_str().unwrap().starts_with('.') {
+                } else if path.is_dir()
+                    && !path.file_name().unwrap().to_str().unwrap().starts_with('.')
+                {
                     count += Box::pin(self.count_source_files(&path)).await?;
                 }
             }
@@ -769,19 +847,31 @@ impl DocumentationAgent {
     }
 
     /// Generate API documentation
-    async fn generate_api_documentation(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<()> {
-        result.logs.push("Generating API documentation...".to_string());
+    async fn generate_api_documentation(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<()> {
+        result
+            .logs
+            .push("Generating API documentation...".to_string());
 
         let output_path = Path::new(&config.output_directory);
-        fs::create_dir_all(output_path)
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to create output directory: {}", e) })?;
+        fs::create_dir_all(output_path).map_err(|e| AgentError::ExecutionFailed {
+            reason: format!("Failed to create output directory: {}", e),
+        })?;
 
         // Generate OpenAPI specification
         if let Some(api_config) = &config.api_config {
             let openapi_spec = self.generate_openapi_spec(api_config, result).await?;
             let openapi_path = output_path.join("openapi.json");
-            fs::write(&openapi_path, serde_json::to_string_pretty(&openapi_spec).unwrap())
-                .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to write OpenAPI spec: {}", e) })?;
+            fs::write(
+                &openapi_path,
+                serde_json::to_string_pretty(&openapi_spec).unwrap(),
+            )
+            .map_err(|e| AgentError::ExecutionFailed {
+                reason: format!("Failed to write OpenAPI spec: {}", e),
+            })?;
 
             result.generated_files.push(GeneratedFile {
                 path: openapi_path.to_string_lossy().to_string(),
@@ -795,8 +885,9 @@ impl DocumentationAgent {
         if config.output_format == OutputFormat::HTML {
             let html_content = self.generate_html_docs(config, result).await?;
             let html_path = output_path.join("index.html");
-            fs::write(&html_path, html_content)
-                .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to write HTML docs: {}", e) })?;
+            fs::write(&html_path, html_content).map_err(|e| AgentError::ExecutionFailed {
+                reason: format!("Failed to write HTML docs: {}", e),
+            })?;
 
             result.generated_files.push(GeneratedFile {
                 path: html_path.to_string_lossy().to_string(),
@@ -810,12 +901,19 @@ impl DocumentationAgent {
     }
 
     /// Generate code documentation
-    async fn generate_code_documentation(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<()> {
-        result.logs.push("Generating code documentation...".to_string());
+    async fn generate_code_documentation(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<()> {
+        result
+            .logs
+            .push("Generating code documentation...".to_string());
 
         let output_path = Path::new(&config.output_directory);
-        fs::create_dir_all(output_path)
-            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Failed to create output directory: {}", e) })?;
+        fs::create_dir_all(output_path).map_err(|e| AgentError::ExecutionFailed {
+            reason: format!("Failed to create output directory: {}", e),
+        })?;
 
         // Use rustdoc for Rust projects
         if let Some(cargo_toml) = self.find_cargo_toml(Path::new(&config.source_path)).await {
@@ -824,56 +922,94 @@ impl DocumentationAgent {
                 .current_dir(&config.source_path)
                 .output()
                 .await
-                .map_err(|e| AgentError::ExecutionFailed { reason: format!("rustdoc failed: {}", e) })?;
+                .map_err(|e| AgentError::ExecutionFailed {
+                    reason: format!("rustdoc failed: {}", e),
+                })?;
 
             if !output.status.success() {
                 let error = String::from_utf8_lossy(&output.stderr);
-                return Err(AgentError::ExecutionFailed { reason: format!("rustdoc failed: {}", error) });
+                return Err(AgentError::ExecutionFailed {
+                    reason: format!("rustdoc failed: {}", error),
+                });
             }
 
-            result.logs.push("rustdoc documentation generated successfully".to_string());
+            result
+                .logs
+                .push("rustdoc documentation generated successfully".to_string());
         }
 
         Ok(())
     }
 
     /// Generate user guide
-    async fn generate_user_guide(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<()> {
+    async fn generate_user_guide(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<()> {
         result.logs.push("Generating user guide...".to_string());
         // Implementation for user guide generation
         Ok(())
     }
 
     /// Generate developer guide
-    async fn generate_developer_guide(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<()> {
-        result.logs.push("Generating developer guide...".to_string());
+    async fn generate_developer_guide(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<()> {
+        result
+            .logs
+            .push("Generating developer guide...".to_string());
         // Implementation for developer guide generation
         Ok(())
     }
 
     /// Generate architecture documentation
-    async fn generate_architecture_docs(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<()> {
-        result.logs.push("Generating architecture documentation...".to_string());
+    async fn generate_architecture_docs(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<()> {
+        result
+            .logs
+            .push("Generating architecture documentation...".to_string());
         // Implementation for architecture documentation generation
         Ok(())
     }
 
     /// Generate deployment documentation
-    async fn generate_deployment_docs(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<()> {
-        result.logs.push("Generating deployment documentation...".to_string());
+    async fn generate_deployment_docs(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<()> {
+        result
+            .logs
+            .push("Generating deployment documentation...".to_string());
         // Implementation for deployment documentation generation
         Ok(())
     }
 
     /// Generate custom documentation
-    async fn generate_custom_documentation(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<()> {
-        result.logs.push("Generating custom documentation...".to_string());
+    async fn generate_custom_documentation(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<()> {
+        result
+            .logs
+            .push("Generating custom documentation...".to_string());
         // Implementation for custom documentation generation
         Ok(())
     }
 
     /// Generate OpenAPI specification
-    async fn generate_openapi_spec(&self, api_config: &ApiDocConfig, result: &mut DocumentationResult) -> AgentResult<serde_json::Value> {
+    async fn generate_openapi_spec(
+        &self,
+        api_config: &ApiDocConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<serde_json::Value> {
         let mut spec = serde_json::json!({
             "openapi": "3.0.0",
             "info": {
@@ -918,7 +1054,11 @@ impl DocumentationAgent {
     }
 
     /// Generate HTML documentation
-    async fn generate_html_docs(&self, config: &DocumentationConfig, result: &mut DocumentationResult) -> AgentResult<String> {
+    async fn generate_html_docs(
+        &self,
+        config: &DocumentationConfig,
+        result: &mut DocumentationResult,
+    ) -> AgentResult<String> {
         let html_template = r#"
 <!DOCTYPE html>
 <html lang="en">
@@ -1024,26 +1164,37 @@ impl Agent for DocumentationAgent {
         match request.request_type.as_str() {
             "generate_documentation" => {
                 let doc_request: DocumentationRequest = serde_json::from_value(request.payload)
-                    .map_err(|e| AgentError::SerializationError { reason: e.to_string() })?;
+                    .map_err(|e| AgentError::SerializationError {
+                        reason: e.to_string(),
+                    })?;
 
                 let start_time = std::time::Instant::now();
                 let result = self.generate_documentation(doc_request).await?;
                 let execution_time = start_time.elapsed().as_millis() as u64;
 
-                Ok(AgentResponse::success(request.id, serde_json::to_value(result).unwrap())
-                    .with_execution_time(execution_time))
+                Ok(
+                    AgentResponse::success(request.id, serde_json::to_value(result).unwrap())
+                        .with_execution_time(execution_time),
+                )
             }
             "get_documentation_history" => {
                 let history = self.get_documentation_history();
-                Ok(AgentResponse::success(request.id, serde_json::to_value(history).unwrap()))
+                Ok(AgentResponse::success(
+                    request.id,
+                    serde_json::to_value(history).unwrap(),
+                ))
             }
             "get_active_generations" => {
                 let active = self.get_active_generations();
-                Ok(AgentResponse::success(request.id, serde_json::to_value(active).unwrap()))
+                Ok(AgentResponse::success(
+                    request.id,
+                    serde_json::to_value(active).unwrap(),
+                ))
             }
-            _ => {
-                Ok(AgentResponse::error(request.id, "Unknown task type".to_string()))
-            }
+            _ => Ok(AgentResponse::error(
+                request.id,
+                "Unknown task type".to_string(),
+            )),
         }
     }
 
@@ -1063,8 +1214,8 @@ impl Agent for DocumentationAgent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_documentation_agent_creation() {
@@ -1123,4 +1274,4 @@ mod tests {
         assert_eq!(request.config.project_name, "test-project");
         assert_eq!(request.include_diagrams, true);
     }
-} 
+}

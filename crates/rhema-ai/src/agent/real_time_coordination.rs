@@ -23,9 +23,9 @@ use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
-use tokio::sync::{broadcast, mpsc, RwLock};
 use thiserror::Error;
-use tracing::{info, error};
+use tokio::sync::{broadcast, mpsc, RwLock};
+use tracing::{error, info};
 use uuid::Uuid;
 
 /// Agent status
@@ -411,7 +411,11 @@ impl LoadBalancer {
         }
     }
 
-    pub fn select_agent(&self, available_agents: &[String], task_requirements: Option<Vec<String>>) -> Option<String> {
+    pub fn select_agent(
+        &self,
+        available_agents: &[String],
+        task_requirements: Option<Vec<String>>,
+    ) -> Option<String> {
         if available_agents.is_empty() {
             return None;
         }
@@ -421,35 +425,36 @@ impl LoadBalancer {
                 // Simple round-robin selection
                 Some(available_agents[0].clone())
             }
-            LoadBalancingStrategy::LeastConnections => {
-                available_agents
-                    .iter()
-                    .min_by_key(|agent_id| self.agent_connections.get(*agent_id).unwrap_or(&0))
-                    .cloned()
-            }
-            LoadBalancingStrategy::WeightedRoundRobin => {
-                available_agents
-                    .iter()
-                    .max_by(|a, b| {
-                        let weight_a = self.agent_weights.get(*a).unwrap_or(&1.0);
-                        let weight_b = self.agent_weights.get(*b).unwrap_or(&1.0);
-                        weight_a.partial_cmp(weight_b).unwrap_or(std::cmp::Ordering::Equal)
-                    })
-                    .cloned()
-            }
-            LoadBalancingStrategy::LeastResponseTime => {
-                available_agents
-                    .iter()
-                    .min_by_key(|agent_id| self.agent_response_times.get(*agent_id).unwrap_or(&u64::MAX))
-                    .cloned()
-            }
+            LoadBalancingStrategy::LeastConnections => available_agents
+                .iter()
+                .min_by_key(|agent_id| self.agent_connections.get(*agent_id).unwrap_or(&0))
+                .cloned(),
+            LoadBalancingStrategy::WeightedRoundRobin => available_agents
+                .iter()
+                .max_by(|a, b| {
+                    let weight_a = self.agent_weights.get(*a).unwrap_or(&1.0);
+                    let weight_b = self.agent_weights.get(*b).unwrap_or(&1.0);
+                    weight_a
+                        .partial_cmp(weight_b)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .cloned(),
+            LoadBalancingStrategy::LeastResponseTime => available_agents
+                .iter()
+                .min_by_key(|agent_id| {
+                    self.agent_response_times
+                        .get(*agent_id)
+                        .unwrap_or(&u64::MAX)
+                })
+                .cloned(),
             LoadBalancingStrategy::AgentCapability => {
                 if let Some(requirements) = task_requirements {
                     available_agents
                         .iter()
                         .filter_map(|agent_id| {
                             let capabilities = self.agent_capabilities.get(agent_id)?;
-                            let capability_match = requirements.iter()
+                            let capability_match = requirements
+                                .iter()
                                 .filter(|req| capabilities.contains(req))
                                 .count();
                             if capability_match > 0 {
@@ -468,8 +473,10 @@ impl LoadBalancer {
     }
 
     pub fn update_agent_metrics(&mut self, agent_id: &str, connections: usize, response_time: u64) {
-        self.agent_connections.insert(agent_id.to_string(), connections);
-        self.agent_response_times.insert(agent_id.to_string(), response_time);
+        self.agent_connections
+            .insert(agent_id.to_string(), connections);
+        self.agent_response_times
+            .insert(agent_id.to_string(), response_time);
     }
 
     pub fn set_agent_weight(&mut self, agent_id: &str, weight: f64) {
@@ -477,7 +484,8 @@ impl LoadBalancer {
     }
 
     pub fn set_agent_capabilities(&mut self, agent_id: &str, capabilities: Vec<String>) {
-        self.agent_capabilities.insert(agent_id.to_string(), capabilities);
+        self.agent_capabilities
+            .insert(agent_id.to_string(), capabilities);
     }
 }
 
@@ -616,7 +624,7 @@ impl ConsensusManager {
                 commit_index: 0,
             })),
             log: Arc::new(RwLock::new(Vec::new())),
-            election_timeout: 150, // milliseconds
+            election_timeout: 150,  // milliseconds
             heartbeat_interval: 50, // milliseconds
             last_heartbeat: Arc::new(RwLock::new(Utc::now())),
             voted_for: Arc::new(RwLock::new(None)),
@@ -626,13 +634,13 @@ impl ConsensusManager {
     /// Start consensus process
     pub async fn start_consensus(&self) -> RhemaResult<()> {
         info!("Starting consensus process");
-        
+
         // Start election timeout
         self.start_election_timeout().await;
-        
+
         // Start heartbeat
         self.start_heartbeat().await;
-        
+
         Ok(())
     }
 
@@ -640,15 +648,14 @@ impl ConsensusManager {
     async fn start_election_timeout(&self) {
         let state = Arc::clone(&self.state);
         let election_timeout = self.election_timeout;
-        
+
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(
-                std::time::Duration::from_millis(election_timeout)
-            );
+            let mut interval =
+                tokio::time::interval(std::time::Duration::from_millis(election_timeout));
 
             loop {
                 interval.tick().await;
-                
+
                 let mut state_guard = state.write().await;
                 if let ConsensusNodeState::Follower = state_guard.state {
                     // Start election
@@ -664,15 +671,14 @@ impl ConsensusManager {
     async fn start_heartbeat(&self) {
         let state = Arc::clone(&self.state);
         let heartbeat_interval = self.heartbeat_interval;
-        
+
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(
-                std::time::Duration::from_millis(heartbeat_interval)
-            );
+            let mut interval =
+                tokio::time::interval(std::time::Duration::from_millis(heartbeat_interval));
 
             loop {
                 interval.tick().await;
-                
+
                 let state_guard = state.read().await;
                 if let ConsensusNodeState::Leader = state_guard.state {
                     // Send heartbeat
@@ -683,13 +689,37 @@ impl ConsensusManager {
     }
 
     /// Handle consensus message
-    pub async fn handle_message(&self, message: ConsensusMessage) -> RhemaResult<Option<ConsensusMessage>> {
+    pub async fn handle_message(
+        &self,
+        message: ConsensusMessage,
+    ) -> RhemaResult<Option<ConsensusMessage>> {
         match message {
-            ConsensusMessage::RequestVote { term, candidate_id, last_log_index, last_log_term } => {
-                self.handle_request_vote(term, candidate_id, last_log_index, last_log_term).await
+            ConsensusMessage::RequestVote {
+                term,
+                candidate_id,
+                last_log_index,
+                last_log_term,
+            } => {
+                self.handle_request_vote(term, candidate_id, last_log_index, last_log_term)
+                    .await
             }
-            ConsensusMessage::AppendEntries { term, leader_id, prev_log_index, prev_log_term, entries, leader_commit } => {
-                self.handle_append_entries(term, leader_id, prev_log_index, prev_log_term, entries, leader_commit).await
+            ConsensusMessage::AppendEntries {
+                term,
+                leader_id,
+                prev_log_index,
+                prev_log_term,
+                entries,
+                leader_commit,
+            } => {
+                self.handle_append_entries(
+                    term,
+                    leader_id,
+                    prev_log_index,
+                    prev_log_term,
+                    entries,
+                    leader_commit,
+                )
+                .await
             }
             ConsensusMessage::Heartbeat { term, leader_id } => {
                 self.handle_heartbeat(term, leader_id).await
@@ -699,22 +729,30 @@ impl ConsensusManager {
     }
 
     /// Handle request vote
-    async fn handle_request_vote(&self, term: u64, candidate_id: String, last_log_index: u64, last_log_term: u64) -> RhemaResult<Option<ConsensusMessage>> {
+    async fn handle_request_vote(
+        &self,
+        term: u64,
+        candidate_id: String,
+        last_log_index: u64,
+        last_log_term: u64,
+    ) -> RhemaResult<Option<ConsensusMessage>> {
         let mut state_guard = self.state.write().await;
         let mut voted_for_guard = self.voted_for.write().await;
-        
+
         if term > state_guard.term {
             state_guard.term = term;
             state_guard.state = ConsensusNodeState::Follower;
             *voted_for_guard = None;
         }
-        
+
         let vote_granted = if term == state_guard.term {
             match *voted_for_guard {
                 None => {
                     // Check if candidate's log is at least as up-to-date
-                    if last_log_term > state_guard.last_log_term || 
-                       (last_log_term == state_guard.last_log_term && last_log_index >= state_guard.last_log_index) {
+                    if last_log_term > state_guard.last_log_term
+                        || (last_log_term == state_guard.last_log_term
+                            && last_log_index >= state_guard.last_log_index)
+                    {
                         *voted_for_guard = Some(candidate_id.clone());
                         true
                     } else {
@@ -726,7 +764,7 @@ impl ConsensusManager {
         } else {
             false
         };
-        
+
         Ok(Some(ConsensusMessage::VoteResponse {
             term: state_guard.term,
             vote_granted,
@@ -734,26 +772,35 @@ impl ConsensusManager {
     }
 
     /// Handle append entries
-    async fn handle_append_entries(&self, term: u64, leader_id: String, prev_log_index: u64, prev_log_term: u64, entries: Vec<ConsensusEntry>, leader_commit: u64) -> RhemaResult<Option<ConsensusMessage>> {
+    async fn handle_append_entries(
+        &self,
+        term: u64,
+        leader_id: String,
+        prev_log_index: u64,
+        prev_log_term: u64,
+        entries: Vec<ConsensusEntry>,
+        leader_commit: u64,
+    ) -> RhemaResult<Option<ConsensusMessage>> {
         let mut state_guard = self.state.write().await;
         let mut log_guard = self.log.write().await;
-        
+
         if term >= state_guard.term {
             state_guard.term = term;
             state_guard.leader_id = Some(leader_id.clone());
             state_guard.state = ConsensusNodeState::Follower;
-            
+
             // Check if previous log entry matches
             let success = if prev_log_index == 0 {
                 true
             } else if prev_log_index <= log_guard.len() as u64 {
-                log_guard.get((prev_log_index - 1) as usize)
+                log_guard
+                    .get((prev_log_index - 1) as usize)
                     .map(|entry| entry.term == prev_log_term)
                     .unwrap_or(false)
             } else {
                 false
             };
-            
+
             if success {
                 // Append new entries
                 for entry in entries {
@@ -765,13 +812,13 @@ impl ConsensusManager {
                     }
                     log_guard.push(entry);
                 }
-                
+
                 // Update commit index
                 if leader_commit > state_guard.commit_index {
                     state_guard.commit_index = std::cmp::min(leader_commit, log_guard.len() as u64);
                 }
             }
-            
+
             Ok(Some(ConsensusMessage::AppendEntriesResponse {
                 term: state_guard.term,
                 success,
@@ -787,17 +834,21 @@ impl ConsensusManager {
     }
 
     /// Handle heartbeat
-    async fn handle_heartbeat(&self, term: u64, leader_id: String) -> RhemaResult<Option<ConsensusMessage>> {
+    async fn handle_heartbeat(
+        &self,
+        term: u64,
+        leader_id: String,
+    ) -> RhemaResult<Option<ConsensusMessage>> {
         let mut state_guard = self.state.write().await;
         let mut last_heartbeat_guard = self.last_heartbeat.write().await;
-        
+
         if term >= state_guard.term {
             state_guard.term = term;
             state_guard.leader_id = Some(leader_id);
             state_guard.state = ConsensusNodeState::Follower;
             *last_heartbeat_guard = Utc::now();
         }
-        
+
         Ok(None)
     }
 
@@ -879,27 +930,33 @@ impl PerformanceMonitor {
         if metrics.average_message_latency_ms > thresholds.max_message_latency_ms as f64 {
             self.create_alert(
                 "HIGH_MESSAGE_LATENCY",
-                format!("Message latency {}ms exceeds threshold {}ms", 
-                    metrics.average_message_latency_ms, thresholds.max_message_latency_ms),
-                "WARNING"
+                format!(
+                    "Message latency {}ms exceeds threshold {}ms",
+                    metrics.average_message_latency_ms, thresholds.max_message_latency_ms
+                ),
+                "WARNING",
             );
         }
 
         if metrics.memory_usage_percent > thresholds.max_memory_usage_percent {
             self.create_alert(
                 "HIGH_MEMORY_USAGE",
-                format!("Memory usage {}% exceeds threshold {}%", 
-                    metrics.memory_usage_percent, thresholds.max_memory_usage_percent),
-                "CRITICAL"
+                format!(
+                    "Memory usage {}% exceeds threshold {}%",
+                    metrics.memory_usage_percent, thresholds.max_memory_usage_percent
+                ),
+                "CRITICAL",
             );
         }
 
         if metrics.cpu_usage_percent > thresholds.max_cpu_usage_percent {
             self.create_alert(
                 "HIGH_CPU_USAGE",
-                format!("CPU usage {}% exceeds threshold {}%", 
-                    metrics.cpu_usage_percent, thresholds.max_cpu_usage_percent),
-                "WARNING"
+                format!(
+                    "CPU usage {}% exceeds threshold {}%",
+                    metrics.cpu_usage_percent, thresholds.max_cpu_usage_percent
+                ),
+                "WARNING",
             );
         }
     }
@@ -913,7 +970,7 @@ impl PerformanceMonitor {
             timestamp: Utc::now(),
             resolved: false,
         };
-        
+
         // TODO: Send alert to monitoring system (placeholder for production implementation)
         info!("Performance Alert [{}]: {}", severity, alert.message);
     }
@@ -993,10 +1050,7 @@ pub enum ConsensusMessage {
         last_log_term: u64,
     },
     /// Vote response
-    VoteResponse {
-        term: u64,
-        vote_granted: bool,
-    },
+    VoteResponse { term: u64, vote_granted: bool },
     /// Append entries message
     AppendEntries {
         term: u64,
@@ -1013,10 +1067,7 @@ pub enum ConsensusMessage {
         match_index: u64,
     },
     /// Heartbeat message
-    Heartbeat {
-        term: u64,
-        leader_id: String,
-    },
+    Heartbeat { term: u64, leader_id: String },
 }
 
 /// Consensus log entry
@@ -1155,7 +1206,7 @@ impl RealTimeCoordinationSystem {
     /// Create a new coordination system
     pub fn new() -> Self {
         let (broadcast_tx, _) = broadcast::channel(1000);
-        
+
         Self {
             agents: Arc::new(RwLock::new(HashMap::new())),
             message_channels: Arc::new(RwLock::new(HashMap::new())),
@@ -1194,7 +1245,7 @@ impl RealTimeCoordinationSystem {
     /// Create a new coordination system with custom configuration
     pub fn with_config(config: CoordinationConfig) -> Self {
         let (broadcast_tx, _) = broadcast::channel(1000);
-        
+
         Self {
             agents: Arc::new(RwLock::new(HashMap::new())),
             message_channels: Arc::new(RwLock::new(HashMap::new())),
@@ -1223,12 +1274,17 @@ impl RealTimeCoordinationSystem {
     }
 
     /// Create a new coordination system with advanced configuration
-    pub fn with_advanced_config(config: CoordinationConfig, advanced_config: AdvancedCoordinationConfig) -> Self {
+    pub fn with_advanced_config(
+        config: CoordinationConfig,
+        advanced_config: AdvancedCoordinationConfig,
+    ) -> Self {
         let (broadcast_tx, _) = broadcast::channel(1000);
-        
+
         // Initialize advanced features based on configuration
         let load_balancer = if advanced_config.enable_load_balancing {
-            Some(Arc::new(RwLock::new(LoadBalancer::new(advanced_config.load_balancing_strategy.clone()))))
+            Some(Arc::new(RwLock::new(LoadBalancer::new(
+                advanced_config.load_balancing_strategy.clone(),
+            ))))
         } else {
             None
         };
@@ -1245,7 +1301,9 @@ impl RealTimeCoordinationSystem {
         };
 
         let performance_monitor = if advanced_config.enable_performance_monitoring {
-            Some(Arc::new(PerformanceMonitor::new(advanced_config.performance_config.clone())))
+            Some(Arc::new(PerformanceMonitor::new(
+                advanced_config.performance_config.clone(),
+            )))
         } else {
             None
         };
@@ -1274,7 +1332,9 @@ impl RealTimeCoordinationSystem {
             encryption,
             performance_monitor,
             consensus_manager: if advanced_config.enable_advanced_sessions {
-                Some(Arc::new(RwLock::new(ConsensusManager::new(ConsensusConfig::default()))))
+                Some(Arc::new(RwLock::new(ConsensusManager::new(
+                    ConsensusConfig::default(),
+                ))))
             } else {
                 None
             },
@@ -1284,12 +1344,12 @@ impl RealTimeCoordinationSystem {
     /// Register an agent
     pub async fn register_agent(&self, agent_info: AgentInfo) -> RhemaResult<()> {
         let (tx, _rx) = mpsc::channel(100);
-        
+
         {
             let mut agents = self.agents.write().await;
             agents.insert(agent_info.id.clone(), agent_info.clone());
         }
-        
+
         {
             let mut channels = self.message_channels.write().await;
             channels.insert(agent_info.id.clone(), tx);
@@ -1327,7 +1387,7 @@ impl RealTimeCoordinationSystem {
             let mut agents = self.agents.write().await;
             agents.remove(agent_id);
         }
-        
+
         {
             let mut channels = self.message_channels.write().await;
             channels.remove(agent_id);
@@ -1384,7 +1444,7 @@ impl RealTimeCoordinationSystem {
         } else {
             // Broadcast message
             let _ = self.broadcast_tx.send(message.clone());
-            
+
             // Update stats
             {
                 let mut stats = self.stats.lock().unwrap();
@@ -1423,9 +1483,13 @@ impl RealTimeCoordinationSystem {
     }
 
     /// Create a coordination session
-    pub async fn create_session(&self, topic: String, participants: Vec<String>) -> RhemaResult<String> {
+    pub async fn create_session(
+        &self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> RhemaResult<String> {
         let session_id = Uuid::new_v4().to_string();
-        
+
         // Validate participants
         let agents = self.agents.read().await;
         for participant_id in &participants {
@@ -1435,9 +1499,9 @@ impl RealTimeCoordinationSystem {
         }
 
         if participants.len() > self.config.max_session_participants {
-            return Err(CoordinationError::PermissionDenied(
-                "Too many participants".to_string(),
-            ).into());
+            return Err(
+                CoordinationError::PermissionDenied("Too many participants".to_string()).into(),
+            );
         }
 
         let session = CoordinationSession {
@@ -1468,12 +1532,13 @@ impl RealTimeCoordinationSystem {
     /// Join a coordination session
     pub async fn join_session(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
         let mut sessions = self.sessions.write().await;
-        
+
         if let Some(session) = sessions.get_mut(session_id) {
             if session.status != SessionStatus::Active {
                 return Err(CoordinationError::SessionNotFound(
                     "Session is not active".to_string(),
-                ).into());
+                )
+                .into());
             }
 
             if !session.participants.contains(&agent_id.to_string()) {
@@ -1489,14 +1554,14 @@ impl RealTimeCoordinationSystem {
     /// Leave a coordination session
     pub async fn leave_session(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
         let mut sessions = self.sessions.write().await;
-        
+
         if let Some(session) = sessions.get_mut(session_id) {
             session.participants.retain(|id| id != agent_id);
-            
+
             if session.participants.is_empty() {
                 session.status = SessionStatus::Completed;
                 session.ended_at = Some(Utc::now());
-                
+
                 // Update stats
                 {
                     let mut stats = self.stats.lock().unwrap();
@@ -1511,14 +1576,19 @@ impl RealTimeCoordinationSystem {
     }
 
     /// Send message to a session
-    pub async fn send_session_message(&self, session_id: &str, message: AgentMessage) -> RhemaResult<()> {
+    pub async fn send_session_message(
+        &self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> RhemaResult<()> {
         let sessions = self.sessions.read().await;
-        
+
         if let Some(session) = sessions.get(session_id) {
             if session.status != SessionStatus::Active {
                 return Err(CoordinationError::SessionNotFound(
                     "Session is not active".to_string(),
-                ).into());
+                )
+                .into());
             }
 
             // Send to all session participants
@@ -1536,7 +1606,7 @@ impl RealTimeCoordinationSystem {
     /// Request a resource
     pub async fn request_resource(&self, resource_id: &str, agent_id: &str) -> RhemaResult<bool> {
         let mut resources = self.resources.write().await;
-        
+
         if let Some(resource) = resources.get_mut(resource_id) {
             if resource.is_locked {
                 if let Some(owner_id) = &resource.owner_id {
@@ -1551,7 +1621,9 @@ impl RealTimeCoordinationSystem {
             resource.is_locked = true;
             resource.owner_id = Some(agent_id.to_string());
             resource.locked_at = Some(Utc::now());
-            resource.lock_timeout = Some(Utc::now() + chrono::Duration::seconds(self.config.message_timeout_seconds as i64));
+            resource.lock_timeout = Some(
+                Utc::now() + chrono::Duration::seconds(self.config.message_timeout_seconds as i64),
+            );
 
             Ok(true)
         } else {
@@ -1562,7 +1634,7 @@ impl RealTimeCoordinationSystem {
     /// Release a resource
     pub async fn release_resource(&self, resource_id: &str, agent_id: &str) -> RhemaResult<()> {
         let mut resources = self.resources.write().await;
-        
+
         if let Some(resource) = resources.get_mut(resource_id) {
             if let Some(owner_id) = &resource.owner_id {
                 if owner_id == agent_id {
@@ -1573,18 +1645,22 @@ impl RealTimeCoordinationSystem {
                     return Ok(());
                 }
             }
-            return Err(CoordinationError::PermissionDenied(
-                "Not the resource owner".to_string(),
-            ).into());
+            return Err(
+                CoordinationError::PermissionDenied("Not the resource owner".to_string()).into(),
+            );
         }
 
         Err(CoordinationError::ResourceNotAvailable(resource_id.to_string()).into())
     }
 
     /// Update agent status
-    pub async fn update_agent_status(&self, agent_id: &str, status: AgentStatus) -> RhemaResult<()> {
+    pub async fn update_agent_status(
+        &self,
+        agent_id: &str,
+        status: AgentStatus,
+    ) -> RhemaResult<()> {
         let mut agents = self.agents.write().await;
-        
+
         if let Some(agent) = agents.get_mut(agent_id) {
             agent.status = status;
             agent.last_heartbeat = Utc::now();
@@ -1622,19 +1698,22 @@ impl RealTimeCoordinationSystem {
         if message.id.is_empty() {
             return Err(CoordinationError::InvalidMessageFormat(
                 "Message ID cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if message.sender_id.is_empty() {
             return Err(CoordinationError::InvalidMessageFormat(
                 "Sender ID cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if message.content.is_empty() {
             return Err(CoordinationError::InvalidMessageFormat(
                 "Message content cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         Ok(())
@@ -1644,23 +1723,24 @@ impl RealTimeCoordinationSystem {
     pub async fn start_heartbeat_monitoring(&self) {
         let agents = Arc::clone(&self.agents);
         let config = self.config.clone();
-        
+
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(
-                std::time::Duration::from_secs(config.heartbeat_interval_seconds)
-            );
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(
+                config.heartbeat_interval_seconds,
+            ));
 
             loop {
                 interval.tick().await;
-                
+
                 let now = Utc::now();
                 let mut agents_to_remove = Vec::new();
-                
+
                 {
                     let mut agents_guard = agents.write().await;
                     for (agent_id, agent) in agents_guard.iter_mut() {
                         let time_since_heartbeat = now.signed_duration_since(agent.last_heartbeat);
-                        if time_since_heartbeat.num_seconds() > config.agent_timeout_seconds as i64 {
+                        if time_since_heartbeat.num_seconds() > config.agent_timeout_seconds as i64
+                        {
                             agents_to_remove.push(agent_id.clone());
                         }
                     }
@@ -1676,7 +1756,10 @@ impl RealTimeCoordinationSystem {
     }
 
     /// Select agent using load balancer
-    pub async fn select_agent_for_task(&self, task_requirements: Option<Vec<String>>) -> Option<String> {
+    pub async fn select_agent_for_task(
+        &self,
+        task_requirements: Option<Vec<String>>,
+    ) -> Option<String> {
         if let Some(load_balancer) = &self.load_balancer {
             let available_agents = self.get_available_agents().await;
             let lb_guard = load_balancer.write().await;
@@ -1684,7 +1767,8 @@ impl RealTimeCoordinationSystem {
         } else {
             // Fallback to simple selection
             let agents = self.agents.read().await;
-            agents.iter()
+            agents
+                .iter()
                 .filter(|(_, agent)| agent.is_online && agent.status != AgentStatus::Offline)
                 .next()
                 .map(|(id, _)| id.clone())
@@ -1694,14 +1778,20 @@ impl RealTimeCoordinationSystem {
     /// Get available agents for load balancing
     async fn get_available_agents(&self) -> Vec<String> {
         let agents = self.agents.read().await;
-        agents.iter()
+        agents
+            .iter()
             .filter(|(_, agent)| agent.is_online && agent.status != AgentStatus::Offline)
             .map(|(id, _)| id.clone())
             .collect()
     }
 
     /// Update agent metrics for load balancing
-    pub async fn update_agent_metrics(&self, agent_id: &str, connections: usize, response_time: u64) {
+    pub async fn update_agent_metrics(
+        &self,
+        agent_id: &str,
+        connections: usize,
+        response_time: u64,
+    ) {
         if let Some(load_balancer) = &self.load_balancer {
             let mut lb_guard = load_balancer.write().await;
             lb_guard.update_agent_metrics(agent_id, connections, response_time);
@@ -1727,7 +1817,7 @@ impl RealTimeCoordinationSystem {
     /// Check if agent can execute (circuit breaker)
     pub async fn can_agent_execute(&self, agent_id: &str) -> bool {
         let mut circuit_breakers = self.circuit_breakers.write().await;
-        
+
         if let Some(circuit_breaker) = circuit_breakers.get_mut(agent_id) {
             circuit_breaker.can_execute()
         } else {
@@ -1809,9 +1899,22 @@ impl RealTimeCoordinationSystem {
     }
 
     /// Create an advanced session with consensus
-    pub async fn create_advanced_session(&self, topic: String, participants: Vec<String>, consensus_config: Option<ConsensusConfig>) -> RhemaResult<String> {
-        if !self.advanced_config.as_ref().map(|c| c.enable_advanced_sessions).unwrap_or(false) {
-            return Err(CoordinationError::PermissionDenied("Advanced sessions not enabled".to_string()).into());
+    pub async fn create_advanced_session(
+        &self,
+        topic: String,
+        participants: Vec<String>,
+        consensus_config: Option<ConsensusConfig>,
+    ) -> RhemaResult<String> {
+        if !self
+            .advanced_config
+            .as_ref()
+            .map(|c| c.enable_advanced_sessions)
+            .unwrap_or(false)
+        {
+            return Err(CoordinationError::PermissionDenied(
+                "Advanced sessions not enabled".to_string(),
+            )
+            .into());
         }
 
         let session_id = Uuid::new_v4().to_string();
@@ -1855,7 +1958,7 @@ impl RealTimeCoordinationSystem {
     /// Join an advanced session
     pub async fn join_advanced_session(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
         let mut sessions = self.advanced_sessions.write().await;
-        
+
         if let Some(session) = sessions.get_mut(session_id) {
             if !session.participants.contains(&agent_id.to_string()) {
                 session.participants.push(agent_id.to_string());
@@ -1875,7 +1978,7 @@ impl RealTimeCoordinationSystem {
     /// Add a rule to an advanced session
     pub async fn add_session_rule(&self, session_id: &str, rule: SessionRule) -> RhemaResult<()> {
         let mut sessions = self.advanced_sessions.write().await;
-        
+
         if let Some(session) = sessions.get_mut(session_id) {
             session.rules.push(rule);
             Ok(())
@@ -1890,7 +1993,10 @@ impl RealTimeCoordinationSystem {
             let manager = consensus_manager.write().await;
             manager.start_consensus().await
         } else {
-            Err(CoordinationError::PermissionDenied("Consensus manager not available".to_string()).into())
+            Err(
+                CoordinationError::PermissionDenied("Consensus manager not available".to_string())
+                    .into(),
+            )
         }
     }
 
@@ -1905,22 +2011,33 @@ impl RealTimeCoordinationSystem {
     }
 
     /// Handle consensus message
-    pub async fn handle_consensus_message(&self, message: ConsensusMessage) -> RhemaResult<Option<ConsensusMessage>> {
+    pub async fn handle_consensus_message(
+        &self,
+        message: ConsensusMessage,
+    ) -> RhemaResult<Option<ConsensusMessage>> {
         if let Some(consensus_manager) = &self.consensus_manager {
             let manager = consensus_manager.write().await;
             manager.handle_message(message).await
         } else {
-            Err(CoordinationError::PermissionDenied("Consensus manager not available".to_string()).into())
+            Err(
+                CoordinationError::PermissionDenied("Consensus manager not available".to_string())
+                    .into(),
+            )
         }
     }
 
     /// Enable advanced features
-    pub async fn enable_advanced_features(&mut self, advanced_config: AdvancedCoordinationConfig) -> RhemaResult<()> {
+    pub async fn enable_advanced_features(
+        &mut self,
+        advanced_config: AdvancedCoordinationConfig,
+    ) -> RhemaResult<()> {
         self.advanced_config = Some(advanced_config.clone());
 
         // Initialize load balancer
         if advanced_config.enable_load_balancing {
-            self.load_balancer = Some(Arc::new(RwLock::new(LoadBalancer::new(advanced_config.load_balancing_strategy.clone()))));
+            self.load_balancer = Some(Arc::new(RwLock::new(LoadBalancer::new(
+                advanced_config.load_balancing_strategy.clone(),
+            ))));
         }
 
         // Initialize encryption
@@ -1934,7 +2051,9 @@ impl RealTimeCoordinationSystem {
 
         // Initialize performance monitor
         if advanced_config.enable_performance_monitoring {
-            self.performance_monitor = Some(Arc::new(PerformanceMonitor::new(advanced_config.performance_config.clone())));
+            self.performance_monitor = Some(Arc::new(PerformanceMonitor::new(
+                advanced_config.performance_config.clone(),
+            )));
         }
 
         Ok(())
@@ -2069,7 +2188,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_registration() {
         let system = RealTimeCoordinationSystem::new();
-        
+
         let agent_info = AgentInfo {
             id: "test-agent".to_string(),
             name: "Test Agent".to_string(),
@@ -2091,7 +2210,7 @@ mod tests {
         };
 
         assert!(system.register_agent(agent_info).await.is_ok());
-        
+
         let stats = system.get_stats();
         assert_eq!(stats.active_agents, 1);
     }
@@ -2099,7 +2218,7 @@ mod tests {
     #[tokio::test]
     async fn test_message_sending() {
         let system = RealTimeCoordinationSystem::new();
-        
+
         // Register agent
         let agent_info = AgentInfo {
             id: "test-agent".to_string(),
@@ -2139,7 +2258,7 @@ mod tests {
         };
 
         assert!(system.send_message(message).await.is_ok());
-        
+
         let stats = system.get_stats();
         assert_eq!(stats.total_messages, 2); // Including welcome message
     }
@@ -2147,7 +2266,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_creation() {
         let system = RealTimeCoordinationSystem::new();
-        
+
         // Register agents
         let agent1 = AgentInfo {
             id: "agent1".to_string(),
@@ -2193,13 +2312,16 @@ mod tests {
         system.register_agent(agent2).await.unwrap();
 
         // Create session
-        let session_id = system.create_session(
-            "Test Session".to_string(),
-            vec!["agent1".to_string(), "agent2".to_string()],
-        ).await.unwrap();
+        let session_id = system
+            .create_session(
+                "Test Session".to_string(),
+                vec!["agent1".to_string(), "agent2".to_string()],
+            )
+            .await
+            .unwrap();
 
         assert!(!session_id.is_empty());
-        
+
         let stats = system.get_stats();
         assert_eq!(stats.active_sessions, 1);
     }
@@ -2210,18 +2332,18 @@ mod tests {
         advanced_config.enable_load_balancing = true;
         advanced_config.enable_fault_tolerance = true;
         advanced_config.enable_performance_monitoring = true;
-        
+
         let config = CoordinationConfig::default();
         let system = RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
-        
+
         // Test load balancer
         let selected_agent = system.select_agent_for_task(None).await;
         assert!(selected_agent.is_none()); // No agents registered yet
-        
+
         // Test circuit breaker
         let can_execute = system.can_agent_execute("test-agent").await;
         assert!(can_execute); // Should create new circuit breaker
-        
+
         // Test performance monitoring
         let metrics = system.get_performance_metrics().await;
         assert!(metrics.is_some());
@@ -2232,10 +2354,10 @@ mod tests {
         let mut advanced_config = AdvancedCoordinationConfig::default();
         advanced_config.enable_load_balancing = true;
         advanced_config.load_balancing_strategy = LoadBalancingStrategy::RoundRobin;
-        
+
         let config = CoordinationConfig::default();
         let system = RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
-        
+
         // Register agents
         let agent1 = AgentInfo {
             id: "agent-1".to_string(),
@@ -2249,7 +2371,7 @@ mod tests {
             is_online: true,
             performance_metrics: AgentPerformanceMetrics::default(),
         };
-        
+
         let agent2 = AgentInfo {
             id: "agent-2".to_string(),
             name: "Agent 2".to_string(),
@@ -2262,16 +2384,18 @@ mod tests {
             is_online: true,
             performance_metrics: AgentPerformanceMetrics::default(),
         };
-        
+
         system.register_agent(agent1).await.unwrap();
         system.register_agent(agent2).await.unwrap();
-        
+
         // Test agent selection
         let selected_agent = system.select_agent_for_task(None).await;
         assert!(selected_agent.is_some());
-        
+
         // Test capability-based selection
-        let selected_agent = system.select_agent_for_task(Some(vec!["test".to_string()])).await;
+        let selected_agent = system
+            .select_agent_for_task(Some(vec!["test".to_string()]))
+            .await;
         assert!(selected_agent.is_some());
     }
 
@@ -2279,24 +2403,26 @@ mod tests {
     async fn test_circuit_breaker() {
         let mut advanced_config = AdvancedCoordinationConfig::default();
         advanced_config.enable_fault_tolerance = true;
-        advanced_config.fault_tolerance_config.circuit_breaker_threshold = 2;
-        
+        advanced_config
+            .fault_tolerance_config
+            .circuit_breaker_threshold = 2;
+
         let config = CoordinationConfig::default();
         let system = RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
-        
+
         let agent_id = "test-agent";
-        
+
         // Initially should be able to execute
         assert!(system.can_agent_execute(agent_id).await);
-        
+
         // Report first failure - should still allow execution
         system.report_agent_failure(agent_id).await;
         assert!(system.can_agent_execute(agent_id).await);
-        
+
         // Report second failure - should open circuit
         system.report_agent_failure(agent_id).await;
         assert!(!system.can_agent_execute(agent_id).await);
-        
+
         // Report success should close the circuit
         system.report_agent_success(agent_id).await;
         assert!(system.can_agent_execute(agent_id).await);
@@ -2306,10 +2432,10 @@ mod tests {
     async fn test_performance_monitoring() {
         let mut advanced_config = AdvancedCoordinationConfig::default();
         advanced_config.enable_performance_monitoring = true;
-        
+
         let config = CoordinationConfig::default();
         let system = RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
-        
+
         // Update metrics
         let metrics = PerformanceMetrics {
             total_messages_processed: 100,
@@ -2323,13 +2449,13 @@ mod tests {
             message_queue_size: 10,
             last_updated: Utc::now(),
         };
-        
+
         system.update_performance_metrics(metrics).await;
-        
+
         // Get metrics
         let retrieved_metrics = system.get_performance_metrics().await;
         assert!(retrieved_metrics.is_some());
-        
+
         let retrieved_metrics = retrieved_metrics.unwrap();
         assert_eq!(retrieved_metrics.total_messages_processed, 100);
         assert_eq!(retrieved_metrics.active_agents, 5);
@@ -2339,34 +2465,44 @@ mod tests {
     async fn test_advanced_session_management() {
         let mut advanced_config = AdvancedCoordinationConfig::default();
         advanced_config.enable_advanced_sessions = true;
-        
+
         let config = CoordinationConfig::default();
         let system = RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
-        
+
         // Test advanced session creation
-        let participants = vec!["agent1".to_string(), "agent2".to_string(), "agent3".to_string()];
+        let participants = vec![
+            "agent1".to_string(),
+            "agent2".to_string(),
+            "agent3".to_string(),
+        ];
         let consensus_config = Some(ConsensusConfig::default());
-        
-        let session_id = system.create_advanced_session(
-            "Test Advanced Session".to_string(),
-            participants.clone(),
-            consensus_config
-        ).await.unwrap();
-        
+
+        let session_id = system
+            .create_advanced_session(
+                "Test Advanced Session".to_string(),
+                participants.clone(),
+                consensus_config,
+            )
+            .await
+            .unwrap();
+
         assert!(!session_id.is_empty());
-        
+
         // Test joining advanced session
-        system.join_advanced_session(&session_id, "agent4").await.unwrap();
-        
+        system
+            .join_advanced_session(&session_id, "agent4")
+            .await
+            .unwrap();
+
         // Test getting advanced session
         let session = system.get_advanced_session(&session_id).await;
         assert!(session.is_some());
-        
+
         let session = session.unwrap();
         assert_eq!(session.topic, "Test Advanced Session");
         assert_eq!(session.participants.len(), 4); // 3 original + 1 joined
         assert!(session.participants.contains(&"agent4".to_string()));
-        
+
         // Test adding session rule
         let rule = SessionRule {
             id: "rule1".to_string(),
@@ -2378,9 +2514,9 @@ mod tests {
             priority: 1,
             active: true,
         };
-        
+
         system.add_session_rule(&session_id, rule).await.unwrap();
-        
+
         let updated_session = system.get_advanced_session(&session_id).await.unwrap();
         assert_eq!(updated_session.rules.len(), 1);
         assert_eq!(updated_session.rules[0].name, "Test Rule");
@@ -2390,24 +2526,24 @@ mod tests {
     async fn test_consensus_management() {
         let mut advanced_config = AdvancedCoordinationConfig::default();
         advanced_config.enable_advanced_sessions = true;
-        
+
         let config = CoordinationConfig::default();
         let system = RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
-        
+
         // Test consensus state
         let consensus_state = system.get_consensus_state().await;
         assert!(consensus_state.is_some());
-        
+
         let state = consensus_state.unwrap();
         assert_eq!(state.term, 0);
         assert_eq!(state.state, ConsensusNodeState::Follower);
-        
+
         // Test consensus message handling
         let message = ConsensusMessage::Heartbeat {
             term: 1,
             leader_id: "leader1".to_string(),
         };
-        
+
         let response = system.handle_consensus_message(message).await;
         assert!(response.is_ok());
     }
@@ -2419,10 +2555,10 @@ mod tests {
         advanced_config.enable_fault_tolerance = true;
         advanced_config.enable_advanced_sessions = true;
         advanced_config.enable_performance_monitoring = true;
-        
+
         let config = CoordinationConfig::default();
         let system = RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
-        
+
         // Register agents
         let agent1 = AgentInfo {
             id: "agent1".to_string(),
@@ -2436,7 +2572,7 @@ mod tests {
             is_online: true,
             performance_metrics: AgentPerformanceMetrics::default(),
         };
-        
+
         let agent2 = AgentInfo {
             id: "agent2".to_string(),
             name: "Agent 2".to_string(),
@@ -2449,17 +2585,19 @@ mod tests {
             is_online: true,
             performance_metrics: AgentPerformanceMetrics::default(),
         };
-        
+
         system.register_agent(agent1).await.unwrap();
         system.register_agent(agent2).await.unwrap();
-        
+
         // Test load balancing with task requirements
-        let selected_agent = system.select_agent_for_task(Some(vec!["task1".to_string()])).await;
+        let selected_agent = system
+            .select_agent_for_task(Some(vec!["task1".to_string()]))
+            .await;
         assert!(selected_agent.is_some());
         let selected = selected_agent.unwrap();
         // Both agents have task1 capability, so either could be selected
         assert!(selected == "agent1" || selected == "agent2");
-        
+
         // Test circuit breaker
         assert!(system.can_agent_execute("agent1").await);
         system.report_agent_failure("agent1").await;
@@ -2468,16 +2606,19 @@ mod tests {
         system.report_agent_failure("agent1").await;
         system.report_agent_failure("agent1").await;
         assert!(!system.can_agent_execute("agent1").await);
-        
+
         // Test advanced session with consensus
-        let session_id = system.create_advanced_session(
-            "Integration Test Session".to_string(),
-            vec!["agent1".to_string(), "agent2".to_string()],
-            Some(ConsensusConfig::default())
-        ).await.unwrap();
-        
+        let session_id = system
+            .create_advanced_session(
+                "Integration Test Session".to_string(),
+                vec!["agent1".to_string(), "agent2".to_string()],
+                Some(ConsensusConfig::default()),
+            )
+            .await
+            .unwrap();
+
         assert!(!session_id.is_empty());
-        
+
         // Test performance monitoring
         let metrics = PerformanceMetrics {
             total_messages_processed: 50,
@@ -2491,11 +2632,11 @@ mod tests {
             message_queue_size: 5,
             last_updated: Utc::now(),
         };
-        
+
         system.update_performance_metrics(metrics).await;
-        
+
         let retrieved_metrics = system.get_performance_metrics().await;
         assert!(retrieved_metrics.is_some());
         assert_eq!(retrieved_metrics.unwrap().active_agents, 2);
     }
-} 
+}

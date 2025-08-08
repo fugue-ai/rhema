@@ -1,12 +1,12 @@
+use git2::Repository;
+use rhema_cli::Rhema;
+use rhema_config::ConflictResolutionStrategy;
 use rhema_core::{RhemaResult, Scope};
 use rhema_query::query::CqlQuery;
-use rhema_config::ConflictResolutionStrategy;
-use rhema_cli::Rhema;
-use git2::Repository;
-use tempfile::TempDir;
-use std::path::PathBuf;
-use std::fs;
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use tempfile::TempDir;
 
 #[test]
 fn test_rhema_initialization() -> RhemaResult<()> {
@@ -293,7 +293,10 @@ conventions:
     assert_eq!(knowledge.entries.len(), 1);
     assert_eq!(knowledge.entries[0].id, "knowledge-001");
     assert_eq!(knowledge.entries[0].title, "Test knowledge");
-    assert_eq!(knowledge.categories.as_ref().unwrap().get("test"), Some(&"Test Category".to_string()));
+    assert_eq!(
+        knowledge.categories.as_ref().unwrap().get("test"),
+        Some(&"Test Category".to_string())
+    );
 
     // Test loading decisions
     let decisions = rhema.load_decisions("test-scope")?;
@@ -360,11 +363,17 @@ todos:
 
     // Test regex search
     let search_results = rhema.search_regex("Important", None)?;
-    assert!(!search_results.is_empty(), "Search should find 'Important' in todos");
+    assert!(
+        !search_results.is_empty(),
+        "Search should find 'Important' in todos"
+    );
 
     // Test search with file filter
     let filtered_results = rhema.search_regex("todo", Some("todos.yaml"))?;
-    assert!(!filtered_results.is_empty(), "Filtered search should find 'todo' in todos.yaml");
+    assert!(
+        !filtered_results.is_empty(),
+        "Filtered search should find 'todo' in todos.yaml"
+    );
 
     Ok(())
 }
@@ -408,18 +417,24 @@ todos:
 
     // Test query with stats
     let (result, stats) = rhema.query_with_stats("SELECT * FROM todos")?;
-    
+
     // Verify result is not empty
-    assert!(result.as_mapping().is_some() || result.as_sequence().is_some(), "Query should return data");
-    
+    assert!(
+        result.as_mapping().is_some() || result.as_sequence().is_some(),
+        "Query should return data"
+    );
+
     // Verify stats contain expected information
     assert!(!stats.is_empty(), "Stats should not be empty");
-    
+
     // Check for common stats fields
-    let has_execution_time = stats.contains_key("execution_time_ms") || 
-                           stats.contains_key("total_time_ms") ||
-                           stats.contains_key("duration_ms");
-    assert!(has_execution_time, "Stats should contain execution time information");
+    let has_execution_time = stats.contains_key("execution_time_ms")
+        || stats.contains_key("total_time_ms")
+        || stats.contains_key("duration_ms");
+    assert!(
+        has_execution_time,
+        "Stats should contain execution time information"
+    );
 
     Ok(())
 }
@@ -452,10 +467,13 @@ dependencies: null
 
     // Test current scope detection
     let current_scope_path = rhema.get_current_scope_path()?;
-    
+
     // The current scope should be the .rhema directory since we're in the repo root
     let expected_path = temp_path.join(".rhema");
-    assert_eq!(current_scope_path, expected_path, "Current scope should be the .rhema directory");
+    assert_eq!(
+        current_scope_path, expected_path,
+        "Current scope should be the .rhema directory"
+    );
 
     Ok(())
 }

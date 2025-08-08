@@ -1,8 +1,8 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore};
@@ -20,28 +20,28 @@ pub struct PackageManagerIntegration {
 pub trait PackageManager: Send + Sync {
     /// Get package manager name
     fn name(&self) -> &str;
-    
+
     /// Get package manager version
     fn version(&self) -> &str;
-    
+
     /// Check if package manager is available
     async fn is_available(&self) -> Result<bool>;
-    
+
     /// Get installed packages
     async fn get_installed_packages(&self) -> Result<Vec<PackageInfo>>;
-    
+
     /// Get package dependencies
     async fn get_package_dependencies(&self, package_name: &str) -> Result<Vec<PackageInfo>>;
-    
+
     /// Install package
     async fn install_package(&self, package_name: &str, version: Option<&str>) -> Result<()>;
-    
+
     /// Update package
     async fn update_package(&self, package_name: &str, version: Option<&str>) -> Result<()>;
-    
+
     /// Remove package
     async fn remove_package(&self, package_name: &str) -> Result<()>;
-    
+
     /// Check for updates
     async fn check_for_updates(&self) -> Result<Vec<PackageUpdate>>;
 }
@@ -144,44 +144,44 @@ impl PackageManager for CargoPackageManager {
     fn name(&self) -> &str {
         "cargo"
     }
-    
+
     fn version(&self) -> &str {
         "1.0"
     }
-    
+
     async fn is_available(&self) -> Result<bool> {
         // Check if cargo is available in PATH
         let output = tokio::process::Command::new("cargo")
             .arg("--version")
             .output()
             .await;
-        
+
         Ok(output.is_ok())
     }
-    
+
     async fn get_installed_packages(&self) -> Result<Vec<PackageInfo>> {
         // Parse Cargo.toml to get dependencies
         let manifest_content = tokio::fs::read_to_string(&self.config.manifest_path).await?;
         self.parse_cargo_toml(&manifest_content)
     }
-    
+
     async fn get_package_dependencies(&self, package_name: &str) -> Result<Vec<PackageInfo>> {
         // This would require querying crates.io or local registry
         Ok(Vec::new())
     }
-    
+
     async fn install_package(&self, package_name: &str, version: Option<&str>) -> Result<()> {
         let mut command = tokio::process::Command::new("cargo");
         command.arg("add");
         command.arg(package_name);
-        
+
         if let Some(ver) = version {
             command.arg("--version");
             command.arg(ver);
         }
-        
+
         let output = command.output().await?;
-        
+
         if !output.status.success() {
             return Err(Error::External(format!(
                 "Failed to install package {}: {}",
@@ -189,23 +189,23 @@ impl PackageManager for CargoPackageManager {
                 String::from_utf8_lossy(&output.stderr)
             )));
         }
-        
+
         Ok(())
     }
-    
+
     async fn update_package(&self, package_name: &str, version: Option<&str>) -> Result<()> {
         let mut command = tokio::process::Command::new("cargo");
         command.arg("update");
         command.arg("-p");
         command.arg(package_name);
-        
+
         if let Some(ver) = version {
             command.arg("--precise");
             command.arg(ver);
         }
-        
+
         let output = command.output().await?;
-        
+
         if !output.status.success() {
             return Err(Error::External(format!(
                 "Failed to update package {}: {}",
@@ -213,17 +213,17 @@ impl PackageManager for CargoPackageManager {
                 String::from_utf8_lossy(&output.stderr)
             )));
         }
-        
+
         Ok(())
     }
-    
+
     async fn remove_package(&self, package_name: &str) -> Result<()> {
         let output = tokio::process::Command::new("cargo")
             .arg("remove")
             .arg(package_name)
             .output()
             .await?;
-        
+
         if !output.status.success() {
             return Err(Error::External(format!(
                 "Failed to remove package {}: {}",
@@ -231,10 +231,10 @@ impl PackageManager for CargoPackageManager {
                 String::from_utf8_lossy(&output.stderr)
             )));
         }
-        
+
         Ok(())
     }
-    
+
     async fn check_for_updates(&self) -> Result<Vec<PackageUpdate>> {
         // This would require querying crates.io for available updates
         Ok(Vec::new())
@@ -246,12 +246,12 @@ impl CargoPackageManager {
     pub fn new() -> Self {
         Self::with_config(CargoConfig::default())
     }
-    
+
     /// Create a new Cargo package manager with configuration
     pub fn with_config(config: CargoConfig) -> Self {
         Self { config }
     }
-    
+
     /// Parse Cargo.toml file
     fn parse_cargo_toml(&self, content: &str) -> Result<Vec<PackageInfo>> {
         // Simplified implementation - in practice, you would use toml crate
@@ -294,42 +294,42 @@ impl PackageManager for NpmPackageManager {
     fn name(&self) -> &str {
         "npm"
     }
-    
+
     fn version(&self) -> &str {
         "1.0"
     }
-    
+
     async fn is_available(&self) -> Result<bool> {
         let output = tokio::process::Command::new("npm")
             .arg("--version")
             .output()
             .await;
-        
+
         Ok(output.is_ok())
     }
-    
+
     async fn get_installed_packages(&self) -> Result<Vec<PackageInfo>> {
         let manifest_content = tokio::fs::read_to_string(&self.config.manifest_path).await?;
         self.parse_package_json(&manifest_content)
     }
-    
+
     async fn get_package_dependencies(&self, package_name: &str) -> Result<Vec<PackageInfo>> {
         // Query npm registry for package dependencies
         Ok(Vec::new())
     }
-    
+
     async fn install_package(&self, package_name: &str, version: Option<&str>) -> Result<()> {
         let mut command = tokio::process::Command::new("npm");
         command.arg("install");
-        
+
         if let Some(ver) = version {
             command.arg(&format!("{}@{}", package_name, ver));
         } else {
             command.arg(package_name);
         }
-        
+
         let output = command.output().await?;
-        
+
         if !output.status.success() {
             return Err(Error::External(format!(
                 "Failed to install package {}: {}",
@@ -337,21 +337,21 @@ impl PackageManager for NpmPackageManager {
                 String::from_utf8_lossy(&output.stderr)
             )));
         }
-        
+
         Ok(())
     }
-    
+
     async fn update_package(&self, package_name: &str, version: Option<&str>) -> Result<()> {
         let mut command = tokio::process::Command::new("npm");
         command.arg("update");
         command.arg(package_name);
-        
+
         if let Some(ver) = version {
             command.arg(&format!("@{}", ver));
         }
-        
+
         let output = command.output().await?;
-        
+
         if !output.status.success() {
             return Err(Error::External(format!(
                 "Failed to update package {}: {}",
@@ -359,17 +359,17 @@ impl PackageManager for NpmPackageManager {
                 String::from_utf8_lossy(&output.stderr)
             )));
         }
-        
+
         Ok(())
     }
-    
+
     async fn remove_package(&self, package_name: &str) -> Result<()> {
         let output = tokio::process::Command::new("npm")
             .arg("uninstall")
             .arg(package_name)
             .output()
             .await?;
-        
+
         if !output.status.success() {
             return Err(Error::External(format!(
                 "Failed to remove package {}: {}",
@@ -377,17 +377,17 @@ impl PackageManager for NpmPackageManager {
                 String::from_utf8_lossy(&output.stderr)
             )));
         }
-        
+
         Ok(())
     }
-    
+
     async fn check_for_updates(&self) -> Result<Vec<PackageUpdate>> {
         let output = tokio::process::Command::new("npm")
             .arg("outdated")
             .arg("--json")
             .output()
             .await?;
-        
+
         if output.status.success() {
             let json_output = String::from_utf8_lossy(&output.stdout);
             self.parse_outdated_output(&json_output)
@@ -402,18 +402,18 @@ impl NpmPackageManager {
     pub fn new() -> Self {
         Self::with_config(NpmConfig::default())
     }
-    
+
     /// Create a new NPM package manager with configuration
     pub fn with_config(config: NpmConfig) -> Self {
         Self { config }
     }
-    
+
     /// Parse package.json file
     fn parse_package_json(&self, content: &str) -> Result<Vec<PackageInfo>> {
         // Simplified implementation - in practice, you would use serde_json
         Ok(Vec::new())
     }
-    
+
     /// Parse npm outdated output
     fn parse_outdated_output(&self, json_output: &str) -> Result<Vec<PackageUpdate>> {
         // Simplified implementation - in practice, you would parse the JSON
@@ -425,70 +425,92 @@ impl PackageManagerIntegration {
     /// Create a new package manager integration
     pub fn new() -> Self {
         let mut package_managers: HashMap<String, Box<dyn PackageManager>> = HashMap::new();
-        
+
         // Add Cargo package manager
         package_managers.insert("cargo".to_string(), Box::new(CargoPackageManager::new()));
-        
+
         // Add NPM package manager
         package_managers.insert("npm".to_string(), Box::new(NpmPackageManager::new()));
-        
+
         Self {
             package_managers,
             config: IntegrationConfig::default(),
         }
     }
-    
+
     /// Get available package managers
     pub async fn get_available_package_managers(&self) -> Result<Vec<String>> {
         let mut available = Vec::new();
-        
+
         for (name, manager) in &self.package_managers {
             if manager.is_available().await? {
                 available.push(name.clone());
             }
         }
-        
+
         Ok(available)
     }
-    
+
     /// Get package manager
     pub fn get_package_manager(&self, name: &str) -> Option<&Box<dyn PackageManager>> {
         self.package_managers.get(name)
     }
-    
+
     /// Install package using specified package manager
-    pub async fn install_package(&self, manager_name: &str, package_name: &str, version: Option<&str>) -> Result<()> {
+    pub async fn install_package(
+        &self,
+        manager_name: &str,
+        package_name: &str,
+        version: Option<&str>,
+    ) -> Result<()> {
         if let Some(manager) = self.package_managers.get(manager_name) {
             manager.install_package(package_name, version).await
         } else {
-            Err(Error::InvalidInput(format!("Package manager '{}' not found", manager_name)))
+            Err(Error::InvalidInput(format!(
+                "Package manager '{}' not found",
+                manager_name
+            )))
         }
     }
-    
+
     /// Update package using specified package manager
-    pub async fn update_package(&self, manager_name: &str, package_name: &str, version: Option<&str>) -> Result<()> {
+    pub async fn update_package(
+        &self,
+        manager_name: &str,
+        package_name: &str,
+        version: Option<&str>,
+    ) -> Result<()> {
         if let Some(manager) = self.package_managers.get(manager_name) {
             manager.update_package(package_name, version).await
         } else {
-            Err(Error::InvalidInput(format!("Package manager '{}' not found", manager_name)))
+            Err(Error::InvalidInput(format!(
+                "Package manager '{}' not found",
+                manager_name
+            )))
         }
     }
-    
+
     /// Remove package using specified package manager
     pub async fn remove_package(&self, manager_name: &str, package_name: &str) -> Result<()> {
         if let Some(manager) = self.package_managers.get(manager_name) {
             manager.remove_package(package_name).await
         } else {
-            Err(Error::InvalidInput(format!("Package manager '{}' not found", manager_name)))
+            Err(Error::InvalidInput(format!(
+                "Package manager '{}' not found",
+                manager_name
+            )))
         }
     }
-    
+
     /// Check for updates using specified package manager
     pub async fn check_for_updates(&self, manager_name: &str) -> Result<Vec<PackageUpdate>> {
         if let Some(manager) = self.package_managers.get(manager_name) {
             manager.check_for_updates().await
         } else {
-            Err(Error::InvalidInput(format!("Package manager '{}' not found", manager_name)))
+            Err(Error::InvalidInput(format!(
+                "Package manager '{}' not found",
+                manager_name
+            )))
         }
     }
 }
@@ -506,19 +528,19 @@ pub struct CiCdIntegration {
 pub trait CiCdProvider: Send + Sync {
     /// Get provider name
     fn name(&self) -> &str;
-    
+
     /// Check if provider is available
     async fn is_available(&self) -> Result<bool>;
-    
+
     /// Get current build information
     async fn get_build_info(&self) -> Result<BuildInfo>;
-    
+
     /// Trigger dependency check
     async fn trigger_dependency_check(&self) -> Result<String>;
-    
+
     /// Get dependency check results
     async fn get_dependency_check_results(&self, check_id: &str) -> Result<DependencyCheckResult>;
-    
+
     /// Update dependency in CI/CD
     async fn update_dependency(&self, dependency: &DependencyConfig) -> Result<()>;
 }
@@ -679,20 +701,23 @@ impl CiCdProvider for GitHubActionsProvider {
     fn name(&self) -> &str {
         "github-actions"
     }
-    
+
     async fn is_available(&self) -> Result<bool> {
         // Check if GitHub token is valid
         let client = reqwest::Client::new();
         let response = client
-            .get(&format!("{}/repos/{}/{}", self.config.api_base_url, self.config.owner, self.config.repo))
+            .get(&format!(
+                "{}/repos/{}/{}",
+                self.config.api_base_url, self.config.owner, self.config.repo
+            ))
             .header("Authorization", format!("token {}", self.config.token))
             .header("User-Agent", "rhema-dependency")
             .send()
             .await?;
-        
+
         Ok(response.status().is_success())
     }
-    
+
     async fn get_build_info(&self) -> Result<BuildInfo> {
         // Get latest workflow run
         let client = reqwest::Client::new();
@@ -705,7 +730,7 @@ impl CiCdProvider for GitHubActionsProvider {
             .header("User-Agent", "rhema-dependency")
             .send()
             .await?;
-        
+
         if response.status().is_success() {
             let runs: serde_json::Value = response.json().await?;
             // Parse the response to extract build info
@@ -722,10 +747,12 @@ impl CiCdProvider for GitHubActionsProvider {
                 finished_at: Some(Utc::now()),
             })
         } else {
-            Err(Error::External("Failed to get build info from GitHub".to_string()))
+            Err(Error::External(
+                "Failed to get build info from GitHub".to_string(),
+            ))
         }
     }
-    
+
     async fn trigger_dependency_check(&self) -> Result<String> {
         // Trigger a workflow run for dependency checking
         let client = reqwest::Client::new();
@@ -735,7 +762,7 @@ impl CiCdProvider for GitHubActionsProvider {
                 "dependency_check": "true"
             }
         });
-        
+
         let response = client
             .post(&format!(
                 "{}/repos/{}/{}/actions/workflows/dependency-check.yml/dispatches",
@@ -747,14 +774,16 @@ impl CiCdProvider for GitHubActionsProvider {
             .json(&payload)
             .send()
             .await?;
-        
+
         if response.status().is_success() {
             Ok("dependency-check-1".to_string())
         } else {
-            Err(Error::External("Failed to trigger dependency check".to_string()))
+            Err(Error::External(
+                "Failed to trigger dependency check".to_string(),
+            ))
         }
     }
-    
+
     async fn get_dependency_check_results(&self, check_id: &str) -> Result<DependencyCheckResult> {
         // Get workflow run results
         Ok(DependencyCheckResult {
@@ -767,7 +796,7 @@ impl CiCdProvider for GitHubActionsProvider {
             finished_at: Some(Utc::now()),
         })
     }
-    
+
     async fn update_dependency(&self, dependency: &DependencyConfig) -> Result<()> {
         // Create a pull request to update the dependency
         let client = reqwest::Client::new();
@@ -777,7 +806,7 @@ impl CiCdProvider for GitHubActionsProvider {
             "head": format!("update-{}", dependency.name),
             "base": "main"
         });
-        
+
         let response = client
             .post(&format!(
                 "{}/repos/{}/{}/pulls",
@@ -789,7 +818,7 @@ impl CiCdProvider for GitHubActionsProvider {
             .json(&payload)
             .send()
             .await?;
-        
+
         if response.status().is_success() {
             Ok(())
         } else {
@@ -802,54 +831,69 @@ impl CiCdIntegration {
     /// Create a new CI/CD integration
     pub fn new() -> Self {
         let mut providers: HashMap<String, Box<dyn CiCdProvider>> = HashMap::new();
-        
+
         // Add GitHub Actions provider
         if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-            if let (Ok(owner), Ok(repo)) = (std::env::var("GITHUB_OWNER"), std::env::var("GITHUB_REPO")) {
+            if let (Ok(owner), Ok(repo)) =
+                (std::env::var("GITHUB_OWNER"), std::env::var("GITHUB_REPO"))
+            {
                 let config = GitHubConfig {
                     owner,
                     repo,
                     token,
                     api_base_url: "https://api.github.com".to_string(),
                 };
-                providers.insert("github-actions".to_string(), Box::new(GitHubActionsProvider { config }));
+                providers.insert(
+                    "github-actions".to_string(),
+                    Box::new(GitHubActionsProvider { config }),
+                );
             }
         }
-        
+
         Self {
             providers,
             config: CiCdConfig::default(),
         }
     }
-    
+
     /// Get available CI/CD providers
     pub async fn get_available_providers(&self) -> Result<Vec<String>> {
         let mut available = Vec::new();
-        
+
         for (name, provider) in &self.providers {
             if provider.is_available().await? {
                 available.push(name.clone());
             }
         }
-        
+
         Ok(available)
     }
-    
+
     /// Trigger dependency check
     pub async fn trigger_dependency_check(&self, provider_name: &str) -> Result<String> {
         if let Some(provider) = self.providers.get(provider_name) {
             provider.trigger_dependency_check().await
         } else {
-            Err(Error::InvalidInput(format!("CI/CD provider '{}' not found", provider_name)))
+            Err(Error::InvalidInput(format!(
+                "CI/CD provider '{}' not found",
+                provider_name
+            )))
         }
     }
-    
+
     /// Get dependency check results
-    pub async fn get_dependency_check_results(&self, provider_name: &str, check_id: &str) -> Result<DependencyCheckResult> {
+    pub async fn get_dependency_check_results(
+        &self,
+        provider_name: &str,
+        check_id: &str,
+    ) -> Result<DependencyCheckResult> {
         if let Some(provider) = self.providers.get(provider_name) {
             provider.get_dependency_check_results(check_id).await
         } else {
-            Err(Error::InvalidInput(format!("CI/CD provider '{}' not found", provider_name)))
+            Err(Error::InvalidInput(format!(
+                "CI/CD provider '{}' not found",
+                provider_name
+            )))
         }
     }
 }
@@ -867,22 +911,22 @@ pub struct IdeIntegration {
 pub trait IdeProvider: Send + Sync {
     /// Get provider name
     fn name(&self) -> &str;
-    
+
     /// Check if provider is available
     async fn is_available(&self) -> Result<bool>;
-    
+
     /// Get current project information
     async fn get_project_info(&self) -> Result<ProjectInfo>;
-    
+
     /// Get open files
     async fn get_open_files(&self) -> Result<Vec<FileInfo>>;
-    
+
     /// Get file dependencies
     async fn get_file_dependencies(&self, file_path: &str) -> Result<Vec<DependencyConfig>>;
-    
+
     /// Show dependency information
     async fn show_dependency_info(&self, dependency: &DependencyConfig) -> Result<()>;
-    
+
     /// Navigate to dependency
     async fn navigate_to_dependency(&self, dependency: &DependencyConfig) -> Result<()>;
 }
@@ -953,16 +997,16 @@ impl IdeProvider for VSCodeProvider {
     fn name(&self) -> &str {
         "vscode"
     }
-    
+
     async fn is_available(&self) -> Result<bool> {
         let output = tokio::process::Command::new(&self.config.executable_path)
             .arg("--version")
             .output()
             .await;
-        
+
         Ok(output.is_ok())
     }
-    
+
     async fn get_project_info(&self) -> Result<ProjectInfo> {
         // Read workspace settings and project files
         Ok(ProjectInfo {
@@ -974,22 +1018,22 @@ impl IdeProvider for VSCodeProvider {
             dependencies: Vec::new(),
         })
     }
-    
+
     async fn get_open_files(&self) -> Result<Vec<FileInfo>> {
         // This would require VS Code extension API
         Ok(Vec::new())
     }
-    
+
     async fn get_file_dependencies(&self, file_path: &str) -> Result<Vec<DependencyConfig>> {
         // Parse file to extract dependencies
         Ok(Vec::new())
     }
-    
+
     async fn show_dependency_info(&self, dependency: &DependencyConfig) -> Result<()> {
         // Show dependency information in VS Code
         Ok(())
     }
-    
+
     async fn navigate_to_dependency(&self, dependency: &DependencyConfig) -> Result<()> {
         // Navigate to dependency in VS Code
         Ok(())
@@ -1000,35 +1044,42 @@ impl IdeIntegration {
     /// Create a new IDE integration
     pub fn new() -> Self {
         let mut providers: HashMap<String, Box<dyn IdeProvider>> = HashMap::new();
-        
+
         // Add VS Code provider
         providers.insert("vscode".to_string(), Box::new(VSCodeProvider::new()));
-        
+
         Self {
             providers,
             config: IdeConfig::default(),
         }
     }
-    
+
     /// Get available IDE providers
     pub async fn get_available_providers(&self) -> Result<Vec<String>> {
         let mut available = Vec::new();
-        
+
         for (name, provider) in &self.providers {
             if provider.is_available().await? {
                 available.push(name.clone());
             }
         }
-        
+
         Ok(available)
     }
-    
+
     /// Show dependency information in IDE
-    pub async fn show_dependency_info(&self, provider_name: &str, dependency: &DependencyConfig) -> Result<()> {
+    pub async fn show_dependency_info(
+        &self,
+        provider_name: &str,
+        dependency: &DependencyConfig,
+    ) -> Result<()> {
         if let Some(provider) = self.providers.get(provider_name) {
             provider.show_dependency_info(dependency).await
         } else {
-            Err(Error::InvalidInput(format!("IDE provider '{}' not found", provider_name)))
+            Err(Error::InvalidInput(format!(
+                "IDE provider '{}' not found",
+                provider_name
+            )))
         }
     }
 }
@@ -1122,7 +1173,7 @@ impl VSCodeProvider {
     pub fn new() -> Self {
         Self::with_config(VSCodeConfig::default())
     }
-    
+
     /// Create a new VS Code provider with configuration
     pub fn with_config(config: VSCodeConfig) -> Self {
         Self { config }
@@ -1154,4 +1205,4 @@ mod tests {
         let available = integration.get_available_providers().await.unwrap();
         assert!(!available.is_empty());
     }
-} 
+}

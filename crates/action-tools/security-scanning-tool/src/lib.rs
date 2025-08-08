@@ -25,7 +25,7 @@ pub struct SecurityScanningTool;
 impl SafetyTool for SecurityScanningTool {
     async fn check(&self, intent: &ActionIntent) -> ActionResult<ToolResult> {
         // TODO: Implement actual security scanning
-        
+
         Ok(ToolResult {
             success: true,
             changes: vec![],
@@ -35,16 +35,16 @@ impl SafetyTool for SecurityScanningTool {
             duration: std::time::Duration::from_secs(1),
         })
     }
-    
+
     fn name(&self) -> &str {
         "security_scanning"
     }
-    
+
     fn version(&self) -> &str {
         "1.0.0"
     }
-    
+
     async fn is_available(&self) -> bool {
         true
     }
-} 
+}

@@ -1,14 +1,14 @@
+use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 
-use crate::error::{Error, Result, ImpactAnalysisResult, ValidationResult};
-use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore, HealthMetrics};
-use crate::graph::DependencyGraph;
-use crate::impact::ImpactAnalysis;
-use crate::health::{HealthMonitor, HealthMonitorConfig, HealthStatusWithMetrics};
-use crate::validation::{ValidationEngine, ValidationConfig};
 use crate::config::Config;
+use crate::error::{Error, ImpactAnalysisResult, Result, ValidationResult};
+use crate::graph::DependencyGraph;
+use crate::health::{HealthMonitor, HealthMonitorConfig, HealthStatusWithMetrics};
+use crate::impact::ImpactAnalysis;
+use crate::types::{DependencyConfig, DependencyType, HealthMetrics, HealthStatus, ImpactScore};
+use crate::validation::{ValidationConfig, ValidationEngine};
 
 /// Main dependency manager that orchestrates all components
 pub struct DependencyManager {
@@ -38,7 +38,7 @@ impl DependencyManager {
     /// Create a new dependency manager with custom configuration
     pub async fn with_config(config: Config) -> Result<Self> {
         let graph = Arc::new(RwLock::new(DependencyGraph::new()));
-        
+
         let health_config = HealthMonitorConfig {
             default_check_interval: config.health_monitoring.health_check_interval,
             default_timeout: config.health_monitoring.health_check_timeout,
@@ -85,9 +85,14 @@ impl DependencyManager {
 
         // Validate the configuration
         let graph_guard = self.graph.read().await;
-        let validation_result = self.validation_engine.validate_dependency(&config, &*graph_guard)?;
+        let validation_result = self
+            .validation_engine
+            .validate_dependency(&config, &*graph_guard)?;
         if !validation_result.valid {
-            return Err(Error::Validation(format!("Dependency validation failed: {:?}", validation_result.errors)));
+            return Err(Error::Validation(format!(
+                "Dependency validation failed: {:?}",
+                validation_result.errors
+            )));
         }
 
         // Add to graph
@@ -98,7 +103,8 @@ impl DependencyManager {
 
         // Update health monitor if health check is configured
         if let Some(health_check) = &config.health_check {
-            self.health_monitor.add_health_check(id.clone(), health_check.clone());
+            self.health_monitor
+                .add_health_check(id.clone(), health_check.clone());
         }
 
         self.last_updated = Utc::now();
@@ -126,7 +132,11 @@ impl DependencyManager {
     /// List all dependencies
     pub async fn list_dependencies(&self) -> Result<Vec<DependencyConfig>> {
         let graph = self.graph.read().await;
-        Ok(graph.get_all_dependency_configs().into_iter().cloned().collect())
+        Ok(graph
+            .get_all_dependency_configs()
+            .into_iter()
+            .cloned()
+            .collect())
     }
 
     /// Add a dependency relationship
@@ -140,7 +150,13 @@ impl DependencyManager {
     ) -> Result<()> {
         {
             let mut graph = self.graph.write().await;
-            graph.add_edge(source_id, target_id, relationship_type, strength, operations)?;
+            graph.add_edge(
+                source_id,
+                target_id,
+                relationship_type,
+                strength,
+                operations,
+            )?;
         }
 
         self.last_updated = Utc::now();
@@ -165,7 +181,8 @@ impl DependencyManager {
     /// Analyze the impact of a dependency
     pub async fn analyze_impact(&self, dependency_id: &str) -> Result<ImpactAnalysisResult> {
         let graph = self.graph.read().await;
-        self.impact_analysis.analyze_dependency_impact(dependency_id, &graph)
+        self.impact_analysis
+            .analyze_dependency_impact(dependency_id, &graph)
     }
 
     /// Analyze the impact of a change
@@ -175,7 +192,11 @@ impl DependencyManager {
         affected_dependencies: &[String],
     ) -> Result<ImpactAnalysisResult> {
         let graph = self.graph.read().await;
-        self.impact_analysis.analyze_change_impact(change_description, affected_dependencies, &graph)
+        self.impact_analysis.analyze_change_impact(
+            change_description,
+            affected_dependencies,
+            &graph,
+        )
     }
 
     /// Get health status of a dependency
@@ -184,13 +205,20 @@ impl DependencyManager {
     }
 
     /// Get health status of all dependencies
-    pub async fn get_all_health_statuses(&self) -> std::collections::HashMap<String, HealthStatusWithMetrics> {
+    pub async fn get_all_health_statuses(
+        &self,
+    ) -> std::collections::HashMap<String, HealthStatusWithMetrics> {
         self.health_monitor.get_all_health_statuses().await
     }
 
     /// Perform a manual health check
-    pub async fn perform_health_check(&self, dependency_id: &str) -> Result<crate::health::HealthCheckResult> {
-        self.health_monitor.perform_manual_health_check(dependency_id).await
+    pub async fn perform_health_check(
+        &self,
+        dependency_id: &str,
+    ) -> Result<crate::health::HealthCheckResult> {
+        self.health_monitor
+            .perform_manual_health_check(dependency_id)
+            .await
     }
 
     /// Start health monitoring
@@ -229,19 +257,29 @@ impl DependencyManager {
     }
 
     /// Get dependencies by type
-    pub async fn get_dependencies_by_type(&self, dependency_type: DependencyType) -> Result<Vec<String>> {
+    pub async fn get_dependencies_by_type(
+        &self,
+        dependency_type: DependencyType,
+    ) -> Result<Vec<String>> {
         let graph = self.graph.read().await;
         graph.get_dependencies_by_type(dependency_type)
     }
 
     /// Get dependencies by health status
-    pub async fn get_dependencies_by_health(&self, health_status: HealthStatus) -> Result<Vec<String>> {
+    pub async fn get_dependencies_by_health(
+        &self,
+        health_status: HealthStatus,
+    ) -> Result<Vec<String>> {
         let graph = self.graph.read().await;
         graph.get_dependencies_by_health(health_status)
     }
 
     /// Update health status of a dependency
-    pub async fn update_health_status(&mut self, dependency_id: &str, health_status: HealthStatus) -> Result<()> {
+    pub async fn update_health_status(
+        &mut self,
+        dependency_id: &str,
+        health_status: HealthStatus,
+    ) -> Result<()> {
         {
             let mut graph = self.graph.write().await;
             graph.update_health_status(dependency_id, health_status)?;
@@ -252,7 +290,11 @@ impl DependencyManager {
     }
 
     /// Update health metrics of a dependency
-    pub async fn update_health_metrics(&mut self, dependency_id: &str, health_metrics: ImpactScore) -> Result<()> {
+    pub async fn update_health_metrics(
+        &mut self,
+        dependency_id: &str,
+        health_metrics: ImpactScore,
+    ) -> Result<()> {
         {
             let mut graph = self.graph.write().await;
             graph.update_health_metrics(dependency_id, health_metrics)?;
@@ -313,7 +355,9 @@ impl DependencyManager {
     }
 
     /// Get validation statistics
-    pub async fn get_validation_statistics(&self) -> Result<crate::validation::ValidationStatistics> {
+    pub async fn get_validation_statistics(
+        &self,
+    ) -> Result<crate::validation::ValidationStatistics> {
         Ok(self.validation_engine.get_statistics())
     }
 
@@ -326,11 +370,16 @@ impl DependencyManager {
     /// Import dependencies from configuration
     pub async fn import_from_config(&mut self, configs: Vec<DependencyConfig>) -> Result<()> {
         for config in configs {
-                    // Validate the configuration
-        let graph_guard = self.graph.read().await;
-        let validation_result = self.validation_engine.validate_dependency(&config, &*graph_guard)?;
+            // Validate the configuration
+            let graph_guard = self.graph.read().await;
+            let validation_result = self
+                .validation_engine
+                .validate_dependency(&config, &*graph_guard)?;
             if !validation_result.valid {
-                return Err(Error::Validation(format!("Dependency validation failed for {}: {:?}", config.id, validation_result.errors)));
+                return Err(Error::Validation(format!(
+                    "Dependency validation failed for {}: {:?}",
+                    config.id, validation_result.errors
+                )));
             }
 
             // Add to graph
@@ -341,7 +390,8 @@ impl DependencyManager {
 
             // Add health check if configured
             if let Some(health_check) = &config.health_check {
-                self.health_monitor.add_health_check(config.id.clone(), health_check.clone());
+                self.health_monitor
+                    .add_health_check(config.id.clone(), health_check.clone());
             }
         }
 
@@ -390,7 +440,8 @@ impl DependencyManager {
 
         // Check health statuses
         let health_statuses = self.health_monitor.get_all_health_statuses().await;
-        let critical_dependencies = health_statuses.values()
+        let critical_dependencies = health_statuses
+            .values()
             .filter(|status| status.status == HealthStatus::Down)
             .count();
 
@@ -417,7 +468,8 @@ impl DependencyManager {
             graph_statistics: graph_stats,
             health_statistics: health_stats,
             validation_statistics: validation_stats?,
-            critical_dependencies: health_statuses.values()
+            critical_dependencies: health_statuses
+                .values()
                 .filter(|status| status.status == HealthStatus::Down)
                 .map(|status| status.clone())
                 .collect(),
@@ -489,14 +541,16 @@ mod tests {
     #[tokio::test]
     async fn test_add_dependency() {
         let mut manager = DependencyManager::new().await.unwrap();
-        
-        let result = manager.add_dependency(
-            "test-1".to_string(),
-            "Test Dependency".to_string(),
-            DependencyType::ApiCall,
-            "http://test.example.com".to_string(),
-            vec!["GET".to_string()],
-        ).await;
+
+        let result = manager
+            .add_dependency(
+                "test-1".to_string(),
+                "Test Dependency".to_string(),
+                DependencyType::ApiCall,
+                "http://test.example.com".to_string(),
+                vec!["GET".to_string()],
+            )
+            .await;
 
         assert!(result.is_ok());
     }
@@ -504,14 +558,17 @@ mod tests {
     #[tokio::test]
     async fn test_list_dependencies() {
         let mut manager = DependencyManager::new().await.unwrap();
-        
-        manager.add_dependency(
-            "test-1".to_string(),
-            "Test Dependency".to_string(),
-            DependencyType::ApiCall,
-            "http://test.example.com".to_string(),
-            vec!["GET".to_string()],
-        ).await.unwrap();
+
+        manager
+            .add_dependency(
+                "test-1".to_string(),
+                "Test Dependency".to_string(),
+                DependencyType::ApiCall,
+                "http://test.example.com".to_string(),
+                vec!["GET".to_string()],
+            )
+            .await
+            .unwrap();
 
         let dependencies = manager.list_dependencies().await.unwrap();
         assert_eq!(dependencies.len(), 1);
@@ -521,14 +578,17 @@ mod tests {
     #[tokio::test]
     async fn test_get_dependency_config() {
         let mut manager = DependencyManager::new().await.unwrap();
-        
-        manager.add_dependency(
-            "test-1".to_string(),
-            "Test Dependency".to_string(),
-            DependencyType::ApiCall,
-            "http://test.example.com".to_string(),
-            vec!["GET".to_string()],
-        ).await.unwrap();
+
+        manager
+            .add_dependency(
+                "test-1".to_string(),
+                "Test Dependency".to_string(),
+                DependencyType::ApiCall,
+                "http://test.example.com".to_string(),
+                vec!["GET".to_string()],
+            )
+            .await
+            .unwrap();
 
         let config = manager.get_dependency_config("test-1").await.unwrap();
         assert_eq!(config.id, "test-1");
@@ -538,14 +598,17 @@ mod tests {
     #[tokio::test]
     async fn test_remove_dependency() {
         let mut manager = DependencyManager::new().await.unwrap();
-        
-        manager.add_dependency(
-            "test-1".to_string(),
-            "Test Dependency".to_string(),
-            DependencyType::ApiCall,
-            "http://test.example.com".to_string(),
-            vec!["GET".to_string()],
-        ).await.unwrap();
+
+        manager
+            .add_dependency(
+                "test-1".to_string(),
+                "Test Dependency".to_string(),
+                DependencyType::ApiCall,
+                "http://test.example.com".to_string(),
+                vec!["GET".to_string()],
+            )
+            .await
+            .unwrap();
 
         let result = manager.remove_dependency("test-1").await;
         assert!(result.is_ok());
@@ -557,30 +620,38 @@ mod tests {
     #[tokio::test]
     async fn test_add_dependency_relationship() {
         let mut manager = DependencyManager::new().await.unwrap();
-        
-        manager.add_dependency(
-            "test-1".to_string(),
-            "Test Dependency 1".to_string(),
-            DependencyType::ApiCall,
-            "http://test1.example.com".to_string(),
-            vec!["GET".to_string()],
-        ).await.unwrap();
 
-        manager.add_dependency(
-            "test-2".to_string(),
-            "Test Dependency 2".to_string(),
-            DependencyType::DataFlow,
-            "http://test2.example.com".to_string(),
-            vec!["POST".to_string()],
-        ).await.unwrap();
+        manager
+            .add_dependency(
+                "test-1".to_string(),
+                "Test Dependency 1".to_string(),
+                DependencyType::ApiCall,
+                "http://test1.example.com".to_string(),
+                vec!["GET".to_string()],
+            )
+            .await
+            .unwrap();
 
-        let result = manager.add_dependency_relationship(
-            "test-1",
-            "test-2",
-            "depends_on".to_string(),
-            0.8,
-            vec!["read".to_string()],
-        ).await;
+        manager
+            .add_dependency(
+                "test-2".to_string(),
+                "Test Dependency 2".to_string(),
+                DependencyType::DataFlow,
+                "http://test2.example.com".to_string(),
+                vec!["POST".to_string()],
+            )
+            .await
+            .unwrap();
+
+        let result = manager
+            .add_dependency_relationship(
+                "test-1",
+                "test-2",
+                "depends_on".to_string(),
+                0.8,
+                vec!["read".to_string()],
+            )
+            .await;
 
         assert!(result.is_ok());
     }
@@ -588,14 +659,17 @@ mod tests {
     #[tokio::test]
     async fn test_get_graph_statistics() {
         let mut manager = DependencyManager::new().await.unwrap();
-        
-        manager.add_dependency(
-            "test-1".to_string(),
-            "Test Dependency".to_string(),
-            DependencyType::ApiCall,
-            "http://test.example.com".to_string(),
-            vec!["GET".to_string()],
-        ).await.unwrap();
+
+        manager
+            .add_dependency(
+                "test-1".to_string(),
+                "Test Dependency".to_string(),
+                DependencyType::ApiCall,
+                "http://test.example.com".to_string(),
+                vec!["GET".to_string()],
+            )
+            .await
+            .unwrap();
 
         let stats = manager.get_graph_statistics().await;
         assert_eq!(stats.total_nodes, 1);
@@ -608,4 +682,4 @@ mod tests {
         let is_healthy = manager.is_healthy().await.unwrap();
         assert!(is_healthy); // Empty manager should be healthy
     }
-} 
+}

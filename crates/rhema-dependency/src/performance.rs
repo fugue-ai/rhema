@@ -1,11 +1,11 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tokio::task::JoinSet;
-use std::collections::VecDeque;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore};
@@ -83,9 +83,10 @@ impl DependencyCache {
         let cache_clone = cache.clone();
         let stats_clone = stats.clone();
         let config_clone = config.clone();
-        
+
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(config_clone.cleanup_interval));
+            let mut interval =
+                tokio::time::interval(Duration::from_secs(config_clone.cleanup_interval));
             loop {
                 interval.tick().await;
                 Self::cleanup_expired_entries(&cache_clone, &stats_clone).await;
@@ -111,16 +112,16 @@ impl DependencyCache {
             if Utc::now() < entry.expires_at {
                 // Cache hit
                 stats.hits += 1;
-                
+
                 // Deserialize the data first
                 let data: T = serde_json::from_value(entry.data.clone())?;
-                
+
                 // Then update access count and last accessed time
                 if let Some(entry_mut) = cache.get_mut(key) {
                     entry_mut.access_count += 1;
                     entry_mut.last_accessed = Utc::now();
                 }
-                
+
                 Ok(Some(data))
             } else {
                 // Expired entry
@@ -142,7 +143,7 @@ impl DependencyCache {
     {
         let ttl = ttl.unwrap_or(self.config.default_ttl);
         let expires_at = Utc::now() + chrono::Duration::seconds(ttl as i64);
-        
+
         let entry = CacheEntry {
             data: serde_json::to_value(value)?,
             created_at: Utc::now(),
@@ -194,7 +195,7 @@ impl DependencyCache {
     pub async fn get_statistics(&self) -> CacheStatistics {
         let stats = self.stats.read().await;
         let total_requests = stats.hits + stats.misses;
-        
+
         let mut stats_clone = stats.clone();
         if total_requests > 0 {
             stats_clone.hit_rate = (stats.hits as f64 / total_requests as f64) * 100.0;
@@ -215,7 +216,7 @@ impl DependencyCache {
         let initial_size = cache.len();
         cache.retain(|_, entry| entry.expires_at > now);
         let final_size = cache.len();
-        
+
         stats.evictions += (initial_size - final_size) as u64;
         stats.current_size = final_size;
     }
@@ -300,7 +301,8 @@ impl ParallelProcessor {
 
             let handle = processor(dependency);
             handles.push(tokio::spawn(async move {
-                tokio::time::timeout(std::time::Duration::from_secs(30), handle).await
+                tokio::time::timeout(std::time::Duration::from_secs(30), handle)
+                    .await
                     .map_err(|_| Error::Timeout("Task timeout".to_string()))?
                     .map_err(|e| Error::Internal(format!("Task error: {}", e)))
             }));
@@ -332,7 +334,10 @@ impl ParallelProcessor {
     pub async fn process_health_checks(
         &self,
         dependencies: Vec<String>,
-        health_checker: impl Fn(String) -> tokio::task::JoinHandle<Result<HealthStatus>> + Send + Sync + 'static,
+        health_checker: impl Fn(String) -> tokio::task::JoinHandle<Result<HealthStatus>>
+            + Send
+            + Sync
+            + 'static,
     ) -> Result<Vec<(String, HealthStatus)>> {
         let mut results = Vec::new();
         for dep in dependencies {
@@ -350,7 +355,10 @@ impl ParallelProcessor {
     pub async fn process_impact_analysis(
         &self,
         dependencies: Vec<String>,
-        impact_analyzer: impl Fn(String) -> tokio::task::JoinHandle<Result<ImpactScore>> + Send + Sync + 'static,
+        impact_analyzer: impl Fn(String) -> tokio::task::JoinHandle<Result<ImpactScore>>
+            + Send
+            + Sync
+            + 'static,
     ) -> Result<Vec<(String, ImpactScore)>> {
         let mut results = Vec::new();
         for dep in dependencies {
@@ -515,10 +523,13 @@ impl QueryOptimizer {
             }
 
             // Execute query with timeout
-            let result = tokio::time::timeout(std::time::Duration::from_secs(10), tokio::task::spawn_blocking(executor))
-                .await
-                .map_err(|_| Error::Timeout("Query timeout".to_string()))?
-                .map_err(|e| Error::Internal(format!("Query execution error: {}", e)))??;
+            let result = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                tokio::task::spawn_blocking(executor),
+            )
+            .await
+            .map_err(|_| Error::Timeout("Query timeout".to_string()))?
+            .map_err(|e| Error::Internal(format!("Query execution error: {}", e)))??;
 
             // Cache the result
             self.cache_result(&cache_key, &result).await?;
@@ -596,12 +607,15 @@ mod tests {
     #[tokio::test]
     async fn test_cache_operations() {
         let cache = DependencyCache::new();
-        
+
         // Test set and get
-        cache.set("test_key".to_string(), "test_value".to_string(), None).await.unwrap();
+        cache
+            .set("test_key".to_string(), "test_value".to_string(), None)
+            .await
+            .unwrap();
         let result: Option<String> = cache.get("test_key").await.unwrap();
         assert_eq!(result, Some("test_value".to_string()));
-        
+
         // Test cache miss
         let result: Option<String> = cache.get("nonexistent_key").await.unwrap();
         assert_eq!(result, None);
@@ -611,24 +625,26 @@ mod tests {
     async fn test_parallel_processor() {
         let processor = ParallelProcessor::new();
         let dependencies = vec!["dep1".to_string(), "dep2".to_string(), "dep3".to_string()];
-        
-        let results = processor.process_dependencies(dependencies, |dep| {
-            tokio::spawn(async move {
-                Ok::<String, Error>(format!("processed_{}", dep))
+
+        let results = processor
+            .process_dependencies(dependencies, |dep| {
+                tokio::spawn(async move { Ok::<String, Error>(format!("processed_{}", dep)) })
             })
-        }).await.unwrap();
-        
+            .await
+            .unwrap();
+
         assert_eq!(results.len(), 3);
     }
 
     #[tokio::test]
     async fn test_query_optimizer() {
         let optimizer = QueryOptimizer::new();
-        
-        let result: String = optimizer.optimize_query("test_query", || {
-            Ok("query_result".to_string())
-        }).await.unwrap();
-        
+
+        let result: String = optimizer
+            .optimize_query("test_query", || Ok("query_result".to_string()))
+            .await
+            .unwrap();
+
         assert_eq!(result, "query_result");
     }
-} 
+}

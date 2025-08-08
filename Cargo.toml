@@ -56,7 +56,12 @@ members = [
     "crates/action-tools/syntax-validation-tool",
     "crates/action-tools/type-checking-tool",
     "crates/action-tools/test-coverage-tool",
-    "crates/action-tools/security-scanning-tool"
+    "crates/action-tools/security-scanning-tool",
+    "crates/syneidesis/coordination",
+    "crates/syneidesis/grpc",
+    "crates/syneidesis/config",
+    "crates/syneidesis/core",
+    "crates/syneidesis/agent"
 ]
 
 [workspace.package]
@@ -68,6 +73,7 @@ repository = "https://github.com/fugue-ai/rhema"
 homepage = "https://github.com/fugue-ai/rhema"
 documentation = "https://docs.rs/rhema"
 readme = "README.md"
+description = "Rhema AI Agent Framework"
 keywords = ["git", "ai", "context", "yaml", "protocol", "agent", "cli"]
 categories = ["command-line-utilities", "development-tools", "configuration"]
 
@@ -103,7 +109,9 @@ async-trait = "0.1"
 tracing = "0.1"
 
 # Syneidesis Coordination Library
-syneidesis-coordination = { path = "../syneidesis/crates/coordination" }
+syneidesis-coordination = { path = "crates/syneidesis/coordination" }
+syneidesis-grpc = { path = "crates/syneidesis/grpc" }
+syneidesis-config = { path = "crates/syneidesis/config" }
 
 # gRPC and networking dependencies
 tokio-stream = "0.1"
@@ -164,6 +172,12 @@ snapbox = "0.5"
 trycmd = "0.15"
 env_logger = "0.10"
 rand = "0.8"
+
+# Additional dependencies for syneidesis
+parking_lot = "0.12"
+tokio-util = "0.7"
+tokio-tungstenite = "0.20"
+prost = "0.12"
 
 [dev-dependencies]
 tempfile = "3.8"

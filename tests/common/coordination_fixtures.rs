@@ -1,10 +1,10 @@
 //! Coordination test fixtures for testing coordination features
 
+use git2::Repository;
+use rhema_api::Rhema;
+use rhema_core::RhemaResult;
 use std::path::PathBuf;
 use tempfile::TempDir;
-use rhema_core::RhemaResult;
-use rhema_api::Rhema;
-use git2::Repository;
 
 /// Coordination test environment
 pub struct CoordinationTestEnv {
@@ -25,7 +25,7 @@ impl CoordinationAssertions {
         // Basic assertion that coordination infrastructure is available
         assert!(true, "Coordination infrastructure is available");
     }
-    
+
     /// Assert that agents can communicate
     pub fn assert_agent_communication() {
         // Basic assertion that agent communication is working
@@ -49,31 +49,31 @@ impl CoordinationFixtures {
     pub fn create_test_env() -> RhemaResult<CoordinationTestEnv> {
         let temp_dir = TempDir::new()?;
         let repo_path = temp_dir.path().to_path_buf();
-        
+
         // Initialize git repository
         let _repo = Repository::init(&repo_path)?;
-        
+
         // Create Rhema instance
         let rhema = Rhema::new_from_path(repo_path.clone())?;
-        
+
         Ok(CoordinationTestEnv {
             temp_dir,
             rhema,
             repo_path,
         })
     }
-    
+
     /// Create a test fixture with coordination features
     pub fn with_coordination_features() -> RhemaResult<(TempDir, Rhema)> {
         let temp_dir = TempDir::new()?;
         let repo_path = temp_dir.path().to_path_buf();
-        
+
         // Initialize git repository
         let _repo = Repository::init(&repo_path)?;
-        
+
         // Create Rhema instance
         let rhema = Rhema::new_from_path(repo_path)?;
-        
+
         Ok((temp_dir, rhema))
     }
-} 
+}

@@ -2,6 +2,7 @@
 pub mod automation;
 pub mod common;
 pub mod config;
+pub mod conflict_analysis_tests;
 pub mod daemon;
 pub mod git;
 pub mod integration;
@@ -13,4 +14,3 @@ pub mod shell;
 pub mod tla;
 pub mod unit;
 pub mod validation;
-pub mod conflict_analysis_tests; 

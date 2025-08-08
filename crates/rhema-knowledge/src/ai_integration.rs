@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+use anyhow::Result;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-use anyhow::Result;
 
-use crate::types::{
-    KnowledgeError, KnowledgeResult, SearchResultMetadata, CacheEntryMetadata,
-    ContentType, VectorStoreConfig, VectorStoreType, DistanceMetric
-};
+use crate::embedding::EmbeddingManager;
 use crate::engine::UnifiedKnowledgeEngine;
 use crate::search::SemanticSearchEngine;
-use crate::embedding::EmbeddingManager;
-use crate::vector::{VectorStore, VectorStoreWrapper, VectorSearchResult, VectorRecord};
+use crate::types::{
+    CacheEntryMetadata, ContentType, DistanceMetric, KnowledgeError, KnowledgeResult,
+    SearchResultMetadata, VectorStoreConfig, VectorStoreType,
+};
+use crate::vector::{VectorRecord, VectorSearchResult, VectorStore, VectorStoreWrapper};
 
 /// AI service integration configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -232,9 +232,12 @@ impl AIIntegration {
     }
 
     /// Process an AI-enhanced knowledge request
-    pub async fn process_request(&self, request: AIKnowledgeRequest) -> KnowledgeResult<AIKnowledgeResponse> {
+    pub async fn process_request(
+        &self,
+        request: AIKnowledgeRequest,
+    ) -> KnowledgeResult<AIKnowledgeResponse> {
         let start_time = std::time::Instant::now();
-        
+
         // Update metrics
         {
             let mut metrics = self.metrics.write().await;
@@ -242,22 +245,30 @@ impl AIIntegration {
         }
 
         // Generate embedding for the query
-        let query_embedding = self.embedding_manager.generate_embedding(&request.query).await?;
+        let query_embedding = self
+            .embedding_manager
+            .generate_embedding(&request.query)
+            .await?;
 
         // Perform semantic search
-        let search_results = self.search_engine.search_semantic(
-            &request.query,
-            // &query_embedding,
-            request.max_results,
-            // request.similarity_threshold,
-        ).await?;
+        let search_results = self
+            .search_engine
+            .search_semantic(
+                &request.query,
+                // &query_embedding,
+                request.max_results,
+                // request.similarity_threshold,
+            )
+            .await?;
 
         // Apply AI enhancements if enabled
         let enhanced_results = if self.config.enable_knowledge_enhancement {
-            self.apply_ai_enhancements(&request, &search_results).await?
+            self.apply_ai_enhancements(&request, &search_results)
+                .await?
         } else {
-            search_results.into_iter().map(|result| {
-                AIKnowledgeResult {
+            search_results
+                .into_iter()
+                .map(|result| AIKnowledgeResult {
                     id: result.cache_key,
                     content: result.content,
                     relevance_score: result.relevance_score,
@@ -267,20 +278,22 @@ impl AIIntegration {
                     ai_insights: vec![],
                     related_concepts: vec![],
                     confidence_level: 0.8,
-                }
-            }).collect()
+                })
+                .collect()
         };
 
         // Generate synthesized content if requested
-        let synthesized_content = if request.enable_synthesis && self.config.enable_knowledge_enhancement {
-            self.generate_synthesized_content(&enhanced_results).await?
-        } else {
-            None
-        };
+        let synthesized_content =
+            if request.enable_synthesis && self.config.enable_knowledge_enhancement {
+                self.generate_synthesized_content(&enhanced_results).await?
+            } else {
+                None
+            };
 
         // Generate AI suggestions
         let suggestions = if self.config.enable_knowledge_enhancement {
-            self.generate_ai_suggestions(&request, &enhanced_results).await?
+            self.generate_ai_suggestions(&request, &enhanced_results)
+                .await?
         } else {
             vec![]
         };
@@ -294,7 +307,7 @@ impl AIIntegration {
         {
             let mut metrics = self.metrics.write().await;
             metrics.successful_requests += 1;
-            metrics.average_response_time_ms = 
+            metrics.average_response_time_ms =
                 (metrics.average_response_time_ms + processing_time) / 2;
             metrics.ai_enhancement_count += enhanced_results.len() as u64;
             if synthesized_content.is_some() {
@@ -326,13 +339,13 @@ impl AIIntegration {
 
         for result in search_results {
             // Generate AI insights
-            let ai_insights = self.generate_ai_insights(&result.content, &request.query).await?;
+            let ai_insights = self
+                .generate_ai_insights(&result.content, &request.query)
+                .await?;
 
             // Calculate AI-enhanced score
-            let ai_enhanced_score = self.calculate_ai_enhanced_score(
-                result.relevance_score,
-                &ai_insights,
-            );
+            let ai_enhanced_score =
+                self.calculate_ai_enhanced_score(result.relevance_score, &ai_insights);
 
             // Generate related concepts
             let related_concepts = self.extract_related_concepts(&result.content).await?;
@@ -364,7 +377,7 @@ impl AIIntegration {
     ) -> KnowledgeResult<Vec<AIInsight>> {
         // This would typically call an AI service API
         // For now, we'll generate basic insights based on content analysis
-        
+
         let mut insights = Vec::new();
 
         // Content quality insight
@@ -416,11 +429,7 @@ impl AIIntegration {
     }
 
     /// Calculate AI-enhanced score
-    fn calculate_ai_enhanced_score(
-        &self,
-        base_score: f32,
-        insights: &[AIInsight],
-    ) -> f32 {
+    fn calculate_ai_enhanced_score(&self, base_score: f32, insights: &[AIInsight]) -> f32 {
         let mut enhanced_score = base_score;
 
         for insight in insights {
@@ -445,9 +454,9 @@ impl AIIntegration {
     async fn extract_related_concepts(&self, content: &str) -> KnowledgeResult<Vec<String>> {
         // This would typically use NLP or AI to extract concepts
         // For now, we'll extract basic concepts based on common patterns
-        
+
         let mut concepts = Vec::new();
-        
+
         // Extract technical terms (words with capital letters)
         let words: Vec<&str> = content.split_whitespace().collect();
         for word in words {
@@ -487,9 +496,7 @@ impl AIIntegration {
         let avg_confidence = total_confidence / insights.len() as f32;
 
         // Boost confidence if we have multiple high-quality insights
-        let high_quality_insights = insights.iter()
-            .filter(|i| i.confidence > 0.8)
-            .count();
+        let high_quality_insights = insights.iter().filter(|i| i.confidence > 0.8).count();
 
         let boost = if high_quality_insights >= 2 { 0.1 } else { 0.0 };
 
@@ -521,13 +528,16 @@ impl AIIntegration {
 
         for (i, result) in top_results.iter().enumerate() {
             synthesized.push_str(&format!("## Source {}\n\n", i + 1));
-            synthesized.push_str(&format!("**Relevance Score:** {:.2}\n\n", result.ai_enhanced_score));
+            synthesized.push_str(&format!(
+                "**Relevance Score:** {:.2}\n\n",
+                result.ai_enhanced_score
+            ));
             synthesized.push_str(&result.content);
             synthesized.push_str("\n\n---\n\n");
         }
 
         synthesized.push_str("## Key Insights\n\n");
-        
+
         // Extract common themes
         let all_concepts: Vec<String> = top_results
             .iter()
@@ -547,7 +557,10 @@ impl AIIntegration {
             .collect();
 
         for concept in common_concepts {
-            synthesized.push_str(&format!("- **{}**: Appears across multiple sources\n", concept));
+            synthesized.push_str(&format!(
+                "- **{}**: Appears across multiple sources\n",
+                concept
+            ));
         }
 
         Ok(Some(synthesized))
@@ -562,8 +575,9 @@ impl AIIntegration {
         let mut suggestions = Vec::new();
 
         // Analyze result quality and suggest improvements
-        let avg_score = results.iter().map(|r| r.ai_enhanced_score).sum::<f32>() / results.len() as f32;
-        
+        let avg_score =
+            results.iter().map(|r| r.ai_enhanced_score).sum::<f32>() / results.len() as f32;
+
         if avg_score < 0.6 {
             suggestions.push(KnowledgeSuggestion {
                 suggestion_id: uuid::Uuid::new_v4().to_string(),
@@ -600,9 +614,7 @@ impl AIIntegration {
         }
 
         // Suggest context enhancement if results are generic
-        let specific_results = results.iter()
-            .filter(|r| r.content.len() > 200)
-            .count();
+        let specific_results = results.iter().filter(|r| r.content.len() > 200).count();
 
         if specific_results < results.len() / 2 {
             suggestions.push(KnowledgeSuggestion {
@@ -668,7 +680,7 @@ impl AIIntegration {
     fn assess_relevance(&self, content: &str, query: &str) -> f32 {
         let query_terms: Vec<&str> = query.split_whitespace().collect();
         let content_lower = content.to_lowercase();
-        
+
         let mut matches = 0;
         for term in &query_terms {
             if content_lower.contains(&term.to_lowercase()) {
@@ -698,7 +710,11 @@ impl AIIntegration {
         }
 
         // Check for structured content
-        if content.contains("1.") || content.contains("2.") || content.contains("first") || content.contains("second") {
+        if content.contains("1.")
+            || content.contains("2.")
+            || content.contains("first")
+            || content.contains("second")
+        {
             score += 0.15;
         }
 
@@ -709,8 +725,9 @@ impl AIIntegration {
     fn count_query_terms(&self, content: &str, query: &str) -> usize {
         let query_terms: Vec<&str> = query.split_whitespace().collect();
         let content_lower = content.to_lowercase();
-        
-        query_terms.iter()
+
+        query_terms
+            .iter()
             .filter(|term| content_lower.contains(&term.to_lowercase()))
             .count()
     }
@@ -748,12 +765,15 @@ impl AIIntegration {
 
             loop {
                 interval_timer.tick().await;
-                
+
                 // Update monitoring metrics
                 let mut current_metrics = metrics.write().await;
                 current_metrics.last_updated = Utc::now();
-                
-                tracing::debug!("AI integration monitoring tick - total requests: {}", current_metrics.total_requests);
+
+                tracing::debug!(
+                    "AI integration monitoring tick - total requests: {}",
+                    current_metrics.total_requests
+                );
             }
         });
 
@@ -787,7 +807,7 @@ mod tests {
     #[tokio::test]
     async fn test_ai_integration_creation() {
         let config = AIIntegrationConfig::default();
-        
+
         // Create mock components
         let vector_config = VectorStoreConfig {
             store_type: VectorStoreType::Local,
@@ -821,4 +841,4 @@ mod tests {
         assert_eq!(config.max_context_length, 4000);
         assert_eq!(config.context_injection_threshold, 0.7);
     }
-} 
+}

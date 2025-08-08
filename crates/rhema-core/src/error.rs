@@ -268,12 +268,9 @@ impl From<std::path::StripPrefixError> for RhemaError {
 
 impl From<walkdir::Error> for RhemaError {
     fn from(err: walkdir::Error) -> Self {
-        RhemaError::IoError(err.into_io_error().unwrap_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::Other, "Walkdir error")
-        }))
+        RhemaError::IoError(
+            err.into_io_error()
+                .unwrap_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Walkdir error")),
+        )
     }
 }
-
-
-
-

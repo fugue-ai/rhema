@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-use tracing::info;
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
-use crate::query::{CqlQuery, Condition, Operator, QueryResult, ConditionValue};
+use crate::query::{Condition, ConditionValue, CqlQuery, Operator, QueryResult};
 use rhema_core::RhemaResult;
 
 /// LOCOMO-specific CQL query extensions
@@ -152,12 +152,16 @@ impl LocomoQueryExtensions {
     }
 
     /// Execute LOCOMO performance analysis query
-    pub async fn analyze_performance(&self, scope: &str, time_range: &str) -> RhemaResult<LocomoQueryResult> {
+    pub async fn analyze_performance(
+        &self,
+        scope: &str,
+        time_range: &str,
+    ) -> RhemaResult<LocomoQueryResult> {
         info!("Executing LOCOMO performance analysis for scope: {}", scope);
-        
+
         // Build performance query
         let _query = self.build_performance_query(scope, time_range).await?;
-        
+
         // For now, return a default result since we can't execute queries without QueryExecutor
         Ok(LocomoQueryResult {
             query_type: LocomoQueryType::PerformanceAnalysis,
@@ -171,12 +175,16 @@ impl LocomoQueryExtensions {
     }
 
     /// Execute LOCOMO quality assessment query
-    pub async fn assess_quality(&self, scope: &str, time_range: &str) -> RhemaResult<LocomoQueryResult> {
+    pub async fn assess_quality(
+        &self,
+        scope: &str,
+        time_range: &str,
+    ) -> RhemaResult<LocomoQueryResult> {
         info!("Executing LOCOMO quality assessment for scope: {}", scope);
-        
+
         // Build quality query
         let _query = self.build_quality_query(scope, time_range).await?;
-        
+
         // For now, return a default result
         Ok(LocomoQueryResult {
             query_type: LocomoQueryType::QualityAssessment,
@@ -190,12 +198,19 @@ impl LocomoQueryExtensions {
     }
 
     /// Execute LOCOMO optimization tracking query
-    pub async fn track_optimization(&self, scope: &str, time_range: &str) -> RhemaResult<LocomoQueryResult> {
-        info!("Executing LOCOMO optimization tracking for scope: {}", scope);
-        
+    pub async fn track_optimization(
+        &self,
+        scope: &str,
+        time_range: &str,
+    ) -> RhemaResult<LocomoQueryResult> {
+        info!(
+            "Executing LOCOMO optimization tracking for scope: {}",
+            scope
+        );
+
         // Build optimization query
         let _query = self.build_optimization_query(scope, time_range).await?;
-        
+
         // For now, return a default result
         Ok(LocomoQueryResult {
             query_type: LocomoQueryType::OptimizationTracking,
@@ -209,12 +224,16 @@ impl LocomoQueryExtensions {
     }
 
     /// Execute LOCOMO trend analysis query
-    pub async fn analyze_trends(&self, scope: &str, time_range: &str) -> RhemaResult<LocomoQueryResult> {
+    pub async fn analyze_trends(
+        &self,
+        scope: &str,
+        time_range: &str,
+    ) -> RhemaResult<LocomoQueryResult> {
         info!("Executing LOCOMO trend analysis for scope: {}", scope);
-        
+
         // Build trend query
         let _query = self.build_trend_query(scope, time_range).await?;
-        
+
         // For now, return a default result
         Ok(LocomoQueryResult {
             query_type: LocomoQueryType::TrendAnalysis,
@@ -228,12 +247,19 @@ impl LocomoQueryExtensions {
     }
 
     /// Execute LOCOMO benchmark comparison query
-    pub async fn compare_benchmarks(&self, scope: &str, baseline_time: &str, current_time: &str) -> RhemaResult<LocomoQueryResult> {
+    pub async fn compare_benchmarks(
+        &self,
+        scope: &str,
+        baseline_time: &str,
+        current_time: &str,
+    ) -> RhemaResult<LocomoQueryResult> {
         info!("Executing LOCOMO benchmark comparison for scope: {}", scope);
-        
+
         // Build benchmark comparison query
-        let _query = self.build_benchmark_comparison_query(scope, baseline_time, current_time).await?;
-        
+        let _query = self
+            .build_benchmark_comparison_query(scope, baseline_time, current_time)
+            .await?;
+
         // For now, return a default result
         Ok(LocomoQueryResult {
             query_type: LocomoQueryType::BenchmarkComparison,
@@ -246,14 +272,29 @@ impl LocomoQueryExtensions {
         })
     }
 
-    async fn build_performance_query(&self, scope: &str, time_range: &str) -> RhemaResult<CqlQuery> {
+    async fn build_performance_query(
+        &self,
+        scope: &str,
+        time_range: &str,
+    ) -> RhemaResult<CqlQuery> {
         Ok(CqlQuery {
-            query: format!("SELECT * FROM performance WHERE scope.name = '{}' AND timestamp >= '{}'", scope, time_range),
+            query: format!(
+                "SELECT * FROM performance WHERE scope.name = '{}' AND timestamp >= '{}'",
+                scope, time_range
+            ),
             target: "performance".to_string(),
             yaml_path: None,
             conditions: vec![
-                Condition::new("scope.name", Operator::Equals, ConditionValue::String(scope.to_string())),
-                Condition::new("timestamp", Operator::GreaterThanOrEqual, ConditionValue::String(time_range.to_string())),
+                Condition::new(
+                    "scope.name",
+                    Operator::Equals,
+                    ConditionValue::String(scope.to_string()),
+                ),
+                Condition::new(
+                    "timestamp",
+                    Operator::GreaterThanOrEqual,
+                    ConditionValue::String(time_range.to_string()),
+                ),
             ],
             scope_context: Some(scope.to_string()),
             order_by: None,
@@ -264,12 +305,23 @@ impl LocomoQueryExtensions {
 
     async fn build_quality_query(&self, scope: &str, time_range: &str) -> RhemaResult<CqlQuery> {
         Ok(CqlQuery {
-            query: format!("SELECT * FROM quality WHERE scope.name = '{}' AND timestamp >= '{}'", scope, time_range),
+            query: format!(
+                "SELECT * FROM quality WHERE scope.name = '{}' AND timestamp >= '{}'",
+                scope, time_range
+            ),
             target: "quality".to_string(),
             yaml_path: None,
             conditions: vec![
-                Condition::new("scope.name", Operator::Equals, ConditionValue::String(scope.to_string())),
-                Condition::new("timestamp", Operator::GreaterThanOrEqual, ConditionValue::String(time_range.to_string())),
+                Condition::new(
+                    "scope.name",
+                    Operator::Equals,
+                    ConditionValue::String(scope.to_string()),
+                ),
+                Condition::new(
+                    "timestamp",
+                    Operator::GreaterThanOrEqual,
+                    ConditionValue::String(time_range.to_string()),
+                ),
             ],
             scope_context: Some(scope.to_string()),
             order_by: None,
@@ -278,14 +330,29 @@ impl LocomoQueryExtensions {
         })
     }
 
-    async fn build_optimization_query(&self, scope: &str, time_range: &str) -> RhemaResult<CqlQuery> {
+    async fn build_optimization_query(
+        &self,
+        scope: &str,
+        time_range: &str,
+    ) -> RhemaResult<CqlQuery> {
         Ok(CqlQuery {
-            query: format!("SELECT * FROM optimization WHERE scope.name = '{}' AND timestamp >= '{}'", scope, time_range),
+            query: format!(
+                "SELECT * FROM optimization WHERE scope.name = '{}' AND timestamp >= '{}'",
+                scope, time_range
+            ),
             target: "optimization".to_string(),
             yaml_path: None,
             conditions: vec![
-                Condition::new("scope.name", Operator::Equals, ConditionValue::String(scope.to_string())),
-                Condition::new("timestamp", Operator::GreaterThanOrEqual, ConditionValue::String(time_range.to_string())),
+                Condition::new(
+                    "scope.name",
+                    Operator::Equals,
+                    ConditionValue::String(scope.to_string()),
+                ),
+                Condition::new(
+                    "timestamp",
+                    Operator::GreaterThanOrEqual,
+                    ConditionValue::String(time_range.to_string()),
+                ),
             ],
             scope_context: Some(scope.to_string()),
             order_by: None,
@@ -296,12 +363,23 @@ impl LocomoQueryExtensions {
 
     async fn build_trend_query(&self, scope: &str, time_range: &str) -> RhemaResult<CqlQuery> {
         Ok(CqlQuery {
-            query: format!("SELECT * FROM trends WHERE scope.name = '{}' AND timestamp >= '{}'", scope, time_range),
+            query: format!(
+                "SELECT * FROM trends WHERE scope.name = '{}' AND timestamp >= '{}'",
+                scope, time_range
+            ),
             target: "trends".to_string(),
             yaml_path: None,
             conditions: vec![
-                Condition::new("scope.name", Operator::Equals, ConditionValue::String(scope.to_string())),
-                Condition::new("timestamp", Operator::GreaterThanOrEqual, ConditionValue::String(time_range.to_string())),
+                Condition::new(
+                    "scope.name",
+                    Operator::Equals,
+                    ConditionValue::String(scope.to_string()),
+                ),
+                Condition::new(
+                    "timestamp",
+                    Operator::GreaterThanOrEqual,
+                    ConditionValue::String(time_range.to_string()),
+                ),
             ],
             scope_context: Some(scope.to_string()),
             order_by: None,
@@ -310,7 +388,12 @@ impl LocomoQueryExtensions {
         })
     }
 
-    async fn build_benchmark_comparison_query(&self, scope: &str, baseline_time: &str, current_time: &str) -> RhemaResult<CqlQuery> {
+    async fn build_benchmark_comparison_query(
+        &self,
+        scope: &str,
+        baseline_time: &str,
+        current_time: &str,
+    ) -> RhemaResult<CqlQuery> {
         Ok(CqlQuery {
             query: format!("SELECT * FROM benchmarks WHERE scope.name = '{}' AND timestamp BETWEEN '{}' AND '{}'", scope, baseline_time, current_time),
             target: "benchmarks".to_string(),
@@ -325,7 +408,10 @@ impl LocomoQueryExtensions {
         })
     }
 
-    async fn extract_performance_data(&self, _result: &QueryResult) -> RhemaResult<PerformanceData> {
+    async fn extract_performance_data(
+        &self,
+        _result: &QueryResult,
+    ) -> RhemaResult<PerformanceData> {
         // Extract performance data from query result
         // For now, return default data
         Ok(PerformanceData::default())
@@ -337,7 +423,10 @@ impl LocomoQueryExtensions {
         Ok(QualityData::default())
     }
 
-    async fn extract_optimization_data(&self, _result: &QueryResult) -> RhemaResult<OptimizationData> {
+    async fn extract_optimization_data(
+        &self,
+        _result: &QueryResult,
+    ) -> RhemaResult<OptimizationData> {
         // Extract optimization data from query result
         // For now, return default data
         Ok(OptimizationData::default())
@@ -361,31 +450,50 @@ impl LocomoQueryExtensions {
         None
     }
 
-    async fn generate_performance_recommendations(&self, _data: &PerformanceData) -> RhemaResult<Vec<String>> {
+    async fn generate_performance_recommendations(
+        &self,
+        _data: &PerformanceData,
+    ) -> RhemaResult<Vec<String>> {
         // Generate performance recommendations
         // For now, return empty recommendations
         Ok(vec![])
     }
 
-    async fn generate_quality_recommendations(&self, _data: &QualityData) -> RhemaResult<Vec<String>> {
+    async fn generate_quality_recommendations(
+        &self,
+        _data: &QualityData,
+    ) -> RhemaResult<Vec<String>> {
         // Generate quality recommendations
         // For now, return empty recommendations
         Ok(vec![])
     }
 
-    async fn generate_optimization_recommendations(&self, _data: &OptimizationData) -> RhemaResult<Vec<String>> {
+    async fn generate_optimization_recommendations(
+        &self,
+        _data: &OptimizationData,
+    ) -> RhemaResult<Vec<String>> {
         // Generate optimization recommendations
         // For now, return empty recommendations
         Ok(vec![])
     }
 
-    async fn generate_trend_recommendations(&self, _performance: &PerformanceData, _quality: &QualityData, _optimization: &OptimizationData) -> RhemaResult<Vec<String>> {
+    async fn generate_trend_recommendations(
+        &self,
+        _performance: &PerformanceData,
+        _quality: &QualityData,
+        _optimization: &OptimizationData,
+    ) -> RhemaResult<Vec<String>> {
         // Generate trend recommendations
         // For now, return empty recommendations
         Ok(vec![])
     }
 
-    async fn generate_benchmark_recommendations(&self, _performance: &PerformanceData, _quality: &QualityData, _optimization: &OptimizationData) -> RhemaResult<Vec<String>> {
+    async fn generate_benchmark_recommendations(
+        &self,
+        _performance: &PerformanceData,
+        _quality: &QualityData,
+        _optimization: &OptimizationData,
+    ) -> RhemaResult<Vec<String>> {
         // Generate benchmark recommendations
         // For now, return empty recommendations
         Ok(vec![])
@@ -488,15 +596,17 @@ mod tests {
     #[tokio::test]
     async fn test_performance_analysis_query() {
         let extensions = LocomoQueryExtensions::new();
-        
-        let result = extensions.analyze_performance("test-scope", "2025-01-01").await;
+
+        let result = extensions
+            .analyze_performance("test-scope", "2025-01-01")
+            .await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_quality_assessment_query() {
         let extensions = LocomoQueryExtensions::new();
-        
+
         let result = extensions.assess_quality("test-scope", "2025-01-01").await;
         assert!(result.is_ok());
     }
@@ -504,8 +614,10 @@ mod tests {
     #[tokio::test]
     async fn test_optimization_tracking_query() {
         let extensions = LocomoQueryExtensions::new();
-        
-        let result = extensions.track_optimization("test-scope", "2025-01-01").await;
+
+        let result = extensions
+            .track_optimization("test-scope", "2025-01-01")
+            .await;
         assert!(result.is_ok());
     }
-} 
+}

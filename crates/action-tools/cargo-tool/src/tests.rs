@@ -36,7 +36,7 @@ async fn test_parse_config_default() {
         vec![],
         SafetyLevel::Low,
     );
-    
+
     let config = tool.parse_config(&intent);
     assert_eq!(config.commands, vec![CargoCommand::Check]);
     assert!(config.parallel);
@@ -66,21 +66,31 @@ async fn test_parse_config_custom() {
         "member_filter": ["core", "api"],
         "exclude_members": ["tests"]
     });
-    
+
     let config = tool.parse_config(&intent);
-    assert_eq!(config.commands, vec![CargoCommand::Check, CargoCommand::Clippy, CargoCommand::Test]);
+    assert_eq!(
+        config.commands,
+        vec![
+            CargoCommand::Check,
+            CargoCommand::Clippy,
+            CargoCommand::Test
+        ]
+    );
     assert!(!config.parallel);
     assert!(!config.json_output);
     assert!(config.verbose);
     assert_eq!(config.workspace_mode, WorkspaceMode::AllMembers);
-    assert_eq!(config.member_filter, Some(vec!["core".to_string(), "api".to_string()]));
+    assert_eq!(
+        config.member_filter,
+        Some(vec!["core".to_string(), "api".to_string()])
+    );
     assert_eq!(config.exclude_members, Some(vec!["tests".to_string()]));
 }
 
 #[tokio::test]
 async fn test_parse_config_workspace_modes() {
     let tool = CargoTool;
-    
+
     // Test root_only mode
     let mut intent = ActionIntent::new(
         "test",
@@ -94,28 +104,28 @@ async fn test_parse_config_workspace_modes() {
     });
     let config = tool.parse_config(&intent);
     assert_eq!(config.workspace_mode, WorkspaceMode::RootOnly);
-    
+
     // Test all_members mode
     intent.metadata = json!({
         "workspace_mode": "all_members"
     });
     let config = tool.parse_config(&intent);
     assert_eq!(config.workspace_mode, WorkspaceMode::AllMembers);
-    
+
     // Test root_and_members mode
     intent.metadata = json!({
         "workspace_mode": "root_and_members"
     });
     let config = tool.parse_config(&intent);
     assert_eq!(config.workspace_mode, WorkspaceMode::RootAndMembers);
-    
+
     // Test selected_members mode
     intent.metadata = json!({
         "workspace_mode": "selected_members"
     });
     let config = tool.parse_config(&intent);
     assert_eq!(config.workspace_mode, WorkspaceMode::SelectedMembers);
-    
+
     // Test invalid mode (should default to root_and_members)
     intent.metadata = json!({
         "workspace_mode": "invalid_mode"
@@ -136,43 +146,43 @@ async fn test_build_command_args() {
         member_filter: None,
         exclude_members: None,
     };
-    
+
     // Test check command
     let (cmd, args) = tool.build_command_args(&CargoCommand::Check, &config);
     assert_eq!(cmd, "cargo");
     assert!(args.contains(&"check"));
     assert!(args.contains(&"--message-format=json"));
-    
+
     // Test build command
     let (cmd, args) = tool.build_command_args(&CargoCommand::Build, &config);
     assert_eq!(cmd, "cargo");
     assert!(args.contains(&"build"));
     assert!(args.contains(&"--message-format=json"));
-    
+
     // Test test command
     let (cmd, args) = tool.build_command_args(&CargoCommand::Test, &config);
     assert_eq!(cmd, "cargo");
     assert!(args.contains(&"test"));
     assert!(args.contains(&"--message-format=json"));
-    
+
     // Test clippy command
     let (cmd, args) = tool.build_command_args(&CargoCommand::Clippy, &config);
     assert_eq!(cmd, "cargo");
     assert!(args.contains(&"clippy"));
     assert!(args.contains(&"--message-format=json"));
-    
+
     // Test fmt command
     let (cmd, args) = tool.build_command_args(&CargoCommand::Fmt, &config);
     assert_eq!(cmd, "cargo");
     assert!(args.contains(&"fmt"));
     assert!(args.contains(&"--message-format=json"));
-    
+
     // Test audit command
     let (cmd, args) = tool.build_command_args(&CargoCommand::Audit, &config);
     assert_eq!(cmd, "cargo");
     assert!(args.contains(&"audit"));
     assert!(args.contains(&"--output-format=json"));
-    
+
     // Test outdated command
     let (cmd, args) = tool.build_command_args(&CargoCommand::Outdated, &config);
     assert_eq!(cmd, "cargo");
@@ -192,7 +202,7 @@ async fn test_build_command_args_verbose() {
         member_filter: None,
         exclude_members: None,
     };
-    
+
     let (cmd, args) = tool.build_command_args(&CargoCommand::Check, &config);
     assert_eq!(cmd, "cargo");
     assert!(args.contains(&"check"));
@@ -212,19 +222,19 @@ async fn test_parse_cargo_output_json() {
         member_filter: None,
         exclude_members: None,
     };
-    
+
     // Mock JSON output
     let json_output = r#"{"message":{"level":"error","message":"expected `;`, found `}`","spans":[{"file_name":"src/main.rs","line_start":15}]}}
 {"message":{"level":"warning","message":"unused variable: `x`","spans":[{"file_name":"src/lib.rs","line_start":10}]}}"#;
-    
+
     let output = std::process::Output {
         status: std::process::ExitStatus::from_raw(1),
         stdout: json_output.as_bytes().to_vec(),
         stderr: vec![],
     };
-    
+
     let (errors, warnings) = tool.parse_cargo_output(&output, &CargoCommand::Check, &config);
-    
+
     assert_eq!(errors.len(), 1);
     assert_eq!(warnings.len(), 1);
     assert!(errors[0].contains("src/main.rs:15"));
@@ -243,15 +253,15 @@ async fn test_parse_cargo_output_stderr() {
         member_filter: None,
         exclude_members: None,
     };
-    
+
     let output = std::process::Output {
         status: std::process::ExitStatus::from_raw(1),
         stdout: vec![],
         stderr: b"error: expected `;`, found `}`\nwarning: unused variable: `x`".to_vec(),
     };
-    
+
     let (errors, warnings) = tool.parse_cargo_output(&output, &CargoCommand::Check, &config);
-    
+
     assert_eq!(errors.len(), 1);
     assert_eq!(warnings.len(), 1);
     assert!(errors[0].contains("error:"));
@@ -261,12 +271,12 @@ async fn test_parse_cargo_output_stderr() {
 #[tokio::test]
 async fn test_transformation_tool_traits() {
     let tool = CargoTool;
-    
+
     // Test language support
     assert!(tool.supports_language("rust"));
     assert!(!tool.supports_language("javascript"));
     assert!(!tool.supports_language("python"));
-    
+
     // Test safety level
     assert_eq!(tool.safety_level(), SafetyLevel::Medium);
 }
@@ -276,7 +286,7 @@ async fn test_cargo_command_enum() {
     // Test command equality
     assert_eq!(CargoCommand::Check, CargoCommand::Check);
     assert_ne!(CargoCommand::Check, CargoCommand::Build);
-    
+
     // Test command cloning
     let cmd = CargoCommand::Clippy;
     let cloned = cmd.clone();
@@ -305,7 +315,7 @@ async fn test_cargo_result_structure() {
         warnings: vec!["Warning".to_string()],
         duration: std::time::Duration::from_secs(1),
     };
-    
+
     assert_eq!(result.command, CargoCommand::Check);
     assert!(result.success);
     assert_eq!(result.output, "Success");
@@ -324,7 +334,7 @@ async fn test_validation_with_no_cargo_files() {
         vec!["src/main.rs".to_string(), "README.md".to_string()],
         SafetyLevel::Low,
     );
-    
+
     let result = tool.validate(&intent).await.unwrap();
     assert!(result.success);
     assert_eq!(result.output, "No Cargo.toml files found to validate");
@@ -342,10 +352,13 @@ async fn test_transformation_with_no_cargo_files() {
         vec!["src/main.rs".to_string(), "README.md".to_string()],
         SafetyLevel::Medium,
     );
-    
+
     let result = tool.execute(&intent).await;
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("No Cargo.toml files found"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("No Cargo.toml files found"));
 }
 
 #[tokio::test]
@@ -353,7 +366,7 @@ async fn test_workspace_mode_enum() {
     // Test workspace mode equality
     assert_eq!(WorkspaceMode::RootOnly, WorkspaceMode::RootOnly);
     assert_ne!(WorkspaceMode::RootOnly, WorkspaceMode::AllMembers);
-    
+
     // Test workspace mode cloning
     let mode = WorkspaceMode::SelectedMembers;
     let cloned = mode.clone();
@@ -365,7 +378,7 @@ async fn test_package_type_enum() {
     // Test package type equality
     assert_eq!(PackageType::Library, PackageType::Library);
     assert_ne!(PackageType::Library, PackageType::Binary);
-    
+
     // Test package type cloning
     let pkg_type = PackageType::Both;
     let cloned = pkg_type.clone();
@@ -379,7 +392,7 @@ async fn test_workspace_member_structure() {
         path: "crates/test-crate".to_string(),
         package_type: PackageType::Library,
     };
-    
+
     assert_eq!(member.name, "test-crate");
     assert_eq!(member.path, "crates/test-crate");
     assert_eq!(member.package_type, PackageType::Library);
@@ -405,7 +418,7 @@ async fn test_workspace_info_structure() {
             "resolver": "2"
         })),
     };
-    
+
     assert_eq!(workspace_info.root_path, "/path/to/workspace");
     assert_eq!(workspace_info.members.len(), 2);
     assert_eq!(workspace_info.members[0].name, "core");
@@ -433,7 +446,7 @@ async fn test_get_selected_members() {
             package_type: PackageType::Library,
         },
     ];
-    
+
     // Test with no filters
     let config = CargoConfig {
         commands: vec![],
@@ -444,10 +457,10 @@ async fn test_get_selected_members() {
         member_filter: None,
         exclude_members: None,
     };
-    
+
     let selected = tool.get_selected_members(&members, &config);
     assert_eq!(selected.len(), 3);
-    
+
     // Test with member filter
     let config = CargoConfig {
         commands: vec![],
@@ -458,12 +471,12 @@ async fn test_get_selected_members() {
         member_filter: Some(vec!["core".to_string(), "api".to_string()]),
         exclude_members: None,
     };
-    
+
     let selected = tool.get_selected_members(&members, &config);
     assert_eq!(selected.len(), 2);
     assert_eq!(selected[0].name, "core");
     assert_eq!(selected[1].name, "api");
-    
+
     // Test with exclude filter
     let config = CargoConfig {
         commands: vec![],
@@ -474,12 +487,12 @@ async fn test_get_selected_members() {
         member_filter: None,
         exclude_members: Some(vec!["tests".to_string()]),
     };
-    
+
     let selected = tool.get_selected_members(&members, &config);
     assert_eq!(selected.len(), 2);
     assert_eq!(selected[0].name, "core");
     assert_eq!(selected[1].name, "api");
-    
+
     // Test with both filters
     let config = CargoConfig {
         commands: vec![],
@@ -487,10 +500,14 @@ async fn test_get_selected_members() {
         json_output: true,
         verbose: false,
         workspace_mode: WorkspaceMode::SelectedMembers,
-        member_filter: Some(vec!["core".to_string(), "api".to_string(), "tests".to_string()]),
+        member_filter: Some(vec![
+            "core".to_string(),
+            "api".to_string(),
+            "tests".to_string(),
+        ]),
         exclude_members: Some(vec!["tests".to_string()]),
     };
-    
+
     let selected = tool.get_selected_members(&members, &config);
     assert_eq!(selected.len(), 2);
     assert_eq!(selected[0].name, "core");
@@ -500,7 +517,7 @@ async fn test_get_selected_members() {
 #[tokio::test]
 async fn test_extract_workspace_members() {
     let tool = CargoTool;
-    
+
     // Test with valid workspace members
     let cargo_content = r#"
 [package]
@@ -514,7 +531,7 @@ members = [
     "crates/tests"
 ]
 "#;
-    
+
     let members = tool.extract_workspace_members(cargo_content);
     assert!(members.is_some());
     let members = members.unwrap();
@@ -522,17 +539,17 @@ members = [
     assert_eq!(members[0], "crates/core");
     assert_eq!(members[1], "crates/api");
     assert_eq!(members[2], "crates/tests");
-    
+
     // Test with no workspace section
     let cargo_content = r#"
 [package]
 name = "single-crate"
 version = "0.1.0"
 "#;
-    
+
     let members = tool.extract_workspace_members(cargo_content);
     assert!(members.is_none());
-    
+
     // Test with empty members
     let cargo_content = r#"
 [package]
@@ -542,7 +559,7 @@ version = "0.1.0"
 [workspace]
 members = []
 "#;
-    
+
     let members = tool.extract_workspace_members(cargo_content);
     assert!(members.is_none());
 }
@@ -550,25 +567,25 @@ members = []
 #[tokio::test]
 async fn test_extract_workspace_config() {
     let tool = CargoTool;
-    
+
     // Test with resolver configuration
     let cargo_content = r#"
 [workspace]
 resolver = "2"
 members = ["crates/core"]
 "#;
-    
+
     let config = tool.extract_workspace_config(cargo_content);
     assert!(config.is_some());
     let config = config.unwrap();
     assert_eq!(config["resolver"], "2");
-    
+
     // Test without resolver configuration
     let cargo_content = r#"
 [workspace]
 members = ["crates/core"]
 "#;
-    
+
     let config = tool.extract_workspace_config(cargo_content);
     assert!(config.is_none());
-} 
+}

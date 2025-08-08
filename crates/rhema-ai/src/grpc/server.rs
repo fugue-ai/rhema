@@ -64,10 +64,7 @@ pub struct GrpcCoordinationServer {
 }
 
 impl GrpcCoordinationServer {
-    pub fn new(
-        coordination_system: RealTimeCoordinationSystem,
-        config: GrpcServerConfig,
-    ) -> Self {
+    pub fn new(coordination_system: RealTimeCoordinationSystem, config: GrpcServerConfig) -> Self {
         Self {
             config,
             coordination_system,
@@ -75,14 +72,13 @@ impl GrpcCoordinationServer {
     }
 
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let addr = format!("{}:{}", self.config.host, self.config.port)
-            .parse::<SocketAddr>()?;
+        let addr = format!("{}:{}", self.config.host, self.config.port).parse::<SocketAddr>()?;
 
         info!("Starting gRPC server on {}", addr);
 
         // For now, just log that we would start the server
         println!("Would start gRPC server on {}", addr);
-        
+
         // TODO: Implement actual server startup when dependencies are fixed
         /*
         let service = CoordinationService::new(self.coordination_system.clone());
@@ -163,9 +159,9 @@ impl tonic::health::server::Health for HealthService {
         // For now, return an empty stream
         let (tx, rx) = tokio::sync::mpsc::channel(100);
         drop(tx); // Close the sender immediately
-        
+
         let stream = tokio_stream::wrappers::ReceiverStream::new(rx);
         Ok(Response::new(Box::pin(stream) as Self::WatchStream))
     }
 }
-*/ 
+*/

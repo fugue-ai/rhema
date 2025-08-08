@@ -25,7 +25,7 @@ pub struct TypeCheckingTool;
 impl SafetyTool for TypeCheckingTool {
     async fn check(&self, intent: &ActionIntent) -> ActionResult<ToolResult> {
         // TODO: Implement actual type checking
-        
+
         Ok(ToolResult {
             success: true,
             changes: vec![],
@@ -35,16 +35,16 @@ impl SafetyTool for TypeCheckingTool {
             duration: std::time::Duration::from_secs(1),
         })
     }
-    
+
     fn name(&self) -> &str {
         "type_checking"
     }
-    
+
     fn version(&self) -> &str {
         "1.0.0"
     }
-    
+
     async fn is_available(&self) -> bool {
         true
     }
-} 
+}

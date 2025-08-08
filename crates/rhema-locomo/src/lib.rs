@@ -15,49 +15,44 @@
  */
 
 pub mod benchmark_engine;
-pub mod quality_assessor;
 pub mod metrics;
+pub mod optimization;
+pub mod quality_assessor;
+pub mod reporting;
 pub mod types;
 pub mod validation;
-pub mod optimization;
-pub mod reporting;
 
 // Re-export main types for convenience
-pub use benchmark_engine::{
-    LocomoBenchmarkEngine, LocomoBenchmarkSuite, LocomoBenchmarkResult
-};
+pub use benchmark_engine::{LocomoBenchmarkEngine, LocomoBenchmarkResult, LocomoBenchmarkSuite};
 pub use types::{BenchmarkConfig, BenchmarkScenario};
 
 pub use quality_assessor::{
-    ContextQualityAssessor, ContextQualityScore, RelevanceScorer,
-    CompressionAnalyzer, PersistenceTracker, AIConsumptionAnalyzer
+    AIConsumptionAnalyzer, CompressionAnalyzer, ContextQualityAssessor, ContextQualityScore,
+    PersistenceTracker, RelevanceScorer,
 };
 
 pub use metrics::{
-    LocomoMetrics, LocomoMetricsCollector, LocomoPerformanceAnalyzer,
-    LocomoBenchmarkMetrics, ContextRetrievalMetrics, ContextCompressionMetrics,
-    AIOptimizationMetrics
+    AIOptimizationMetrics, ContextCompressionMetrics, ContextRetrievalMetrics,
+    LocomoBenchmarkMetrics, LocomoMetrics, LocomoMetricsCollector, LocomoPerformanceAnalyzer,
 };
 
 pub use types::{
-    LocomoError, BenchmarkType, QualityMetric, OptimizationStrategy,
-    ContextSize, CompressionAlgorithm, RelevanceThreshold
+    BenchmarkType, CompressionAlgorithm, ContextSize, LocomoError, OptimizationStrategy,
+    QualityMetric, RelevanceThreshold,
 };
 
 pub use validation::{
-    LocomoValidationFramework, ValidationResult, MetricValidation,
-    LocomoImprovementThresholds
+    LocomoImprovementThresholds, LocomoValidationFramework, MetricValidation, ValidationResult,
 };
 
 pub use optimization::{
-    ContextOptimizer, OptimizationResult, OptimizationAction,
-    AIContextOptimizer, CompressionOptimizer
+    AIContextOptimizer, CompressionOptimizer, ContextOptimizer, OptimizationAction,
+    OptimizationResult,
 };
 
 pub use reporting::{
-    LocomoReportingSystem, LocomoReport, ReportType, ReportSummary,
-    DetailedMetrics, DashboardData, ChartData, Alert, TrendAnalysis,
-    TrendDirection, DashboardGenerator, TrendAnalyzer
+    Alert, ChartData, DashboardData, DashboardGenerator, DetailedMetrics, LocomoReport,
+    LocomoReportingSystem, ReportSummary, ReportType, TrendAnalysis, TrendAnalyzer, TrendDirection,
 };
 
 // Error type conversions
@@ -129,9 +124,9 @@ mod tests {
                 complexity_score: 0.5,
             },
         };
-        
+
         let result = optimizer.optimize_context(&context, 0.9).await.unwrap();
         assert!(result.success);
         assert!(result.optimization_actions.len() > 0);
     }
-} 
+}

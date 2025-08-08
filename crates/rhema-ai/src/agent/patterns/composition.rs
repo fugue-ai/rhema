@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-use super::{
-    CoordinationPattern, PatternContext, PatternResult, PatternError, ValidationResult,
-    PatternMetadata, PatternCategory, PatternState, PatternPhase, PatternStatus,
-    PatternPerformanceMetrics, Constraint
-};
 use super::validation::PatternValidationEngine;
-use rhema_core::{RhemaResult, RhemaError};
+use super::{
+    Constraint, CoordinationPattern, PatternCategory, PatternContext, PatternError,
+    PatternMetadata, PatternPerformanceMetrics, PatternPhase, PatternResult, PatternState,
+    PatternStatus, ValidationResult,
+};
+use chrono::{DateTime, Utc};
+use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, instrument};
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 /// Advanced pattern composition system
@@ -321,28 +321,35 @@ impl PatternCompositionEngine {
 
     /// Register a pattern
     #[instrument(skip(self, pattern))]
-    pub async fn register_pattern(&self, pattern_id: String, pattern: Box<dyn CoordinationPattern>) {
+    pub async fn register_pattern(
+        &self,
+        pattern_id: String,
+        pattern: Box<dyn CoordinationPattern>,
+    ) {
         let mut patterns = self.patterns.write().await;
         patterns.insert(pattern_id.clone(), pattern);
-        
+
         // Update dependency graph
         let mut dependencies = self.dependencies.write().await;
         let metadata = patterns.get(&pattern_id).unwrap().metadata();
-        dependencies.nodes.insert(pattern_id.clone(), PatternNode {
-            pattern_id: pattern_id.clone(),
-            metadata: metadata.clone(),
-            dependencies: Vec::new(),
-            dependents: Vec::new(),
-            state: PatternState {
+        dependencies.nodes.insert(
+            pattern_id.clone(),
+            PatternNode {
                 pattern_id: pattern_id.clone(),
-                phase: PatternPhase::Initializing,
-                started_at: Utc::now(),
-                ended_at: None,
-                progress: 0.0,
-                status: PatternStatus::Idle,
-                data: HashMap::new(),
+                metadata: metadata.clone(),
+                dependencies: Vec::new(),
+                dependents: Vec::new(),
+                state: PatternState {
+                    pattern_id: pattern_id.clone(),
+                    phase: PatternPhase::Initializing,
+                    started_at: Utc::now(),
+                    ended_at: None,
+                    progress: 0.0,
+                    status: PatternStatus::Idle,
+                    data: HashMap::new(),
+                },
             },
-        });
+        );
 
         info!("✅ Pattern registered: {}", pattern_id);
     }
@@ -351,13 +358,13 @@ impl PatternCompositionEngine {
     #[instrument(skip(self))]
     pub async fn create_template(&self, template: PatternTemplate) -> RhemaResult<()> {
         let mut templates = self.templates.write().await;
-        
+
         // Validate template
         self.validate_template(&template).await?;
-        
+
         let template_id = template.id.clone();
         templates.insert(template_id.clone(), template);
-        
+
         info!("✅ Template created: {}", template_id);
         Ok(())
     }
@@ -370,15 +377,19 @@ impl PatternCompositionEngine {
         parameters: HashMap<String, serde_json::Value>,
     ) -> RhemaResult<Box<dyn CoordinationPattern>> {
         let templates = self.templates.read().await;
-        let template = templates.get(template_id)
+        let template = templates
+            .get(template_id)
             .ok_or_else(|| PatternError::TemplateNotFound(template_id.to_string()))?;
 
         // Validate parameters
-        self.validate_template_parameters(template, &parameters).await?;
+        self.validate_template_parameters(template, &parameters)
+            .await?;
 
         // Create pattern from template
-        let pattern = self.create_pattern_from_template(template, parameters).await?;
-        
+        let pattern = self
+            .create_pattern_from_template(template, parameters)
+            .await?;
+
         info!("✅ Pattern instantiated from template: {}", template_id);
         Ok(pattern)
     }
@@ -405,10 +416,14 @@ impl PatternCompositionEngine {
         // Apply composition rules
         let composition_rules = self.composition_rules.read().await;
         let mut modified_pattern_ids = pattern_ids.clone();
-        
+
         for rule in composition_rules.iter().filter(|r| r.enabled) {
-            if self.evaluate_composition_rule(rule, &modified_pattern_ids, context).await? {
-                self.apply_composition_rule(rule, &mut modified_pattern_ids).await?;
+            if self
+                .evaluate_composition_rule(rule, &modified_pattern_ids, context)
+                .await?
+            {
+                self.apply_composition_rule(rule, &mut modified_pattern_ids)
+                    .await?;
             }
         }
 
@@ -451,7 +466,9 @@ impl PatternCompositionEngine {
         };
 
         // Validate composition
-        let validation_result = self.validate_composition(&composed_pattern, context).await?;
+        let validation_result = self
+            .validate_composition(&composed_pattern, context)
+            .await?;
         let mut final_composed_pattern = composed_pattern;
         final_composed_pattern.validation_result = Some(validation_result.clone());
 
@@ -462,17 +479,21 @@ impl PatternCompositionEngine {
             HashMap::new(),
             CompositionResult {
                 success: validation_result.is_valid,
-                error_message: if validation_result.is_valid { None } else { 
+                error_message: if validation_result.is_valid {
+                    None
+                } else {
                     Some(validation_result.errors.join(", "))
                 },
                 data: HashMap::new(),
-            }
-        ).await;
+            },
+        )
+        .await;
 
         if !validation_result.is_valid {
-                          return Err(RhemaError::ValidationError(
-                format!("Composition validation failed: {}", validation_result.errors.join(", "))
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Composition validation failed: {}",
+                validation_result.errors.join(", ")
+            )));
         }
 
         info!("✅ Patterns composed successfully: {}", composition_id);
@@ -511,10 +532,14 @@ impl PatternCompositionEngine {
                 success: true,
                 error_message: None,
                 data: HashMap::new(),
-            }
-        ).await;
+            },
+        )
+        .await;
 
-        info!("✅ Composed pattern executed successfully: {}", composed_pattern.id);
+        info!(
+            "✅ Composed pattern executed successfully: {}",
+            composed_pattern.id
+        );
         Ok(combined_result)
     }
 
@@ -544,8 +569,8 @@ impl PatternCompositionEngine {
     async fn validate_template(&self, template: &PatternTemplate) -> RhemaResult<()> {
         // Check required fields
         if template.id.is_empty() || template.name.is_empty() {
-                          return Err(RhemaError::ValidationError(
-                "Template ID and name are required".to_string()
+            return Err(RhemaError::ValidationError(
+                "Template ID and name are required".to_string(),
             ));
         }
 
@@ -553,9 +578,10 @@ impl PatternCompositionEngine {
         let mut param_names = HashSet::new();
         for param in template.parameters.values() {
             if !param_names.insert(&param.name) {
-                                  return Err(RhemaError::ValidationError(
-                    format!("Duplicate parameter name: {}", param.name)
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Duplicate parameter name: {}",
+                    param.name
+                )));
             }
         }
 
@@ -571,9 +597,10 @@ impl PatternCompositionEngine {
         for (param_name, param_def) in &template.parameters {
             if param_def.required {
                 if !parameters.contains_key(param_name) {
-                                          return Err(RhemaError::ValidationError(
-                        format!("Required parameter missing: {}", param_name)
-                    ));
+                    return Err(RhemaError::ValidationError(format!(
+                        "Required parameter missing: {}",
+                        param_name
+                    )));
                 }
             }
 
@@ -581,9 +608,10 @@ impl PatternCompositionEngine {
                 // Validate parameter value against rules
                 for rule in &param_def.validation_rules {
                     if !self.validate_parameter_rule(value, rule) {
-                                                  return Err(RhemaError::ValidationError(
-                            format!("Parameter validation failed for {}: {}", param_name, rule.error_message)
-                        ));
+                        return Err(RhemaError::ValidationError(format!(
+                            "Parameter validation failed for {}: {}",
+                            param_name, rule.error_message
+                        )));
                     }
                 }
             }
@@ -627,9 +655,7 @@ impl PatternCompositionEngine {
                 }
                 false
             }
-            ValidationRuleType::Required => {
-                !value.is_null()
-            }
+            ValidationRuleType::Required => !value.is_null(),
             ValidationRuleType::Pattern | ValidationRuleType::Custom => {
                 // Simplified validation - always pass for now
                 true
@@ -646,7 +672,7 @@ impl PatternCompositionEngine {
         // This is a simplified implementation
         // In a real implementation, you would use the template and parameters
         // to create a concrete pattern instance
-        
+
         // For now, return a mock pattern
         Ok(Box::new(MockComposedPattern {
             id: template.id.clone(),
@@ -660,14 +686,15 @@ impl PatternCompositionEngine {
     /// Validate composition dependencies
     async fn validate_composition_dependencies(&self, pattern_ids: &[String]) -> RhemaResult<()> {
         let dependencies = self.dependencies.read().await;
-        
+
         for pattern_id in pattern_ids {
             if let Some(node) = dependencies.nodes.get(pattern_id) {
                 for dep in &node.dependencies {
                     if !pattern_ids.contains(dep) {
-                                                  return Err(RhemaError::ValidationError(
-                            format!("Missing dependency: {} for pattern {}", dep, pattern_id)
-                        ));
+                        return Err(RhemaError::ValidationError(format!(
+                            "Missing dependency: {} for pattern {}",
+                            dep, pattern_id
+                        )));
                     }
                 }
             }
@@ -686,26 +713,33 @@ impl PatternCompositionEngine {
         for condition in &rule.conditions {
             match condition.condition_type {
                 ConditionType::PatternExists => {
-                    let required_pattern = condition.parameters.get("pattern_id")
+                    let required_pattern = condition
+                        .parameters
+                        .get("pattern_id")
                         .and_then(|v| v.as_str())
-                                                  .ok_or_else(|| RhemaError::ValidationError(
-                            "Pattern ID parameter required".to_string()
-                        ))?;
-                    
+                        .ok_or_else(|| {
+                            RhemaError::ValidationError("Pattern ID parameter required".to_string())
+                        })?;
+
                     if !pattern_ids.contains(&required_pattern.to_string()) {
                         return Ok(false);
                     }
                 }
                 ConditionType::AgentAvailable => {
-                    let required_capability = condition.parameters.get("capability")
+                    let required_capability = condition
+                        .parameters
+                        .get("capability")
                         .and_then(|v| v.as_str())
-                                                  .ok_or_else(|| RhemaError::ValidationError(
-                            "Capability parameter required".to_string()
-                        ))?;
-                    
-                    let has_capability = context.agents.iter()
-                        .any(|agent| agent.capabilities.contains(&required_capability.to_string()));
-                    
+                        .ok_or_else(|| {
+                            RhemaError::ValidationError("Capability parameter required".to_string())
+                        })?;
+
+                    let has_capability = context.agents.iter().any(|agent| {
+                        agent
+                            .capabilities
+                            .contains(&required_capability.to_string())
+                    });
+
                     if !has_capability {
                         return Ok(false);
                     }
@@ -729,16 +763,18 @@ impl PatternCompositionEngine {
         for action in &rule.actions {
             match action.action_type {
                 ActionType::AddPattern => {
-                    if let Some(pattern_id) = action.parameters.get("pattern_id")
-                        .and_then(|v| v.as_str()) {
+                    if let Some(pattern_id) =
+                        action.parameters.get("pattern_id").and_then(|v| v.as_str())
+                    {
                         if !pattern_ids.contains(&pattern_id.to_string()) {
                             pattern_ids.push(pattern_id.to_string());
                         }
                     }
                 }
                 ActionType::RemovePattern => {
-                    if let Some(pattern_id) = action.parameters.get("pattern_id")
-                        .and_then(|v| v.as_str()) {
+                    if let Some(pattern_id) =
+                        action.parameters.get("pattern_id").and_then(|v| v.as_str())
+                    {
                         pattern_ids.retain(|id| id != pattern_id);
                     }
                 }
@@ -758,11 +794,10 @@ impl PatternCompositionEngine {
         context: &PatternContext,
     ) -> RhemaResult<ValidationResult> {
         // Use the validation engine to validate the composition
-        Ok(self.validation_engine.validate_pattern(
-            &composed_pattern.id,
-            context,
-            &composed_pattern.metadata,
-        ).await)
+        Ok(self
+            .validation_engine
+            .validate_pattern(&composed_pattern.id, context, &composed_pattern.metadata)
+            .await)
     }
 
     /// Get execution order based on dependencies
@@ -797,9 +832,10 @@ impl PatternCompositionEngine {
         execution_order: &mut Vec<String>,
     ) -> RhemaResult<()> {
         if visiting.contains(pattern_id) {
-                          return Err(RhemaError::ValidationError(
-                format!("Circular dependency detected: {}", pattern_id)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Circular dependency detected: {}",
+                pattern_id
+            )));
         }
 
         if visited.contains(pattern_id) {
@@ -830,8 +866,14 @@ impl PatternCompositionEngine {
         let mut combined_metadata = HashMap::new();
 
         for (pattern_id, result) in results {
-            combined_data.insert(format!("{}_result", pattern_id), serde_json::json!(result.data));
-            combined_metadata.insert(format!("{}_data", pattern_id), serde_json::json!(result.data));
+            combined_data.insert(
+                format!("{}_result", pattern_id),
+                serde_json::json!(result.data),
+            );
+            combined_metadata.insert(
+                format!("{}_data", pattern_id),
+                serde_json::json!(result.data),
+            );
         }
 
         Ok(PatternResult {
@@ -885,8 +927,6 @@ struct MockComposedPattern {
 
 #[async_trait::async_trait]
 impl CoordinationPattern for MockComposedPattern {
-
-
     async fn execute(&self, _context: &PatternContext) -> Result<PatternResult, PatternError> {
         Ok(PatternResult {
             pattern_id: self.id.clone(),
@@ -965,7 +1005,7 @@ mod tests {
     async fn test_composition_engine_creation() {
         let engine = PatternCompositionEngine::new();
         let stats = engine.get_composition_statistics().await;
-        
+
         assert_eq!(stats.total_templates, 0);
         assert_eq!(stats.total_patterns, 0);
         assert_eq!(stats.total_compositions, 0);
@@ -981,9 +1021,11 @@ mod tests {
             category: PatternCategory::TaskDistribution,
             parameters: HashMap::new(),
         });
-        
-        engine.register_pattern("test_pattern".to_string(), pattern).await;
-        
+
+        engine
+            .register_pattern("test_pattern".to_string(), pattern)
+            .await;
+
         let stats = engine.get_composition_statistics().await;
         assert_eq!(stats.total_patterns, 1);
     }
@@ -1023,8 +1065,8 @@ mod tests {
 
         let result = engine.create_template(template).await;
         assert!(result.is_ok());
-        
+
         let stats = engine.get_composition_statistics().await;
         assert_eq!(stats.total_templates, 1);
     }
-} 
+}

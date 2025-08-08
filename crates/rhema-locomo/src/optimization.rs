@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
-use chrono::Utc;
 
 use crate::types::{Context, LocomoError, OptimizationStrategy};
 use rhema_core::RhemaResult;
@@ -80,7 +80,11 @@ pub struct OptimizationAction {
 }
 
 impl OptimizationAction {
-    pub fn new(action_type: OptimizationStrategy, description: String, performance_impact: f64) -> Self {
+    pub fn new(
+        action_type: OptimizationStrategy,
+        description: String,
+        performance_impact: f64,
+    ) -> Self {
         Self {
             action_type,
             description,
@@ -147,7 +151,11 @@ impl Default for CompressionOptimizerConfig {
             enable_structure_compression: true,
             target_compression_ratio: 0.7,
             quality_threshold: 0.8,
-            compression_algorithms: vec!["semantic".to_string(), "redundancy".to_string(), "structure".to_string()],
+            compression_algorithms: vec![
+                "semantic".to_string(),
+                "redundancy".to_string(),
+                "structure".to_string(),
+            ],
         }
     }
 }
@@ -175,7 +183,11 @@ impl Default for RelevanceOptimizerConfig {
             enable_semantic_enhancement: true,
             enable_context_enhancement: true,
             target_relevance_score: 0.9,
-            enhancement_strategies: vec!["keyword".to_string(), "semantic".to_string(), "context".to_string()],
+            enhancement_strategies: vec![
+                "keyword".to_string(),
+                "semantic".to_string(),
+                "context".to_string(),
+            ],
         }
     }
 }
@@ -194,39 +206,60 @@ impl ContextOptimizer {
         }
     }
 
-    pub async fn optimize_context(&self, context: &Context, target_score: f64) -> RhemaResult<OptimizationResult> {
+    pub async fn optimize_context(
+        &self,
+        context: &Context,
+        target_score: f64,
+    ) -> RhemaResult<OptimizationResult> {
         let start_time = std::time::Instant::now();
         let mut optimized_context = context.clone();
         let mut optimization_actions = Vec::new();
 
-        info!("Starting context optimization for target score: {}", target_score);
+        info!(
+            "Starting context optimization for target score: {}",
+            target_score
+        );
 
         // AI optimization
         if self.config.enable_ai_optimization {
-            let ai_result = self.ai_context_optimizer.optimize(&optimized_context).await?;
+            let ai_result = self
+                .ai_context_optimizer
+                .optimize(&optimized_context)
+                .await?;
             optimized_context = ai_result.optimized_context;
             optimization_actions.extend(ai_result.optimization_actions);
         }
 
         // Compression optimization
         if self.config.enable_compression_optimization {
-            let compression_result = self.compression_optimizer.optimize(&optimized_context).await?;
+            let compression_result = self
+                .compression_optimizer
+                .optimize(&optimized_context)
+                .await?;
             optimized_context = compression_result.optimized_context;
             optimization_actions.extend(compression_result.optimization_actions);
         }
 
         // Relevance optimization
         if self.config.enable_relevance_optimization {
-            let relevance_result = self.relevance_optimizer.optimize(&optimized_context).await?;
+            let relevance_result = self
+                .relevance_optimizer
+                .optimize(&optimized_context)
+                .await?;
             optimized_context = relevance_result.optimized_context;
             optimization_actions.extend(relevance_result.optimization_actions);
         }
 
         let optimization_duration = start_time.elapsed();
-        let quality_improvement = self.calculate_quality_improvement(context, &optimized_context).await?;
+        let quality_improvement = self
+            .calculate_quality_improvement(context, &optimized_context)
+            .await?;
 
-        info!("Context optimization completed in {:?} with {:.1}% quality improvement", 
-              optimization_duration, quality_improvement * 100.0);
+        info!(
+            "Context optimization completed in {:?} with {:.1}% quality improvement",
+            optimization_duration,
+            quality_improvement * 100.0
+        );
 
         Ok(OptimizationResult {
             original_context: context.clone(),
@@ -239,11 +272,15 @@ impl ContextOptimizer {
         })
     }
 
-    async fn calculate_quality_improvement(&self, original: &Context, optimized: &Context) -> RhemaResult<f64> {
+    async fn calculate_quality_improvement(
+        &self,
+        original: &Context,
+        optimized: &Context,
+    ) -> RhemaResult<f64> {
         // Simple quality improvement calculation based on content length and structure
         let original_length = original.content.len();
         let optimized_length = optimized.content.len();
-        
+
         let length_improvement = if original_length > 0 {
             if optimized_length <= original_length {
                 (original_length - optimized_length) as f64 / original_length as f64
@@ -255,7 +292,11 @@ impl ContextOptimizer {
         };
 
         // Structure improvement (simplified)
-        let structure_improvement = if optimized.content.contains("Enhanced Context:") { 0.2 } else { 0.0 };
+        let structure_improvement = if optimized.content.contains("Enhanced Context:") {
+            0.2
+        } else {
+            0.0
+        };
 
         Ok((length_improvement + structure_improvement).min(1.0))
     }
@@ -292,7 +333,8 @@ impl AIContextOptimizer {
         }
 
         // Store optimization actions
-        self.store_optimization_actions(&optimization_actions).await?;
+        self.store_optimization_actions(&optimization_actions)
+            .await?;
 
         Ok(OptimizationResult {
             original_context: context.clone(),
@@ -307,7 +349,7 @@ impl AIContextOptimizer {
 
     async fn optimize_tokens(&self, context: &mut Context) -> RhemaResult<OptimizationAction> {
         let original_length = context.content.len();
-        
+
         // Remove redundant words and phrases
         let words: Vec<&str> = context.content.split_whitespace().collect();
         let mut optimized_words = Vec::new();
@@ -321,7 +363,7 @@ impl AIContextOptimizer {
         }
 
         context.content = optimized_words.join(" ");
-        
+
         let new_length = context.content.len();
         let reduction = if original_length > 0 {
             if new_length <= original_length {
@@ -335,7 +377,10 @@ impl AIContextOptimizer {
 
         Ok(OptimizationAction::new(
             OptimizationStrategy::SemanticSummarization,
-            format!("Token optimization: reduced content by {:.1}%", reduction * 100.0),
+            format!(
+                "Token optimization: reduced content by {:.1}%",
+                reduction * 100.0
+            ),
             reduction,
         ))
     }
@@ -382,13 +427,13 @@ impl AIContextOptimizer {
     async fn store_optimization_actions(&self, actions: &[OptimizationAction]) -> RhemaResult<()> {
         let mut history = self.optimization_history.write().await;
         history.extend(actions.iter().cloned());
-        
+
         // Keep only the last 1000 optimization actions
         if history.len() > 1000 {
             let len = history.len();
             history.drain(0..len - 1000);
         }
-        
+
         Ok(())
     }
 }
@@ -407,7 +452,9 @@ impl CompressionOptimizer {
 
         // Semantic compression
         if self.config.enable_semantic_compression {
-            let semantic_action = self.apply_semantic_compression(&mut optimized_context).await?;
+            let semantic_action = self
+                .apply_semantic_compression(&mut optimized_context)
+                .await?;
             optimization_actions.push(semantic_action);
         }
 
@@ -424,7 +471,8 @@ impl CompressionOptimizer {
         }
 
         // Store optimization actions
-        self.store_optimization_actions(&optimization_actions).await?;
+        self.store_optimization_actions(&optimization_actions)
+            .await?;
 
         Ok(OptimizationResult {
             original_context: context.clone(),
@@ -437,23 +485,31 @@ impl CompressionOptimizer {
         })
     }
 
-    async fn apply_semantic_compression(&self, context: &mut Context) -> RhemaResult<OptimizationAction> {
+    async fn apply_semantic_compression(
+        &self,
+        context: &mut Context,
+    ) -> RhemaResult<OptimizationAction> {
         let original_length = context.content.len();
-        
+
         // Apply semantic compression by removing less important words
         let words: Vec<&str> = context.content.split_whitespace().collect();
-        let important_words: Vec<&str> = words.iter()
+        let important_words: Vec<&str> = words
+            .iter()
             .filter(|word| {
                 let word_lower = word.to_lowercase();
-                !word_lower.is_empty() && 
-                word_lower.len() > 2 && 
-                !vec!["the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by"].contains(&word_lower.as_str())
+                !word_lower.is_empty()
+                    && word_lower.len() > 2
+                    && !vec![
+                        "the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with",
+                        "by",
+                    ]
+                    .contains(&word_lower.as_str())
             })
             .cloned()
             .collect();
 
         context.content = important_words.join(" ");
-        
+
         let new_length = context.content.len();
         let compression_ratio = if original_length > 0 {
             new_length as f64 / original_length as f64
@@ -463,14 +519,17 @@ impl CompressionOptimizer {
 
         Ok(OptimizationAction::new(
             OptimizationStrategy::CompressionOptimization,
-            format!("Semantic compression: achieved {:.1} compression ratio", compression_ratio),
+            format!(
+                "Semantic compression: achieved {:.1} compression ratio",
+                compression_ratio
+            ),
             1.0 - compression_ratio,
         ))
     }
 
     async fn remove_redundancy(&self, context: &mut Context) -> RhemaResult<OptimizationAction> {
         let original_length = context.content.len();
-        
+
         // Remove duplicate sentences and phrases
         let sentences: Vec<&str> = context.content.split('.').collect();
         let mut unique_sentences = Vec::new();
@@ -485,7 +544,7 @@ impl CompressionOptimizer {
         }
 
         context.content = unique_sentences.join(". ");
-        
+
         let new_length = context.content.len();
         let reduction = if original_length > 0 {
             if new_length <= original_length {
@@ -499,23 +558,27 @@ impl CompressionOptimizer {
 
         Ok(OptimizationAction::new(
             OptimizationStrategy::ContextPruning,
-            format!("Redundancy removal: reduced content by {:.1}%", reduction * 100.0),
+            format!(
+                "Redundancy removal: reduced content by {:.1}%",
+                reduction * 100.0
+            ),
             reduction,
         ))
     }
 
     async fn compress_structure(&self, context: &mut Context) -> RhemaResult<OptimizationAction> {
         let original_length = context.content.len();
-        
+
         // Compress structure by removing excessive whitespace and formatting
         let lines: Vec<&str> = context.content.lines().collect();
-        let compressed_lines: Vec<&str> = lines.iter()
+        let compressed_lines: Vec<&str> = lines
+            .iter()
             .map(|line| line.trim())
             .filter(|line| !line.is_empty())
             .collect();
 
         context.content = compressed_lines.join("\n");
-        
+
         let new_length = context.content.len();
         let compression_ratio = if original_length > 0 {
             new_length as f64 / original_length as f64
@@ -525,7 +588,10 @@ impl CompressionOptimizer {
 
         Ok(OptimizationAction::new(
             OptimizationStrategy::CompressionOptimization,
-            format!("Structure compression: achieved {:.1} compression ratio", compression_ratio),
+            format!(
+                "Structure compression: achieved {:.1} compression ratio",
+                compression_ratio
+            ),
             1.0 - compression_ratio,
         ))
     }
@@ -533,13 +599,13 @@ impl CompressionOptimizer {
     async fn store_optimization_actions(&self, actions: &[OptimizationAction]) -> RhemaResult<()> {
         let mut history = self.optimization_history.write().await;
         history.extend(actions.iter().cloned());
-        
+
         // Keep only the last 1000 optimization actions
         if history.len() > 1000 {
             let len = history.len();
             history.drain(0..len - 1000);
         }
-        
+
         Ok(())
     }
 }
@@ -575,7 +641,8 @@ impl RelevanceOptimizer {
         }
 
         // Store optimization actions
-        self.store_optimization_actions(&optimization_actions).await?;
+        self.store_optimization_actions(&optimization_actions)
+            .await?;
 
         Ok(OptimizationResult {
             original_context: context.clone(),
@@ -590,7 +657,13 @@ impl RelevanceOptimizer {
 
     async fn enhance_keywords(&self, context: &mut Context) -> RhemaResult<OptimizationAction> {
         // Add relevant keywords to improve searchability
-        let keywords = vec!["optimization", "performance", "efficiency", "quality", "benchmark"];
+        let keywords = vec![
+            "optimization",
+            "performance",
+            "efficiency",
+            "quality",
+            "benchmark",
+        ];
         let mut enhanced_content = context.content.clone();
 
         for keyword in keywords {
@@ -638,7 +711,10 @@ impl RelevanceOptimizer {
 
         // Add cross-references if not present
         if !context.content.contains("Related:") {
-            context.content = format!("{}\n\nRelated: optimization, benchmarking, performance", context.content);
+            context.content = format!(
+                "{}\n\nRelated: optimization, benchmarking, performance",
+                context.content
+            );
         }
 
         Ok(OptimizationAction::new(
@@ -651,13 +727,13 @@ impl RelevanceOptimizer {
     async fn store_optimization_actions(&self, actions: &[OptimizationAction]) -> RhemaResult<()> {
         let mut history = self.optimization_history.write().await;
         history.extend(actions.iter().cloned());
-        
+
         // Keep only the last 1000 optimization actions
         if history.len() > 1000 {
             let len = history.len();
             history.drain(0..len - 1000);
         }
-        
+
         Ok(())
     }
-} 
+}

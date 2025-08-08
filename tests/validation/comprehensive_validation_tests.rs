@@ -11,10 +11,9 @@
  */
 
 use rhema_config::{
-    ComprehensiveValidator, GlobalConfig, SchemaType, ValidationRulesConfig,
-    ValidationRule, RuleType, RuleCondition, ConditionOperator, RuleAction, ActionType,
-    ValidationRulesManager, ConfigIssueSeverity, SchemaValidator,
-    comprehensive_validator::ValidationLevel,
+    comprehensive_validator::ValidationLevel, ActionType, ComprehensiveValidator,
+    ConditionOperator, ConfigIssueSeverity, GlobalConfig, RuleAction, RuleCondition, RuleType,
+    SchemaType, SchemaValidator, ValidationRule, ValidationRulesConfig, ValidationRulesManager,
 };
 use serde_json::json;
 use std::collections::HashMap;
@@ -31,7 +30,7 @@ async fn test_schema_validator_creation() {
 async fn test_schema_validator_with_settings() {
     let validator = SchemaValidator::with_settings(300, true);
     assert!(validator.is_ok());
-    
+
     let validator = validator.unwrap();
     // Note: cache_ttl is private, so we can't test it directly
     // assert_eq!(validator.cache_ttl, 300);
@@ -41,7 +40,7 @@ async fn test_schema_validator_with_settings() {
 #[tokio::test]
 async fn test_schema_validation_basic() {
     let validator = SchemaValidator::new().unwrap();
-    
+
     let valid_config = json!({
         "rhema": {
             "version": "1.0.0",
@@ -52,9 +51,11 @@ async fn test_schema_validation_basic() {
         }
     });
 
-    let result = validator.validate_against_schema(&valid_config, &SchemaType::Rhema).await;
+    let result = validator
+        .validate_against_schema(&valid_config, &SchemaType::Rhema)
+        .await;
     assert!(result.is_ok());
-    
+
     let validation_result = result.unwrap();
     // Note: This might fail if schemas aren't loaded properly in test environment
     // In a real scenario, the schema would be loaded and validation would work
@@ -71,9 +72,12 @@ async fn test_schema_type_conversion() {
     assert_eq!(SchemaType::Conventions.as_str(), "conventions");
     assert_eq!(SchemaType::Lock.as_str(), "lock");
     assert_eq!(SchemaType::Action.as_str(), "action");
-    
+
     assert_eq!(SchemaType::from_str("rhema"), SchemaType::Rhema);
-    assert_eq!(SchemaType::from_str("custom"), SchemaType::Custom("custom".to_string()));
+    assert_eq!(
+        SchemaType::from_str("custom"),
+        SchemaType::Custom("custom".to_string())
+    );
 }
 
 #[tokio::test]
@@ -86,12 +90,9 @@ async fn test_comprehensive_validator_creation() {
 #[tokio::test]
 async fn test_comprehensive_validator_with_settings() {
     let global_config = GlobalConfig::new();
-    let validator = ComprehensiveValidator::with_settings(
-        &global_config,
-        300,
-        ValidationLevel::Complete,
-        true,
-    ).await;
+    let validator =
+        ComprehensiveValidator::with_settings(&global_config, 300, ValidationLevel::Complete, true)
+            .await;
     assert!(validator.is_ok());
 }
 
@@ -106,7 +107,7 @@ async fn test_validation_level_comparison() {
 async fn test_comprehensive_validation_basic() {
     let global_config = GlobalConfig::new();
     let validator = ComprehensiveValidator::new(&global_config).await.unwrap();
-    
+
     let config = json!({
         "rhema": {
             "version": "1.0.0",
@@ -120,9 +121,9 @@ async fn test_comprehensive_validation_basic() {
     let result = validator
         .validate_config_value(&config, &SchemaType::Rhema, Path::new("test.yaml"))
         .await;
-    
+
     assert!(result.is_ok());
-    
+
     let validation_result = result.unwrap();
     assert!(validation_result.schema_valid);
     assert!(validation_result.business_valid);
@@ -165,7 +166,7 @@ async fn test_validation_rules_manager_creation() {
 #[ignore] // Disabled due to private method access
 async fn test_rule_evaluation() {
     let mut config = ValidationRulesConfig::new();
-    
+
     let rule = ValidationRule {
         id: "test-rule".to_string(),
         name: "Test Rule".to_string(),
@@ -173,21 +174,17 @@ async fn test_rule_evaluation() {
         rule_type: RuleType::Schema,
         severity: ConfigIssueSeverity::Warning,
         enabled: true,
-        conditions: vec![
-            RuleCondition {
-                field: "test_field".to_string(),
-                operator: ConditionOperator::Equals,
-                value: json!("test_value"),
-                case_sensitive: None,
-            }
-        ],
-        actions: vec![
-            RuleAction {
-                action_type: ActionType::Log,
-                parameters: HashMap::new(),
-                enabled: true,
-            }
-        ],
+        conditions: vec![RuleCondition {
+            field: "test_field".to_string(),
+            operator: ConditionOperator::Equals,
+            value: json!("test_value"),
+            case_sensitive: None,
+        }],
+        actions: vec![RuleAction {
+            action_type: ActionType::Log,
+            parameters: HashMap::new(),
+            enabled: true,
+        }],
         metadata: HashMap::new(),
     };
 
@@ -249,7 +246,7 @@ async fn test_complex_condition_evaluation() {
 #[ignore] // Disabled due to private method access
 async fn test_rule_actions() {
     let mut config = ValidationRulesConfig::new();
-    
+
     // Test Log action
     let rule = ValidationRule {
         id: "log-rule".to_string(),
@@ -258,21 +255,17 @@ async fn test_rule_actions() {
         rule_type: RuleType::Schema,
         severity: ConfigIssueSeverity::Info,
         enabled: true,
-        conditions: vec![
-            RuleCondition {
-                field: "test_field".to_string(),
-                operator: ConditionOperator::Exists,
-                value: json!(true),
-                case_sensitive: None,
-            }
-        ],
-        actions: vec![
-            RuleAction {
-                action_type: ActionType::Log,
-                parameters: HashMap::new(),
-                enabled: true,
-            }
-        ],
+        conditions: vec![RuleCondition {
+            field: "test_field".to_string(),
+            operator: ConditionOperator::Exists,
+            value: json!(true),
+            case_sensitive: None,
+        }],
+        actions: vec![RuleAction {
+            action_type: ActionType::Log,
+            parameters: HashMap::new(),
+            enabled: true,
+        }],
         metadata: HashMap::new(),
     };
 
@@ -294,7 +287,7 @@ async fn test_rule_actions() {
 async fn test_validation_statistics() {
     let global_config = GlobalConfig::new();
     let validator = ComprehensiveValidator::new(&global_config).await.unwrap();
-    
+
     let stats = validator.get_statistics().await;
     assert_eq!(stats.cache_ttl, 300);
     assert_eq!(stats.validation_level, ValidationLevel::Standard);
@@ -304,7 +297,7 @@ async fn test_validation_statistics() {
 #[tokio::test]
 async fn test_validation_rules_statistics() {
     let mut config = ValidationRulesConfig::new();
-    
+
     // Add some rules
     for i in 0..5 {
         let rule = ValidationRule {
@@ -323,7 +316,7 @@ async fn test_validation_rules_statistics() {
 
     let manager = ValidationRulesManager::new(config).unwrap();
     let stats = manager.get_statistics();
-    
+
     assert_eq!(stats.total_rules, 5);
     assert_eq!(stats.enabled_rules, 3);
     assert_eq!(stats.rule_sets, 0);
@@ -333,7 +326,7 @@ async fn test_validation_rules_statistics() {
 async fn test_validation_cache() {
     let global_config = GlobalConfig::new();
     let validator = ComprehensiveValidator::new(&global_config).await.unwrap();
-    
+
     let config = json!({
         "test_field": "value"
     });
@@ -356,7 +349,7 @@ async fn test_validation_cache() {
 
     // Clear cache
     validator.clear_cache().await;
-    
+
     // After clearing cache, should still work
     let result3 = validator
         .validate_config_value(&config, &SchemaType::Rhema, Path::new("test.yaml"))
@@ -369,7 +362,7 @@ async fn test_validation_cache() {
 #[tokio::test]
 async fn test_validation_levels() {
     let global_config = GlobalConfig::new();
-    
+
     let levels = [
         ValidationLevel::Basic,
         ValidationLevel::Standard,
@@ -378,12 +371,10 @@ async fn test_validation_levels() {
     ];
 
     for level in levels {
-        let validator = ComprehensiveValidator::with_settings(
-            &global_config,
-            300,
-            level.clone(),
-            false,
-        ).await.unwrap();
+        let validator =
+            ComprehensiveValidator::with_settings(&global_config, 300, level.clone(), false)
+                .await
+                .unwrap();
 
         let config = json!({
             "rhema": {
@@ -408,7 +399,7 @@ async fn test_validation_levels() {
 #[tokio::test]
 async fn test_rule_enabling_disabling() {
     let mut config = ValidationRulesConfig::new();
-    
+
     let rule = ValidationRule {
         id: "test-rule".to_string(),
         name: "Test Rule".to_string(),
@@ -416,26 +407,22 @@ async fn test_rule_enabling_disabling() {
         rule_type: RuleType::Schema,
         severity: ConfigIssueSeverity::Warning,
         enabled: true,
-        conditions: vec![
-            RuleCondition {
-                field: "test_field".to_string(),
-                operator: ConditionOperator::Exists,
-                value: json!(true),
-                case_sensitive: None,
-            }
-        ],
-        actions: vec![
-            RuleAction {
-                action_type: ActionType::Log,
-                parameters: HashMap::new(),
-                enabled: true,
-            }
-        ],
+        conditions: vec![RuleCondition {
+            field: "test_field".to_string(),
+            operator: ConditionOperator::Exists,
+            value: json!(true),
+            case_sensitive: None,
+        }],
+        actions: vec![RuleAction {
+            action_type: ActionType::Log,
+            parameters: HashMap::new(),
+            enabled: true,
+        }],
         metadata: HashMap::new(),
     };
 
     config.add_rule(rule.clone());
-    
+
     // Initially enabled
     let manager = ValidationRulesManager::new(config).unwrap();
     let config_value = json!({ "test_field": "value" });
@@ -447,7 +434,7 @@ async fn test_rule_enabling_disabling() {
     let mut disabled_rule = rule.clone();
     disabled_rule.enabled = false;
     new_config.add_rule(disabled_rule);
-    
+
     let manager = ValidationRulesManager::new(new_config).unwrap();
     let results = manager.evaluate_rules(&config_value, "test").await.unwrap();
     assert_eq!(results.len(), 0);
@@ -457,25 +444,29 @@ async fn test_rule_enabling_disabling() {
 async fn test_validation_with_temp_files() {
     let temp_dir = TempDir::new().unwrap();
     let config_file = temp_dir.path().join("test_config.yaml");
-    
+
     // Create a temporary config file
-    std::fs::write(&config_file, r#"
+    std::fs::write(
+        &config_file,
+        r#"
 rhema:
   version: "1.0.0"
   scope:
     type: "repository"
     name: "test-repo"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let global_config = GlobalConfig::new();
     let validator = ComprehensiveValidator::new(&global_config).await.unwrap();
-    
+
     let result = validator
         .validate_config_file(&config_file, &SchemaType::Rhema)
         .await;
-    
+
     assert!(result.is_ok());
-    
+
     let validation_result = result.unwrap();
     assert!(validation_result.schema_valid);
 }
@@ -495,13 +486,19 @@ async fn test_performance_validation() {
         300,
         ValidationLevel::Complete,
         false,
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     // Create a large knowledge array
-    let large_knowledge: Vec<_> = (0..1500).map(|i| json!({
-        "title": format!("Knowledge {}", i),
-        "content": "Large knowledge base"
-    })).collect();
+    let large_knowledge: Vec<_> = (0..1500)
+        .map(|i| {
+            json!({
+                "title": format!("Knowledge {}", i),
+                "content": "Large knowledge base"
+            })
+        })
+        .collect();
 
     let config = json!({
         "rhema": {
@@ -520,7 +517,8 @@ async fn test_performance_validation() {
         .unwrap();
 
     // Should have performance warnings
-    let performance_issues: Vec<_> = result.issues
+    let performance_issues: Vec<_> = result
+        .issues
         .iter()
         .filter(|issue| format!("{:?}", issue.category) == "Performance")
         .collect();
@@ -538,7 +536,9 @@ async fn test_security_validation() {
         300,
         ValidationLevel::Complete,
         false,
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     let config = json!({
         "rhema": {
@@ -559,7 +559,8 @@ async fn test_security_validation() {
         .unwrap();
 
     // Should have security warnings
-    let security_issues: Vec<_> = result.issues
+    let security_issues: Vec<_> = result
+        .issues
         .iter()
         .filter(|issue| format!("{:?}", issue.category) == "Security")
         .collect();
@@ -567,4 +568,4 @@ async fn test_security_validation() {
     // Note: This test might not find security issues if the validation logic
     // is not fully implemented in the test environment
     println!("Found {} security issues", security_issues.len());
-} 
+}

@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-use super::{PersistenceConfig, StoreStats, StorageBackend};
+use super::{PersistenceConfig, StorageBackend, StoreStats};
 use crate::agent::real_time_coordination::{AgentInfo, AgentStatus};
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -23,7 +24,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
-use chrono::{DateTime, Utc};
 
 /// State manager for persisting general system state
 pub struct StateManager {
@@ -89,16 +89,17 @@ impl StateManager {
     pub async fn new(config: PersistenceConfig) -> RhemaResult<Self> {
         let file_path = match &config.backend {
             StorageBackend::File => {
-                let path = config.storage_path
+                let path = config
+                    .storage_path
                     .as_ref()
                     .map(|p| p.join("state"))
                     .unwrap_or_else(|| PathBuf::from("./data/state"));
-                
+
                 // Create directory if it doesn't exist
                 if let Some(parent) = path.parent() {
                     tokio::fs::create_dir_all(parent).await?;
                 }
-                
+
                 Some(path)
             }
             _ => None,
@@ -122,9 +123,9 @@ impl StateManager {
     pub async fn store_agent_state(&self, agent_info: AgentInfo) -> RhemaResult<()> {
         let size_bytes = serde_json::to_string(&agent_info)?.len() as u64;
         let now = Utc::now();
-        
+
         let mut states = self.agent_states.write().await;
-        
+
         let stored_state = if let Some(existing) = states.get_mut(&agent_info.id) {
             // Record state transition if status changed
             if existing.agent_info.status != agent_info.status {
@@ -137,7 +138,7 @@ impl StateManager {
                 };
                 existing.state_transitions.push(transition);
             }
-            
+
             existing.agent_info = agent_info;
             existing.updated_at = now;
             existing.size_bytes = size_bytes;
@@ -165,7 +166,7 @@ impl StateManager {
     /// Retrieve agent state
     pub async fn get_agent_state(&self, agent_id: &str) -> Option<AgentInfo> {
         let mut states = self.agent_states.write().await;
-        
+
         if let Some(stored_state) = states.get_mut(agent_id) {
             stored_state.access_count += 1;
             stored_state.last_accessed = Utc::now();
@@ -178,7 +179,8 @@ impl StateManager {
     /// Get agent state transitions
     pub async fn get_agent_transitions(&self, agent_id: &str) -> Vec<StateTransition> {
         let states = self.agent_states.read().await;
-        states.get(agent_id)
+        states
+            .get(agent_id)
             .map(|stored_state| stored_state.state_transitions.clone())
             .unwrap_or_default()
     }
@@ -201,10 +203,16 @@ impl StateManager {
     }
 
     /// Store configuration snapshot
-    pub async fn store_configuration(&self, name: String, config_data: serde_json::Value, version: String, description: Option<String>) -> RhemaResult<()> {
+    pub async fn store_configuration(
+        &self,
+        name: String,
+        config_data: serde_json::Value,
+        version: String,
+        description: Option<String>,
+    ) -> RhemaResult<()> {
         let size_bytes = serde_json::to_string(&config_data)?.len() as u64;
         let now = Utc::now();
-        
+
         let stored_config = StoredConfiguration {
             name: name.clone(),
             config_data,
@@ -259,18 +267,24 @@ impl StateManager {
     /// Get agent performance statistics
     pub async fn get_agent_performance_stats(&self) -> AgentPerformanceStats {
         let states = self.agent_states.read().await;
-        
+
         let total_agents = states.len();
         let active_agents = states.values().filter(|s| s.agent_info.is_online).count();
-        let avg_tasks_completed = states.values()
+        let avg_tasks_completed = states
+            .values()
             .map(|s| s.agent_info.performance_metrics.tasks_completed)
-            .sum::<usize>() as f64 / total_agents.max(1) as f64;
-        let avg_success_rate = states.values()
+            .sum::<usize>() as f64
+            / total_agents.max(1) as f64;
+        let avg_success_rate = states
+            .values()
             .map(|s| s.agent_info.performance_metrics.success_rate)
-            .sum::<f64>() / total_agents.max(1) as f64;
-        let avg_response_time = states.values()
+            .sum::<f64>()
+            / total_agents.max(1) as f64;
+        let avg_response_time = states
+            .values()
             .map(|s| s.agent_info.performance_metrics.avg_response_time_ms)
-            .sum::<f64>() / total_agents.max(1) as f64;
+            .sum::<f64>()
+            / total_agents.max(1) as f64;
 
         AgentPerformanceStats {
             total_agents,
@@ -290,16 +304,18 @@ impl StateManager {
                     if path.exists() {
                         let data = tokio::fs::read_to_string(path).await?;
                         let stored_data: StoredStateData = serde_json::from_str(&data)?;
-                        
+
                         let agent_states_count = stored_data.agent_states.len();
                         let configurations_count = stored_data.configurations.len();
-                        
+
                         *self.agent_states.write().await = stored_data.agent_states;
                         *self.system_metrics.write().await = stored_data.system_metrics;
                         *self.configuration_snapshots.write().await = stored_data.configurations;
-                        
-                        info!("Loaded {} agent states and {} configurations from storage", 
-                              agent_states_count, configurations_count);
+
+                        info!(
+                            "Loaded {} agent states and {} configurations from storage",
+                            agent_states_count, configurations_count
+                        );
                     }
                 }
             }
@@ -319,13 +335,13 @@ impl StateManager {
                     let agent_states = self.agent_states.read().await;
                     let system_metrics = self.system_metrics.read().await;
                     let configurations = self.configuration_snapshots.read().await;
-                    
+
                     let stored_data = StoredStateData {
                         agent_states: agent_states.clone(),
                         system_metrics: system_metrics.clone(),
                         configurations: configurations.clone(),
                     };
-                    
+
                     let data = serde_json::to_string_pretty(&stored_data)?;
                     tokio::fs::write(path, data).await?;
                 }
@@ -340,24 +356,25 @@ impl StateManager {
     /// Perform backup
     pub async fn backup(&self) -> RhemaResult<()> {
         if self.config.enable_backups {
-            let backup_path = self.file_path
+            let backup_path = self
+                .file_path
                 .as_ref()
                 .map(|p| p.with_extension("backup"))
                 .unwrap_or_else(|| PathBuf::from("./data/state.backup"));
-            
+
             let agent_states = self.agent_states.read().await;
             let system_metrics = self.system_metrics.read().await;
             let configurations = self.configuration_snapshots.read().await;
-            
+
             let stored_data = StoredStateData {
                 agent_states: agent_states.clone(),
                 system_metrics: system_metrics.clone(),
                 configurations: configurations.clone(),
             };
-            
+
             let data = serde_json::to_string_pretty(&stored_data)?;
             tokio::fs::write(backup_path, data).await?;
-            
+
             info!("State backup completed");
         }
         Ok(())
@@ -366,18 +383,19 @@ impl StateManager {
     /// Perform cleanup
     pub async fn cleanup(&self) -> RhemaResult<()> {
         if self.config.enable_cleanup {
-            let cutoff_date = Utc::now() - chrono::Duration::days(self.config.data_retention_days as i64);
-            
+            let cutoff_date =
+                Utc::now() - chrono::Duration::days(self.config.data_retention_days as i64);
+
             {
                 let mut states = self.agent_states.write().await;
                 states.retain(|_, stored_state| stored_state.updated_at > cutoff_date);
             }
-            
+
             {
                 let mut configs = self.configuration_snapshots.write().await;
                 configs.retain(|_, stored_config| stored_config.updated_at > cutoff_date);
             }
-            
+
             self.save().await?;
             info!("State cleanup completed");
         }
@@ -388,21 +406,25 @@ impl StateManager {
     pub async fn validate(&self) -> RhemaResult<()> {
         if self.config.enable_validation {
             let states = self.agent_states.read().await;
-            
+
             for (id, stored_state) in states.iter() {
                 if stored_state.agent_info.id != *id {
-                    return Err(rhema_core::RhemaError::Validation(format!("Agent ID mismatch: {}", id)));
+                    return Err(rhema_core::RhemaError::Validation(format!(
+                        "Agent ID mismatch: {}",
+                        id
+                    )));
                 }
-                
+
                 // Validate performance metrics
                 let metrics = &stored_state.agent_info.performance_metrics;
                 if metrics.success_rate < 0.0 || metrics.success_rate > 1.0 {
-                    return Err(rhema_core::RhemaError::Validation(
-                        format!("Invalid success rate for agent {}: {}", id, metrics.success_rate)
-                    ));
+                    return Err(rhema_core::RhemaError::Validation(format!(
+                        "Invalid success rate for agent {}: {}",
+                        id, metrics.success_rate
+                    )));
                 }
             }
-            
+
             info!("State validation completed successfully");
         }
         Ok(())
@@ -412,16 +434,16 @@ impl StateManager {
     pub async fn get_stats(&self) -> RhemaResult<StoreStats> {
         let agent_states = self.agent_states.read().await;
         let configurations = self.configuration_snapshots.read().await;
-        
+
         let total_entries = agent_states.len() + configurations.len();
-        let size_bytes = agent_states.values().map(|s| s.size_bytes).sum::<u64>() +
-                        configurations.values().map(|c| c.size_bytes).sum::<u64>();
-        
+        let size_bytes = agent_states.values().map(|s| s.size_bytes).sum::<u64>()
+            + configurations.values().map(|c| c.size_bytes).sum::<u64>();
+
         Ok(StoreStats {
             total_entries,
             size_bytes,
-            last_backup: None, // TODO: Track backup timestamps
-            last_cleanup: None, // TODO: Track cleanup timestamps
+            last_backup: None,    // TODO: Track backup timestamps
+            last_cleanup: None,   // TODO: Track cleanup timestamps
             validation_errors: 0, // TODO: Track validation errors
         })
     }
@@ -462,4 +484,4 @@ struct StoredStateData {
     agent_states: HashMap<String, StoredAgentState>,
     system_metrics: SystemMetrics,
     configurations: HashMap<String, StoredConfiguration>,
-} 
+}

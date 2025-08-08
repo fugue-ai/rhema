@@ -14,55 +14,54 @@
  * limitations under the License.
  */
 
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error, instrument};
+use tracing::{error, info, instrument, warn};
 
 // Re-export types from core crate
-pub use rhema_core::{RhemaError, RhemaResult, Scope, schema::*, scope};
+pub use rhema_core::{schema::*, scope, RhemaError, RhemaResult, Scope};
 
 // Re-export types from other crates
-pub use rhema_query::{QueryProvenance, QueryResult};
-pub use rhema_git::git_basic;
 pub use rhema_ai::ai_service;
-pub use rhema_mcp::mcp;
 pub use rhema_config::config;
-pub use rhema_monitoring::monitoring;
+pub use rhema_git::git_basic;
 pub use rhema_integrations::integrations;
+pub use rhema_mcp::mcp;
+pub use rhema_monitoring::monitoring;
+pub use rhema_query::{QueryProvenance, QueryResult};
 
 // Re-export coordination types
 pub use rhema_ai::agent::real_time_coordination::{
-    AgentInfo, AgentMessage, AgentStatus, MessageType, MessagePriority,
-    RealTimeCoordinationSystem, CoordinationConfig, AdvancedCoordinationConfig,
-    AgentPerformanceMetrics, CoordinationSession, SessionStatus, SessionDecision,
-    CoordinationStats, CoordinationError, LoadBalancingStrategy, FaultToleranceConfig,
-    EncryptionConfig, PerformanceMonitoringConfig, ConsensusConfig, ConsensusState,
-    ConsensusMessage, ConsensusEntry, AdvancedSession, SessionRule, SessionRuleType,
-    ResourceInfo, PerformanceMetrics as CoordinationPerformanceMetrics,
+    AdvancedCoordinationConfig, AdvancedSession, AgentInfo, AgentMessage, AgentPerformanceMetrics,
+    AgentStatus, ConsensusConfig, ConsensusEntry, ConsensusMessage, ConsensusState,
+    CoordinationConfig, CoordinationError, CoordinationSession, CoordinationStats,
+    EncryptionConfig, FaultToleranceConfig, LoadBalancingStrategy, MessagePriority, MessageType,
+    PerformanceMetrics as CoordinationPerformanceMetrics, PerformanceMonitoringConfig,
+    RealTimeCoordinationSystem, ResourceInfo, SessionDecision, SessionRule, SessionRuleType,
+    SessionStatus,
 };
 pub use rhema_ai::coordination_integration::{
-    CoordinationIntegration, CoordinationConfig as IntegrationConfig, IntegrationStats
+    CoordinationConfig as IntegrationConfig, CoordinationIntegration, IntegrationStats,
 };
 
 // API documentation module
 pub mod api_docs;
-pub use api_docs::{ApiDocumentation, ApiDocGenerator};
+pub use api_docs::{ApiDocGenerator, ApiDocumentation};
 
 // Performance monitoring module
 pub mod performance;
 pub use performance::{
-    PerformanceMonitor, PerformanceMetrics, AggregatedMetrics, PerformanceLimits,
-    PerformanceCheckResult, PerformanceGuard, ResourceManager, ResourceUsageStatus,
-    PerformanceOptimizer,
+    AggregatedMetrics, PerformanceCheckResult, PerformanceGuard, PerformanceLimits,
+    PerformanceMetrics, PerformanceMonitor, PerformanceOptimizer, ResourceManager,
+    ResourceUsageStatus,
 };
 
 // Security module
 pub mod security;
 pub use security::{
-    SecurityConfig, InputSanitizer, AccessControl, AuditLogger, AuditLogEntry,
-    SecurityManager,
+    AccessControl, AuditLogEntry, AuditLogger, InputSanitizer, SecurityConfig, SecurityManager,
 };
 
 // Init module
@@ -105,23 +104,29 @@ pub struct ApiInput {
 impl ApiInput {
     pub fn validate(&self) -> RhemaResult<()> {
         if self.operation.is_empty() {
-            return Err(RhemaError::InvalidInput("Operation cannot be empty".to_string()));
+            return Err(RhemaError::InvalidInput(
+                "Operation cannot be empty".to_string(),
+            ));
         }
-        
+
         // Validate query if present
         if let Some(ref query) = self.query {
             if query.is_empty() {
-                return Err(RhemaError::InvalidInput("Query cannot be empty".to_string()));
+                return Err(RhemaError::InvalidInput(
+                    "Query cannot be empty".to_string(),
+                ));
             }
         }
-        
+
         // Validate scope name if present
         if let Some(ref scope_name) = self.scope_name {
             if scope_name.is_empty() {
-                return Err(RhemaError::InvalidInput("Scope name cannot be empty".to_string()));
+                return Err(RhemaError::InvalidInput(
+                    "Scope name cannot be empty".to_string(),
+                ));
             }
         }
-        
+
         Ok(())
     }
 }
@@ -144,7 +149,7 @@ impl Rhema {
     pub fn new() -> RhemaResult<Self> {
         let repo_root = git_basic::find_repo_root()?;
         info!("Initializing Rhema for repository: {}", repo_root.display());
-        
+
         Ok(Self {
             repo_root,
             rate_limit_config: RateLimitConfig::default(),
@@ -160,13 +165,14 @@ impl Rhema {
     pub fn new_from_path(repo_root: PathBuf) -> RhemaResult<Self> {
         // Verify that the path contains a git repository
         if !repo_root.join(".git").exists() {
-            return Err(RhemaError::GitRepoNotFound(
-                format!("No Git repository found at {}", repo_root.display())
-            ));
+            return Err(RhemaError::GitRepoNotFound(format!(
+                "No Git repository found at {}",
+                repo_root.display()
+            )));
         }
-        
+
         info!("Initializing Rhema for repository: {}", repo_root.display());
-        
+
         Ok(Self {
             repo_root,
             rate_limit_config: RateLimitConfig::default(),
@@ -179,15 +185,22 @@ impl Rhema {
 
     /// Create a new Rhema instance with custom rate limiting
     #[instrument(skip_all)]
-    pub fn new_with_rate_limit(repo_root: PathBuf, rate_limit_config: RateLimitConfig) -> RhemaResult<Self> {
+    pub fn new_with_rate_limit(
+        repo_root: PathBuf,
+        rate_limit_config: RateLimitConfig,
+    ) -> RhemaResult<Self> {
         if !repo_root.join(".git").exists() {
-            return Err(RhemaError::GitRepoNotFound(
-                format!("No Git repository found at {}", repo_root.display())
-            ));
+            return Err(RhemaError::GitRepoNotFound(format!(
+                "No Git repository found at {}",
+                repo_root.display()
+            )));
         }
-        
-        info!("Initializing Rhema with rate limiting for repository: {}", repo_root.display());
-        
+
+        info!(
+            "Initializing Rhema with rate limiting for repository: {}",
+            repo_root.display()
+        );
+
         Ok(Self {
             repo_root,
             rate_limit_config,
@@ -202,7 +215,7 @@ impl Rhema {
     pub fn repo_root(&self) -> &PathBuf {
         &self.repo_root
     }
-    
+
     /// Get the repository root path (alias for repo_root)
     pub fn repo_path(&self) -> &PathBuf {
         &self.repo_root
@@ -215,13 +228,16 @@ impl Rhema {
 
     /// Initialize coordination system
     #[instrument(skip_all)]
-    pub async fn init_coordination(&mut self, config: Option<CoordinationConfig>) -> RhemaResult<()> {
+    pub async fn init_coordination(
+        &mut self,
+        config: Option<CoordinationConfig>,
+    ) -> RhemaResult<()> {
         let config = config.unwrap_or_default();
         info!("Initializing coordination system with config: {:?}", config);
-        
+
         let coordination_system = RealTimeCoordinationSystem::with_config(config);
         self.coordination_system = Some(Arc::new(coordination_system));
-        
+
         info!("✅ Coordination system initialized successfully");
         Ok(())
     }
@@ -229,15 +245,16 @@ impl Rhema {
     /// Initialize coordination with advanced features
     #[instrument(skip_all)]
     pub async fn init_advanced_coordination(
-        &mut self, 
-        config: CoordinationConfig, 
-        advanced_config: AdvancedCoordinationConfig
+        &mut self,
+        config: CoordinationConfig,
+        advanced_config: AdvancedCoordinationConfig,
     ) -> RhemaResult<()> {
         info!("Initializing advanced coordination system");
-        
-        let coordination_system = RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
+
+        let coordination_system =
+            RealTimeCoordinationSystem::with_advanced_config(config, advanced_config);
         self.coordination_system = Some(Arc::new(coordination_system));
-        
+
         info!("✅ Advanced coordination system initialized successfully");
         Ok(())
     }
@@ -245,15 +262,16 @@ impl Rhema {
     /// Initialize coordination integration with external systems
     #[instrument(skip_all)]
     pub async fn init_coordination_integration(
-        &mut self, 
-        integration_config: Option<IntegrationConfig>
+        &mut self,
+        integration_config: Option<IntegrationConfig>,
     ) -> RhemaResult<()> {
         if let Some(coordination_system) = &self.coordination_system {
             let integration = CoordinationIntegration::new(
                 coordination_system.as_ref().clone(),
-                integration_config
-            ).await?;
-            
+                integration_config,
+            )
+            .await?;
+
             self.coordination_integration = Some(Arc::new(integration));
             info!("✅ Coordination integration initialized successfully");
         } else {
@@ -262,7 +280,7 @@ impl Rhema {
                 message: "Coordination system must be initialized before integration".to_string(),
             });
         }
-        
+
         Ok(())
     }
 
@@ -290,69 +308,82 @@ impl Rhema {
     #[instrument(skip_all)]
     pub async fn validate_api_input(&self, input: &ApiInput) -> RhemaResult<()> {
         input.validate()?;
-        
+
         // Additional validation based on operation type
         match input.operation.as_str() {
             "query" => {
                 if input.query.is_none() {
-                    return Err(RhemaError::InvalidInput("Query operation requires a query string".to_string()));
+                    return Err(RhemaError::InvalidInput(
+                        "Query operation requires a query string".to_string(),
+                    ));
                 }
-            },
+            }
             "load_scope" => {
                 if input.scope_name.is_none() {
-                    return Err(RhemaError::InvalidInput("Load scope operation requires a scope name".to_string()));
+                    return Err(RhemaError::InvalidInput(
+                        "Load scope operation requires a scope name".to_string(),
+                    ));
                 }
-            },
+            }
             _ => {
                 // Unknown operation type
                 warn!("Unknown operation type: {}", input.operation);
             }
         }
-        
+
         Ok(())
     }
 
     /// Handle operation with comprehensive error recovery
     #[instrument(skip_all)]
-    pub async fn handle_operation_with_error_recovery(&self, operation: &ApiInput) -> RhemaResult<serde_yaml::Value> {
+    pub async fn handle_operation_with_error_recovery(
+        &self,
+        operation: &ApiInput,
+    ) -> RhemaResult<serde_yaml::Value> {
         // Validate input first
         self.validate_api_input(operation).await?;
-        
+
         // Apply rate limiting
         self.check_rate_limit().await?;
-        
+
         // Execute operation with error recovery
         let result = match operation.operation.as_str() {
             "query" => {
                 if let Some(ref query) = operation.query {
                     self.query_with_error_recovery(query).await
                 } else {
-                    Err(RhemaError::InvalidInput("Query operation requires a query string".to_string()))
+                    Err(RhemaError::InvalidInput(
+                        "Query operation requires a query string".to_string(),
+                    ))
                 }
-            },
-            "discover_scopes" => {
-                self.discover_scopes_optimized().await
-                    .map(|scopes| serde_yaml::to_value(scopes).unwrap_or_default())
-            },
+            }
+            "discover_scopes" => self
+                .discover_scopes_optimized()
+                .await
+                .map(|scopes| serde_yaml::to_value(scopes).unwrap_or_default()),
             "load_scope" => {
                 if let Some(ref scope_name) = operation.scope_name {
-                    self.get_scope_optimized(scope_name).await
+                    self.get_scope_optimized(scope_name)
+                        .await
                         .map(|scope| serde_yaml::to_value(scope).unwrap_or_default())
                 } else {
-                    Err(RhemaError::InvalidInput("Load scope operation requires a scope name".to_string()))
+                    Err(RhemaError::InvalidInput(
+                        "Load scope operation requires a scope name".to_string(),
+                    ))
                 }
-            },
-            _ => {
-                Err(RhemaError::InvalidInput(format!("Unknown operation: {}", operation.operation)))
             }
+            _ => Err(RhemaError::InvalidInput(format!(
+                "Unknown operation: {}",
+                operation.operation
+            ))),
         };
-        
+
         // Log operation result
         match &result {
             Ok(_) => info!("Operation '{}' completed successfully", operation.operation),
             Err(e) => error!("Operation '{}' failed: {}", operation.operation, e),
         }
-        
+
         result
     }
 
@@ -375,11 +406,11 @@ impl Rhema {
             info!("Cache hit for query: {}", query);
             return Ok(cached_result.clone());
         }
-        
+
         // Execute query with retry logic
         let mut attempts = 0;
         let max_attempts = 3;
-        
+
         while attempts < max_attempts {
             match self.query(query) {
                 Ok(result) => {
@@ -387,18 +418,19 @@ impl Rhema {
                     let mut cache = self.cache.write().await;
                     cache.insert(cache_key, result.clone());
                     return Ok(result);
-                },
+                }
                 Err(e) => {
                     attempts += 1;
                     if attempts >= max_attempts {
                         return Err(e);
                     }
                     warn!("Query attempt {} failed: {}, retrying...", attempts, e);
-                    tokio::time::sleep(tokio::time::Duration::from_millis(100 * attempts as u64)).await;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100 * attempts as u64))
+                        .await;
                 }
             }
         }
-        
+
         unreachable!()
     }
 
@@ -411,16 +443,16 @@ impl Rhema {
             info!("Using cached scopes");
             return Ok(vec![cached_scopes.clone()]);
         }
-        
+
         // Discover scopes
         let scopes = scope::discover_scopes(&self.repo_root)?;
-        
+
         // Cache the first scope (representing the repository root)
         if let Some(first_scope) = scopes.first() {
             let mut scope_cache = self.scope_cache.write().await;
             scope_cache.insert(cache_key, first_scope.clone());
         }
-        
+
         Ok(scopes)
     }
 
@@ -433,14 +465,14 @@ impl Rhema {
             info!("Using cached scope: {}", path);
             return Ok(cached_scope.clone());
         }
-        
+
         // Get scope
         let scope = scope::get_scope(&self.repo_root, path)?;
-        
+
         // Cache the scope
         let mut scope_cache = self.scope_cache.write().await;
         scope_cache.insert(cache_key, scope.clone());
-        
+
         Ok(scope)
     }
 
@@ -449,21 +481,26 @@ impl Rhema {
     pub async fn validate_scope(&self, scope: &Scope) -> RhemaResult<()> {
         // Validate scope definition
         scope.definition.validate()?;
-        
+
         // Validate scope path exists
         if !scope.path.exists() {
-            return Err(RhemaError::ValidationError(
-                format!("Scope path does not exist: {}", scope.path.display())
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Scope path does not exist: {}",
+                scope.path.display()
+            )));
         }
-        
+
         // Validate required files exist
         for (filename, filepath) in &scope.files {
             if !filepath.exists() {
-                warn!("Scope file {} not found at {}", filename, filepath.display());
+                warn!(
+                    "Scope file {} not found at {}",
+                    filename,
+                    filepath.display()
+                );
             }
         }
-        
+
         info!("Scope validation passed: {}", scope.path.display());
         Ok(())
     }
@@ -477,7 +514,7 @@ impl Rhema {
     pub fn get_scope(&self, path: &str) -> RhemaResult<Scope> {
         Ok(scope::get_scope(&self.repo_root, path)?)
     }
-    
+
     /// Get the path for a specific scope
     pub fn scope_path(&self, scope_name: &str) -> RhemaResult<PathBuf> {
         let scope = self.get_scope(scope_name)?;
@@ -501,34 +538,53 @@ impl Rhema {
     pub fn query(&self, query: &str) -> RhemaResult<serde_yaml::Value> {
         // Validate query input
         if query.trim().is_empty() {
-            return Err(RhemaError::InvalidInput("Query cannot be empty".to_string()));
+            return Err(RhemaError::InvalidInput(
+                "Query cannot be empty".to_string(),
+            ));
         }
-        
+
         // Execute query with performance monitoring
         let start = std::time::Instant::now();
         let result = rhema_query::execute_query(&self.repo_root, query)?;
         let duration = start.elapsed();
-        
+
         info!("Query executed in {:?}: {}", duration, query);
-        
+
         Ok(result)
     }
 
     /// Execute a CQL query with statistics
-    pub fn query_with_stats(&self, query: &str) -> RhemaResult<(serde_yaml::Value, HashMap<String, serde_yaml::Value>)> {
+    pub fn query_with_stats(
+        &self,
+        query: &str,
+    ) -> RhemaResult<(serde_yaml::Value, HashMap<String, serde_yaml::Value>)> {
         let result = rhema_query::execute_query(&self.repo_root, query)?;
         let stats = rhema_query::get_query_stats(&self.repo_root, query)?;
         Ok((result, stats))
     }
 
     /// Execute a CQL query with full provenance tracking
-    pub fn query_with_provenance(&self, query: &str) -> RhemaResult<(serde_yaml::Value, QueryProvenance)> {
-        Ok(rhema_query::execute_query_with_provenance(&self.repo_root, query)?)
+    pub fn query_with_provenance(
+        &self,
+        query: &str,
+    ) -> RhemaResult<(serde_yaml::Value, QueryProvenance)> {
+        Ok(rhema_query::execute_query_with_provenance(
+            &self.repo_root,
+            query,
+        )?)
     }
 
     /// Search context with regex support
-    pub fn search_regex(&self, pattern: &str, file_filter: Option<&str>) -> RhemaResult<Vec<QueryResult>> {
-        Ok(rhema_query::search_context_regex(&self.repo_root, pattern, file_filter)?)
+    pub fn search_regex(
+        &self,
+        pattern: &str,
+        file_filter: Option<&str>,
+    ) -> RhemaResult<Vec<QueryResult>> {
+        Ok(rhema_query::search_context_regex(
+            &self.repo_root,
+            pattern,
+            file_filter,
+        )?)
     }
 
     /// Load knowledge for a specific scope with error recovery
@@ -536,19 +592,17 @@ impl Rhema {
     pub async fn load_knowledge_async(&self, scope_name: &str) -> RhemaResult<Knowledge> {
         let scope = self.get_scope_optimized(scope_name).await?;
         let knowledge_path = scope.path.join("knowledge.yaml");
-        
+
         if knowledge_path.exists() {
             match tokio::fs::read_to_string(&knowledge_path).await {
-                Ok(content) => {
-                    match serde_yaml::from_str(&content) {
-                        Ok(knowledge) => Ok(knowledge),
-                        Err(e) => Err(RhemaError::InvalidYaml {
-                            file: knowledge_path.display().to_string(),
-                            message: e.to_string(),
-                        })
-                    }
+                Ok(content) => match serde_yaml::from_str(&content) {
+                    Ok(knowledge) => Ok(knowledge),
+                    Err(e) => Err(RhemaError::InvalidYaml {
+                        file: knowledge_path.display().to_string(),
+                        message: e.to_string(),
+                    }),
                 },
-                Err(e) => Err(RhemaError::IoError(e))
+                Err(e) => Err(RhemaError::IoError(e)),
             }
         } else {
             Ok(Knowledge {
@@ -655,10 +709,10 @@ impl Rhema {
     pub async fn clear_caches(&self) -> RhemaResult<()> {
         let mut cache = self.cache.write().await;
         cache.clear();
-        
+
         let mut scope_cache = self.scope_cache.write().await;
         scope_cache.clear();
-        
+
         info!("All caches cleared");
         Ok(())
     }
@@ -668,7 +722,7 @@ impl Rhema {
     pub async fn get_cache_stats(&self) -> RhemaResult<HashMap<String, usize>> {
         let cache_size = self.cache.read().await.len();
         let scope_cache_size = self.scope_cache.read().await.len();
-        
+
         Ok(HashMap::from([
             ("query_cache_size".to_string(), cache_size),
             ("scope_cache_size".to_string(), scope_cache_size),
@@ -710,9 +764,15 @@ impl Rhema {
 
     /// Create a coordination session
     #[instrument(skip_all)]
-    pub async fn create_coordination_session(&self, topic: String, participants: Vec<String>) -> RhemaResult<String> {
+    pub async fn create_coordination_session(
+        &self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> RhemaResult<String> {
         if let Some(coordination_system) = &self.coordination_system {
-            let session_id = coordination_system.create_session(topic, participants).await?;
+            let session_id = coordination_system
+                .create_session(topic, participants)
+                .await?;
             info!("✅ Coordination session created: {}", session_id);
             Ok(session_id)
         } else {
@@ -725,9 +785,15 @@ impl Rhema {
 
     /// Join a coordination session
     #[instrument(skip_all)]
-    pub async fn join_coordination_session(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
+    pub async fn join_coordination_session(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> RhemaResult<()> {
         if let Some(coordination_system) = &self.coordination_system {
-            coordination_system.join_session(session_id, agent_id).await?;
+            coordination_system
+                .join_session(session_id, agent_id)
+                .await?;
             info!("✅ Agent {} joined session {}", agent_id, session_id);
         } else {
             return Err(RhemaError::InvalidYaml {
@@ -740,9 +806,15 @@ impl Rhema {
 
     /// Send a session message
     #[instrument(skip_all)]
-    pub async fn send_session_message(&self, session_id: &str, message: AgentMessage) -> RhemaResult<()> {
+    pub async fn send_session_message(
+        &self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> RhemaResult<()> {
         if let Some(coordination_system) = &self.coordination_system {
-            coordination_system.send_session_message(session_id, message).await?;
+            coordination_system
+                .send_session_message(session_id, message)
+                .await?;
             info!("✅ Session message sent to {}", session_id);
         } else {
             return Err(RhemaError::InvalidYaml {
@@ -794,9 +866,15 @@ impl Rhema {
 
     /// Update agent status
     #[instrument(skip_all)]
-    pub async fn update_agent_status(&self, agent_id: &str, status: AgentStatus) -> RhemaResult<()> {
+    pub async fn update_agent_status(
+        &self,
+        agent_id: &str,
+        status: AgentStatus,
+    ) -> RhemaResult<()> {
         if let Some(coordination_system) = &self.coordination_system {
-            coordination_system.update_agent_status(agent_id, status).await?;
+            coordination_system
+                .update_agent_status(agent_id, status)
+                .await?;
             info!("✅ Agent {} status updated", agent_id);
         } else {
             return Err(RhemaError::InvalidYaml {
@@ -872,8 +950,8 @@ impl Rhema {
             integration.shutdown().await?;
             info!("✅ Coordination integration shutdown complete");
         }
-        
+
         info!("✅ Coordination systems shutdown complete");
         Ok(())
     }
-} 
+}

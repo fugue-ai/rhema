@@ -16,19 +16,19 @@
 
 // Import types from other modules
 use crate::auth::AuthManager;
+use crate::cache::CacheConfig as CacheManagerConfig;
 use crate::cache::{
-    CacheManager, CompressionConfig, EvictionPolicy, WarmingStrategy, MonitoringConfig, 
-    OptimizationConfig, ValidationConfig, PersistenceConfig, PartitioningConfig, 
-    CoherencyConfig, PrefetchingConfig, AnalyticsConfig, HealthConfig
+    AnalyticsConfig, CacheManager, CoherencyConfig, CompressionConfig, EvictionPolicy,
+    HealthConfig, MonitoringConfig, OptimizationConfig, PartitioningConfig, PersistenceConfig,
+    PrefetchingConfig, ValidationConfig, WarmingStrategy,
 };
 use crate::context::ContextProvider;
 use crate::http_server::HttpServer;
+use crate::official_sdk::OfficialRhemaMcpServer;
 use crate::sdk::{
     ContextProviderExt, Prompt as SdkPrompt, Resource as SdkResource, RhemaMcpServer,
     Tool as SdkTool, ToolResult as SdkToolResult,
 };
-use crate::official_sdk::OfficialRhemaMcpServer;
-use crate::cache::CacheConfig as CacheManagerConfig;
 use crate::watcher::FileWatcher;
 
 use rhema_core::RhemaResult;
@@ -38,7 +38,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 /// MCP Daemon configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -167,10 +167,10 @@ pub struct SecurityConfig {
 pub struct RateLimitConfig {
     /// Requests per minute for HTTP API
     pub http_requests_per_minute: u32,
-    
+
     /// Messages per minute for WebSocket
     pub websocket_messages_per_minute: u32,
-    
+
     /// Messages per minute for Unix socket
     pub unix_socket_messages_per_minute: u32,
 }
@@ -240,16 +240,16 @@ pub struct LoggingConfig {
 pub struct StartupConfig {
     /// Graceful shutdown timeout in seconds
     pub graceful_shutdown_timeout: u64,
-    
+
     /// Health check interval in seconds
     pub health_check_interval: u64,
-    
+
     /// Connection timeout in seconds
     pub connection_timeout: u64,
-    
+
     /// Enable auto-restart on failure
     pub auto_restart: bool,
-    
+
     /// Maximum restart attempts
     pub max_restart_attempts: u32,
 }
@@ -385,7 +385,7 @@ impl McpDaemon {
     /// Create a new MCP daemon instance
     pub async fn new(config: McpConfig, repo_root: PathBuf) -> RhemaResult<Self> {
         let context_provider = Arc::new(ContextProvider::new(repo_root.clone())?);
-        
+
         // Convert config types
         let cache_config = CacheManagerConfig {
             memory_enabled: config.cache.memory_enabled,
@@ -407,7 +407,7 @@ impl McpDaemon {
             analytics: AnalyticsConfig::default(),
             health: HealthConfig::default(),
         };
-        
+
         let watcher_config = super::FileWatcherConfig {
             enabled: config.watcher.enabled,
             watch_dirs: config.watcher.watch_dirs.clone(),
@@ -424,13 +424,16 @@ impl McpDaemon {
 
         // Initialize official SDK server if enabled
         let official_sdk_server = if config.use_official_sdk {
-            Some(OfficialRhemaMcpServer::new(
-                context_provider.clone(),
-                cache_manager.clone(),
-                file_watcher.clone(),
-                auth_manager.clone(),
-                &config,
-            ).await?)
+            Some(
+                OfficialRhemaMcpServer::new(
+                    context_provider.clone(),
+                    cache_manager.clone(),
+                    file_watcher.clone(),
+                    auth_manager.clone(),
+                    &config,
+                )
+                .await?,
+            )
         } else {
             None
         };
@@ -458,13 +461,12 @@ impl McpDaemon {
     pub async fn start(&mut self) -> RhemaResult<()> {
         info!(
             "Starting MCP daemon on {}:{}",
-            self.config.host,
-            self.config.port
+            self.config.host, self.config.port
         );
 
         // Mark daemon as running
         *self.is_running.write().await = true;
-        
+
         // Start uptime tracking
         self.start_uptime_tracking().await;
 
@@ -519,11 +521,16 @@ impl McpDaemon {
     /// Restart the MCP daemon
     pub async fn restart(&mut self) -> RhemaResult<()> {
         info!("Restarting MCP daemon");
-        
+
         let current_restart_count = *self.restart_count.read().await;
         if current_restart_count >= self.config.startup.max_restart_attempts {
-            error!("Maximum restart attempts reached ({})", self.config.startup.max_restart_attempts);
-            return Err(rhema_core::RhemaError::DaemonError("Maximum restart attempts reached".to_string()));
+            error!(
+                "Maximum restart attempts reached ({})",
+                self.config.startup.max_restart_attempts
+            );
+            return Err(rhema_core::RhemaError::DaemonError(
+                "Maximum restart attempts reached".to_string(),
+            ));
         }
 
         // Increment restart count
@@ -553,14 +560,22 @@ impl McpDaemon {
         let is_running = *self.is_running.read().await;
 
         HealthStatus {
-            status: if is_running { "healthy".to_string() } else { "stopped".to_string() },
+            status: if is_running {
+                "healthy".to_string()
+            } else {
+                "stopped".to_string()
+            },
             uptime: uptime.as_secs(),
             connections,
             cache_hit_rate,
             memory_usage,
             request_count,
             error_count,
-            error_rate: if request_count > 0 { error_count as f64 / request_count as f64 } else { 0.0 },
+            error_rate: if request_count > 0 {
+                error_count as f64 / request_count as f64
+            } else {
+                0.0
+            },
             restart_count: *self.restart_count.read().await,
         }
     }
@@ -571,7 +586,11 @@ impl McpDaemon {
     }
 
     /// Track a new client connection
-    pub async fn track_connection(&self, client_id: String, client_type: ClientType) -> RhemaResult<()> {
+    pub async fn track_connection(
+        &self,
+        client_id: String,
+        client_type: ClientType,
+    ) -> RhemaResult<()> {
         let connection = ClientConnection {
             id: client_id.clone(),
             client_type,
@@ -616,7 +635,7 @@ impl McpDaemon {
     async fn start_uptime_tracking(&self) {
         let uptime = self.uptime.clone();
         let start_time = self.start_time;
-        
+
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(Duration::from_secs(1)).await;
@@ -629,14 +648,14 @@ impl McpDaemon {
     async fn start_health_monitoring(&self) {
         let health_interval = self.config.startup.health_check_interval;
         let daemon = self.clone();
-        
+
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(Duration::from_secs(health_interval)).await;
-                
+
                 // Update last health check time
                 *daemon.last_health_check.write().await = Instant::now();
-                
+
                 // Perform health checks
                 let health = daemon.health().await;
                 if health.status != "healthy" {
@@ -650,8 +669,7 @@ impl McpDaemon {
         if let Some(server) = &mut self.official_sdk_server {
             info!(
                 "Starting official MCP SDK server on {}:{}",
-                self.config.host,
-                self.config.port
+                self.config.host, self.config.port
             );
             server.start(&self.config).await?;
         }
@@ -661,7 +679,7 @@ impl McpDaemon {
     async fn start_http_server(&mut self) -> RhemaResult<()> {
         let daemon_arc = Arc::new(self.clone());
         let http_server = HttpServer::new(self.config.clone(), daemon_arc);
-        
+
         // Start HTTP server in background
         let server_clone = http_server.clone();
         tokio::spawn(async move {
@@ -736,7 +754,7 @@ impl McpDaemon {
     pub async fn get_memory_usage_mb(&self) -> MemoryUsage {
         let memory_usage = self.get_memory_usage().await;
         MemoryUsage {
-            used: memory_usage.used / 1024 / 1024, // Convert to MB
+            used: memory_usage.used / 1024 / 1024,   // Convert to MB
             total: memory_usage.total / 1024 / 1024, // Convert to MB
             cache_size: memory_usage.cache_size / 1024 / 1024, // Convert to MB
             used_mb: memory_usage.used_mb,

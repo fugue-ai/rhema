@@ -1,15 +1,15 @@
 // Unit tests for Rhema CLI core functionality
 // This file contains focused unit tests for individual components
 
+use git2::Repository;
+use rhema_cli::Rhema;
+use rhema_config::ConflictResolutionStrategy;
 use rhema_core::{RhemaResult, Scope};
 use rhema_query::query::CqlQuery;
-use rhema_config::ConflictResolutionStrategy;
-use rhema_cli::Rhema;
-use git2::Repository;
-use tempfile::TempDir;
-use std::path::PathBuf;
-use std::fs;
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use tempfile::TempDir;
 
 // Import test utilities
 use crate::common::helpers::TestHelpers;

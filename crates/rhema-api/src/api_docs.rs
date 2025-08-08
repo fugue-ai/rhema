@@ -22,31 +22,31 @@ use std::collections::HashMap;
 pub struct ApiDocumentation {
     /// API version
     pub version: String,
-    
+
     /// API title
     pub title: String,
-    
+
     /// API description
     pub description: String,
-    
+
     /// Base URL for the API
     pub base_url: String,
-    
+
     /// Available endpoints
     pub endpoints: Vec<ApiEndpoint>,
-    
+
     /// Data models
     pub models: Vec<ApiModel>,
-    
+
     /// Error codes and descriptions
     pub error_codes: Vec<ApiErrorCode>,
-    
+
     /// Authentication information
     pub authentication: Option<ApiAuthentication>,
-    
+
     /// Rate limiting information
     pub rate_limiting: Option<ApiRateLimiting>,
-    
+
     /// Examples
     pub examples: Vec<ApiExample>,
 }
@@ -56,28 +56,28 @@ pub struct ApiDocumentation {
 pub struct ApiEndpoint {
     /// HTTP method
     pub method: String,
-    
+
     /// Endpoint path
     pub path: String,
-    
+
     /// Endpoint description
     pub description: String,
-    
+
     /// Request parameters
     pub parameters: Vec<ApiParameter>,
-    
+
     /// Request body schema
     pub request_body: Option<ApiSchema>,
-    
+
     /// Response schemas
     pub responses: Vec<ApiResponse>,
-    
+
     /// Authentication required
     pub auth_required: bool,
-    
+
     /// Rate limiting information
     pub rate_limit: Option<String>,
-    
+
     /// Examples
     pub examples: Vec<ApiExample>,
 }
@@ -87,22 +87,22 @@ pub struct ApiEndpoint {
 pub struct ApiParameter {
     /// Parameter name
     pub name: String,
-    
+
     /// Parameter type
     pub param_type: String,
-    
+
     /// Parameter description
     pub description: String,
-    
+
     /// Whether parameter is required
     pub required: bool,
-    
+
     /// Default value
     pub default: Option<serde_yaml::Value>,
-    
+
     /// Allowed values
     pub allowed_values: Option<Vec<serde_yaml::Value>>,
-    
+
     /// Validation rules
     pub validation: Option<HashMap<String, serde_yaml::Value>>,
 }
@@ -112,16 +112,16 @@ pub struct ApiParameter {
 pub struct ApiSchema {
     /// Schema type
     pub schema_type: String,
-    
+
     /// Schema description
     pub description: String,
-    
+
     /// Schema properties
     pub properties: Option<HashMap<String, ApiSchemaProperty>>,
-    
+
     /// Required properties
     pub required: Option<Vec<String>>,
-    
+
     /// Example value
     pub example: Option<serde_yaml::Value>,
 }
@@ -131,19 +131,19 @@ pub struct ApiSchema {
 pub struct ApiSchemaProperty {
     /// Property type
     pub property_type: String,
-    
+
     /// Property description
     pub description: String,
-    
+
     /// Whether property is required
     pub required: bool,
-    
+
     /// Default value
     pub default: Option<serde_yaml::Value>,
-    
+
     /// Allowed values
     pub allowed_values: Option<Vec<serde_yaml::Value>>,
-    
+
     /// Validation rules
     pub validation: Option<HashMap<String, serde_yaml::Value>>,
 }
@@ -153,16 +153,16 @@ pub struct ApiSchemaProperty {
 pub struct ApiResponse {
     /// HTTP status code
     pub status_code: u16,
-    
+
     /// Response description
     pub description: String,
-    
+
     /// Response schema
     pub schema: Option<ApiSchema>,
-    
+
     /// Response headers
     pub headers: Option<HashMap<String, String>>,
-    
+
     /// Example response
     pub example: Option<serde_yaml::Value>,
 }
@@ -172,19 +172,19 @@ pub struct ApiResponse {
 pub struct ApiErrorCode {
     /// Error code
     pub code: String,
-    
+
     /// HTTP status code
     pub status_code: u16,
-    
+
     /// Error description
     pub description: String,
-    
+
     /// Error message template
     pub message_template: String,
-    
+
     /// Suggested resolution
     pub resolution: Option<String>,
-    
+
     /// Example error response
     pub example: Option<serde_yaml::Value>,
 }
@@ -194,13 +194,13 @@ pub struct ApiErrorCode {
 pub struct ApiAuthentication {
     /// Authentication type
     pub auth_type: String,
-    
+
     /// Authentication description
     pub description: String,
-    
+
     /// Required headers
     pub headers: Vec<String>,
-    
+
     /// Example authentication
     pub example: Option<serde_yaml::Value>,
 }
@@ -210,16 +210,16 @@ pub struct ApiAuthentication {
 pub struct ApiRateLimiting {
     /// Rate limit description
     pub description: String,
-    
+
     /// Requests per minute
     pub requests_per_minute: u32,
-    
+
     /// Burst size
     pub burst_size: u32,
-    
+
     /// Rate limit headers
     pub headers: Vec<String>,
-    
+
     /// Rate limit response
     pub rate_limit_response: Option<serde_yaml::Value>,
 }
@@ -229,16 +229,16 @@ pub struct ApiRateLimiting {
 pub struct ApiExample {
     /// Example name
     pub name: String,
-    
+
     /// Example description
     pub description: String,
-    
+
     /// Example request
     pub request: Option<serde_yaml::Value>,
-    
+
     /// Example response
     pub response: Option<serde_yaml::Value>,
-    
+
     /// Example curl command
     pub curl_command: Option<String>,
 }
@@ -248,13 +248,13 @@ pub struct ApiExample {
 pub struct ApiModel {
     /// Model name
     pub name: String,
-    
+
     /// Model description
     pub description: String,
-    
+
     /// Model schema
     pub schema: ApiSchema,
-    
+
     /// Model examples
     pub examples: Vec<ApiExample>,
 }
@@ -396,45 +396,56 @@ impl ApiDocumentation {
 
     /// Generate API models
     fn generate_models() -> Vec<ApiModel> {
-        vec![
-            ApiModel {
-                name: "Scope".to_string(),
-                description: "A Rhema scope with its metadata and files".to_string(),
-                schema: ApiSchema {
-                    schema_type: "object".to_string(),
-                    description: "Scope definition".to_string(),
-                    properties: Some(HashMap::from([
-                        ("path".to_string(), ApiSchemaProperty {
+        vec![ApiModel {
+            name: "Scope".to_string(),
+            description: "A Rhema scope with its metadata and files".to_string(),
+            schema: ApiSchema {
+                schema_type: "object".to_string(),
+                description: "Scope definition".to_string(),
+                properties: Some(HashMap::from([
+                    (
+                        "path".to_string(),
+                        ApiSchemaProperty {
                             property_type: "string".to_string(),
                             description: "Path to the scope directory".to_string(),
                             required: true,
                             default: None,
                             allowed_values: None,
                             validation: None,
-                        }),
-                        ("definition".to_string(), ApiSchemaProperty {
+                        },
+                    ),
+                    (
+                        "definition".to_string(),
+                        ApiSchemaProperty {
                             property_type: "object".to_string(),
                             description: "Scope definition from rhema.yaml".to_string(),
                             required: true,
                             default: None,
                             allowed_values: None,
                             validation: None,
-                        }),
-                        ("files".to_string(), ApiSchemaProperty {
+                        },
+                    ),
+                    (
+                        "files".to_string(),
+                        ApiSchemaProperty {
                             property_type: "object".to_string(),
                             description: "Available files in this scope".to_string(),
                             required: true,
                             default: None,
                             allowed_values: None,
                             validation: None,
-                        }),
-                    ])),
-                    required: Some(vec!["path".to_string(), "definition".to_string(), "files".to_string()]),
-                    example: None,
-                },
-                examples: vec![],
+                        },
+                    ),
+                ])),
+                required: Some(vec![
+                    "path".to_string(),
+                    "definition".to_string(),
+                    "files".to_string(),
+                ]),
+                example: None,
             },
-        ]
+            examples: vec![],
+        }]
     }
 
     /// Generate error codes
@@ -445,7 +456,9 @@ impl ApiDocumentation {
                 status_code: 400,
                 description: "Invalid query syntax".to_string(),
                 message_template: "Invalid query syntax: {details}".to_string(),
-                resolution: Some("Check the query syntax and ensure it follows CQL format".to_string()),
+                resolution: Some(
+                    "Check the query syntax and ensure it follows CQL format".to_string(),
+                ),
                 example: None,
             },
             ApiErrorCode {
@@ -453,7 +466,9 @@ impl ApiDocumentation {
                 status_code: 404,
                 description: "Scope not found".to_string(),
                 message_template: "Scope not found: {scope_name}".to_string(),
-                resolution: Some("Verify the scope name and ensure it exists in the repository".to_string()),
+                resolution: Some(
+                    "Verify the scope name and ensure it exists in the repository".to_string(),
+                ),
                 example: None,
             },
             ApiErrorCode {
@@ -461,7 +476,10 @@ impl ApiDocumentation {
                 status_code: 429,
                 description: "Rate limit exceeded".to_string(),
                 message_template: "Rate limit exceeded: {limit} requests per {period}".to_string(),
-                resolution: Some("Wait before making additional requests or contact support for higher limits".to_string()),
+                resolution: Some(
+                    "Wait before making additional requests or contact support for higher limits"
+                        .to_string(),
+                ),
                 example: None,
             },
         ]
@@ -522,33 +540,37 @@ impl ApiDocumentation {
     /// Export documentation as Markdown
     pub fn to_markdown(&self) -> String {
         let mut markdown = String::new();
-        
+
         markdown.push_str(&format!("# {}\n\n", self.title));
         markdown.push_str(&format!("**Version:** {}\n\n", self.version));
         markdown.push_str(&format!("{}\n\n", self.description));
-        
+
         // Endpoints
         markdown.push_str("## Endpoints\n\n");
         for endpoint in &self.endpoints {
             markdown.push_str(&format!("### {} {}\n\n", endpoint.method, endpoint.path));
             markdown.push_str(&format!("{}\n\n", endpoint.description));
-            
+
             if !endpoint.parameters.is_empty() {
                 markdown.push_str("#### Parameters\n\n");
                 for param in &endpoint.parameters {
-                    markdown.push_str(&format!("- **{}** (`{}`) - {}\n", 
-                        param.name, param.param_type, param.description));
+                    markdown.push_str(&format!(
+                        "- **{}** (`{}`) - {}\n",
+                        param.name, param.param_type, param.description
+                    ));
                 }
                 markdown.push_str("\n");
             }
-            
+
             for response in &endpoint.responses {
-                markdown.push_str(&format!("- **{}** - {}\n", 
-                    response.status_code, response.description));
+                markdown.push_str(&format!(
+                    "- **{}** - {}\n",
+                    response.status_code, response.description
+                ));
             }
             markdown.push_str("\n");
         }
-        
+
         // Error codes
         markdown.push_str("## Error Codes\n\n");
         for error in &self.error_codes {
@@ -559,7 +581,7 @@ impl ApiDocumentation {
                 markdown.push_str(&format!("**Resolution:** {}\n\n", resolution));
             }
         }
-        
+
         markdown
     }
 }
@@ -571,19 +593,19 @@ impl ApiDocGenerator {
     /// Generate and save API documentation
     pub fn generate_docs(output_path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let docs = ApiDocumentation::generate_rhema_api_docs();
-        
+
         // Save as YAML
         let yaml_content = serde_yaml::to_string(&docs)?;
         std::fs::write(format!("{}.yaml", output_path), yaml_content)?;
-        
+
         // Save as Markdown
         let markdown_content = docs.to_markdown();
         std::fs::write(format!("{}.md", output_path), markdown_content)?;
-        
+
         // Save as OpenAPI
         let openapi_content = serde_yaml::to_string(&docs.to_openapi())?;
         std::fs::write(format!("{}-openapi.yaml", output_path), openapi_content)?;
-        
+
         Ok(())
     }
-} 
+}

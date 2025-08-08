@@ -1,10 +1,10 @@
 //! Test helper utilities for common testing operations
 
+use git2::Repository;
+use rhema_api::Rhema;
+use rhema_core::RhemaResult;
 use std::path::PathBuf;
 use tempfile::TempDir;
-use rhema_core::RhemaResult;
-use rhema_api::Rhema;
-use git2::Repository;
 
 /// Test helper utilities for common operations
 pub struct TestHelpers;
@@ -14,7 +14,7 @@ impl TestHelpers {
     pub fn create_temp_dir() -> RhemaResult<TempDir> {
         Ok(TempDir::new()?)
     }
-    
+
     /// Create a git repository in a temporary directory
     pub fn create_test_repo() -> RhemaResult<(TempDir, Repository)> {
         let temp_dir = Self::create_temp_dir()?;
@@ -22,7 +22,7 @@ impl TestHelpers {
         let repo = Repository::init(&repo_path)?;
         Ok((temp_dir, repo))
     }
-    
+
     /// Create a Rhema instance in a temporary directory
     pub fn create_test_rhema() -> RhemaResult<(TempDir, Rhema)> {
         let (temp_dir, _repo) = Self::create_test_repo()?;
@@ -30,7 +30,7 @@ impl TestHelpers {
         let rhema = Rhema::new_from_path(repo_path)?;
         Ok((temp_dir, rhema))
     }
-    
+
     /// Create test files in a directory
     pub fn create_test_files(dir: &PathBuf, files: &[(&str, &str)]) -> RhemaResult<()> {
         for (filename, content) in files {
@@ -39,7 +39,7 @@ impl TestHelpers {
         }
         Ok(())
     }
-    
+
     /// Clean up test files
     pub fn cleanup_test_files(dir: &PathBuf, files: &[&str]) -> RhemaResult<()> {
         for filename in files {
@@ -50,28 +50,28 @@ impl TestHelpers {
         }
         Ok(())
     }
-    
+
     /// Wait for a condition to be true with timeout
     pub async fn wait_for_condition<F>(condition: F, timeout_ms: u64) -> bool
     where
         F: Fn() -> bool,
     {
-        use tokio::time::{sleep, Duration};
         use std::time::Instant;
-        
+        use tokio::time::{sleep, Duration};
+
         let start = Instant::now();
         let timeout = Duration::from_millis(timeout_ms);
-        
+
         while start.elapsed() < timeout {
             if condition() {
                 return true;
             }
             sleep(Duration::from_millis(10)).await;
         }
-        
+
         false
     }
-    
+
     /// Generate random test data
     pub fn generate_test_data(size: usize) -> String {
         use rand::Rng;
@@ -81,7 +81,7 @@ impl TestHelpers {
             .map(|_| chars[rng.gen_range(0..chars.len())])
             .collect()
     }
-    
+
     /// Create a mock configuration for testing
     pub fn create_mock_config() -> String {
         r#"
@@ -92,19 +92,20 @@ settings:
   debug: true
   timeout: 30
   retries: 3
-"#.to_string()
+"#
+        .to_string()
     }
-    
+
     /// Validate file contents
     pub fn validate_file_contents(path: &PathBuf, expected_content: &str) -> RhemaResult<bool> {
         if !path.exists() {
             return Ok(false);
         }
-        
+
         let content = std::fs::read_to_string(path)?;
         Ok(content.contains(expected_content))
     }
-    
+
     /// Create a test environment with specific setup
     pub fn create_test_env_with_setup<F>(setup_fn: F) -> RhemaResult<(TempDir, Rhema)>
     where
@@ -115,28 +116,28 @@ settings:
         setup_fn(&repo_path)?;
         Ok((temp_dir, rhema))
     }
-    
+
     /// Create a basic scope for testing
     pub fn create_basic_scope(path: &PathBuf) -> RhemaResult<()> {
         let scope_dir = path.join("basic-scope");
         std::fs::create_dir_all(&scope_dir)?;
-        
+
         let scope_config = r#"
 name: "Basic Test Scope"
 version: "1.0.0"
 scope_type: "service"
 description: "A basic test scope"
 "#;
-        
+
         std::fs::write(scope_dir.join("rhema.yaml"), scope_config)?;
         Ok(())
     }
-    
+
     /// Create a complex scope for testing
     pub fn create_complex_scope(path: &PathBuf) -> RhemaResult<()> {
         let scope_dir = path.join("complex-scope");
         std::fs::create_dir_all(&scope_dir)?;
-        
+
         let scope_config = r#"
 name: "Complex Test Scope"
 version: "2.0.0"
@@ -151,14 +152,17 @@ settings:
   debug: true
   timeout: 60
 "#;
-        
+
         std::fs::write(scope_dir.join("rhema.yaml"), scope_config)?;
-        
+
         // Create subdirectories
         let sub_dir = scope_dir.join("src");
         std::fs::create_dir_all(&sub_dir)?;
-        std::fs::write(sub_dir.join("main.rs"), "fn main() { println!(\"Hello, world!\"); }")?;
-        
+        std::fs::write(
+            sub_dir.join("main.rs"),
+            "fn main() { println!(\"Hello, world!\"); }",
+        )?;
+
         Ok(())
     }
 }

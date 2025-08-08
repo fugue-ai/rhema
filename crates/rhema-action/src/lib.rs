@@ -15,10 +15,10 @@
  */
 
 //! Rhema Action Protocol
-//! 
-//! The Action Protocol provides a safe, validated layer for translating AI agent intent 
-//! into controlled codebase modifications. This crate extends Rhema from a "map" layer 
-//! to include a comprehensive "action" layer with safety controls, validation pipelines, 
+//!
+//! The Action Protocol provides a safe, validated layer for translating AI agent intent
+//! into controlled codebase modifications. This crate extends Rhema from a "map" layer
+//! to include a comprehensive "action" layer with safety controls, validation pipelines,
 //! and human oversight.
 
 pub mod cli;
@@ -31,12 +31,15 @@ pub mod tools;
 pub mod validation;
 
 // Re-export shared types
-pub use rhema_action_tool::{TransformationTool, ValidationTool, SafetyTool, ToolResult, ActionIntent, ActionResult, ActionError, SafetyLevel};
+pub use rhema_action_tool::{
+    ActionError, ActionIntent, ActionResult, SafetyLevel, SafetyTool, ToolResult,
+    TransformationTool, ValidationTool,
+};
 
 // Re-export internal types
-pub use tools::ToolRegistry;
-pub use schema::{ActionType, ActionIntent as ActionConfig, ApprovalWorkflow as ActionContext};
 pub use error::ActionError as LocalActionError;
+pub use schema::{ActionIntent as ActionConfig, ActionType, ApprovalWorkflow as ActionContext};
+pub use tools::ToolRegistry;
 
 use anyhow::Result;
 
@@ -47,21 +50,21 @@ impl ActionProtocol {
     /// Initialize the Action Protocol
     pub async fn initialize() -> Result<()> {
         tracing::info!("Initializing Rhema Action Protocol");
-        
+
         // Initialize components
         tools::ToolRegistry::initialize().await?;
-        
+
         tracing::info!("Rhema Action Protocol initialized successfully");
         Ok(())
     }
-    
+
     /// Shutdown the Action Protocol
     pub async fn shutdown() -> Result<()> {
         tracing::info!("Shutting down Rhema Action Protocol");
-        
+
         // Cleanup components
         tools::ToolRegistry::shutdown().await?;
-        
+
         tracing::info!("Rhema Action Protocol shutdown successfully");
         Ok(())
     }
@@ -75,8 +78,8 @@ mod tests {
     async fn test_action_protocol_initialization() {
         let result = ActionProtocol::initialize().await;
         assert!(result.is_ok());
-        
+
         let result = ActionProtocol::shutdown().await;
         assert!(result.is_ok());
     }
-} 
+}

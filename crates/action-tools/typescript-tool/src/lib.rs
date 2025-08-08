@@ -15,9 +15,9 @@
  */
 
 use async_trait::async_trait;
+use rhema_action_tool::{ActionError, ActionIntent, ActionResult};
+use rhema_action_tool::{ToolResult, ValidationTool};
 use tracing::info;
-use rhema_action_tool::{ActionIntent, ActionResult, ActionError};
-use rhema_action_tool::{ValidationTool, ToolResult};
 
 /// TypeScript validation tool
 pub struct TypeScriptTool;
@@ -26,15 +26,17 @@ pub struct TypeScriptTool;
 impl ValidationTool for TypeScriptTool {
     async fn validate(&self, intent: &ActionIntent) -> ActionResult<ToolResult> {
         info!("Running TypeScript validation for intent: {}", intent.id);
-        
+
         let start = std::time::Instant::now();
-        
+
         // Extract TypeScript files from intent scope
-        let ts_files: Vec<&str> = intent.scope.iter()
+        let ts_files: Vec<&str> = intent
+            .scope
+            .iter()
             .filter(|file| file.ends_with(".ts") || file.ends_with(".tsx"))
             .map(|s| s.as_str())
             .collect();
-        
+
         if ts_files.is_empty() {
             return Ok(ToolResult {
                 success: true,
@@ -45,38 +47,41 @@ impl ValidationTool for TypeScriptTool {
                 duration: start.elapsed(),
             });
         }
-        
+
         // Run TypeScript compiler check
         let mut errors = Vec::new();
         let warnings = Vec::new();
-        
+
         for file in &ts_files {
             match self.validate_typescript_file(file).await {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => errors.push(format!("TypeScript error in {}: {}", file, e)),
             }
         }
-        
+
         let success = errors.is_empty();
-        
+
         Ok(ToolResult {
             success,
             changes: vec![],
-            output: format!("TypeScript validation completed for {} files", ts_files.len()),
+            output: format!(
+                "TypeScript validation completed for {} files",
+                ts_files.len()
+            ),
             errors,
             warnings,
             duration: start.elapsed(),
         })
     }
-    
+
     fn name(&self) -> &str {
         "typescript"
     }
-    
+
     fn version(&self) -> &str {
         "1.0.0"
     }
-    
+
     async fn is_available(&self) -> bool {
         // Check if TypeScript is installed
         tokio::process::Command::new("npx")
@@ -95,19 +100,19 @@ impl TypeScriptTool {
             .args(&["tsc", "--noEmit", file_path])
             .output()
             .await
-            .map_err(|e| ActionError::ToolExecution { 
-                tool: "typescript".to_string(), 
-                message: format!("Failed to run TypeScript check: {}", e) 
+            .map_err(|e| ActionError::ToolExecution {
+                tool: "typescript".to_string(),
+                message: format!("Failed to run TypeScript check: {}", e),
             })?;
-        
+
         if output.status.success() {
             Ok(())
         } else {
             let error = String::from_utf8_lossy(&output.stderr);
-            Err(ActionError::ToolExecution { 
-                tool: "typescript".to_string(), 
-                message: format!("TypeScript validation failed: {}", error) 
+            Err(ActionError::ToolExecution {
+                tool: "typescript".to_string(),
+                message: format!("TypeScript validation failed: {}", error),
             })
         }
     }
-} 
+}

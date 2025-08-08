@@ -16,43 +16,38 @@
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::{debug, error, info, instrument, warn};
-use sha2::Digest;
 
-use crate::types::{
-    ContentType, KnowledgeResult, SemanticInfo, SearchResultMetadata,
-};
+use crate::types::{ContentType, KnowledgeResult, SearchResultMetadata, SemanticInfo};
 
-use super::{
-    embedding::EmbeddingManager,
-    vector::VectorStore,
-};
+use super::{embedding::EmbeddingManager, vector::VectorStore};
 
 /// Error types for indexing operations
 #[derive(Error, Debug)]
 pub enum IndexingError {
     #[error("Embedding error: {0}")]
     EmbeddingError(String),
-    
+
     #[error("Vector storage error: {0}")]
     VectorStorageError(String),
-    
+
     #[error("File processing error: {0}")]
     FileProcessingError(String),
-    
+
     #[error("Chunking error: {0}")]
     ChunkingError(String),
-    
+
     #[error("Metadata extraction error: {0}")]
     MetadataExtractionError(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
-    
+
     #[error("Invalid content: {0}")]
     InvalidContent(String),
 }
@@ -98,7 +93,11 @@ impl Default for IndexingConfig {
 #[async_trait]
 pub trait ChunkingStrategy: Send + Sync {
     async fn chunk(&self, content: &str) -> KnowledgeResult<Vec<ContentChunk>>;
-    async fn chunk_with_metadata(&self, content: &str, metadata: &IndexingMetadata) -> KnowledgeResult<Vec<ContentChunk>>;
+    async fn chunk_with_metadata(
+        &self,
+        content: &str,
+        metadata: &IndexingMetadata,
+    ) -> KnowledgeResult<Vec<ContentChunk>>;
 }
 
 /// Content chunk with metadata
@@ -150,8 +149,16 @@ pub struct IndexingMetadata {
 /// Metadata extractor for content analysis
 #[async_trait]
 pub trait MetadataExtractor: Send + Sync {
-    async fn extract(&self, _content: &str, metadata: &IndexingMetadata) -> KnowledgeResult<SearchResultMetadata>;
-    async fn extract_semantic_info(&self, content: &str, metadata: &IndexingMetadata) -> KnowledgeResult<SemanticInfo>;
+    async fn extract(
+        &self,
+        _content: &str,
+        metadata: &IndexingMetadata,
+    ) -> KnowledgeResult<SearchResultMetadata>;
+    async fn extract_semantic_info(
+        &self,
+        content: &str,
+        metadata: &IndexingMetadata,
+    ) -> KnowledgeResult<SemanticInfo>;
 }
 
 /// Fixed-size chunking strategy
@@ -175,20 +182,20 @@ impl ChunkingStrategy for FixedSizeChunkingStrategy {
         let mut chunks = Vec::new();
         let mut start = 0;
         let mut chunk_index = 0;
-        
+
         while start < content.len() {
             let end = (start + self.chunk_size).min(content.len());
             let chunk_content = content[start..end].to_string();
-            
+
             // Find a good break point (end of sentence or word)
             let actual_end = if end < content.len() {
                 self.find_break_point(&chunk_content, end)
             } else {
                 end
             };
-            
+
             let chunk_content = content[start..actual_end].to_string();
-            
+
             let chunk = ContentChunk {
                 id: format!("chunk_{}", chunk_index),
                 content: chunk_content,
@@ -203,28 +210,33 @@ impl ChunkingStrategy for FixedSizeChunkingStrategy {
                     importance_score: 1.0,
                 },
             };
-            
+
             chunks.push(chunk);
-            
+
             // Move to next chunk with overlap
             start = if actual_end > start + self.overlap_size {
                 actual_end - self.overlap_size
             } else {
                 actual_end
             };
-            
+
             chunk_index += 1;
         }
-        
+
         Ok(chunks)
     }
-    
-    async fn chunk_with_metadata(&self, content: &str, metadata: &IndexingMetadata) -> KnowledgeResult<Vec<ContentChunk>> {
+
+    async fn chunk_with_metadata(
+        &self,
+        content: &str,
+        metadata: &IndexingMetadata,
+    ) -> KnowledgeResult<Vec<ContentChunk>> {
         let mut chunks = self.chunk(content).await?;
-        
+
         // Update chunk metadata
         for chunk in &mut chunks {
-            chunk.metadata.source_id = metadata.source_path
+            chunk.metadata.source_id = metadata
+                .source_path
                 .as_ref()
                 .and_then(|p| p.file_name())
                 .and_then(|n| n.to_str())
@@ -235,7 +247,7 @@ impl ChunkingStrategy for FixedSizeChunkingStrategy {
             chunk.metadata.chunk_type = self.detect_chunk_type(&chunk.content);
             chunk.metadata.importance_score = self.calculate_importance_score(&chunk.content);
         }
-        
+
         Ok(chunks)
     }
 }
@@ -244,29 +256,32 @@ impl FixedSizeChunkingStrategy {
     fn find_break_point(&self, content: &str, max_end: usize) -> usize {
         // Try to find sentence or word boundaries
         let content_slice = &content[..max_end.min(content.len())];
-        
+
         // Look for sentence endings
         if let Some(pos) = content_slice.rfind('.') {
             return pos + 1;
         }
-        
+
         // Look for line breaks
         if let Some(pos) = content_slice.rfind('\n') {
             return pos + 1;
         }
-        
+
         // Look for word boundaries
         if let Some(pos) = content_slice.rfind(' ') {
             return pos + 1;
         }
-        
+
         max_end
     }
-    
+
     fn detect_chunk_type(&self, content: &str) -> ChunkType {
         let content_lower = content.to_lowercase();
-        
-        if content_lower.contains("function") || content_lower.contains("class") || content_lower.contains("pub fn") {
+
+        if content_lower.contains("function")
+            || content_lower.contains("class")
+            || content_lower.contains("pub fn")
+        {
             ChunkType::Code
         } else if content_lower.contains("#") || content_lower.contains("##") {
             ChunkType::Header
@@ -280,20 +295,20 @@ impl FixedSizeChunkingStrategy {
             ChunkType::Text
         }
     }
-    
+
     fn calculate_importance_score(&self, content: &str) -> f32 {
         let mut score: f32 = 1.0;
-        
+
         // Boost score for headers
         if content.starts_with('#') {
             score += 0.5;
         }
-        
+
         // Boost score for code blocks
         if content.contains("```") {
             score += 0.3;
         }
-        
+
         // Boost score for important keywords
         let important_keywords = ["important", "note", "warning", "error", "TODO", "FIXME"];
         for keyword in &important_keywords {
@@ -301,7 +316,7 @@ impl FixedSizeChunkingStrategy {
                 score += 0.2;
             }
         }
-        
+
         score.min(2.0f32)
     }
 }
@@ -311,7 +326,11 @@ pub struct BasicMetadataExtractor;
 
 #[async_trait]
 impl MetadataExtractor for BasicMetadataExtractor {
-    async fn extract(&self, _content: &str, metadata: &IndexingMetadata) -> KnowledgeResult<SearchResultMetadata> {
+    async fn extract(
+        &self,
+        _content: &str,
+        metadata: &IndexingMetadata,
+    ) -> KnowledgeResult<SearchResultMetadata> {
         Ok(SearchResultMetadata {
             source_type: metadata.content_type.clone(),
             scope_path: metadata.scope_path.clone(),
@@ -321,10 +340,14 @@ impl MetadataExtractor for BasicMetadataExtractor {
             chunk_id: None,
         })
     }
-    
-    async fn extract_semantic_info(&self, content: &str, metadata: &IndexingMetadata) -> KnowledgeResult<SemanticInfo> {
+
+    async fn extract_semantic_info(
+        &self,
+        content: &str,
+        metadata: &IndexingMetadata,
+    ) -> KnowledgeResult<SemanticInfo> {
         let semantic_tags = self.extract_semantic_tags(content).await?;
-        
+
         Ok(SemanticInfo {
             embedding: None,
             semantic_tags,
@@ -339,43 +362,59 @@ impl MetadataExtractor for BasicMetadataExtractor {
 impl BasicMetadataExtractor {
     async fn extract_semantic_tags(&self, content: &str) -> KnowledgeResult<Vec<String>> {
         let mut tags = Vec::new();
-        
+
         // Extract common programming keywords
         let code_keywords = [
             "function", "class", "struct", "enum", "trait", "impl", "pub", "fn", "let", "const",
             "async", "await", "match", "if", "else", "for", "while", "loop", "return", "use",
         ];
-        
+
         for keyword in &code_keywords {
             if content.to_lowercase().contains(keyword) {
                 tags.push(keyword.to_string());
             }
         }
-        
+
         // Extract common documentation keywords
         let doc_keywords = [
-            "api", "usage", "example", "guide", "tutorial", "reference", "documentation",
-            "note", "warning", "important", "deprecated", "experimental",
+            "api",
+            "usage",
+            "example",
+            "guide",
+            "tutorial",
+            "reference",
+            "documentation",
+            "note",
+            "warning",
+            "important",
+            "deprecated",
+            "experimental",
         ];
-        
+
         for keyword in &doc_keywords {
             if content.to_lowercase().contains(keyword) {
                 tags.push(keyword.to_string());
             }
         }
-        
+
         // Extract file extensions and languages
         let language_patterns = [
-            (".rs", "rust"), (".py", "python"), (".js", "javascript"), (".ts", "typescript"),
-            (".go", "golang"), (".java", "java"), (".cpp", "cpp"), (".c", "c"),
+            (".rs", "rust"),
+            (".py", "python"),
+            (".js", "javascript"),
+            (".ts", "typescript"),
+            (".go", "golang"),
+            (".java", "java"),
+            (".cpp", "cpp"),
+            (".c", "c"),
         ];
-        
+
         for (ext, lang) in &language_patterns {
             if content.contains(ext) {
                 tags.push(lang.to_string());
             }
         }
-        
+
         Ok(tags)
     }
 }
@@ -390,9 +429,9 @@ impl SemanticIndexer {
             config.chunk_size,
             config.overlap_size,
         ));
-        
+
         let metadata_extractor = Arc::new(BasicMetadataExtractor);
-        
+
         Ok(Self {
             embedding_manager,
             vector_store,
@@ -401,67 +440,102 @@ impl SemanticIndexer {
             config,
         })
     }
-    
+
     /// Index content with semantic processing
     #[instrument(skip(self, content))]
-    pub async fn index_content(&self, content: &str, metadata: IndexingMetadata) -> KnowledgeResult<Vec<String>> {
+    pub async fn index_content(
+        &self,
+        content: &str,
+        metadata: IndexingMetadata,
+    ) -> KnowledgeResult<Vec<String>> {
         info!("Indexing content: {} bytes", content.len());
-        
+
         // Chunk the content
-        let chunks = self.chunking_strategy.chunk_with_metadata(content, &metadata).await?;
-        
+        let chunks = self
+            .chunking_strategy
+            .chunk_with_metadata(content, &metadata)
+            .await?;
+
         if chunks.len() > self.config.max_chunks_per_document {
-            warn!("Content has {} chunks, limiting to {}", chunks.len(), self.config.max_chunks_per_document);
+            warn!(
+                "Content has {} chunks, limiting to {}",
+                chunks.len(),
+                self.config.max_chunks_per_document
+            );
         }
-        
+
         let chunks_to_process = chunks.iter().take(self.config.max_chunks_per_document);
         let mut chunk_ids = Vec::new();
-        
+
         // Process chunks in batches
         let chunk_batch: Vec<_> = chunks_to_process.collect();
         for batch in chunk_batch.chunks(self.config.batch_size) {
             let batch_ids = self.process_chunk_batch(batch, &metadata).await?;
             chunk_ids.extend(batch_ids);
         }
-        
+
         debug!("Indexed {} chunks for content", chunk_ids.len());
         Ok(chunk_ids)
     }
-    
+
     /// Index a single file
     #[instrument(skip(self, file_path))]
-    pub async fn index_file(&self, file_path: &PathBuf, scope_path: Option<&str>) -> KnowledgeResult<Vec<String>> {
+    pub async fn index_file(
+        &self,
+        file_path: &PathBuf,
+        scope_path: Option<&str>,
+    ) -> KnowledgeResult<Vec<String>> {
         if !file_path.exists() {
-            return Err(IndexingError::FileProcessingError(format!("File not found: {}", file_path.display())).into());
+            return Err(IndexingError::FileProcessingError(format!(
+                "File not found: {}",
+                file_path.display()
+            ))
+            .into());
         }
-        
-        let content = std::fs::read_to_string(file_path)
-            .map_err(|e| IndexingError::FileProcessingError(format!("Failed to read file {}: {}", file_path.display(), e)))?;
-        
+
+        let content = std::fs::read_to_string(file_path).map_err(|e| {
+            IndexingError::FileProcessingError(format!(
+                "Failed to read file {}: {}",
+                file_path.display(),
+                e
+            ))
+        })?;
+
         let content_type = self.detect_content_type(file_path, &content);
-        
+
         // Extract actual file metadata
         let mut metadata = self.extract_file_metadata(file_path, &content).await?;
         metadata.scope_path = scope_path.map(|s| s.to_string());
-        
+
         self.index_content(&content, metadata).await
     }
-    
+
     /// Extract actual file metadata including creation and modification times
-    async fn extract_file_metadata(&self, file_path: &PathBuf, content: &str) -> KnowledgeResult<IndexingMetadata> {
+    async fn extract_file_metadata(
+        &self,
+        file_path: &PathBuf,
+        content: &str,
+    ) -> KnowledgeResult<IndexingMetadata> {
         // Get file system metadata
-        let file_metadata = std::fs::metadata(file_path)
-            .map_err(|e| IndexingError::FileProcessingError(format!("Failed to get metadata for {}: {}", file_path.display(), e)))?;
-        
+        let file_metadata = std::fs::metadata(file_path).map_err(|e| {
+            IndexingError::FileProcessingError(format!(
+                "Failed to get metadata for {}: {}",
+                file_path.display(),
+                e
+            ))
+        })?;
+
         // Extract creation and modification times
-        let created_at = file_metadata.created()
+        let created_at = file_metadata
+            .created()
             .map(|time| chrono::DateTime::from(time))
             .unwrap_or(chrono::Utc::now());
-            
-        let last_modified = file_metadata.modified()
+
+        let last_modified = file_metadata
+            .modified()
             .map(|time| chrono::DateTime::from(time))
             .unwrap_or(chrono::Utc::now());
-        
+
         let metadata = IndexingMetadata {
             source_path: Some(file_path.clone()),
             content_type: self.detect_content_type(file_path, content),
@@ -472,15 +546,19 @@ impl SemanticIndexer {
             language: self.detect_language(file_path, content),
             tags: self.extract_file_tags(file_path, content).await?,
         };
-        
+
         Ok(metadata)
     }
-    
+
     /// Index multiple files in parallel
     #[instrument(skip(self, file_paths))]
-    pub async fn index_files(&self, file_paths: &[PathBuf], scope_path: Option<&str>) -> KnowledgeResult<HashMap<PathBuf, Vec<String>>> {
+    pub async fn index_files(
+        &self,
+        file_paths: &[PathBuf],
+        scope_path: Option<&str>,
+    ) -> KnowledgeResult<HashMap<PathBuf, Vec<String>>> {
         let mut results = HashMap::new();
-        
+
         if self.config.parallel_processing {
             // Process files in parallel
             let tasks: Vec<_> = file_paths
@@ -489,13 +567,13 @@ impl SemanticIndexer {
                     let indexer = self.clone();
                     let path = path.clone();
                     let scope_path = scope_path.map(|s| s.to_string());
-                    
-                    tokio::spawn(async move {
-                        indexer.index_file(&path, scope_path.as_deref()).await
-                    })
+
+                    tokio::spawn(
+                        async move { indexer.index_file(&path, scope_path.as_deref()).await },
+                    )
                 })
                 .collect();
-            
+
             for (path, task) in file_paths.iter().zip(tasks) {
                 match task.await {
                     Ok(Ok(chunk_ids)) => {
@@ -522,10 +600,10 @@ impl SemanticIndexer {
                 }
             }
         }
-        
+
         Ok(results)
     }
-    
+
     /// Process a batch of chunks
     async fn process_chunk_batch(
         &self,
@@ -533,15 +611,15 @@ impl SemanticIndexer {
         metadata: &IndexingMetadata,
     ) -> KnowledgeResult<Vec<String>> {
         let mut chunk_ids = Vec::new();
-        
+
         for chunk in chunks {
             let chunk_id = self.process_single_chunk(chunk, metadata).await?;
             chunk_ids.push(chunk_id);
         }
-        
+
         Ok(chunk_ids)
     }
-    
+
     /// Process a single chunk
     async fn process_single_chunk(
         &self,
@@ -550,14 +628,19 @@ impl SemanticIndexer {
     ) -> KnowledgeResult<String> {
         // Generate embedding for the chunk
         let embedding = self.embedding_manager.embed(&chunk.content, None).await?;
-        
+
         // Store in vector store
-        let search_metadata = self.metadata_extractor.extract(&chunk.content, metadata).await?;
-        self.vector_store.store(&chunk.id, &embedding, Some(search_metadata)).await?;
-        
+        let search_metadata = self
+            .metadata_extractor
+            .extract(&chunk.content, metadata)
+            .await?;
+        self.vector_store
+            .store(&chunk.id, &embedding, Some(search_metadata))
+            .await?;
+
         Ok(chunk.id.clone())
     }
-    
+
     /// Detect content type from file path and content
     fn detect_content_type(&self, file_path: &PathBuf, content: &str) -> ContentType {
         // Check file extension first
@@ -572,11 +655,14 @@ impl SemanticIndexer {
                 }
             }
         }
-        
+
         // Check content patterns
         let content_lower = content.to_lowercase();
-        
-        if content_lower.contains("function") || content_lower.contains("class") || content_lower.contains("pub fn") {
+
+        if content_lower.contains("function")
+            || content_lower.contains("class")
+            || content_lower.contains("pub fn")
+        {
             ContentType::Code
         } else if content_lower.contains("config") || content_lower.contains("setting") {
             ContentType::Configuration
@@ -586,7 +672,7 @@ impl SemanticIndexer {
             ContentType::Unknown
         }
     }
-    
+
     /// Detect programming language
     fn detect_language(&self, file_path: &PathBuf, content: &str) -> Option<String> {
         if let Some(extension) = file_path.extension() {
@@ -604,10 +690,10 @@ impl SemanticIndexer {
                 };
             }
         }
-        
+
         // Try to detect from content
         let content_lower = content.to_lowercase();
-        
+
         if content_lower.contains("fn ") && content_lower.contains("let ") {
             Some("rust".to_string())
         } else if content_lower.contains("def ") && content_lower.contains("import ") {
@@ -618,48 +704,60 @@ impl SemanticIndexer {
             None
         }
     }
-    
+
     /// Extract tags from file
-    async fn extract_file_tags(&self, file_path: &PathBuf, content: &str) -> KnowledgeResult<Vec<String>> {
+    async fn extract_file_tags(
+        &self,
+        file_path: &PathBuf,
+        content: &str,
+    ) -> KnowledgeResult<Vec<String>> {
         let mut tags = Vec::new();
-        
+
         // Add file extension as tag
         if let Some(extension) = file_path.extension() {
             if let Some(ext_str) = extension.to_str() {
                 tags.push(format!(".{}", ext_str));
             }
         }
-        
+
         // Add language tag
         if let Some(language) = self.detect_language(file_path, content) {
             tags.push(language);
         }
-        
+
         // Add content type tag
         let content_type = self.detect_content_type(file_path, content);
         tags.push(format!("{:?}", content_type).to_lowercase());
-        
+
         Ok(tags)
     }
-    
+
     /// Perform incremental indexing of changed content
-    pub async fn incremental_index(&self, content: &str, metadata: IndexingMetadata, previous_hash: &str) -> KnowledgeResult<Vec<String>> {
+    pub async fn incremental_index(
+        &self,
+        content: &str,
+        metadata: IndexingMetadata,
+        previous_hash: &str,
+    ) -> KnowledgeResult<Vec<String>> {
         let current_hash = self.calculate_content_hash(content).await?;
-        
+
         // If content hasn't changed, return empty result
         if current_hash == previous_hash {
             return Ok(vec![]);
         }
-        
+
         // Remove old chunks for this content
         self.remove_old_chunks(&metadata.source_path).await?;
-        
+
         // Index new content
         self.index_content(content, metadata).await
     }
-    
+
     /// Validate indexed content integrity
-    pub async fn validate_index(&self, source_path: &PathBuf) -> KnowledgeResult<IndexValidationResult> {
+    pub async fn validate_index(
+        &self,
+        source_path: &PathBuf,
+    ) -> KnowledgeResult<IndexValidationResult> {
         let mut validation_result = IndexValidationResult {
             is_valid: true,
             total_chunks: 0,
@@ -669,41 +767,48 @@ impl SemanticIndexer {
             duplicate_chunks: 0,
             issues: Vec::new(),
         };
-        
+
         // Get all chunks for this source
         let chunks = self.get_chunks_for_source(source_path).await?;
         validation_result.total_chunks = chunks.len();
-        
+
         for chunk in chunks {
             // Validate chunk content
             if chunk.content.is_empty() {
                 validation_result.invalid_chunks += 1;
-                validation_result.issues.push(format!("Empty chunk: {}", chunk.id));
+                validation_result
+                    .issues
+                    .push(format!("Empty chunk: {}", chunk.id));
                 continue;
             }
-            
+
             // Check for duplicate content
             if self.is_duplicate_chunk(&chunk).await? {
                 validation_result.duplicate_chunks += 1;
-                validation_result.issues.push(format!("Duplicate chunk: {}", chunk.id));
+                validation_result
+                    .issues
+                    .push(format!("Duplicate chunk: {}", chunk.id));
                 continue;
             }
-            
+
             // Validate embedding exists
             if !self.has_embedding(&chunk.id).await? {
                 validation_result.missing_embeddings += 1;
-                validation_result.issues.push(format!("Missing embedding: {}", chunk.id));
+                validation_result
+                    .issues
+                    .push(format!("Missing embedding: {}", chunk.id));
                 continue;
             }
-            
+
             validation_result.valid_chunks += 1;
         }
-        
-        validation_result.is_valid = validation_result.invalid_chunks == 0 && validation_result.missing_embeddings == 0;
-        
+
+        validation_result.is_valid =
+            validation_result.invalid_chunks == 0 && validation_result.missing_embeddings == 0;
+
         Ok(validation_result)
     }
-    
+
     /// Monitor indexing progress and performance
     pub async fn get_indexing_stats(&self) -> KnowledgeResult<IndexingStats> {
         let stats = IndexingStats {
@@ -715,59 +820,69 @@ impl SemanticIndexer {
             storage_usage_bytes: self.get_storage_usage().await?,
             cache_hit_rate: self.get_cache_hit_rate().await?,
         };
-        
+
         Ok(stats)
     }
-    
+
     /// Recover from indexing failures
-    pub async fn recover_from_failure(&self, source_path: &PathBuf) -> KnowledgeResult<IndexRecoveryResult> {
+    pub async fn recover_from_failure(
+        &self,
+        source_path: &PathBuf,
+    ) -> KnowledgeResult<IndexRecoveryResult> {
         let mut recovery_result = IndexRecoveryResult {
             recovered_chunks: 0,
             failed_chunks: 0,
             reindexed_files: 0,
             errors: Vec::new(),
         };
-        
+
         // Check for incomplete indexing
         let incomplete_chunks = self.get_incomplete_chunks(source_path).await?;
-        
+
         for chunk in incomplete_chunks {
             match self.recover_chunk(&chunk).await {
                 Ok(_) => recovery_result.recovered_chunks += 1,
                 Err(e) => {
                     recovery_result.failed_chunks += 1;
-                    recovery_result.errors.push(format!("Failed to recover chunk {}: {}", chunk.id, e));
+                    recovery_result
+                        .errors
+                        .push(format!("Failed to recover chunk {}: {}", chunk.id, e));
                 }
             }
         }
-        
+
         // Reindex files with failures
         let failed_files = self.get_failed_files(source_path).await?;
         for file_path in failed_files {
             match self.index_file(&file_path, None).await {
                 Ok(_) => recovery_result.reindexed_files += 1,
                 Err(e) => {
-                    recovery_result.errors.push(format!("Failed to reindex file {:?}: {}", file_path, e));
+                    recovery_result
+                        .errors
+                        .push(format!("Failed to reindex file {:?}: {}", file_path, e));
                 }
             }
         }
-        
+
         Ok(recovery_result)
     }
-    
+
     /// Schedule indexing operations
     pub async fn schedule_indexing(&self, schedule: IndexingSchedule) -> KnowledgeResult<()> {
         // Store the schedule for background processing
         self.store_indexing_schedule(schedule).await?;
-        
+
         // Start background indexing if not already running
         self.start_background_indexing().await?;
-        
+
         Ok(())
     }
-    
+
     /// Prioritize indexing based on importance
-    pub async fn prioritize_indexing(&self, priorities: Vec<IndexingPriority>) -> KnowledgeResult<()> {
+    pub async fn prioritize_indexing(
+        &self,
+        priorities: Vec<IndexingPriority>,
+    ) -> KnowledgeResult<()> {
         for priority in priorities {
             match priority {
                 IndexingPriority::File(path, importance) => {
@@ -777,23 +892,27 @@ impl SemanticIndexer {
                     self.set_directory_priority(&path, importance).await?;
                 }
                 IndexingPriority::ContentType(content_type, importance) => {
-                    self.set_content_type_priority(content_type, importance).await?;
+                    self.set_content_type_priority(content_type, importance)
+                        .await?;
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Clean up old or invalid indexes
-    pub async fn cleanup_indexes(&self, cleanup_config: IndexCleanupConfig) -> KnowledgeResult<IndexCleanupResult> {
+    pub async fn cleanup_indexes(
+        &self,
+        cleanup_config: IndexCleanupConfig,
+    ) -> KnowledgeResult<IndexCleanupResult> {
         let mut cleanup_result = IndexCleanupResult {
             removed_chunks: 0,
             removed_files: 0,
             freed_storage_bytes: 0,
             errors: Vec::new(),
         };
-        
+
         // Remove old chunks based on age
         if let Some(max_age_days) = cleanup_config.max_age_days {
             let old_chunks = self.get_old_chunks(max_age_days).await?;
@@ -804,12 +923,14 @@ impl SemanticIndexer {
                         cleanup_result.freed_storage_bytes += chunk.content.len() as u64;
                     }
                     Err(e) => {
-                        cleanup_result.errors.push(format!("Failed to remove chunk {}: {}", chunk.id, e));
+                        cleanup_result
+                            .errors
+                            .push(format!("Failed to remove chunk {}: {}", chunk.id, e));
                     }
                 }
             }
         }
-        
+
         // Remove invalid chunks
         if cleanup_config.remove_invalid {
             let invalid_chunks = self.get_invalid_chunks().await?;
@@ -820,12 +941,15 @@ impl SemanticIndexer {
                         cleanup_result.freed_storage_bytes += chunk.content.len() as u64;
                     }
                     Err(e) => {
-                        cleanup_result.errors.push(format!("Failed to remove invalid chunk {}: {}", chunk.id, e));
+                        cleanup_result.errors.push(format!(
+                            "Failed to remove invalid chunk {}: {}",
+                            chunk.id, e
+                        ));
                     }
                 }
             }
         }
-        
+
         // Remove orphaned files
         if cleanup_config.remove_orphaned {
             let orphaned_files = self.get_orphaned_files().await?;
@@ -835,145 +959,164 @@ impl SemanticIndexer {
                         cleanup_result.removed_files += 1;
                     }
                     Err(e) => {
-                        cleanup_result.errors.push(format!("Failed to remove orphaned file {:?}: {}", file_path, e));
+                        cleanup_result.errors.push(format!(
+                            "Failed to remove orphaned file {:?}: {}",
+                            file_path, e
+                        ));
                     }
                 }
             }
         }
-        
+
         Ok(cleanup_result)
     }
-    
+
     // Helper methods for the above functionality
-    
+
     async fn calculate_content_hash(&self, content: &str) -> KnowledgeResult<String> {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         content.hash(&mut hasher);
         Ok(format!("{:x}", hasher.finish()))
     }
-    
+
     async fn remove_old_chunks(&self, _source_path: &Option<PathBuf>) -> KnowledgeResult<()> {
         // Implementation would remove chunks for the given source
         // For now, just return success
         Ok(())
     }
-    
-    async fn get_chunks_for_source(&self, _source_path: &PathBuf) -> KnowledgeResult<Vec<ContentChunk>> {
+
+    async fn get_chunks_for_source(
+        &self,
+        _source_path: &PathBuf,
+    ) -> KnowledgeResult<Vec<ContentChunk>> {
         // Implementation would retrieve chunks for the source
         // For now, return empty vector
         Ok(vec![])
     }
-    
+
     async fn is_duplicate_chunk(&self, _chunk: &ContentChunk) -> KnowledgeResult<bool> {
         // Implementation would check for duplicates
         // For now, return false
         Ok(false)
     }
-    
+
     async fn has_embedding(&self, _chunk_id: &str) -> KnowledgeResult<bool> {
         // Implementation would check if embedding exists
         // For now, return true
         Ok(true)
     }
-    
+
     async fn get_total_indexed_files(&self) -> KnowledgeResult<usize> {
         // Implementation would count total indexed files
         Ok(0)
     }
-    
+
     async fn get_total_chunks(&self) -> KnowledgeResult<usize> {
         // Implementation would count total chunks
         Ok(0)
     }
-    
+
     async fn get_average_chunks_per_file(&self) -> KnowledgeResult<f32> {
         // Implementation would calculate average
         Ok(0.0)
     }
-    
+
     async fn get_indexing_speed(&self) -> KnowledgeResult<f32> {
         // Implementation would calculate speed
         Ok(0.0)
     }
-    
-    async fn get_last_indexing_time(&self) -> KnowledgeResult<Option<chrono::DateTime<chrono::Utc>>> {
+
+    async fn get_last_indexing_time(
+        &self,
+    ) -> KnowledgeResult<Option<chrono::DateTime<chrono::Utc>>> {
         // Implementation would get last indexing time
         Ok(None)
     }
-    
+
     async fn get_storage_usage(&self) -> KnowledgeResult<u64> {
         // Implementation would calculate storage usage
         Ok(0)
     }
-    
+
     async fn get_cache_hit_rate(&self) -> KnowledgeResult<f32> {
         // Implementation would calculate cache hit rate
         Ok(0.0)
     }
-    
-    async fn get_incomplete_chunks(&self, _source_path: &PathBuf) -> KnowledgeResult<Vec<ContentChunk>> {
+
+    async fn get_incomplete_chunks(
+        &self,
+        _source_path: &PathBuf,
+    ) -> KnowledgeResult<Vec<ContentChunk>> {
         // Implementation would get incomplete chunks
         Ok(vec![])
     }
-    
+
     async fn recover_chunk(&self, _chunk: &ContentChunk) -> KnowledgeResult<()> {
         // Implementation would recover chunk
         Ok(())
     }
-    
+
     async fn get_failed_files(&self, _source_path: &PathBuf) -> KnowledgeResult<Vec<PathBuf>> {
         // Implementation would get failed files
         Ok(vec![])
     }
-    
+
     async fn store_indexing_schedule(&self, _schedule: IndexingSchedule) -> KnowledgeResult<()> {
         // Implementation would store schedule
         Ok(())
     }
-    
+
     async fn start_background_indexing(&self) -> KnowledgeResult<()> {
         // Implementation would start background indexing
         Ok(())
     }
-    
+
     async fn set_file_priority(&self, _path: &PathBuf, _importance: f32) -> KnowledgeResult<()> {
         // Implementation would set file priority
         Ok(())
     }
-    
-    async fn set_directory_priority(&self, _path: &PathBuf, _importance: f32) -> KnowledgeResult<()> {
+
+    async fn set_directory_priority(
+        &self,
+        _path: &PathBuf,
+        _importance: f32,
+    ) -> KnowledgeResult<()> {
         // Implementation would set directory priority
         Ok(())
     }
-    
-    async fn set_content_type_priority(&self, _content_type: ContentType, _importance: f32) -> KnowledgeResult<()> {
+
+    async fn set_content_type_priority(
+        &self,
+        _content_type: ContentType,
+        _importance: f32,
+    ) -> KnowledgeResult<()> {
         // Implementation would set content type priority
         Ok(())
     }
-    
+
     async fn get_old_chunks(&self, _max_age_days: u64) -> KnowledgeResult<Vec<ContentChunk>> {
         // Implementation would get old chunks
         Ok(vec![])
     }
-    
+
     async fn remove_chunk(&self, _chunk_id: &str) -> KnowledgeResult<()> {
         // Implementation would remove chunk
         Ok(())
     }
-    
+
     async fn get_invalid_chunks(&self) -> KnowledgeResult<Vec<ContentChunk>> {
         // Implementation would get invalid chunks
         Ok(vec![])
     }
-    
+
     async fn get_orphaned_files(&self) -> KnowledgeResult<Vec<PathBuf>> {
         // Implementation would get orphaned files
         Ok(vec![])
     }
-    
+
     async fn remove_file_index(&self, _file_path: &PathBuf) -> KnowledgeResult<()> {
         // Implementation would remove file index
         Ok(())
@@ -990,7 +1133,7 @@ impl Clone for SemanticIndexer {
             config: self.config.clone(),
         }
     }
-} 
+}
 
 /// Index validation result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1056,8 +1199,8 @@ pub enum SchedulePriority {
 /// Indexing priority configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum IndexingPriority {
-    File(PathBuf, f32), // path, importance (0.0-1.0)
-    Directory(PathBuf, f32), // path, importance (0.0-1.0)
+    File(PathBuf, f32),            // path, importance (0.0-1.0)
+    Directory(PathBuf, f32),       // path, importance (0.0-1.0)
     ContentType(ContentType, f32), // content type, importance (0.0-1.0)
 }
 
@@ -1077,4 +1220,4 @@ pub struct IndexCleanupResult {
     pub removed_files: usize,
     pub freed_storage_bytes: u64,
     pub errors: Vec<String>,
-} 
+}

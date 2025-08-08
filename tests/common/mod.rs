@@ -1,18 +1,18 @@
 //! Common testing utilities and infrastructure for Rhema CLI tests
 
+use git2::Repository;
+use rhema_api::Rhema;
+use rhema_core::RhemaResult;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
-use rhema_core::RhemaResult;
-use rhema_api::Rhema;
-use git2::Repository;
 
 // Re-export helpers module
-pub mod helpers;
-pub mod fixtures;
-pub mod enhanced_fixtures;
 pub mod coordination_fixtures;
+pub mod enhanced_fixtures;
+pub mod fixtures;
+pub mod helpers;
 
 /// Test environment setup and teardown utilities
 pub struct TestEnv {
@@ -26,28 +26,28 @@ impl TestEnv {
     pub fn new() -> RhemaResult<Self> {
         let temp_dir = TempDir::new()?;
         let repo_path = temp_dir.path().to_path_buf();
-        
+
         // Initialize git repository
         let _repo = Repository::init(&repo_path)?;
-        
+
         // Create Rhema instance
         let rhema = Rhema::new_from_path(repo_path.clone())?;
-        
+
         Ok(Self {
             temp_dir,
             rhema,
             repo_path,
         })
     }
-    
+
     /// Create a test environment with a basic scope setup
     pub fn with_scope() -> RhemaResult<Self> {
         let mut env = Self::new()?;
-        
+
         // Create .rhema directory
         let rhema_dir = env.repo_path.join(".rhema");
         std::fs::create_dir_all(&rhema_dir)?;
-        
+
         // Create basic rhema.yaml
         let rhema_yaml = r#"
 name: test-scope
@@ -58,16 +58,16 @@ schema_version: "1.0.0"
 dependencies: null
 "#;
         std::fs::write(rhema_dir.join("rhema.yaml"), rhema_yaml)?;
-        
+
         Ok(env)
     }
-    
+
     /// Create a test environment with sample data files
     pub fn with_sample_data() -> RhemaResult<Self> {
         let mut env = Self::with_scope()?;
-        
+
         let rhema_dir = env.repo_path.join(".rhema");
-        
+
         // Create todos.yaml
         let todos_yaml = r#"
 todos:
@@ -83,7 +83,7 @@ todos:
     created_at: "2024-01-16T10:00:00Z"
 "#;
         std::fs::write(rhema_dir.join("todos.yaml"), todos_yaml)?;
-        
+
         // Create insights.yaml
         let insights_yaml = r#"
 insights:
@@ -95,7 +95,7 @@ insights:
     created_at: "2024-01-15T10:00:00Z"
 "#;
         std::fs::write(rhema_dir.join("insights.yaml"), insights_yaml)?;
-        
+
         Ok(env)
     }
 }
@@ -104,7 +104,7 @@ insights:
 pub mod assertions {
     use super::*;
     use serde_yaml::Value;
-    
+
     /// Assert that a query result contains expected data
     pub fn assert_query_contains(result: &Value, expected: &str) {
         let result_str = serde_yaml::to_string(result).unwrap();
@@ -115,7 +115,7 @@ pub mod assertions {
             result_str
         );
     }
-    
+
     /// Assert that a query result does not contain unexpected data
     pub fn assert_query_not_contains(result: &Value, unexpected: &str) {
         let result_str = serde_yaml::to_string(result).unwrap();
@@ -126,16 +126,12 @@ pub mod assertions {
             result_str
         );
     }
-    
+
     /// Assert that a file exists at the given path
     pub fn assert_file_exists(path: &PathBuf) {
-        assert!(
-            path.exists(),
-            "File should exist at: {}",
-            path.display()
-        );
+        assert!(path.exists(), "File should exist at: {}", path.display());
     }
-    
+
     /// Assert that a directory exists at the given path
     pub fn assert_dir_exists(path: &PathBuf) {
         assert!(
@@ -149,7 +145,7 @@ pub mod assertions {
 /// Performance testing utilities
 pub mod performance {
     use std::time::{Duration, Instant};
-    
+
     /// Measure execution time of a function
     pub fn measure_time<F, R>(f: F) -> (R, Duration)
     where
@@ -160,7 +156,7 @@ pub mod performance {
         let duration = start.elapsed();
         (result, duration)
     }
-    
+
     /// Assert that execution time is within acceptable bounds
     pub fn assert_execution_time<F>(f: F, max_duration: Duration)
     where
@@ -179,7 +175,7 @@ pub mod performance {
 /// Security testing utilities
 pub mod security {
     use std::path::PathBuf;
-    
+
     /// Test for path traversal vulnerabilities
     pub fn test_path_traversal(base_path: &PathBuf) -> Vec<String> {
         let malicious_paths = vec![
@@ -188,19 +184,19 @@ pub mod security {
             "....//....//....//etc/passwd",
             "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd",
         ];
-        
+
         let mut vulnerabilities = Vec::new();
-        
+
         for path in malicious_paths {
             let test_path = base_path.join(path);
             if test_path.exists() {
                 vulnerabilities.push(format!("Path traversal vulnerability: {}", path));
             }
         }
-        
+
         vulnerabilities
     }
-    
+
     /// Test for YAML injection vulnerabilities
     pub fn test_yaml_injection() -> Vec<String> {
         let malicious_yaml = vec![
@@ -208,15 +204,15 @@ pub mod security {
             "!!python/object/apply:subprocess.check_output [['cat', '/etc/passwd']]",
             "!!binary |\n  Q2F0Y2ggbWUgaWYgeW91IGNhbiE=",
         ];
-        
+
         let mut vulnerabilities = Vec::new();
-        
+
         for yaml in malicious_yaml {
             if let Ok(_) = serde_yaml::from_str::<serde_yaml::Value>(yaml) {
                 vulnerabilities.push(format!("YAML injection vulnerability: {}", yaml));
             }
         }
-        
+
         vulnerabilities
     }
-} 
+}

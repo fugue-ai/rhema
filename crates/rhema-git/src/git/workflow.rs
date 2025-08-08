@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
+use crate::git::feature_automation::{default_feature_automation_config, FeatureAutomationManager};
 use crate::git::history::ValidationSeverity;
-use crate::git::feature_automation::{FeatureAutomationManager, default_feature_automation_config};
 use crate::git::security::SecurityManager;
-use crate::git::version_management::{VersionManager, VersionManagementConfig, default_version_management_config, BumpType, VersionManagementResult};
+use crate::git::version_management::{
+    default_version_management_config, BumpType, VersionManagementConfig, VersionManagementResult,
+    VersionManager,
+};
 use crate::workflow_templates::{WorkflowTemplateManager, WorkflowTemplateType};
 use chrono::{DateTime, Utc};
 use git2::Repository;
-use std::path::Path;
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -940,14 +943,18 @@ impl WorkflowManager {
     pub fn new(repo: Repository, config: WorkflowConfig) -> Self {
         let version_config = default_version_management_config();
         let version_manager = VersionManager::new(repo, version_config);
-        
+
         // Clone the repository for the workflow manager
-        let repo_path = version_manager.repo.path().parent().unwrap_or_else(|| Path::new("."));
+        let repo_path = version_manager
+            .repo
+            .path()
+            .parent()
+            .unwrap_or_else(|| Path::new("."));
         let workflow_repo = git2::Repository::open(repo_path).unwrap_or_else(|_| {
             // Fallback to creating a new repository if opening fails
             git2::Repository::init(repo_path).unwrap()
         });
-        
+
         Self {
             repo: Arc::new(Mutex::new(workflow_repo)),
             config,
@@ -967,7 +974,10 @@ impl WorkflowManager {
         // Create version manager with a new repository instance
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().unwrap_or_else(|| Path::new(".")).to_path_buf()
+            repo.path()
+                .parent()
+                .unwrap_or_else(|| Path::new("."))
+                .to_path_buf()
         };
         if let Ok(new_repo) = git2::Repository::open(&repo_path) {
             let version_manager = VersionManager::new(new_repo, version_config);
@@ -980,9 +990,12 @@ impl WorkflowManager {
     pub fn setup_feature_context(&self, branch_name: &str) -> RhemaResult<()> {
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let repo = git2::Repository::open(&repo_path)?;
         let workflow = GitWorkflow::new(repo, self.config.clone());
@@ -993,9 +1006,12 @@ impl WorkflowManager {
     pub fn validate_feature_branch(&self, branch_name: &str) -> RhemaResult<()> {
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let repo = git2::Repository::open(&repo_path)?;
         let workflow = GitWorkflow::new(repo, self.config.clone());
@@ -1006,9 +1022,12 @@ impl WorkflowManager {
     pub fn merge_feature_branch(&self, branch_name: &str) -> RhemaResult<()> {
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let repo = git2::Repository::open(&repo_path)?;
         let workflow = GitWorkflow::new(repo, self.config.clone());
@@ -1019,9 +1038,12 @@ impl WorkflowManager {
     pub fn cleanup_feature_branch(&self, branch_name: &str) -> RhemaResult<()> {
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let repo = git2::Repository::open(&repo_path)?;
         let workflow = GitWorkflow::new(repo, self.config.clone());
@@ -1031,52 +1053,77 @@ impl WorkflowManager {
     /// Prepare release context
     pub fn prepare_release_context(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
-        
+
         // Create release branch if it doesn't exist
         if !self.branch_exists(&release_branch)? {
             self.create_release_branch(&release_branch, version)?;
         }
-        
+
         // Apply context-aware release management if enabled
-        if self.config.context_aware.context_aware_release_management.auto_prepare_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .auto_prepare_context
+        {
             self.prepare_release_context_files(&release_branch, version)?;
         }
-        
-        if self.config.context_aware.context_aware_release_management.auto_update_version {
+
+        if self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .auto_update_version
+        {
             self.update_version_information(&release_branch, version)?;
         }
-        
+
         // Note: generate_release_notes is async, so we'll skip it in sync version
         // if self.config.context_aware.context_aware_release_management.auto_generate_release_notes {
         //     self.generate_release_notes(version).await?;
         // }
-        
+
         // Execute preparation steps in order
-        for step in &self.config.context_aware.context_aware_release_management.preparation_steps {
+        for step in &self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .preparation_steps
+        {
             if step.required {
                 self.execute_preparation_step(&release_branch, step)?;
             }
         }
-        
+
         Ok(())
     }
 
     /// Validate release
     pub fn validate_release(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
-        
+
         // Apply context-aware validation if enabled
-        if self.config.context_aware.context_aware_release_management.auto_validate_release_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .auto_validate_release_context
+        {
             self.validate_release_context(&release_branch, version)?;
         }
-        
+
         // Execute validation rules
-        for rule in &self.config.context_aware.context_aware_release_management.validation_rules {
+        for rule in &self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .validation_rules
+        {
             if rule.required {
                 self.validate_release_rule(&release_branch, rule)?;
             }
         }
-        
+
         Ok(())
     }
 
@@ -1084,95 +1131,128 @@ impl WorkflowManager {
     pub fn merge_to_main(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
         let main_branch = &self.config.branch_conventions.main_branch;
-        
+
         // Apply context-aware merge strategy
-        let strategy = &self.config.context_aware.context_aware_merge_strategies.release_merge_strategy;
+        let strategy = &self
+            .config
+            .context_aware
+            .context_aware_merge_strategies
+            .release_merge_strategy;
         self.merge_with_strategy(&release_branch, main_branch, strategy)?;
-        
+
         // Create version tag
         self.create_version_tag(version)?;
-        
+
         Ok(())
     }
 
     /// Merge to develop
     pub fn merge_to_develop(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
-        
+
         if let Some(develop_branch) = &self.config.branch_conventions.develop_branch {
             // Apply context-aware merge strategy
-            let strategy = &self.config.context_aware.context_aware_merge_strategies.release_merge_strategy;
+            let strategy = &self
+                .config
+                .context_aware
+                .context_aware_merge_strategies
+                .release_merge_strategy;
             self.merge_with_strategy(&release_branch, develop_branch, strategy)?;
         }
-        
+
         Ok(())
     }
 
     /// Cleanup release branch
     pub fn cleanup_release_branch(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
-        
+
         // Execute cleanup steps in order
-        for step in &self.config.context_aware.context_aware_release_management.cleanup_steps {
+        for step in &self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .cleanup_steps
+        {
             if step.required {
                 self.execute_cleanup_step(&release_branch, step)?;
             }
         }
-        
+
         // Delete the release branch
         self.delete_branch(&release_branch)?;
-        
+
         Ok(())
     }
 
     /// Setup hotfix context
     pub fn setup_hotfix_context(&self, version: &str) -> RhemaResult<()> {
         let hotfix_branch = self.get_hotfix_branch_name(version);
-        
+
         // Create hotfix branch if it doesn't exist
         if !self.branch_exists(&hotfix_branch)? {
             self.create_hotfix_branch(&hotfix_branch, version)?;
         }
-        
+
         // Apply context-aware hotfix management if enabled
-        if self.config.context_aware.context_aware_hotfix_management.auto_isolate_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_hotfix_management
+            .auto_isolate_context
+        {
             self.isolate_hotfix_context(&hotfix_branch)?;
         }
-        
+
         Ok(())
     }
 
     /// Validate hotfix
     pub fn validate_hotfix(&self, version: &str) -> RhemaResult<()> {
         let hotfix_branch = self.get_hotfix_branch_name(version);
-        
+
         // Apply context-aware validation if enabled
-        if self.config.context_aware.context_aware_hotfix_management.auto_validate_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_hotfix_management
+            .auto_validate_context
+        {
             self.validate_hotfix_context(&hotfix_branch, version)?;
         }
-        
+
         // Execute validation rules
-        for rule in &self.config.context_aware.context_aware_hotfix_management.validation_rules {
+        for rule in &self
+            .config
+            .context_aware
+            .context_aware_hotfix_management
+            .validation_rules
+        {
             if rule.required {
                 self.validate_hotfix_rule(&hotfix_branch, rule)?;
             }
         }
-        
+
         Ok(())
     }
 
     /// Cleanup hotfix branch
     pub fn cleanup_hotfix_branch(&self, version: &str) -> RhemaResult<()> {
         let hotfix_branch = self.get_hotfix_branch_name(version);
-        
+
         // Apply hotfix merge strategies
-        for strategy in &self.config.context_aware.context_aware_hotfix_management.merge_strategies {
+        for strategy in &self
+            .config
+            .context_aware
+            .context_aware_hotfix_management
+            .merge_strategies
+        {
             self.apply_hotfix_merge_strategy(&hotfix_branch, strategy)?;
         }
-        
+
         // Delete the hotfix branch
         self.delete_branch(&hotfix_branch)?;
-        
+
         Ok(())
     }
 
@@ -1180,9 +1260,12 @@ impl WorkflowManager {
     pub fn get_workflow_status(&self) -> RhemaResult<WorkflowStatus> {
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let repo = git2::Repository::open(&repo_path)?;
         let workflow = GitWorkflow::new(repo, self.config.clone());
@@ -1193,9 +1276,12 @@ impl WorkflowManager {
     pub fn get_current_branch_workflow(&self) -> RhemaResult<Option<BranchWorkflow>> {
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let repo = git2::Repository::open(&repo_path)?;
         let workflow = GitWorkflow::new(repo, self.config.clone());
@@ -1208,7 +1294,7 @@ impl WorkflowManager {
         customizations: Option<std::collections::HashMap<String, serde_json::Value>>,
     ) -> RhemaResult<WorkflowConfig> {
         let template = WorkflowTemplateManager::get_template(template_type)?;
-        
+
         if let Some(customizations) = customizations {
             WorkflowTemplateManager::apply_customization(&template, &customizations)
         } else {
@@ -1222,17 +1308,25 @@ impl WorkflowManager {
     }
 
     /// Get template by type
-    pub fn get_template(template_type: &WorkflowTemplateType) -> RhemaResult<crate::workflow_templates::WorkflowTemplate> {
+    pub fn get_template(
+        template_type: &WorkflowTemplateType,
+    ) -> RhemaResult<crate::workflow_templates::WorkflowTemplate> {
         WorkflowTemplateManager::get_template(template_type)
     }
 
     /// Validate template configuration
-    pub fn validate_template(template: &crate::workflow_templates::WorkflowTemplate) -> RhemaResult<Vec<String>> {
+    pub fn validate_template(
+        template: &crate::workflow_templates::WorkflowTemplate,
+    ) -> RhemaResult<Vec<String>> {
         WorkflowTemplateManager::validate_template(template)
     }
 
     /// Apply hotfix merge strategy
-    fn apply_hotfix_merge_strategy(&self, branch_name: &str, strategy: &HotfixMergeStrategy) -> RhemaResult<()> {
+    fn apply_hotfix_merge_strategy(
+        &self,
+        branch_name: &str,
+        strategy: &HotfixMergeStrategy,
+    ) -> RhemaResult<()> {
         // Implementation for applying hotfix merge strategy
         match strategy.strategy_type {
             HotfixMergeStrategyType::Conservative => {
@@ -1259,21 +1353,27 @@ impl WorkflowManager {
         // Find the branch reference
         let repo = self.repo.lock().unwrap();
         let mut branch_ref = repo.find_branch(branch_name, git2::BranchType::Local)?;
-        
+
         // Delete the branch
         branch_ref.delete()?;
-        
+
         Ok(())
     }
 
     /// Get release branch name
     fn get_release_branch_name(&self, version: &str) -> String {
-        format!("{}{}", self.config.branch_conventions.release_prefix, version)
+        format!(
+            "{}{}",
+            self.config.branch_conventions.release_prefix, version
+        )
     }
 
     /// Get hotfix branch name
     fn get_hotfix_branch_name(&self, version: &str) -> String {
-        format!("{}{}", self.config.branch_conventions.hotfix_prefix, version)
+        format!(
+            "{}{}",
+            self.config.branch_conventions.hotfix_prefix, version
+        )
     }
 
     /// Check if branch exists
@@ -1305,7 +1405,11 @@ impl WorkflowManager {
     }
 
     /// Execute preparation step
-    fn execute_preparation_step(&self, branch_name: &str, step: &ReleasePreparationStep) -> RhemaResult<()> {
+    fn execute_preparation_step(
+        &self,
+        branch_name: &str,
+        step: &ReleasePreparationStep,
+    ) -> RhemaResult<()> {
         // Implementation for executing preparation step
         Ok(())
     }
@@ -1317,13 +1421,22 @@ impl WorkflowManager {
     }
 
     /// Validate release rule
-    fn validate_release_rule(&self, branch_name: &str, rule: &ReleaseValidationRule) -> RhemaResult<()> {
+    fn validate_release_rule(
+        &self,
+        branch_name: &str,
+        rule: &ReleaseValidationRule,
+    ) -> RhemaResult<()> {
         // Implementation for validating release rule
         Ok(())
     }
 
     /// Merge with strategy
-    fn merge_with_strategy(&self, source_branch: &str, target_branch: &str, strategy: &ContextMergeStrategy) -> RhemaResult<()> {
+    fn merge_with_strategy(
+        &self,
+        source_branch: &str,
+        target_branch: &str,
+        strategy: &ContextMergeStrategy,
+    ) -> RhemaResult<()> {
         // Implementation for merging with strategy
         Ok(())
     }
@@ -1335,7 +1448,11 @@ impl WorkflowManager {
     }
 
     /// Execute cleanup step
-    fn execute_cleanup_step(&self, branch_name: &str, step: &ReleaseCleanupStep) -> RhemaResult<()> {
+    fn execute_cleanup_step(
+        &self,
+        branch_name: &str,
+        step: &ReleaseCleanupStep,
+    ) -> RhemaResult<()> {
         // Implementation for executing cleanup step
         Ok(())
     }
@@ -1359,7 +1476,11 @@ impl WorkflowManager {
     }
 
     /// Validate hotfix rule
-    fn validate_hotfix_rule(&self, branch_name: &str, rule: &HotfixValidationRule) -> RhemaResult<()> {
+    fn validate_hotfix_rule(
+        &self,
+        branch_name: &str,
+        rule: &HotfixValidationRule,
+    ) -> RhemaResult<()> {
         // Implementation for validating hotfix rule
         Ok(())
     }
@@ -1529,30 +1650,43 @@ impl GitWorkflow {
     /// Setup feature context for a branch (synchronous version)
     pub fn setup_feature_context_sync(&self, branch_name: &str) -> RhemaResult<()> {
         let base_branch = self.get_base_branch_for_feature(branch_name)?;
-        
+
         // Create feature automation manager
         let feature_config = default_feature_automation_config();
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let feature_repo = git2::Repository::open(&repo_path)?;
         let feature_automation = FeatureAutomationManager::new(feature_repo, feature_config);
-        
+
         // Use feature automation to setup context
         let _context = feature_automation.setup_feature_context(branch_name, &base_branch)?;
-        
+
         // Apply context-aware settings if enabled
-        if self.config.context_aware.context_aware_feature_branching.auto_isolate_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_feature_branching
+            .auto_isolate_context
+        {
             self.isolate_feature_context(branch_name)?;
         }
-        
-        if self.config.context_aware.context_aware_feature_branching.auto_sync_parent {
+
+        if self
+            .config
+            .context_aware
+            .context_aware_feature_branching
+            .auto_sync_parent
+        {
             self.sync_feature_with_parent(branch_name, &base_branch)?;
         }
-        
+
         Ok(())
     }
 
@@ -1567,28 +1701,36 @@ impl GitWorkflow {
         let feature_config = default_feature_automation_config();
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let feature_repo = git2::Repository::open(&repo_path)?;
         let feature_automation = FeatureAutomationManager::new(feature_repo, feature_config);
-        
+
         // Use feature automation for validation
         let result = feature_automation.validate_feature_branch(branch_name)?;
-        
+
         if !result.success {
             return Err(RhemaError::ValidationError(format!(
                 "Feature branch validation failed: {:?}",
                 result.errors
             )));
         }
-        
+
         // Apply context-aware validation if enabled
-        if self.config.context_aware.context_aware_feature_branching.auto_validate_before_merge {
+        if self
+            .config
+            .context_aware
+            .context_aware_feature_branching
+            .auto_validate_before_merge
+        {
             self.validate_feature_context(branch_name)?;
         }
-        
+
         Ok(())
     }
 
@@ -1600,31 +1742,34 @@ impl GitWorkflow {
     /// Merge feature branch (synchronous version)
     pub fn merge_feature_branch_sync(&self, branch_name: &str) -> RhemaResult<()> {
         let target_branch = self.determine_target_branch(branch_name)?;
-        
+
         // Create feature automation manager
         let feature_config = default_feature_automation_config();
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let feature_repo = git2::Repository::open(&repo_path)?;
         let feature_automation = FeatureAutomationManager::new(feature_repo, feature_config);
-        
+
         // Use feature automation for merging
         let result = feature_automation.merge_feature_branch(branch_name, &target_branch)?;
-        
+
         if !result.success {
             return Err(RhemaError::WorkflowError(format!(
                 "Feature branch merge failed: {:?}",
                 result.conflicts
             )));
         }
-        
+
         // Apply context-aware merge strategies
         self.apply_context_merge_strategy(branch_name, &target_branch)?;
-        
+
         Ok(())
     }
 
@@ -1639,74 +1784,107 @@ impl GitWorkflow {
         let feature_config = default_feature_automation_config();
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
         let feature_repo = git2::Repository::open(&repo_path)?;
         let feature_automation = FeatureAutomationManager::new(feature_repo, feature_config);
-        
+
         // Use feature automation for cleanup
         let result = feature_automation.cleanup_feature_branch(branch_name)?;
-        
+
         if !result.success {
             return Err(RhemaError::WorkflowError(format!(
                 "Feature branch cleanup failed: {:?}",
                 result.errors
             )));
         }
-        
+
         Ok(())
     }
 
     /// Prepare release context
     pub async fn prepare_release_context(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
-        
+
         // Create release branch if it doesn't exist
         if !self.branch_exists(&release_branch)? {
             self.create_release_branch(&release_branch, version)?;
         }
-        
+
         // Apply context-aware release management if enabled
-        if self.config.context_aware.context_aware_release_management.auto_prepare_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .auto_prepare_context
+        {
             self.prepare_release_context_files(&release_branch, version)?;
         }
-        
-        if self.config.context_aware.context_aware_release_management.auto_update_version {
+
+        if self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .auto_update_version
+        {
             self.update_version_information(&release_branch, version)?;
         }
-        
-        if self.config.context_aware.context_aware_release_management.auto_generate_release_notes {
+
+        if self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .auto_generate_release_notes
+        {
             self.generate_release_notes(version).await?;
         }
-        
+
         // Execute preparation steps in order
-        for step in &self.config.context_aware.context_aware_release_management.preparation_steps {
+        for step in &self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .preparation_steps
+        {
             if step.required {
                 self.execute_preparation_step(&release_branch, step)?;
             }
         }
-        
+
         Ok(())
     }
 
     /// Validate release
     pub fn validate_release(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
-        
+
         // Apply context-aware validation if enabled
-        if self.config.context_aware.context_aware_release_management.auto_validate_release_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .auto_validate_release_context
+        {
             self.validate_release_context(&release_branch, version)?;
         }
-        
+
         // Execute validation rules
-        for rule in &self.config.context_aware.context_aware_release_management.validation_rules {
+        for rule in &self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .validation_rules
+        {
             if rule.required {
                 self.validate_release_rule(&release_branch, rule)?;
             }
         }
-        
+
         Ok(())
     }
 
@@ -1714,95 +1892,128 @@ impl GitWorkflow {
     pub async fn merge_to_main(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
         let main_branch = &self.config.branch_conventions.main_branch;
-        
+
         // Apply context-aware merge strategy
-        let strategy = &self.config.context_aware.context_aware_merge_strategies.release_merge_strategy;
+        let strategy = &self
+            .config
+            .context_aware
+            .context_aware_merge_strategies
+            .release_merge_strategy;
         self.merge_with_strategy(&release_branch, main_branch, strategy)?;
-        
+
         // Create version tag
         self.create_version_tag(version)?;
-        
+
         Ok(())
     }
 
     /// Merge to develop
     pub async fn merge_to_develop(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
-        
+
         if let Some(develop_branch) = &self.config.branch_conventions.develop_branch {
             // Apply context-aware merge strategy
-            let strategy = &self.config.context_aware.context_aware_merge_strategies.release_merge_strategy;
+            let strategy = &self
+                .config
+                .context_aware
+                .context_aware_merge_strategies
+                .release_merge_strategy;
             self.merge_with_strategy(&release_branch, develop_branch, strategy)?;
         }
-        
+
         Ok(())
     }
 
     /// Cleanup release branch
     pub async fn cleanup_release_branch(&self, version: &str) -> RhemaResult<()> {
         let release_branch = self.get_release_branch_name(version);
-        
+
         // Execute cleanup steps in order
-        for step in &self.config.context_aware.context_aware_release_management.cleanup_steps {
+        for step in &self
+            .config
+            .context_aware
+            .context_aware_release_management
+            .cleanup_steps
+        {
             if step.required {
                 self.execute_cleanup_step(&release_branch, step)?;
             }
         }
-        
+
         // Delete the release branch
         self.delete_branch(&release_branch)?;
-        
+
         Ok(())
     }
 
     /// Setup hotfix context
     pub async fn setup_hotfix_context(&self, version: &str) -> RhemaResult<()> {
         let hotfix_branch = self.get_hotfix_branch_name(version);
-        
+
         // Create hotfix branch if it doesn't exist
         if !self.branch_exists(&hotfix_branch)? {
             self.create_hotfix_branch(&hotfix_branch, version)?;
         }
-        
+
         // Apply context-aware hotfix management if enabled
-        if self.config.context_aware.context_aware_hotfix_management.auto_isolate_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_hotfix_management
+            .auto_isolate_context
+        {
             self.isolate_hotfix_context(&hotfix_branch)?;
         }
-        
+
         Ok(())
     }
 
     /// Validate hotfix
     pub async fn validate_hotfix(&self, version: &str) -> RhemaResult<()> {
         let hotfix_branch = self.get_hotfix_branch_name(version);
-        
+
         // Apply context-aware validation if enabled
-        if self.config.context_aware.context_aware_hotfix_management.auto_validate_context {
+        if self
+            .config
+            .context_aware
+            .context_aware_hotfix_management
+            .auto_validate_context
+        {
             self.validate_hotfix_context(&hotfix_branch, version)?;
         }
-        
+
         // Execute validation rules
-        for rule in &self.config.context_aware.context_aware_hotfix_management.validation_rules {
+        for rule in &self
+            .config
+            .context_aware
+            .context_aware_hotfix_management
+            .validation_rules
+        {
             if rule.required {
                 self.validate_hotfix_rule(&hotfix_branch, rule)?;
             }
         }
-        
+
         Ok(())
     }
 
     /// Cleanup hotfix branch
     pub async fn cleanup_hotfix_branch(&self, version: &str) -> RhemaResult<()> {
         let hotfix_branch = self.get_hotfix_branch_name(version);
-        
+
         // Apply hotfix merge strategies
-        for strategy in &self.config.context_aware.context_aware_hotfix_management.merge_strategies {
+        for strategy in &self
+            .config
+            .context_aware
+            .context_aware_hotfix_management
+            .merge_strategies
+        {
             self.apply_hotfix_merge_strategy(&hotfix_branch, strategy)?;
         }
-        
+
         // Delete the hotfix branch
         self.delete_branch(&hotfix_branch)?;
-        
+
         Ok(())
     }
 
@@ -1815,7 +2026,7 @@ impl GitWorkflow {
     pub fn get_workflow_status_sync(&self) -> RhemaResult<WorkflowStatus> {
         let current_branch = self.get_current_branch()?;
         let branch_type = self.determine_branch_type(&current_branch)?;
-        
+
         Ok(WorkflowStatus {
             current_branch,
             branch_type,
@@ -1833,7 +2044,7 @@ impl GitWorkflow {
     pub fn get_current_branch_workflow_sync(&self) -> RhemaResult<Option<BranchWorkflow>> {
         let current_branch = self.get_current_branch()?;
         let _branch_type = self.determine_branch_type(&current_branch)?;
-        
+
         // This would return detailed workflow information for the current branch
         // For now, return None as BranchWorkflow is not defined
         Ok(None)
@@ -1844,16 +2055,23 @@ impl GitWorkflow {
         if let Some(version_manager) = &self.version_manager {
             version_manager.get_current_version()
         } else {
-            Err(RhemaError::ConfigError("Version manager not configured".to_string()))
+            Err(RhemaError::ConfigError(
+                "Version manager not configured".to_string(),
+            ))
         }
     }
 
     /// Bump version
-    pub async fn bump_version(&self, bump_type: Option<BumpType>) -> RhemaResult<VersionManagementResult> {
+    pub async fn bump_version(
+        &self,
+        bump_type: Option<BumpType>,
+    ) -> RhemaResult<VersionManagementResult> {
         if let Some(version_manager) = &self.version_manager {
             version_manager.bump_version(bump_type).await
         } else {
-            Err(RhemaError::ConfigError("Version manager not configured".to_string()))
+            Err(RhemaError::ConfigError(
+                "Version manager not configured".to_string(),
+            ))
         }
     }
 
@@ -1862,7 +2080,9 @@ impl GitWorkflow {
         if let Some(version_manager) = &self.version_manager {
             version_manager.generate_changelog(version).await
         } else {
-            Err(RhemaError::ConfigError("Version manager not configured".to_string()))
+            Err(RhemaError::ConfigError(
+                "Version manager not configured".to_string(),
+            ))
         }
     }
 
@@ -1871,7 +2091,9 @@ impl GitWorkflow {
         if let Some(version_manager) = &self.version_manager {
             version_manager.generate_release_notes(_version).await
         } else {
-            Err(RhemaError::ConfigError("Version manager not configured".to_string()))
+            Err(RhemaError::ConfigError(
+                "Version manager not configured".to_string(),
+            ))
         }
     }
 
@@ -1880,7 +2102,9 @@ impl GitWorkflow {
         if let Some(version_manager) = &self.version_manager {
             version_manager.validate_version(version)
         } else {
-            Err(RhemaError::ConfigError("Version manager not configured".to_string()))
+            Err(RhemaError::ConfigError(
+                "Version manager not configured".to_string(),
+            ))
         }
     }
 
@@ -1907,46 +2131,63 @@ impl GitWorkflow {
         // Create branch-specific context directory
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
+
         let context_dir = repo_path.join(".rhema").join("contexts").join(branch_name);
         std::fs::create_dir_all(&context_dir)?;
-        
+
         // Create isolated context files
         let context_files = vec![
             "todos.yaml",
-            "knowledge.yaml", 
+            "knowledge.yaml",
             "decisions.yaml",
             "patterns.yaml",
             "insights.yaml",
-            "rhema.yaml"
+            "rhema.yaml",
         ];
-        
+
         for file in context_files {
             let file_path = context_dir.join(file);
             if !file_path.exists() {
                 // Create empty context file with basic structure
                 let content: String = match file {
-                    "todos.yaml" => "todos:\n  - task: \"Initial task\"\n    status: \"pending\"\n".to_string(),
-                    "knowledge.yaml" => "knowledge:\n  - concept: \"Initial concept\"\n    description: \"TBD\"\n".to_string(),
-                    "decisions.yaml" => "decisions:\n  - decision: \"Initial decision\"\n    rationale: \"TBD\"\n".to_string(),
-                    "patterns.yaml" => "patterns:\n  - pattern: \"Initial pattern\"\n    description: \"TBD\"\n".to_string(),
-                    "insights.yaml" => "insights:\n  - observation: \"Initial observation\"\n    impact: \"TBD\"\n".to_string(),
+                    "todos.yaml" => {
+                        "todos:\n  - task: \"Initial task\"\n    status: \"pending\"\n".to_string()
+                    }
+                    "knowledge.yaml" => {
+                        "knowledge:\n  - concept: \"Initial concept\"\n    description: \"TBD\"\n"
+                            .to_string()
+                    }
+                    "decisions.yaml" => {
+                        "decisions:\n  - decision: \"Initial decision\"\n    rationale: \"TBD\"\n"
+                            .to_string()
+                    }
+                    "patterns.yaml" => {
+                        "patterns:\n  - pattern: \"Initial pattern\"\n    description: \"TBD\"\n"
+                            .to_string()
+                    }
+                    "insights.yaml" => {
+                        "insights:\n  - observation: \"Initial observation\"\n    impact: \"TBD\"\n"
+                            .to_string()
+                    }
                     "rhema.yaml" => {
                         format!(
                             "rhema:\n  version: \"1.0.0\"\n  scope:\n    type: \"feature\"\n    name: \"{}\"\n    status: \"active\"\n",
                             branch_name
                         )
-                    },
-                    _ => "content: \"Default content\"\n".to_string()
+                    }
+                    _ => "content: \"Default content\"\n".to_string(),
                 };
                 std::fs::write(&file_path, &content)?;
             }
         }
-        
+
         Ok(())
     }
 
@@ -1954,28 +2195,34 @@ impl GitWorkflow {
         // Sync context files from parent branch
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
-        let parent_context_dir = repo_path.join(".rhema").join("contexts").join(parent_branch);
+
+        let parent_context_dir = repo_path
+            .join(".rhema")
+            .join("contexts")
+            .join(parent_branch);
         let feature_context_dir = repo_path.join(".rhema").join("contexts").join(branch_name);
-        
+
         if parent_context_dir.exists() {
             // Copy shared context files from parent
             let shared_files = vec!["knowledge.yaml", "decisions.yaml", "patterns.yaml"];
-            
+
             for file in shared_files {
                 let parent_file = parent_context_dir.join(file);
                 let feature_file = feature_context_dir.join(file);
-                
+
                 if parent_file.exists() && !feature_file.exists() {
                     std::fs::copy(&parent_file, &feature_file)?;
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -1983,45 +2230,52 @@ impl GitWorkflow {
         // Validate context integrity for feature branch
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
+
         let context_dir = repo_path.join(".rhema").join("contexts").join(branch_name);
-        
+
         if !context_dir.exists() {
-            return Err(RhemaError::ValidationError(
-                format!("Context directory does not exist for branch: {}", branch_name)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Context directory does not exist for branch: {}",
+                branch_name
+            )));
         }
-        
+
         // Validate required context files exist
         let required_files = vec!["rhema.yaml", "todos.yaml"];
         for file in required_files {
             let file_path = context_dir.join(file);
             if !file_path.exists() {
-                return Err(RhemaError::ValidationError(
-                    format!("Required context file missing: {}", file)
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Required context file missing: {}",
+                    file
+                )));
             }
         }
-        
+
         // Validate context file syntax (basic YAML validation)
         for entry in std::fs::read_dir(&context_dir)? {
             let entry = entry?;
             let file_path = entry.path();
-            
+
             if file_path.extension().and_then(|s| s.to_str()) == Some("yaml") {
                 let content = std::fs::read_to_string(&file_path)?;
                 serde_yaml::from_str::<serde_yaml::Value>(&content).map_err(|e| {
-                    RhemaError::ValidationError(
-                        format!("Invalid YAML in {}: {}", file_path.display(), e)
-                    )
+                    RhemaError::ValidationError(format!(
+                        "Invalid YAML in {}: {}",
+                        file_path.display(),
+                        e
+                    ))
                 })?;
             }
         }
-        
+
         Ok(())
     }
 
@@ -2039,34 +2293,53 @@ impl GitWorkflow {
         }
     }
 
-    fn apply_context_merge_strategy(&self, source_branch: &str, target_branch: &str) -> RhemaResult<()> {
+    fn apply_context_merge_strategy(
+        &self,
+        source_branch: &str,
+        target_branch: &str,
+    ) -> RhemaResult<()> {
         // Apply context-aware merge strategy
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
-        let source_context_dir = repo_path.join(".rhema").join("contexts").join(source_branch);
-        let target_context_dir = repo_path.join(".rhema").join("contexts").join(target_branch);
-        
+
+        let source_context_dir = repo_path
+            .join(".rhema")
+            .join("contexts")
+            .join(source_branch);
+        let target_context_dir = repo_path
+            .join(".rhema")
+            .join("contexts")
+            .join(target_branch);
+
         if !source_context_dir.exists() {
             return Ok(()); // No source context to merge
         }
-        
+
         // Create target context directory if it doesn't exist
         if !target_context_dir.exists() {
             std::fs::create_dir_all(&target_context_dir)?;
         }
-        
+
         // Merge context files based on strategy
-        let context_files = vec!["todos.yaml", "knowledge.yaml", "decisions.yaml", "patterns.yaml", "insights.yaml"];
-        
+        let context_files = vec![
+            "todos.yaml",
+            "knowledge.yaml",
+            "decisions.yaml",
+            "patterns.yaml",
+            "insights.yaml",
+        ];
+
         for file in context_files {
             let source_file = source_context_dir.join(file);
             let target_file = target_context_dir.join(file);
-            
+
             if source_file.exists() {
                 if target_file.exists() {
                     // Merge existing files
@@ -2077,18 +2350,26 @@ impl GitWorkflow {
                 }
             }
         }
-        
+
         Ok(())
     }
 
-    fn execute_custom_merge_strategy(&self, source_branch: &str, target_branch: &str, strategy_type: &str) -> RhemaResult<()> {
+    fn execute_custom_merge_strategy(
+        &self,
+        source_branch: &str,
+        target_branch: &str,
+        strategy_type: &str,
+    ) -> RhemaResult<()> {
         // Execute custom merge strategy
-        println!("Executing custom merge strategy '{}' from {} to {}", strategy_type, source_branch, target_branch);
-        
+        println!(
+            "Executing custom merge strategy '{}' from {} to {}",
+            strategy_type, source_branch, target_branch
+        );
+
         // This would implement custom merge logic based on the strategy type
         // For now, we'll use the default automatic merge
         self.perform_automatic_merge(source_branch, target_branch)?;
-        
+
         Ok(())
     }
 
@@ -2096,25 +2377,32 @@ impl GitWorkflow {
         // Simple merge strategy: append source content to target
         let source_content = std::fs::read_to_string(source_file)?;
         let target_content = std::fs::read_to_string(target_file)?;
-        
+
         // For now, use a simple append strategy
         // In a real implementation, this would be more sophisticated
-        let merged_content = format!("{}\n# Merged from {}\n{}", 
-            target_content, 
+        let merged_content = format!(
+            "{}\n# Merged from {}\n{}",
+            target_content,
             source_file.file_name().unwrap().to_string_lossy(),
             source_content
         );
-        
+
         std::fs::write(target_file, merged_content)?;
         Ok(())
     }
 
     fn get_release_branch_name(&self, version: &str) -> String {
-        format!("{}{}", self.config.branch_conventions.release_prefix, version)
+        format!(
+            "{}{}",
+            self.config.branch_conventions.release_prefix, version
+        )
     }
 
     fn get_hotfix_branch_name(&self, version: &str) -> String {
-        format!("{}{}", self.config.branch_conventions.hotfix_prefix, version)
+        format!(
+            "{}{}",
+            self.config.branch_conventions.hotfix_prefix, version
+        )
     }
 
     fn branch_exists(&self, branch_name: &str) -> RhemaResult<bool> {
@@ -2124,7 +2412,8 @@ impl GitWorkflow {
             Ok(_) => Ok(true),
             Err(_) => {
                 // Check remote branches too
-                match repo.find_branch(&format!("origin/{}", branch_name), git2::BranchType::Remote) {
+                match repo.find_branch(&format!("origin/{}", branch_name), git2::BranchType::Remote)
+                {
                     Ok(_) => Ok(true),
                     Err(_) => Ok(false),
                 }
@@ -2133,7 +2422,11 @@ impl GitWorkflow {
         result
     }
 
-    fn execute_preparation_step(&self, branch_name: &str, step: &ReleasePreparationStep) -> RhemaResult<()> {
+    fn execute_preparation_step(
+        &self,
+        branch_name: &str,
+        step: &ReleasePreparationStep,
+    ) -> RhemaResult<()> {
         match step.step_type {
             ReleasePreparationStepType::UpdateVersion => {
                 // Update version in package files, etc.
@@ -2141,15 +2434,24 @@ impl GitWorkflow {
             }
             ReleasePreparationStepType::GenerateReleaseNotes => {
                 // Generate release notes from commits
-                println!("Executing generate release notes step for branch: {}", branch_name);
+                println!(
+                    "Executing generate release notes step for branch: {}",
+                    branch_name
+                );
             }
             ReleasePreparationStepType::ValidateContext => {
                 // Validate context integrity
-                println!("Executing validate context step for branch: {}", branch_name);
+                println!(
+                    "Executing validate context step for branch: {}",
+                    branch_name
+                );
             }
             ReleasePreparationStepType::UpdateDependencies => {
                 // Update dependencies to latest compatible versions
-                println!("Executing update dependencies step for branch: {}", branch_name);
+                println!(
+                    "Executing update dependencies step for branch: {}",
+                    branch_name
+                );
             }
             ReleasePreparationStepType::SecurityScan => {
                 // Run security scans
@@ -2157,36 +2459,59 @@ impl GitWorkflow {
             }
             ReleasePreparationStepType::PerformanceTest => {
                 // Run performance tests
-                println!("Executing performance test step for branch: {}", branch_name);
+                println!(
+                    "Executing performance test step for branch: {}",
+                    branch_name
+                );
             }
             ReleasePreparationStepType::Custom(ref custom_type) => {
                 // Execute custom preparation step
-                println!("Executing custom preparation step '{}' for branch: {}", custom_type, branch_name);
+                println!(
+                    "Executing custom preparation step '{}' for branch: {}",
+                    custom_type, branch_name
+                );
             }
         }
         Ok(())
     }
 
-    fn merge_with_strategy(&self, source_branch: &str, target_branch: &str, strategy: &ContextMergeStrategy) -> RhemaResult<()> {
+    fn merge_with_strategy(
+        &self,
+        source_branch: &str,
+        target_branch: &str,
+        strategy: &ContextMergeStrategy,
+    ) -> RhemaResult<()> {
         match strategy.strategy_type {
             ContextMergeStrategyType::Auto => {
                 // Perform automatic merge
-                println!("Performing automatic merge from {} to {}", source_branch, target_branch);
+                println!(
+                    "Performing automatic merge from {} to {}",
+                    source_branch, target_branch
+                );
                 self.perform_automatic_merge(source_branch, target_branch)?;
             }
             ContextMergeStrategyType::Manual => {
                 // Prepare for manual merge
-                println!("Preparing manual merge from {} to {}", source_branch, target_branch);
+                println!(
+                    "Preparing manual merge from {} to {}",
+                    source_branch, target_branch
+                );
                 self.prepare_manual_merge(source_branch, target_branch)?;
             }
             ContextMergeStrategyType::SemiAuto => {
                 // Perform semi-automatic merge with conflict resolution
-                println!("Performing semi-automatic merge from {} to {}", source_branch, target_branch);
+                println!(
+                    "Performing semi-automatic merge from {} to {}",
+                    source_branch, target_branch
+                );
                 self.perform_semi_automatic_merge(source_branch, target_branch, strategy)?;
             }
             ContextMergeStrategyType::Custom(ref custom_type) => {
                 // Execute custom merge strategy
-                println!("Executing custom merge strategy '{}' from {} to {}", custom_type, source_branch, target_branch);
+                println!(
+                    "Executing custom merge strategy '{}' from {} to {}",
+                    custom_type, source_branch, target_branch
+                );
                 self.execute_custom_merge_strategy(source_branch, target_branch, custom_type)?;
             }
         }
@@ -2198,49 +2523,55 @@ impl GitWorkflow {
         let repo = self.repo.lock().unwrap();
         let source_ref = repo.find_branch(source_branch, git2::BranchType::Local)?;
         let target_ref = repo.find_branch(target_branch, git2::BranchType::Local)?;
-        
+
         let source_commit = source_ref.get().peel_to_commit()?;
         let target_commit = target_ref.get().peel_to_commit()?;
-        
+
         // Checkout target branch
         let target_object = target_commit.as_object();
         repo.checkout_tree(&target_object, None)?;
-        
+
         // Perform merge
         let source_annotated = repo.find_annotated_commit(source_commit.id())?;
         let target_annotated = repo.find_annotated_commit(target_commit.id())?;
-        
+
         let merge_result = repo.merge_analysis(&[&source_annotated])?;
-        
+
         if merge_result.0.is_up_to_date() {
             println!("Target branch is already up to date");
             return Ok(());
         }
-        
+
         if merge_result.0.is_fast_forward() {
             println!("Performing fast-forward merge");
             let mut target_ref = repo.find_reference(&format!("refs/heads/{}", target_branch))?;
             target_ref.set_target(source_commit.id(), "Fast-forward merge")?;
             return Ok(());
         }
-        
+
         if merge_result.0.is_normal() {
-            println!("Merge commit created from {} to {}", source_branch, target_branch);
+            println!(
+                "Merge commit created from {} to {}",
+                source_branch, target_branch
+            );
             // Create merge commit
             let signature = git2::Signature::now("Rhema Workflow", "workflow@rhema.ai")?;
             let tree = repo.index()?.write_tree()?;
             let tree_obj = repo.find_tree(tree)?;
-            
+
             repo.commit(
                 Some(&format!("refs/heads/{}", target_branch)),
                 &signature,
                 &signature,
                 &format!("Merge {} into {}", source_branch, target_branch),
                 &tree_obj,
-                &[&target_commit, &source_commit]
+                &[&target_commit, &source_commit],
             )?;
         } else {
-            println!("Merge commit created from {} to {}", source_branch, target_branch);
+            println!(
+                "Merge commit created from {} to {}",
+                source_branch, target_branch
+            );
             // Handle conflicts if any
             let index = repo.index()?;
             if index.has_conflicts() {
@@ -2255,10 +2586,12 @@ impl GitWorkflow {
                         }
                     }
                 }
-                return Err(RhemaError::ConfigError("Merge conflicts detected".to_string()));
+                return Err(RhemaError::ConfigError(
+                    "Merge conflicts detected".to_string(),
+                ));
             }
         }
-        
+
         Ok(())
     }
 
@@ -2267,35 +2600,34 @@ impl GitWorkflow {
         let repo = self.repo.lock().unwrap();
         let source_ref = repo.find_branch(source_branch, git2::BranchType::Local)?;
         let target_ref = repo.find_branch(target_branch, git2::BranchType::Local)?;
-        
+
         let source_commit = source_ref.get().peel_to_commit()?;
         let target_commit = target_ref.get().peel_to_commit()?;
-        
+
         // Checkout target branch
         repo.checkout_tree(&target_commit.as_object(), None)?;
         repo.set_head(&format!("refs/heads/{}", target_branch))?;
-        
+
         // Attempt merge to detect conflicts
         let mut merge_options = git2::MergeOptions::new();
         let annotated_commit = repo.annotated_commit_from_fetchhead(
             &source_commit.author().name().unwrap_or("Unknown"),
-            &source_commit.author().email().unwrap_or("unknown@example.com"),
+            &source_commit
+                .author()
+                .email()
+                .unwrap_or("unknown@example.com"),
             &source_commit.id(),
         )?;
-        
-        let merge_result = repo.merge(
-            &[&annotated_commit],
-            Some(&mut merge_options),
-            None
-        )?;
-        
+
+        let merge_result = repo.merge(&[&annotated_commit], Some(&mut merge_options), None)?;
+
         // Check if merge is up to date by examining the index
         let index = repo.index()?;
         if index.len() == 0 {
             println!("No merge needed - branches are up to date");
             return Ok(());
         }
-        
+
         // Check for conflicts
         let index = repo.index()?;
         if index.has_conflicts() {
@@ -2315,11 +2647,16 @@ impl GitWorkflow {
             // No conflicts, can proceed with automatic merge
             self.perform_automatic_merge(source_branch, target_branch)?;
         }
-        
+
         Ok(())
     }
 
-    fn perform_semi_automatic_merge(&self, source_branch: &str, target_branch: &str, strategy: &ContextMergeStrategy) -> RhemaResult<()> {
+    fn perform_semi_automatic_merge(
+        &self,
+        source_branch: &str,
+        target_branch: &str,
+        strategy: &ContextMergeStrategy,
+    ) -> RhemaResult<()> {
         // Perform semi-automatic merge with conflict resolution rules
         match strategy.conflict_resolution.resolution_type {
             ConflictResolutionType::TakeSource => {
@@ -2332,7 +2669,7 @@ impl GitWorkflow {
                 println!("Taking target branch changes for all conflicts");
                 // This would require a more complex implementation
                 return Err(RhemaError::WorkflowError(
-                    "TakeTarget strategy not yet implemented".to_string()
+                    "TakeTarget strategy not yet implemented".to_string(),
                 ));
             }
             ConflictResolutionType::Merge => {
@@ -2341,15 +2678,19 @@ impl GitWorkflow {
             }
             ConflictResolutionType::Custom(_) => {
                 return Err(RhemaError::WorkflowError(
-                    "Custom merge strategy not yet implemented".to_string()
+                    "Custom merge strategy not yet implemented".to_string(),
                 ));
             }
         }
-        
+
         Ok(())
     }
 
-    fn execute_cleanup_step(&self, branch_name: &str, step: &ReleaseCleanupStep) -> RhemaResult<()> {
+    fn execute_cleanup_step(
+        &self,
+        branch_name: &str,
+        step: &ReleaseCleanupStep,
+    ) -> RhemaResult<()> {
         // Execute release cleanup step
         match step.step_type {
             ReleaseCleanupStepType::RemoveTemporaryFiles => {
@@ -2373,11 +2714,14 @@ impl GitWorkflow {
                 // Send notifications about release completion
             }
             ReleaseCleanupStepType::Custom(ref custom_type) => {
-                println!("Executing custom cleanup step '{}' for branch: {}", custom_type, branch_name);
+                println!(
+                    "Executing custom cleanup step '{}' for branch: {}",
+                    custom_type, branch_name
+                );
                 // Execute custom cleanup logic
             }
         }
-        
+
         Ok(())
     }
 
@@ -2387,12 +2731,18 @@ impl GitWorkflow {
         let repo = self.repo.lock().unwrap();
         let head = repo.head()?;
         let commit = head.peel_to_commit()?;
-        
+
         let tag_name = format!("v{}", version);
         // Create tag
         let commit_object = commit.as_object();
-        repo.tag(&tag_name, &commit_object, &signature, &format!("Release {}", version), false)?;
-        
+        repo.tag(
+            &tag_name,
+            &commit_object,
+            &signature,
+            &format!("Release {}", version),
+            false,
+        )?;
+
         println!("Created version tag: {}", tag_name);
         Ok(())
     }
@@ -2401,10 +2751,10 @@ impl GitWorkflow {
         // Find the branch reference
         let repo = self.repo.lock().unwrap();
         let mut branch_ref = repo.find_branch(branch_name, git2::BranchType::Local)?;
-        
+
         // Delete the branch
         branch_ref.delete()?;
-        
+
         Ok(())
     }
 
@@ -2414,15 +2764,18 @@ impl GitWorkflow {
         let repo = self.repo.lock().unwrap();
         let main_ref = repo.find_branch(main_branch, git2::BranchType::Local)?;
         let main_commit = main_ref.get().peel_to_commit()?;
-        
+
         // Create new branch
         let new_branch = repo.branch(branch_name, &main_commit, false)?;
-        
+
         // Checkout the new branch
         repo.checkout_tree(&main_commit.as_object(), None)?;
         repo.set_head(&format!("refs/heads/{}", branch_name))?;
-        
-        println!("Created hotfix branch: {} from {}", branch_name, main_branch);
+
+        println!(
+            "Created hotfix branch: {} from {}",
+            branch_name, main_branch
+        );
         Ok(())
     }
 
@@ -2430,23 +2783,26 @@ impl GitWorkflow {
         // Create isolated context for hotfix
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
+
         let context_dir = repo_path.join(".rhema").join("contexts").join(branch_name);
         std::fs::create_dir_all(&context_dir)?;
-        
+
         // Create minimal hotfix context
         let hotfix_context = format!(
             "rhema:\n  version: \"1.0.0\"\n  scope:\n    type: \"hotfix\"\n    name: \"{}\"\n    status: \"active\"\n    priority: \"high\"\n",
             branch_name
         );
-        
+
         let rhema_file = context_dir.join("rhema.yaml");
         std::fs::write(&rhema_file, hotfix_context)?;
-        
+
         Ok(())
     }
 
@@ -2454,27 +2810,31 @@ impl GitWorkflow {
         // Validate hotfix context
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
+
         let context_dir = repo_path.join(".rhema").join("contexts").join(branch_name);
-        
+
         if !context_dir.exists() {
-            return Err(RhemaError::ValidationError(
-                format!("Hotfix context directory does not exist: {}", branch_name)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Hotfix context directory does not exist: {}",
+                branch_name
+            )));
         }
-        
+
         // Validate hotfix context file
         let rhema_file = context_dir.join("rhema.yaml");
         if !rhema_file.exists() {
             return Err(RhemaError::ValidationError(
-                "Hotfix context file missing".to_string()
+                "Hotfix context file missing".to_string(),
             ));
         }
-        
+
         println!("Hotfix context validation passed for {}", branch_name);
         Ok(())
     }
@@ -2483,7 +2843,8 @@ impl GitWorkflow {
         // Get current branch name
         let repo = self.repo.lock().unwrap();
         let head = repo.head()?;
-        let branch_name = head.shorthand()
+        let branch_name = head
+            .shorthand()
             .ok_or_else(|| RhemaError::ConfigError("Failed to get branch name".to_string()))?;
         Ok(branch_name.to_string())
     }
@@ -2523,22 +2884,28 @@ impl GitWorkflow {
 
     fn create_release_branch(&self, branch_name: &str, version: &str) -> RhemaResult<()> {
         // Create release branch from develop or main
-        let base_branch = self.config.branch_conventions.develop_branch
+        let base_branch = self
+            .config
+            .branch_conventions
+            .develop_branch
             .as_ref()
             .unwrap_or(&self.config.branch_conventions.main_branch);
-        
+
         let repo = self.repo.lock().unwrap();
         let base_ref = repo.find_branch(base_branch, git2::BranchType::Local)?;
         let base_commit = base_ref.get().peel_to_commit()?;
-        
+
         // Create new branch
         let new_branch = repo.branch(branch_name, &base_commit, false)?;
-        
+
         // Checkout the new branch
         repo.checkout_tree(&base_commit.as_object(), None)?;
         repo.set_head(&format!("refs/heads/{}", branch_name))?;
-        
-        println!("Created release branch: {} from {}", branch_name, base_branch);
+
+        println!(
+            "Created release branch: {} from {}",
+            branch_name, base_branch
+        );
         Ok(())
     }
 
@@ -2546,23 +2913,26 @@ impl GitWorkflow {
         // Prepare context files for release
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
+
         let context_dir = repo_path.join(".rhema").join("contexts").join(branch_name);
         std::fs::create_dir_all(&context_dir)?;
-        
+
         // Create release-specific context files
         let release_context = format!(
             "rhema:\n  version: \"1.0.0\"\n  scope:\n    type: \"release\"\n    name: \"{}\"\n    version: \"{}\"\n    status: \"preparing\"\n",
             branch_name, version
         );
-        
+
         let release_file = context_dir.join("rhema.yaml");
         std::fs::write(&release_file, release_context)?;
-        
+
         Ok(())
     }
 
@@ -2570,11 +2940,14 @@ impl GitWorkflow {
         // Update version information in common files
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
+
         // Update Cargo.toml if it exists
         let cargo_toml = repo_path.join("Cargo.toml");
         if cargo_toml.exists() {
@@ -2582,11 +2955,11 @@ impl GitWorkflow {
             // Simple version replacement - in production this would be more sophisticated
             let updated_content = content.replace(
                 &format!("version = \"{}\"", "0.1.0"), // This is a simplified approach
-                &format!("version = \"{}\"", version)
+                &format!("version = \"{}\"", version),
             );
             std::fs::write(&cargo_toml, updated_content)?;
         }
-        
+
         // Update package.json if it exists
         let package_json = repo_path.join("package.json");
         if package_json.exists() {
@@ -2594,59 +2967,67 @@ impl GitWorkflow {
             // Simple version replacement
             let updated_content = content.replace(
                 &format!("\"version\": \"{}\"", "0.1.0"),
-                &format!("\"version\": \"{}\"", version)
+                &format!("\"version\": \"{}\"", version),
             );
             std::fs::write(&package_json, updated_content)?;
         }
-        
+
         println!("Updated version information to {}", version);
         Ok(())
     }
-
-
 
     fn validate_release_context(&self, branch_name: &str, version: &str) -> RhemaResult<()> {
         // Validate release context integrity
         let repo_path = {
             let repo = self.repo.lock().unwrap();
-            repo.path().parent().ok_or_else(|| {
-                RhemaError::ConfigError("Failed to get repository path".to_string())
-            })?.to_path_buf()
+            repo.path()
+                .parent()
+                .ok_or_else(|| {
+                    RhemaError::ConfigError("Failed to get repository path".to_string())
+                })?
+                .to_path_buf()
         };
-        
+
         let context_dir = repo_path.join(".rhema").join("contexts").join(branch_name);
-        
+
         if !context_dir.exists() {
-            return Err(RhemaError::ValidationError(
-                format!("Release context directory does not exist: {}", branch_name)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Release context directory does not exist: {}",
+                branch_name
+            )));
         }
-        
+
         // Validate required release files
         let required_files = vec!["rhema.yaml", "RELEASE_NOTES.md"];
         for file in required_files {
             let file_path = context_dir.join(file);
             if !file_path.exists() {
-                return Err(RhemaError::ValidationError(
-                    format!("Required release file missing: {}", file)
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Required release file missing: {}",
+                    file
+                )));
             }
         }
-        
+
         // Validate version consistency
         let rhema_file = context_dir.join("rhema.yaml");
         let content = std::fs::read_to_string(&rhema_file)?;
         if !content.contains(&format!("version: \"{}\"", version)) {
-            return Err(RhemaError::ValidationError(
-                format!("Version mismatch in release context: expected {}", version)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Version mismatch in release context: expected {}",
+                version
+            )));
         }
-        
+
         println!("Release context validation passed for version {}", version);
         Ok(())
     }
 
-    fn validate_release_rule(&self, branch_name: &str, rule: &ReleaseValidationRule) -> RhemaResult<()> {
+    fn validate_release_rule(
+        &self,
+        branch_name: &str,
+        rule: &ReleaseValidationRule,
+    ) -> RhemaResult<()> {
         // Execute release validation rule
         match rule.validation_type {
             ReleaseValidationType::ContextIntegrity => {
@@ -2654,45 +3035,67 @@ impl GitWorkflow {
             }
             ReleaseValidationType::Dependencies => {
                 // Validate dependencies are up to date
-                println!("Validating dependencies for release branch: {}", branch_name);
+                println!(
+                    "Validating dependencies for release branch: {}",
+                    branch_name
+                );
                 // This would check Cargo.toml, package.json, etc.
             }
             ReleaseValidationType::BreakingChanges => {
                 // Check for breaking changes
-                println!("Checking for breaking changes in release branch: {}", branch_name);
+                println!(
+                    "Checking for breaking changes in release branch: {}",
+                    branch_name
+                );
                 // This would analyze API changes, etc.
             }
             ReleaseValidationType::Security => {
                 // Run security validation
-                println!("Running security validation for release branch: {}", branch_name);
+                println!(
+                    "Running security validation for release branch: {}",
+                    branch_name
+                );
                 // This would run security scans
             }
             ReleaseValidationType::Performance => {
                 // Run performance validation
-                println!("Running performance validation for release branch: {}", branch_name);
+                println!(
+                    "Running performance validation for release branch: {}",
+                    branch_name
+                );
                 // This would run performance tests
             }
             ReleaseValidationType::Compliance => {
                 // Run compliance checks
-                println!("Running compliance checks for release branch: {}", branch_name);
+                println!(
+                    "Running compliance checks for release branch: {}",
+                    branch_name
+                );
                 // This would check licensing, etc.
             }
             ReleaseValidationType::Custom(ref custom_type) => {
-                println!("Running custom validation '{}' for release branch: {}", custom_type, branch_name);
+                println!(
+                    "Running custom validation '{}' for release branch: {}",
+                    custom_type, branch_name
+                );
                 // Execute custom validation logic
             }
         }
-        
+
         if rule.required && rule.severity == crate::git::history::ValidationSeverity::Error {
             // For required rules with error severity, we would fail here if validation failed
             // For now, we just log the validation
             println!("Required validation rule '{}' passed", rule.name);
         }
-        
+
         Ok(())
     }
 
-    fn validate_hotfix_rule(&self, branch_name: &str, rule: &HotfixValidationRule) -> RhemaResult<()> {
+    fn validate_hotfix_rule(
+        &self,
+        branch_name: &str,
+        rule: &HotfixValidationRule,
+    ) -> RhemaResult<()> {
         // Execute hotfix validation rule
         match rule.validation_type {
             HotfixValidationType::ContextIntegrity => {
@@ -2700,57 +3103,85 @@ impl GitWorkflow {
             }
             HotfixValidationType::MinimalImpact => {
                 // Validate that hotfix has minimal impact
-                println!("Validating minimal impact for hotfix branch: {}", branch_name);
+                println!(
+                    "Validating minimal impact for hotfix branch: {}",
+                    branch_name
+                );
                 // This would analyze the scope of changes
             }
             HotfixValidationType::Security => {
                 // Run security validation
-                println!("Running security validation for hotfix branch: {}", branch_name);
+                println!(
+                    "Running security validation for hotfix branch: {}",
+                    branch_name
+                );
                 // This would run security scans
             }
             HotfixValidationType::Regression => {
                 // Check for potential regressions
-                println!("Checking for potential regressions in hotfix branch: {}", branch_name);
+                println!(
+                    "Checking for potential regressions in hotfix branch: {}",
+                    branch_name
+                );
                 // This would run regression tests
             }
             HotfixValidationType::Custom(ref custom_type) => {
-                println!("Running custom validation '{}' for hotfix branch: {}", custom_type, branch_name);
+                println!(
+                    "Running custom validation '{}' for hotfix branch: {}",
+                    custom_type, branch_name
+                );
                 // Execute custom validation logic
             }
         }
-        
+
         if rule.required && rule.severity == crate::git::history::ValidationSeverity::Error {
             // For required rules with error severity, we would fail here if validation failed
             println!("Required hotfix validation rule '{}' passed", rule.name);
         }
-        
+
         Ok(())
     }
 
-    fn apply_hotfix_merge_strategy(&self, branch_name: &str, strategy: &HotfixMergeStrategy) -> RhemaResult<()> {
+    fn apply_hotfix_merge_strategy(
+        &self,
+        branch_name: &str,
+        strategy: &HotfixMergeStrategy,
+    ) -> RhemaResult<()> {
         // Apply hotfix merge strategy
         match strategy.strategy_type {
             HotfixMergeStrategyType::Conservative => {
                 // Conservative merge - minimal changes
-                println!("Applying conservative merge strategy for hotfix: {}", branch_name);
+                println!(
+                    "Applying conservative merge strategy for hotfix: {}",
+                    branch_name
+                );
                 // This would merge only the specific hotfix changes
             }
             HotfixMergeStrategyType::Aggressive => {
                 // Aggressive merge - include all changes
-                println!("Applying aggressive merge strategy for hotfix: {}", branch_name);
+                println!(
+                    "Applying aggressive merge strategy for hotfix: {}",
+                    branch_name
+                );
                 // This would merge all changes from the hotfix branch
             }
             HotfixMergeStrategyType::Selective => {
                 // Selective merge - choose specific changes
-                println!("Applying selective merge strategy for hotfix: {}", branch_name);
+                println!(
+                    "Applying selective merge strategy for hotfix: {}",
+                    branch_name
+                );
                 // This would allow manual selection of changes to merge
             }
             HotfixMergeStrategyType::Custom(ref custom_type) => {
-                println!("Applying custom merge strategy '{}' for hotfix: {}", custom_type, branch_name);
+                println!(
+                    "Applying custom merge strategy '{}' for hotfix: {}",
+                    custom_type, branch_name
+                );
                 // Execute custom merge strategy
             }
         }
-        
+
         Ok(())
     }
 }

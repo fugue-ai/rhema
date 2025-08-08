@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -26,6 +21,11 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tracing::{debug, error, info, warn};
 // use hyper_util::server::Server;
 use tower_http::cors::CorsLayer;
 
@@ -56,7 +56,10 @@ impl Default for DashboardServerConfig {
             host: "127.0.0.1".to_string(),
             port: 8080,
             enable_cors: true,
-            cors_origins: vec!["http://localhost:3000".to_string(), "http://127.0.0.1:3000".to_string()],
+            cors_origins: vec![
+                "http://localhost:3000".to_string(),
+                "http://127.0.0.1:3000".to_string(),
+            ],
             enable_websockets: true,
             refresh_interval_ms: 5000,
             max_connections: 100,
@@ -119,7 +122,10 @@ impl LocomoDashboardServer {
 
     /// Start the dashboard server
     pub async fn start(&self) -> RhemaResult<()> {
-        info!("Starting LOCOMO Dashboard server on {}:{}", self.server_config.host, self.server_config.port);
+        info!(
+            "Starting LOCOMO Dashboard server on {}:{}",
+            self.server_config.host, self.server_config.port
+        );
 
         let app_state = Arc::new(DashboardAppState {
             integration: self.integration.clone(),
@@ -147,7 +153,8 @@ impl LocomoDashboardServer {
 
         info!("Dashboard server listening on {}", addr);
 
-        let listener = tokio::net::TcpListener::bind(addr).await
+        let listener = tokio::net::TcpListener::bind(addr)
+            .await
             .map_err(|e| rhema_core::RhemaError::SystemError(format!("Failed to bind: {}", e)))?;
         axum::serve(listener, app.into_make_service())
             .await
@@ -193,7 +200,9 @@ impl LocomoDashboardServer {
     ) -> Result<Json<DashboardApiResponse<Vec<serde_json::Value>>>, StatusCode> {
         match state.integration.get_dashboard_data().await {
             Ok(dashboard_data) => {
-                let alerts = dashboard_data.alerts.into_iter()
+                let alerts = dashboard_data
+                    .alerts
+                    .into_iter()
                     .map(|alert| serde_json::to_value(alert).unwrap_or_default())
                     .collect();
 
@@ -256,17 +265,19 @@ impl LocomoDashboardServer {
         match state.integration.get_dashboard_data().await {
             Ok(dashboard_data) => {
                 let alerts_count = dashboard_data.alerts.len();
-                let critical_alerts = dashboard_data.alerts.iter()
+                let critical_alerts = dashboard_data
+                    .alerts
+                    .iter()
                     .filter(|alert| alert.severity == "Critical")
                     .count();
 
                 let health_status = SystemHealthStatus {
-                    overall_status: if critical_alerts > 0 { 
-                        HealthStatus::Critical 
-                    } else if alerts_count > 5 { 
-                        HealthStatus::Warning 
-                    } else { 
-                        HealthStatus::Healthy 
+                    overall_status: if critical_alerts > 0 {
+                        HealthStatus::Critical
+                    } else if alerts_count > 5 {
+                        HealthStatus::Warning
+                    } else {
+                        HealthStatus::Healthy
                     },
                     performance_status: HealthStatus::Healthy, // Would be calculated from metrics
                     quality_status: HealthStatus::Healthy,     // Would be calculated from metrics
@@ -877,4 +888,4 @@ mod tests {
         assert!(config.enable_cors);
         assert!(config.enable_websockets);
     }
-} 
+}

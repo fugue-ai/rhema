@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-use crate::{Config, ConfigChange, ConfigChangeType, ConfigError, ConfigIssue, ConfigIssueSeverity, ValidationResult};
+use crate::{
+    Config, ConfigChange, ConfigChangeType, ConfigError, ConfigIssue, ConfigIssueSeverity,
+    ValidationResult,
+};
 use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use semver::Version;
@@ -387,13 +390,14 @@ impl MigrationManager {
                         changes: Vec::new(),
                     };
                     migrations_failed.push(failed_record);
-                    
+
                     // If migration is required, stop here
                     if migration.required {
                         return Err(ConfigError::MigrationFailed(format!(
                             "Required migration '{}' failed: {}",
                             migration.name, e
-                        )).into());
+                        ))
+                        .into());
                     }
                 }
             }
@@ -447,7 +451,8 @@ impl MigrationManager {
                     return Err(ConfigError::MigrationFailed(format!(
                         "Rollback step failed: {}",
                         e
-                    )).into());
+                    ))
+                    .into());
                 }
             }
         }
@@ -512,7 +517,7 @@ impl MigrationManager {
         // Validate that all required fields are present
         let config_json = serde_json::to_value(config)
             .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
-        
+
         let missing_fields = self.check_required_fields(&config_json)?;
         for field in missing_fields {
             issues.push(ConfigIssue {
@@ -570,8 +575,8 @@ impl MigrationManager {
         context: &str,
     ) -> RhemaResult<MigrationRecord> {
         let mut changes = Vec::new();
-        let mut config_value =
-            serde_json::to_value(config).map_err(|e| ConfigError::SerializationError(e.to_string()))?;
+        let mut config_value = serde_json::to_value(config)
+            .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
 
         for step in &migration.steps {
             if let Some(condition) = &step.condition {
@@ -902,16 +907,16 @@ impl MigrationManager {
     /// Check for required fields in configuration
     fn check_required_fields(&self, config: &serde_json::Value) -> RhemaResult<Vec<String>> {
         let mut missing_fields = Vec::new();
-        
+
         // Define required fields for different configuration types
         let required_fields = vec!["version", "name"];
-        
+
         for field in required_fields {
             if !config.get(field).is_some() {
                 missing_fields.push(field.to_string());
             }
         }
-        
+
         Ok(missing_fields)
     }
 

@@ -305,9 +305,18 @@ impl FeatureAutomationManager {
     }
 
     /// Set up feature context for a branch
-    pub fn setup_feature_context(&self, branch_name: &str, base_branch: &str) -> RhemaResult<FeatureContext> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
-        
+    pub fn setup_feature_context(
+        &self,
+        branch_name: &str,
+        base_branch: &str,
+    ) -> RhemaResult<FeatureContext> {
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
+
         // Create context directory if enabled
         if self.config.context_setup.create_context_directory {
             std::fs::create_dir_all(&context_dir)?;
@@ -436,7 +445,10 @@ impl FeatureAutomationManager {
         // Run custom validation commands
         for command in &self.config.validation.custom_validation_commands {
             if let Err(e) = self.run_custom_validation_command(branch_name, command) {
-                validation_errors.push(format!("Custom validation command '{}' failed: {}", command, e));
+                validation_errors.push(format!(
+                    "Custom validation command '{}' failed: {}",
+                    command, e
+                ));
             }
         }
 
@@ -500,7 +512,9 @@ impl FeatureAutomationManager {
             MergeStrategy::Merge => self.merge_commit(feature_branch, target_branch)?,
             MergeStrategy::Rebase => self.rebase_merge(feature_branch, target_branch)?,
             MergeStrategy::Squash => self.squash_merge(feature_branch, target_branch)?,
-            MergeStrategy::Custom(ref strategy) => self.custom_merge(feature_branch, target_branch, strategy)?,
+            MergeStrategy::Custom(ref strategy) => {
+                self.custom_merge(feature_branch, target_branch, strategy)?
+            }
         };
 
         // Post-merge validation
@@ -608,10 +622,20 @@ impl FeatureAutomationManager {
 
     // Private helper methods
 
-    fn initialize_context_config(&self, branch_name: &str, base_branch: &str) -> RhemaResult<FeatureContextConfig> {
+    fn initialize_context_config(
+        &self,
+        branch_name: &str,
+        base_branch: &str,
+    ) -> RhemaResult<FeatureContextConfig> {
         let mut custom_settings = HashMap::new();
-        custom_settings.insert("base_branch".to_string(), serde_json::Value::String(base_branch.to_string()));
-        custom_settings.insert("created_at".to_string(), serde_json::Value::String(Utc::now().to_rfc3339()));
+        custom_settings.insert(
+            "base_branch".to_string(),
+            serde_json::Value::String(base_branch.to_string()),
+        );
+        custom_settings.insert(
+            "created_at".to_string(),
+            serde_json::Value::String(Utc::now().to_rfc3339()),
+        );
 
         Ok(FeatureContextConfig {
             context_type: "feature".to_string(),
@@ -625,26 +649,39 @@ impl FeatureAutomationManager {
     }
 
     fn apply_inheritance_rules(&self, branch_name: &str, base_branch: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
-        
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
+
         // Load inheritance rules from base branch
-        let base_context_dir = self.repo.path().join(".rhema").join("context").join(base_branch);
+        let base_context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(base_branch);
         let inheritance_rules_file = base_context_dir.join("inheritance_rules.json");
-        
+
         if inheritance_rules_file.exists() {
             let rules_content = std::fs::read_to_string(&inheritance_rules_file)?;
             let rules: serde_json::Value = serde_json::from_str(&rules_content)?;
-            
+
             // Apply inheritance rules to current branch
             let inherited_config_file = context_dir.join("inherited_config.json");
-            std::fs::write(&inherited_config_file, serde_json::to_string_pretty(&rules)?)?;
-            
+            std::fs::write(
+                &inherited_config_file,
+                serde_json::to_string_pretty(&rules)?,
+            )?;
+
             // Update context configuration with inherited rules
             let config_file = context_dir.join("config.json");
             if config_file.exists() {
                 let config_content = std::fs::read_to_string(&config_file)?;
                 let mut config: serde_json::Value = serde_json::from_str(&config_content)?;
-                
+
                 // Merge inherited rules into current config
                 if let Some(config_obj) = config.as_object_mut() {
                     if let Some(rules_obj) = rules.as_object() {
@@ -653,28 +690,33 @@ impl FeatureAutomationManager {
                         }
                     }
                 }
-                
+
                 std::fs::write(&config_file, serde_json::to_string_pretty(&config)?)?;
             }
         }
-        
+
         Ok(())
     }
 
     fn apply_boundary_rules(&self, branch_name: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
-        
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
+
         // Load boundary rules from repository configuration
         let boundary_rules_file = self.repo.path().join(".rhema").join("boundary_rules.json");
-        
+
         if boundary_rules_file.exists() {
             let rules_content = std::fs::read_to_string(&boundary_rules_file)?;
             let rules: serde_json::Value = serde_json::from_str(&rules_content)?;
-            
+
             // Apply boundary rules to current branch
             let boundary_config_file = context_dir.join("boundary_config.json");
             std::fs::write(&boundary_config_file, serde_json::to_string_pretty(&rules)?)?;
-            
+
             // Validate branch against boundary rules
             if let Some(branch_rules) = rules.get("branch_rules") {
                 if let Some(branch_rules_obj) = branch_rules.as_object() {
@@ -685,9 +727,10 @@ impl FeatureAutomationManager {
                                 if !self.matches_pattern(branch_name, pattern_str)? {
                                     if let Some(action) = rule_config.get("action") {
                                         if action.as_str() == Some("block") {
-                                            return Err(RhemaError::ValidationError(
-                                                format!("Branch '{}' violates boundary rule '{}'", branch_name, rule_name)
-                                            ));
+                                            return Err(RhemaError::ValidationError(format!(
+                                                "Branch '{}' violates boundary rule '{}'",
+                                                branch_name, rule_name
+                                            )));
                                         }
                                     }
                                 }
@@ -697,7 +740,7 @@ impl FeatureAutomationManager {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -717,8 +760,13 @@ impl FeatureAutomationManager {
     }
 
     fn setup_context_isolation(&self, branch_name: &str, _base_branch: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
-        
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
+
         // Create isolation configuration
         let isolation_config = serde_json::json!({
             "isolated": true,
@@ -728,16 +776,27 @@ impl FeatureAutomationManager {
         });
 
         let isolation_file = context_dir.join("isolation.json");
-        std::fs::write(&isolation_file, serde_json::to_string_pretty(&isolation_config)?)?;
+        std::fs::write(
+            &isolation_file,
+            serde_json::to_string_pretty(&isolation_config)?,
+        )?;
 
         Ok(())
     }
 
     fn create_context_templates(&self, branch_name: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
-        
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
+
         // Create template files
-        let config_content = format!("feature:\n  name: {}\n  type: feature\n  isolation: enabled", branch_name);
+        let config_content = format!(
+            "feature:\n  name: {}\n  type: feature\n  isolation: enabled",
+            branch_name
+        );
         let templates = vec![
             ("README.md", "# Feature Branch Context\n\nThis directory contains context-specific files for the feature branch."),
             ("config.yaml", &config_content),
@@ -752,8 +811,13 @@ impl FeatureAutomationManager {
     }
 
     fn initialize_context_tracking(&self, branch_name: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
-        
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
+
         // Create tracking configuration
         let tracking_config = serde_json::json!({
             "tracking_enabled": true,
@@ -763,13 +827,21 @@ impl FeatureAutomationManager {
         });
 
         let tracking_file = context_dir.join("tracking.json");
-        std::fs::write(&tracking_file, serde_json::to_string_pretty(&tracking_config)?)?;
+        std::fs::write(
+            &tracking_file,
+            serde_json::to_string_pretty(&tracking_config)?,
+        )?;
 
         Ok(())
     }
 
     fn discover_context_files(&self, branch_name: &str) -> RhemaResult<Vec<PathBuf>> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
         let mut context_files = Vec::new();
 
         if context_dir.exists() {
@@ -803,7 +875,12 @@ impl FeatureAutomationManager {
     }
 
     fn validate_context_integrity(&self, branch_name: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
         if context_dir.exists() {
             let config_file = context_dir.join("config.json");
             if config_file.exists() {
@@ -823,49 +900,62 @@ impl FeatureAutomationManager {
         self.repo.checkout_tree(tree.as_object(), None)?;
         self.repo.set_head(&format!("refs/heads/{}", branch_name))?;
 
-        let status = self.repo.statuses(Some(git2::StatusOptions::new().include_untracked(true)))?;
+        let status = self
+            .repo
+            .statuses(Some(git2::StatusOptions::new().include_untracked(true)))?;
         if !status.is_empty() {
             return Err(RhemaError::ValidationError(
-                "Feature branch has uncommitted changes".to_string()
+                "Feature branch has uncommitted changes".to_string(),
             ));
         }
         Ok(())
     }
 
     fn run_health_checks(&self, branch_name: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
-        
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
+
         // Check repository health
         self.check_repository_health()?;
-        
+
         // Check branch health
         self.check_branch_health(branch_name)?;
-        
+
         // Check context health
         self.check_context_health(&context_dir)?;
-        
+
         // Check file system health
         self.check_filesystem_health()?;
-        
+
         Ok(())
     }
 
     fn check_repository_health(&self) -> RhemaResult<()> {
         // Check if repository is valid
         if self.repo.is_bare() {
-            return Err(RhemaError::ValidationError("Repository is bare".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Repository is bare".to_string(),
+            ));
         }
-        
+
         // Check if repository is not corrupted
         if let Err(_) = self.repo.head() {
-            return Err(RhemaError::ValidationError("Repository head is invalid".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Repository head is invalid".to_string(),
+            ));
         }
-        
+
         // Check if index is valid
         if let Err(_) = self.repo.index() {
-            return Err(RhemaError::ValidationError("Repository index is invalid".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Repository index is invalid".to_string(),
+            ));
         }
-        
+
         Ok(())
     }
 
@@ -875,18 +965,20 @@ impl FeatureAutomationManager {
             Ok(branch) => {
                 // Check if branch has commits
                 if let Err(_) = branch.get().peel_to_commit() {
-                    return Err(RhemaError::ValidationError(
-                        format!("Branch '{}' has no valid commits", branch_name)
-                    ));
+                    return Err(RhemaError::ValidationError(format!(
+                        "Branch '{}' has no valid commits",
+                        branch_name
+                    )));
                 }
             }
             Err(_) => {
-                return Err(RhemaError::ValidationError(
-                    format!("Branch '{}' does not exist", branch_name)
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Branch '{}' does not exist",
+                    branch_name
+                )));
             }
         }
-        
+
         Ok(())
     }
 
@@ -895,130 +987,134 @@ impl FeatureAutomationManager {
             // Check if context directory is readable
             if let Err(_) = std::fs::read_dir(context_dir) {
                 return Err(RhemaError::ValidationError(
-                    "Context directory is not readable".to_string()
+                    "Context directory is not readable".to_string(),
                 ));
             }
-            
+
             // Check if required context files exist
             let required_files = vec!["config.json", "context.yaml"];
             for file in required_files {
                 let file_path = context_dir.join(file);
                 if !file_path.exists() {
-                    return Err(RhemaError::ValidationError(
-                        format!("Required context file '{}' is missing", file)
-                    ));
+                    return Err(RhemaError::ValidationError(format!(
+                        "Required context file '{}' is missing",
+                        file
+                    )));
                 }
             }
         }
-        
+
         Ok(())
     }
 
     fn check_filesystem_health(&self) -> RhemaResult<()> {
         let repo_path = self.repo.path();
-        
+
         // Check if repository directory is accessible
         if let Err(_) = std::fs::metadata(repo_path) {
             return Err(RhemaError::ValidationError(
-                "Repository directory is not accessible".to_string()
+                "Repository directory is not accessible".to_string(),
             ));
         }
-        
+
         // Check available disk space (simplified)
         if let Ok(metadata) = std::fs::metadata(repo_path) {
             // This is a simplified check - in a real implementation, you'd check actual disk space
             if metadata.len() == 0 {
                 return Err(RhemaError::ValidationError(
-                    "Repository directory appears to be empty".to_string()
+                    "Repository directory appears to be empty".to_string(),
                 ));
             }
         }
-        
+
         Ok(())
     }
 
     fn validate_dependencies(&self, branch_name: &str) -> RhemaResult<()> {
         let repo_path = self.repo.path();
-        
+
         // Check Cargo.toml dependencies
         let cargo_toml = repo_path.join("Cargo.toml");
         if cargo_toml.exists() {
             self.validate_cargo_dependencies(&cargo_toml)?;
         }
-        
+
         // Check package.json dependencies
         let package_json = repo_path.join("package.json");
         if package_json.exists() {
             self.validate_npm_dependencies(&package_json)?;
         }
-        
+
         // Check for dependency conflicts
         self.check_dependency_conflicts(repo_path)?;
-        
+
         // Check for outdated dependencies
         self.check_outdated_dependencies(repo_path)?;
-        
+
         Ok(())
     }
 
     fn validate_cargo_dependencies(&self, cargo_toml_path: &Path) -> RhemaResult<()> {
         let content = std::fs::read_to_string(cargo_toml_path)?;
-        
+
         // Simple validation - check for common issues
         if content.contains("version = \"0.0.0\"") {
             return Err(RhemaError::ValidationError(
-                "Cargo.toml contains placeholder version".to_string()
+                "Cargo.toml contains placeholder version".to_string(),
             ));
         }
-        
+
         // Check for duplicate dependencies
         let lines: Vec<&str> = content.lines().collect();
         let mut dependency_names = std::collections::HashSet::new();
-        
+
         for line in lines {
-            if line.trim().starts_with("[dependencies.") || line.trim().starts_with("[dev-dependencies.") {
+            if line.trim().starts_with("[dependencies.")
+                || line.trim().starts_with("[dev-dependencies.")
+            {
                 if let Some(name) = line.split('.').nth(1) {
                     let clean_name = name.trim_end_matches(']');
                     if !dependency_names.insert(clean_name) {
-                        return Err(RhemaError::ValidationError(
-                            format!("Duplicate dependency found: {}", clean_name)
-                        ));
+                        return Err(RhemaError::ValidationError(format!(
+                            "Duplicate dependency found: {}",
+                            clean_name
+                        )));
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 
     fn validate_npm_dependencies(&self, package_json_path: &Path) -> RhemaResult<()> {
         let content = std::fs::read_to_string(package_json_path)?;
-        
+
         // Parse JSON and validate
         let package_json: serde_json::Value = serde_json::from_str(&content)?;
-        
+
         // Check for required fields
         if !package_json.get("name").is_some() {
             return Err(RhemaError::ValidationError(
-                "package.json missing 'name' field".to_string()
+                "package.json missing 'name' field".to_string(),
             ));
         }
-        
+
         if !package_json.get("version").is_some() {
             return Err(RhemaError::ValidationError(
-                "package.json missing 'version' field".to_string()
+                "package.json missing 'version' field".to_string(),
             ));
         }
-        
+
         // Check for placeholder values
         if let Some(version) = package_json.get("version") {
             if version.as_str() == Some("0.0.0") {
                 return Err(RhemaError::ValidationError(
-                    "package.json contains placeholder version".to_string()
+                    "package.json contains placeholder version".to_string(),
                 ));
             }
         }
-        
+
         Ok(())
     }
 
@@ -1027,13 +1123,13 @@ impl FeatureAutomationManager {
         let cargo_lock = repo_path.join("Cargo.lock");
         let package_lock = repo_path.join("package-lock.json");
         let yarn_lock = repo_path.join("yarn.lock");
-        
+
         if package_lock.exists() && yarn_lock.exists() {
             return Err(RhemaError::ValidationError(
-                "Both package-lock.json and yarn.lock found - dependency conflict".to_string()
+                "Both package-lock.json and yarn.lock found - dependency conflict".to_string(),
             ));
         }
-        
+
         Ok(())
     }
 
@@ -1045,19 +1141,19 @@ impl FeatureAutomationManager {
 
     fn validate_security(&self, branch_name: &str) -> RhemaResult<()> {
         let repo_path = self.repo.path();
-        
+
         // Check for secrets in code
         self.check_for_secrets_in_code(repo_path)?;
-        
+
         // Check for security vulnerabilities
         self.check_security_vulnerabilities(repo_path)?;
-        
+
         // Check file permissions
         self.check_file_permissions(repo_path)?;
-        
+
         // Check for suspicious patterns
         self.check_suspicious_patterns(repo_path)?;
-        
+
         Ok(())
     }
 
@@ -1068,44 +1164,62 @@ impl FeatureAutomationManager {
             (r#"api_key\s*=\s*["'][^"']+["']"#, "Hardcoded API key"),
             (r#"secret\s*=\s*["'][^"']+["']"#, "Hardcoded secret"),
             (r#"token\s*=\s*["'][^"']+["']"#, "Hardcoded token"),
-            (r#"private_key\s*=\s*["'][^"']+["']"#, "Hardcoded private key"),
+            (
+                r#"private_key\s*=\s*["'][^"']+["']"#,
+                "Hardcoded private key",
+            ),
         ];
-        
+
         for entry in walkdir::WalkDir::new(repo_path)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
         {
             let path = entry.path();
-            
+
             // Skip certain directories and files
-            if path.to_string_lossy().contains(".git") ||
-               path.to_string_lossy().contains("node_modules") ||
-               path.to_string_lossy().contains("target") {
+            if path.to_string_lossy().contains(".git")
+                || path.to_string_lossy().contains("node_modules")
+                || path.to_string_lossy().contains("target")
+            {
                 continue;
             }
-            
+
             // Only check text files
             if let Some(extension) = path.extension() {
                 let ext = extension.to_string_lossy().to_lowercase();
-                if !matches!(ext.as_str(), "rs" | "js" | "ts" | "py" | "java" | "go" | "md" | "txt" | "yaml" | "yml" | "json") {
+                if !matches!(
+                    ext.as_str(),
+                    "rs" | "js"
+                        | "ts"
+                        | "py"
+                        | "java"
+                        | "go"
+                        | "md"
+                        | "txt"
+                        | "yaml"
+                        | "yml"
+                        | "json"
+                ) {
                     continue;
                 }
             }
-            
+
             if let Ok(content) = std::fs::read_to_string(path) {
                 for (pattern, description) in &secret_patterns {
                     if let Ok(regex) = regex::Regex::new(pattern) {
                         if regex.is_match(&content) {
-                            return Err(RhemaError::ValidationError(
-                                format!("Security issue found: {} in {}", description, path.display())
-                            ));
+                            return Err(RhemaError::ValidationError(format!(
+                                "Security issue found: {} in {}",
+                                description,
+                                path.display()
+                            )));
                         }
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -1116,21 +1230,22 @@ impl FeatureAutomationManager {
             // This would typically run cargo audit
             // For now, we'll just check for common vulnerable patterns
             let content = std::fs::read_to_string(&cargo_toml)?;
-            
+
             // Check for known vulnerable crates (simplified)
             let vulnerable_crates = vec![
                 "chrono", // Example - would need actual vulnerability database
             ];
-            
+
             for crate_name in vulnerable_crates {
                 if content.contains(&format!("{} = ", crate_name)) {
-                    return Err(RhemaError::ValidationError(
-                        format!("Potentially vulnerable dependency found: {}", crate_name)
-                    ));
+                    return Err(RhemaError::ValidationError(format!(
+                        "Potentially vulnerable dependency found: {}",
+                        crate_name
+                    )));
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -1141,24 +1256,25 @@ impl FeatureAutomationManager {
             .filter_map(|e| e.ok())
         {
             let path = entry.path();
-            
+
             if let Ok(metadata) = std::fs::metadata(path) {
                 let permissions = metadata.permissions();
-                
+
                 // Check for world-writable files
                 #[cfg(unix)]
                 {
                     use std::os::unix::fs::PermissionsExt;
                     let mode = permissions.mode();
                     if mode & 0o002 != 0 {
-                        return Err(RhemaError::ValidationError(
-                            format!("World-writable file found: {}", path.display())
-                        ));
+                        return Err(RhemaError::ValidationError(format!(
+                            "World-writable file found: {}",
+                            path.display()
+                        )));
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -1170,52 +1286,55 @@ impl FeatureAutomationManager {
             (r"system\s*\(", "Use of system() function"),
             (r"shell_exec\s*\(", "Use of shell_exec() function"),
         ];
-        
+
         for entry in walkdir::WalkDir::new(repo_path)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
         {
             let path = entry.path();
-            
+
             // Skip certain directories
-            if path.to_string_lossy().contains(".git") ||
-               path.to_string_lossy().contains("node_modules") ||
-               path.to_string_lossy().contains("target") {
+            if path.to_string_lossy().contains(".git")
+                || path.to_string_lossy().contains("node_modules")
+                || path.to_string_lossy().contains("target")
+            {
                 continue;
             }
-            
+
             if let Ok(content) = std::fs::read_to_string(path) {
                 for (pattern, description) in &suspicious_patterns {
                     if let Ok(regex) = regex::Regex::new(pattern) {
                         if regex.is_match(&content) {
-                            return Err(RhemaError::ValidationError(
-                                format!("Suspicious pattern found: {} in {}", description, path.display())
-                            ));
+                            return Err(RhemaError::ValidationError(format!(
+                                "Suspicious pattern found: {} in {}",
+                                description,
+                                path.display()
+                            )));
                         }
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 
     fn validate_performance(&self, branch_name: &str) -> RhemaResult<()> {
         let repo_path = self.repo.path();
-        
+
         // Check for performance anti-patterns
         self.check_performance_anti_patterns(repo_path)?;
-        
+
         // Check for large files
         self.check_large_files(repo_path)?;
-        
+
         // Check for inefficient code patterns
         self.check_inefficient_patterns(repo_path)?;
-        
+
         // Check for memory leaks
         self.check_memory_leaks(repo_path)?;
-        
+
         Ok(())
     }
 
@@ -1227,108 +1346,126 @@ impl FeatureAutomationManager {
             (r"while.*while", "Nested while loops detected"),
             (r"recursive.*recursive", "Deep recursion detected"),
         ];
-        
+
         for entry in walkdir::WalkDir::new(repo_path)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
         {
             let path = entry.path();
-            
+
             // Skip certain directories
-            if path.to_string_lossy().contains(".git") ||
-               path.to_string_lossy().contains("node_modules") ||
-               path.to_string_lossy().contains("target") {
+            if path.to_string_lossy().contains(".git")
+                || path.to_string_lossy().contains("node_modules")
+                || path.to_string_lossy().contains("target")
+            {
                 continue;
             }
-            
+
             if let Ok(content) = std::fs::read_to_string(path) {
                 for (pattern, description) in &anti_patterns {
                     if let Ok(regex) = regex::Regex::new(pattern) {
                         if regex.is_match(&content) {
-                            return Err(RhemaError::ValidationError(
-                                format!("Performance anti-pattern found: {} in {}", description, path.display())
-                            ));
+                            return Err(RhemaError::ValidationError(format!(
+                                "Performance anti-pattern found: {} in {}",
+                                description,
+                                path.display()
+                            )));
                         }
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 
     fn check_large_files(&self, repo_path: &Path) -> RhemaResult<()> {
         const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
-        
+
         for entry in walkdir::WalkDir::new(repo_path)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
         {
             let path = entry.path();
-            
+
             // Skip certain directories
-            if path.to_string_lossy().contains(".git") ||
-               path.to_string_lossy().contains("node_modules") ||
-               path.to_string_lossy().contains("target") {
+            if path.to_string_lossy().contains(".git")
+                || path.to_string_lossy().contains("node_modules")
+                || path.to_string_lossy().contains("target")
+            {
                 continue;
             }
-            
+
             if let Ok(metadata) = std::fs::metadata(path) {
                 if metadata.len() > MAX_FILE_SIZE {
-                    return Err(RhemaError::ValidationError(
-                        format!("Large file found: {} ({} bytes)", path.display(), metadata.len())
-                    ));
+                    return Err(RhemaError::ValidationError(format!(
+                        "Large file found: {} ({} bytes)",
+                        path.display(),
+                        metadata.len()
+                    )));
                 }
             }
         }
-        
+
         Ok(())
     }
 
     fn check_inefficient_patterns(&self, repo_path: &Path) -> RhemaResult<()> {
         // Check for inefficient code patterns
         let inefficient_patterns = vec![
-            (r"String::new\(\)", "Consider using String::with_capacity() for known sizes"),
-            (r"Vec::new\(\)", "Consider using Vec::with_capacity() for known sizes"),
-            (r"HashMap::new\(\)", "Consider using HashMap::with_capacity() for known sizes"),
+            (
+                r"String::new\(\)",
+                "Consider using String::with_capacity() for known sizes",
+            ),
+            (
+                r"Vec::new\(\)",
+                "Consider using Vec::with_capacity() for known sizes",
+            ),
+            (
+                r"HashMap::new\(\)",
+                "Consider using HashMap::with_capacity() for known sizes",
+            ),
         ];
-        
+
         for entry in walkdir::WalkDir::new(repo_path)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
         {
             let path = entry.path();
-            
+
             // Skip certain directories
-            if path.to_string_lossy().contains(".git") ||
-               path.to_string_lossy().contains("node_modules") ||
-               path.to_string_lossy().contains("target") {
+            if path.to_string_lossy().contains(".git")
+                || path.to_string_lossy().contains("node_modules")
+                || path.to_string_lossy().contains("target")
+            {
                 continue;
             }
-            
+
             // Only check Rust files
             if let Some(extension) = path.extension() {
                 if extension != "rs" {
                     continue;
                 }
             }
-            
+
             if let Ok(content) = std::fs::read_to_string(path) {
                 for (pattern, description) in &inefficient_patterns {
                     if let Ok(regex) = regex::Regex::new(pattern) {
                         if regex.is_match(&content) {
-                            return Err(RhemaError::ValidationError(
-                                format!("Inefficient pattern found: {} in {}", description, path.display())
-                            ));
+                            return Err(RhemaError::ValidationError(format!(
+                                "Inefficient pattern found: {} in {}",
+                                description,
+                                path.display()
+                            )));
                         }
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -1346,9 +1483,10 @@ impl FeatureAutomationManager {
             .output()?;
 
         if !output.status.success() {
-            return Err(RhemaError::ValidationError(
-                format!("Tests failed: {}", String::from_utf8_lossy(&output.stderr))
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Tests failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            )));
         }
         Ok(())
     }
@@ -1361,14 +1499,19 @@ impl FeatureAutomationManager {
             .output()?;
 
         if !output.status.success() {
-            return Err(RhemaError::ValidationError(
-                format!("Custom validation command failed: {}", String::from_utf8_lossy(&output.stderr))
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Custom validation command failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            )));
         }
         Ok(())
     }
 
-    fn detect_merge_conflicts(&self, feature_branch: &str, target_branch: &str) -> RhemaResult<Vec<String>> {
+    fn detect_merge_conflicts(
+        &self,
+        feature_branch: &str,
+        target_branch: &str,
+    ) -> RhemaResult<Vec<String>> {
         let mut conflicts = Vec::new();
 
         // Get the feature branch commit
@@ -1392,7 +1535,7 @@ impl FeatureAutomationManager {
 
     fn auto_resolve_conflicts(&self, conflicts: &[String]) -> RhemaResult<Vec<String>> {
         let mut unresolved_conflicts = Vec::new();
-        
+
         for conflict in conflicts {
             // Try to auto-resolve based on conflict type
             if conflict.contains("Non-fast-forward merge required") {
@@ -1400,15 +1543,18 @@ impl FeatureAutomationManager {
                 // We'll handle this in the merge strategy
                 continue;
             }
-            
+
             // For file conflicts, we would need to analyze the actual conflict markers
             // This is a simplified implementation
-            if conflict.contains("<<<<<<<") || conflict.contains("=======") || conflict.contains(">>>>>>>") {
+            if conflict.contains("<<<<<<<")
+                || conflict.contains("=======")
+                || conflict.contains(">>>>>>>")
+            {
                 // This is a file conflict that needs manual resolution
                 unresolved_conflicts.push(conflict.clone());
             }
         }
-        
+
         Ok(unresolved_conflicts)
     }
 
@@ -1416,7 +1562,9 @@ impl FeatureAutomationManager {
         let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
         let feature_commit = feature_ref.get().peel_to_commit()?;
 
-        let mut target_ref = self.repo.find_reference(&format!("refs/heads/{}", target_branch))?;
+        let mut target_ref = self
+            .repo
+            .find_reference(&format!("refs/heads/{}", target_branch))?;
         target_ref.set_target(feature_commit.id(), "Fast-forward merge")?;
 
         let tree = feature_commit.tree()?;
@@ -1455,26 +1603,28 @@ impl FeatureAutomationManager {
         // Get the feature branch
         let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
         let feature_commit = feature_ref.get().peel_to_commit()?;
-        
+
         // Get the target branch
         let target_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
         let target_commit = target_ref.get().peel_to_commit()?;
-        
+
         // Checkout the target branch
-        self.repo.checkout_tree(target_commit.tree()?.as_object(), None)?;
-        self.repo.set_head(&format!("refs/heads/{}", target_branch))?;
-        
+        self.repo
+            .checkout_tree(target_commit.tree()?.as_object(), None)?;
+        self.repo
+            .set_head(&format!("refs/heads/{}", target_branch))?;
+
         // Perform rebase
         let mut rebase_options = git2::RebaseOptions::new();
         rebase_options.inmemory(true);
-        
+
         // Note: This is a simplified rebase implementation
         // In a real implementation, you would use git2's rebase functionality
         // For now, we'll simulate a rebase by creating a new commit
-        
+
         let signature = Signature::now("Rhema", "rhema@example.com")?;
         let tree = feature_commit.tree()?;
-        
+
         self.repo.commit(
             Some(&format!("refs/heads/{}", target_branch)),
             &signature,
@@ -1483,7 +1633,7 @@ impl FeatureAutomationManager {
             &tree,
             &[&target_commit, &feature_commit],
         )?;
-        
+
         Ok(true)
     }
 
@@ -1491,21 +1641,23 @@ impl FeatureAutomationManager {
         // Get the feature branch
         let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
         let feature_commit = feature_ref.get().peel_to_commit()?;
-        
+
         // Get the target branch
         let target_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
         let target_commit = target_ref.get().peel_to_commit()?;
-        
+
         // Checkout the target branch
-        self.repo.checkout_tree(target_commit.tree()?.as_object(), None)?;
-        self.repo.set_head(&format!("refs/heads/{}", target_branch))?;
-        
+        self.repo
+            .checkout_tree(target_commit.tree()?.as_object(), None)?;
+        self.repo
+            .set_head(&format!("refs/heads/{}", target_branch))?;
+
         // Create a squash commit that combines all changes from the feature branch
         let signature = Signature::now("Rhema", "rhema@example.com")?;
-        
+
         // Get the tree from the feature branch
         let tree = feature_commit.tree()?;
-        
+
         // Create a single commit that represents all changes
         self.repo.commit(
             Some(&format!("refs/heads/{}", target_branch)),
@@ -1515,11 +1667,16 @@ impl FeatureAutomationManager {
             &tree,
             &[&target_commit],
         )?;
-        
+
         Ok(true)
     }
 
-    fn custom_merge(&self, feature_branch: &str, target_branch: &str, strategy: &str) -> RhemaResult<bool> {
+    fn custom_merge(
+        &self,
+        feature_branch: &str,
+        target_branch: &str,
+        strategy: &str,
+    ) -> RhemaResult<bool> {
         match strategy {
             "rebase-squash" => {
                 // First rebase, then squash
@@ -1545,19 +1702,21 @@ impl FeatureAutomationManager {
         // Get the feature branch commits
         let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
         let feature_commit = feature_ref.get().peel_to_commit()?;
-        
+
         // Get the target branch
         let target_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
         let target_commit = target_ref.get().peel_to_commit()?;
-        
+
         // Checkout the target branch
-        self.repo.checkout_tree(target_commit.tree()?.as_object(), None)?;
-        self.repo.set_head(&format!("refs/heads/{}", target_branch))?;
-        
+        self.repo
+            .checkout_tree(target_commit.tree()?.as_object(), None)?;
+        self.repo
+            .set_head(&format!("refs/heads/{}", target_branch))?;
+
         // Cherry-pick the feature commit
         let signature = Signature::now("Rhema", "rhema@example.com")?;
         let tree = feature_commit.tree()?;
-        
+
         self.repo.commit(
             Some(&format!("refs/heads/{}", target_branch)),
             &signature,
@@ -1566,7 +1725,7 @@ impl FeatureAutomationManager {
             &tree,
             &[&target_commit],
         )?;
-        
+
         Ok(true)
     }
 
@@ -1574,19 +1733,21 @@ impl FeatureAutomationManager {
         // Get the feature branch
         let feature_ref = self.repo.find_branch(feature_branch, BranchType::Local)?;
         let feature_commit = feature_ref.get().peel_to_commit()?;
-        
+
         // Get the target branch
         let target_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
         let target_commit = target_ref.get().peel_to_commit()?;
-        
+
         // Checkout the target branch
-        self.repo.checkout_tree(target_commit.tree()?.as_object(), None)?;
-        self.repo.set_head(&format!("refs/heads/{}", target_branch))?;
-        
+        self.repo
+            .checkout_tree(target_commit.tree()?.as_object(), None)?;
+        self.repo
+            .set_head(&format!("refs/heads/{}", target_branch))?;
+
         // Create an octopus merge commit
         let signature = Signature::now("Rhema", "rhema@example.com")?;
         let tree = feature_commit.tree()?;
-        
+
         self.repo.commit(
             Some(&format!("refs/heads/{}", target_branch)),
             &signature,
@@ -1595,7 +1756,7 @@ impl FeatureAutomationManager {
             &tree,
             &[&target_commit, &feature_commit],
         )?;
-        
+
         Ok(true)
     }
 
@@ -1603,32 +1764,34 @@ impl FeatureAutomationManager {
         // Validate the merged branch
         let branch_ref = self.repo.find_branch(target_branch, BranchType::Local)?;
         let commit = branch_ref.get().peel_to_commit()?;
-        
+
         // Check if the commit is valid
         if commit.tree().is_err() {
-            return Err(RhemaError::ValidationError(
-                format!("Merged branch '{}' has invalid tree", target_branch)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Merged branch '{}' has invalid tree",
+                target_branch
+            )));
         }
-        
+
         // Check if the branch can be checked out
         let tree = commit.tree()?;
         if self.repo.checkout_tree(tree.as_object(), None).is_err() {
-            return Err(RhemaError::ValidationError(
-                format!("Merged branch '{}' cannot be checked out", target_branch)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Merged branch '{}' cannot be checked out",
+                target_branch
+            )));
         }
-        
+
         // Run tests on the merged branch
         if self.config.validation.run_tests {
             self.run_tests(target_branch)?;
         }
-        
+
         // Run health checks on the merged branch
         if self.config.validation.run_health_checks {
             self.run_health_checks(target_branch)?;
         }
-        
+
         Ok(())
     }
 
@@ -1639,7 +1802,12 @@ impl FeatureAutomationManager {
     }
 
     fn cleanup_context_files(&self, branch_name: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
         if context_dir.exists() {
             std::fs::remove_dir_all(&context_dir)?;
         }
@@ -1647,7 +1815,12 @@ impl FeatureAutomationManager {
     }
 
     fn cleanup_temp_files(&self, branch_name: &str) -> RhemaResult<()> {
-        let temp_dir = self.repo.path().join(".rhema").join("temp").join(branch_name);
+        let temp_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("temp")
+            .join(branch_name);
         if temp_dir.exists() {
             std::fs::remove_dir_all(&temp_dir)?;
         }
@@ -1673,7 +1846,12 @@ impl FeatureAutomationManager {
     }
 
     fn archive_context(&self, branch_name: &str) -> RhemaResult<()> {
-        let context_dir = self.repo.path().join(".rhema").join("context").join(branch_name);
+        let context_dir = self
+            .repo
+            .path()
+            .join(".rhema")
+            .join("context")
+            .join(branch_name);
         let archive_dir = self.repo.path().join(".rhema").join("archives");
         std::fs::create_dir_all(&archive_dir)?;
 
@@ -1683,13 +1861,20 @@ impl FeatureAutomationManager {
 
             // Create tar.gz archive
             let output = Command::new("tar")
-                .args(&["-czf", archive_path.to_str().unwrap(), "-C", context_dir.parent().unwrap().to_str().unwrap(), branch_name])
+                .args(&[
+                    "-czf",
+                    archive_path.to_str().unwrap(),
+                    "-C",
+                    context_dir.parent().unwrap().to_str().unwrap(),
+                    branch_name,
+                ])
                 .output()?;
 
             if !output.status.success() {
-                return Err(RhemaError::ValidationError(
-                    format!("Failed to create archive: {}", String::from_utf8_lossy(&output.stderr))
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Failed to create archive: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                )));
             }
         }
         Ok(())
@@ -1698,7 +1883,7 @@ impl FeatureAutomationManager {
     fn update_references(&self, branch_name: &str) -> RhemaResult<()> {
         // Update any references that point to the deleted branch
         let refs_dir = self.repo.path().join("refs");
-        
+
         if refs_dir.exists() {
             // Update any symbolic references
             let head_file = self.repo.path().join("HEAD");
@@ -1712,23 +1897,23 @@ impl FeatureAutomationManager {
                             "ref: refs/heads/master"
                         } else {
                             return Err(RhemaError::ValidationError(
-                                "No main or master branch found to update HEAD".to_string()
+                                "No main or master branch found to update HEAD".to_string(),
                             ));
                         };
-                        
+
                         std::fs::write(&head_file, new_head)?;
                     }
                 }
             }
         }
-        
+
         // Update any configuration files that reference the branch
         let config_files = vec![
             ".rhema/config.json",
             ".github/workflows/ci.yml",
             ".gitlab-ci.yml",
         ];
-        
+
         for config_file in config_files {
             let config_path = self.repo.path().join(config_file);
             if config_path.exists() {
@@ -1740,7 +1925,7 @@ impl FeatureAutomationManager {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -1754,25 +1939,26 @@ impl FeatureAutomationManager {
             "repository": self.repo.path().to_string_lossy(),
             "message": format!("Feature branch '{}' has been cleaned up", branch_name)
         });
-        
+
         // Save notification to file
         let notifications_dir = self.repo.path().join(".rhema").join("notifications");
         std::fs::create_dir_all(&notifications_dir)?;
-        
-        let notification_file = notifications_dir.join(format!("{}-{}.json", 
-            branch_name, 
-            Utc::now().timestamp()
-        ));
-        
-        std::fs::write(&notification_file, serde_json::to_string_pretty(&notification)?)?;
-        
+
+        let notification_file =
+            notifications_dir.join(format!("{}-{}.json", branch_name, Utc::now().timestamp()));
+
+        std::fs::write(
+            &notification_file,
+            serde_json::to_string_pretty(&notification)?,
+        )?;
+
         // In a real implementation, you would send notifications via:
         // - Email
         // - Slack
         // - Teams
         // - Webhook
         // - etc.
-        
+
         Ok(())
     }
 }
@@ -1862,4 +2048,4 @@ pub fn default_feature_automation_config() -> FeatureAutomationConfig {
             performance_monitoring: false,
         },
     }
-} 
+}

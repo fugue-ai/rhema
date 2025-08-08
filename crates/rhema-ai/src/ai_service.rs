@@ -20,29 +20,29 @@ use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::instrument;
 use uuid::Uuid;
-use std::path::PathBuf;
 
 // Import lock file context types
 
-use crate::agent::lock_context_integration::LockFileAIIntegration;
-use crate::agent::state::{AgentManager, AgentState, PersistenceConfig};
 use crate::agent::advanced_conflict_prevention::{
-    AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig,
-    ConflictPredictionModel, ConsensusConfig, CoordinationSession, AdvancedConflictStats,
+    AdvancedConflictPreventionConfig, AdvancedConflictPreventionSystem, AdvancedConflictStats,
+    ConflictPredictionModel, ConsensusConfig, CoordinationSession,
 };
-use crate::context_injection::{EnhancedContextInjector, TaskType, LockFileContextRequirement};
-use crate::coordination_integration::{CoordinationIntegration, CoordinationConfig};
+use crate::agent::lock_context_integration::LockFileAIIntegration;
 use crate::agent::real_time_coordination::{AgentInfo, AgentMessage};
+use crate::agent::state::{AgentManager, AgentState, PersistenceConfig};
+use crate::context_injection::{EnhancedContextInjector, LockFileContextRequirement, TaskType};
+use crate::coordination_integration::{CoordinationConfig, CoordinationIntegration};
 
 // Re-export types from lock_context to avoid duplication
 pub use crate::agent::lock_context::{
-    VersionConflict, CircularDependency, OutdatedDependency, SecurityConcern,
-    ConflictSeverity, SecuritySeverity, RecommendationCategory, RecommendationPriority,
-    ConflictAnalysis, LockFileAIContext
+    CircularDependency, ConflictAnalysis, ConflictSeverity, LockFileAIContext, OutdatedDependency,
+    RecommendationCategory, RecommendationPriority, SecurityConcern, SecuritySeverity,
+    VersionConflict,
 };
 
 /// AI Service configuration with lock file awareness and agent state management
@@ -288,10 +288,13 @@ impl AIService {
 
         // Initialize lock file awareness components
         let (lock_file_integration, context_injector) = if config.enable_lock_file_awareness {
-            let lock_file_path = config.lock_file_path.clone().unwrap_or_else(|| PathBuf::from("."));
+            let lock_file_path = config
+                .lock_file_path
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("."));
             let integration = Arc::new(LockFileAIIntegration::new(lock_file_path.clone()));
             let injector = Arc::new(EnhancedContextInjector::new(lock_file_path));
-            
+
             (Some(integration), Some(injector))
         } else {
             (None, None)
@@ -308,13 +311,13 @@ impl AIService {
                 max_block_time,
                 config.agent_persistence_config.clone(),
             );
-            
+
             // Load existing state if available
             let mut manager = manager;
             if let Err(e) = manager.load_state().await {
                 tracing::warn!("Failed to load agent state: {}", e);
             }
-            
+
             Some(Arc::new(RwLock::new(manager)))
         } else {
             None
@@ -322,8 +325,14 @@ impl AIService {
 
         // Initialize coordination integration
         let coordination_integration = if config.enable_coordination_integration {
-            let rhema_coordination = crate::agent::real_time_coordination::RealTimeCoordinationSystem::new();
-            match CoordinationIntegration::new(rhema_coordination, config.coordination_config.clone()).await {
+            let rhema_coordination =
+                crate::agent::real_time_coordination::RealTimeCoordinationSystem::new();
+            match CoordinationIntegration::new(
+                rhema_coordination,
+                config.coordination_config.clone(),
+            )
+            .await
+            {
                 Ok(integration) => {
                     tracing::info!("✅ Coordination integration initialized successfully");
                     Some(Arc::new(integration))
@@ -339,17 +348,30 @@ impl AIService {
 
         // Initialize advanced conflict prevention
         let advanced_conflict_prevention = if config.enable_advanced_conflict_prevention {
-            let rhema_coordination = crate::agent::real_time_coordination::RealTimeCoordinationSystem::new();
-            let conflict_config = config.advanced_conflict_prevention_config.clone()
+            let rhema_coordination =
+                crate::agent::real_time_coordination::RealTimeCoordinationSystem::new();
+            let conflict_config = config
+                .advanced_conflict_prevention_config
+                .clone()
                 .unwrap_or_else(AdvancedConflictPreventionConfig::default);
-            
-            match AdvancedConflictPreventionSystem::new(Arc::new(rhema_coordination), conflict_config).await {
+
+            match AdvancedConflictPreventionSystem::new(
+                Arc::new(rhema_coordination),
+                conflict_config,
+            )
+            .await
+            {
                 Ok(system) => {
-                    tracing::info!("✅ Advanced conflict prevention system initialized successfully");
+                    tracing::info!(
+                        "✅ Advanced conflict prevention system initialized successfully"
+                    );
                     Some(Arc::new(system))
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to initialize advanced conflict prevention system: {}", e);
+                    tracing::warn!(
+                        "Failed to initialize advanced conflict prevention system: {}",
+                        e
+                    );
                     None
                 }
             }
@@ -379,8 +401,12 @@ impl AIService {
         let start_time = std::time::Instant::now();
 
         // Validate lock file if required
-        let lock_file_validation = if self.config.enable_lock_file_awareness && 
-            request.lock_file_context.as_ref().map_or(false, |ctx| ctx.validate_before_processing) {
+        let lock_file_validation = if self.config.enable_lock_file_awareness
+            && request
+                .lock_file_context
+                .as_ref()
+                .map_or(false, |ctx| ctx.validate_before_processing)
+        {
             Some(self.validate_lock_file_before_processing(&request).await?)
         } else {
             None
@@ -431,13 +457,16 @@ impl AIService {
     }
 
     /// Validate lock file before processing AI request
-    async fn validate_lock_file_before_processing(&self, _request: &AIRequest) -> RhemaResult<LockFileValidationResult> {
+    async fn validate_lock_file_before_processing(
+        &self,
+        _request: &AIRequest,
+    ) -> RhemaResult<LockFileValidationResult> {
         if let Some(integration) = &self.lock_file_integration {
             match integration.get_comprehensive_context() {
                 Ok(context) => {
                     let health = context.health_assessment;
                     let is_valid = health.overall_score >= 70.0;
-                    
+
                     // Update metrics
                     {
                         let mut metrics = self.metrics.write().await;
@@ -478,12 +507,15 @@ impl AIService {
     }
 
     /// Check dependency consistency across scopes
-    async fn check_dependency_consistency(&self, request: &AIRequest) -> RhemaResult<DependencyConsistencyResult> {
+    async fn check_dependency_consistency(
+        &self,
+        request: &AIRequest,
+    ) -> RhemaResult<DependencyConsistencyResult> {
         if let Some(integration) = &self.lock_file_integration {
             match integration.get_conflict_analysis() {
                 Ok(conflict_analysis) => {
-                    let is_consistent = conflict_analysis.version_conflicts.is_empty() && 
-                                       conflict_analysis.circular_dependencies.is_empty();
+                    let is_consistent = conflict_analysis.version_conflicts.is_empty()
+                        && conflict_analysis.circular_dependencies.is_empty();
 
                     // Update metrics
                     {
@@ -495,10 +527,16 @@ impl AIService {
                     }
 
                     // Get outdated dependencies and security concerns
-                    let (outdated_deps, security_concerns) = if let Some(scope_path) = &request.scope_path {
+                    let (outdated_deps, security_concerns) = if let Some(scope_path) =
+                        &request.scope_path
+                    {
                         if let Ok(scope_context) = integration.get_scope_context(scope_path) {
-                            let outdated = scope_context.recommendations.iter()
-                                .filter(|r| matches!(r.category, RecommendationCategory::Dependencies))
+                            let outdated = scope_context
+                                .recommendations
+                                .iter()
+                                .filter(|r| {
+                                    matches!(r.category, RecommendationCategory::Dependencies)
+                                })
                                 .map(|r| OutdatedDependency {
                                     name: r.title.clone(),
                                     current_version: "unknown".to_string(),
@@ -507,7 +545,9 @@ impl AIService {
                                 })
                                 .collect();
 
-                            let security = scope_context.recommendations.iter()
+                            let security = scope_context
+                                .recommendations
+                                .iter()
                                 .filter(|r| matches!(r.category, RecommendationCategory::Security))
                                 .map(|r| SecurityConcern {
                                     dependency_name: r.title.clone(),
@@ -560,16 +600,19 @@ impl AIService {
         if let Some(integration) = &self.lock_file_integration {
             match integration.get_conflict_analysis() {
                 Ok(conflict_analysis) => {
-                    let conflicts_detected = !conflict_analysis.version_conflicts.is_empty() || 
-                                           !conflict_analysis.circular_dependencies.is_empty();
-                    
-                    let conflict_count = conflict_analysis.version_conflicts.len() + 
-                                        conflict_analysis.circular_dependencies.len();
+                    let conflicts_detected = !conflict_analysis.version_conflicts.is_empty()
+                        || !conflict_analysis.circular_dependencies.is_empty();
 
-                    let resolution_suggestions = self.generate_conflict_resolution_suggestions(&conflict_analysis).await?;
-                    
-                    let affected_scopes = conflict_analysis.dependency_graph.keys().cloned().collect();
-                    
+                    let conflict_count = conflict_analysis.version_conflicts.len()
+                        + conflict_analysis.circular_dependencies.len();
+
+                    let resolution_suggestions = self
+                        .generate_conflict_resolution_suggestions(&conflict_analysis)
+                        .await?;
+
+                    let affected_scopes =
+                        conflict_analysis.dependency_graph.keys().cloned().collect();
+
                     let severity = if conflict_analysis.circular_dependencies.is_empty() {
                         ConflictSeverity::Medium
                     } else {
@@ -616,17 +659,24 @@ impl AIService {
     }
 
     /// Generate conflict resolution suggestions
-    async fn generate_conflict_resolution_suggestions(&self, conflict_analysis: &ConflictAnalysis) -> RhemaResult<Vec<ConflictResolutionSuggestion>> {
+    async fn generate_conflict_resolution_suggestions(
+        &self,
+        conflict_analysis: &ConflictAnalysis,
+    ) -> RhemaResult<Vec<ConflictResolutionSuggestion>> {
         let mut suggestions = Vec::new();
 
         // Generate suggestions for version conflicts
         for conflict in &conflict_analysis.version_conflicts {
             suggestions.push(ConflictResolutionSuggestion {
                 conflict_type: ConflictType::VersionConflict,
-                description: format!("Version conflict for {}: {} vs {}", 
-                    conflict.dependency_name, conflict.version1, conflict.version2),
-                suggested_action: format!("Update {} to version {} in scope {}", 
-                    conflict.dependency_name, conflict.version2, conflict.scope1),
+                description: format!(
+                    "Version conflict for {}: {} vs {}",
+                    conflict.dependency_name, conflict.version1, conflict.version2
+                ),
+                suggested_action: format!(
+                    "Update {} to version {} in scope {}",
+                    conflict.dependency_name, conflict.version2, conflict.scope1
+                ),
                 confidence: 0.8,
                 affected_dependencies: vec![conflict.dependency_name.clone()],
                 potential_risks: vec!["Breaking changes may occur".to_string()],
@@ -639,7 +689,8 @@ impl AIService {
             suggestions.push(ConflictResolutionSuggestion {
                 conflict_type: ConflictType::CircularDependency,
                 description: circular.description.clone(),
-                suggested_action: "Break circular dependency by restructuring dependencies".to_string(),
+                suggested_action: "Break circular dependency by restructuring dependencies"
+                    .to_string(),
                 confidence: 0.9,
                 affected_dependencies: circular.affected_scopes.clone(),
                 potential_risks: vec!["Build failures".to_string(), "Runtime issues".to_string()],
@@ -651,7 +702,10 @@ impl AIService {
     }
 
     /// Enhance request with lock file context
-    async fn enhance_request_with_lock_file_context(&self, mut request: AIRequest) -> RhemaResult<AIRequest> {
+    async fn enhance_request_with_lock_file_context(
+        &self,
+        mut request: AIRequest,
+    ) -> RhemaResult<AIRequest> {
         if let Some(lock_context) = &request.lock_file_context {
             if let Some(injector) = &self.context_injector {
                 let pattern = rhema_core::schema::PromptPattern {
@@ -675,7 +729,9 @@ impl AIService {
                 };
 
                 let scope_path = request.scope_path.as_deref().unwrap_or(".");
-                let enhanced_prompt = injector.inject_lock_file_context(&pattern, scope_path, &requirement).await?;
+                let enhanced_prompt = injector
+                    .inject_lock_file_context(&pattern, scope_path, &requirement)
+                    .await?;
                 request.prompt = enhanced_prompt;
             }
         }
@@ -684,7 +740,10 @@ impl AIService {
     }
 
     /// Generate AI recommendations based on response and lock file context
-    async fn generate_ai_recommendations(&self, response: &AIResponse) -> RhemaResult<Vec<AIRecommendation>> {
+    async fn generate_ai_recommendations(
+        &self,
+        response: &AIResponse,
+    ) -> RhemaResult<Vec<AIRecommendation>> {
         let mut recommendations = Vec::new();
 
         // Generate recommendations based on validation results
@@ -694,10 +753,15 @@ impl AIService {
                     category: RecommendationCategory::Validation,
                     priority: RecommendationPriority::High,
                     title: "Fix Lock File Validation Issues".to_string(),
-                    description: format!("Lock file validation score: {:.1}/100", validation.validation_score),
+                    description: format!(
+                        "Lock file validation score: {:.1}/100",
+                        validation.validation_score
+                    ),
                     action: "Review and fix validation issues before proceeding".to_string(),
                     confidence: 0.9,
-                    impact_analysis: Some("Validation issues may cause build or runtime problems".to_string()),
+                    impact_analysis: Some(
+                        "Validation issues may cause build or runtime problems".to_string(),
+                    ),
                     implementation_steps: Some(validation.recommendations.clone()),
                 });
             }
@@ -711,11 +775,18 @@ impl AIService {
                         category: RecommendationCategory::Dependencies,
                         priority: RecommendationPriority::High,
                         title: format!("Resolve Version Conflict: {}", conflict.dependency_name),
-                        description: format!("Version conflict between {} and {}", conflict.version1, conflict.version2),
-                        action: format!("Update {} to version {} in scope {}", 
-                            conflict.dependency_name, conflict.version2, conflict.scope1),
+                        description: format!(
+                            "Version conflict between {} and {}",
+                            conflict.version1, conflict.version2
+                        ),
+                        action: format!(
+                            "Update {} to version {} in scope {}",
+                            conflict.dependency_name, conflict.version2, conflict.scope1
+                        ),
                         confidence: 0.8,
-                        impact_analysis: Some("Version conflicts may cause runtime issues".to_string()),
+                        impact_analysis: Some(
+                            "Version conflicts may cause runtime issues".to_string(),
+                        ),
                         implementation_steps: Some(vec![
                             "Update dependency version".to_string(),
                             "Test for compatibility".to_string(),
@@ -736,7 +807,9 @@ impl AIService {
                     description: format!("{} conflicts detected", conflict_analysis.conflict_count),
                     action: "Review and resolve all detected conflicts".to_string(),
                     confidence: 0.9,
-                    impact_analysis: Some("Unresolved conflicts may cause build failures".to_string()),
+                    impact_analysis: Some(
+                        "Unresolved conflicts may cause build failures".to_string(),
+                    ),
                     implementation_steps: Some(vec![
                         "Review conflict analysis".to_string(),
                         "Apply resolution suggestions".to_string(),
@@ -760,7 +833,8 @@ impl AIService {
             "max_tokens": request.max_tokens,
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&format!("{}/v1/chat/completions", self.config.base_url))
             .header("Authorization", format!("Bearer {}", self.config.api_key))
             .header("Content-Type", "application/json")
@@ -770,11 +844,16 @@ impl AIService {
             .map_err(|e| RhemaError::NetworkError(format!("API request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(RhemaError::AgentError(format!("API error: {}", error_text)));
         }
 
-        let response_json: serde_json::Value = response.json().await
+        let response_json: serde_json::Value = response
+            .json()
+            .await
             .map_err(|e| RhemaError::ParseError(format!("Failed to parse response: {}", e)))?;
 
         // Extract response content (simplified for this example)
@@ -783,9 +862,7 @@ impl AIService {
             .unwrap_or("No content")
             .to_string();
 
-        let tokens_used = response_json["usage"]["total_tokens"]
-            .as_u64()
-            .unwrap_or(0) as u32;
+        let tokens_used = response_json["usage"]["total_tokens"].as_u64().unwrap_or(0) as u32;
 
         Ok(AIResponse {
             id: Uuid::new_v4().to_string(),
@@ -797,10 +874,10 @@ impl AIService {
             processing_time_ms: 0, // Will be set by caller
             cached: false,
             created_at: Utc::now(),
-            lock_file_validation: None, // Will be set by caller
+            lock_file_validation: None,         // Will be set by caller
             dependency_consistency_check: None, // Will be set by caller
-            conflict_analysis: None, // Will be set by caller
-            recommendations: None, // Will be set by caller
+            conflict_analysis: None,            // Will be set by caller
+            recommendations: None,              // Will be set by caller
         })
     }
 
@@ -815,7 +892,10 @@ impl AIService {
 
         // Include lock file context in cache key if available
         if let Some(lock_context) = &request.lock_file_context {
-            key_parts.push(format!("lock_context_{}", serde_json::to_string(lock_context).unwrap_or_default()));
+            key_parts.push(format!(
+                "lock_context_{}",
+                serde_json::to_string(lock_context).unwrap_or_default()
+            ));
         }
 
         if let Some(task_type) = &request.task_type {
@@ -842,40 +922,41 @@ impl AIService {
         response: &AIResponse,
     ) {
         let mut metrics = self.metrics.write().await;
-        
+
         metrics.total_requests += 1;
         if cache_hit {
             metrics.cache_hits += 1;
         } else {
             metrics.cache_misses += 1;
         }
-        
+
         metrics.total_tokens_processed += tokens_used as u64;
         metrics.total_cost += cost;
-        
+
         // Update average response time
-        let total_time = metrics.average_response_time_ms * (metrics.total_requests - 1) + processing_time_ms;
+        let total_time =
+            metrics.average_response_time_ms * (metrics.total_requests - 1) + processing_time_ms;
         metrics.average_response_time_ms = total_time / metrics.total_requests;
-        
+
         // Update lock file awareness metrics
         if response.lock_file_validation.is_some() {
             metrics.lock_file_validation_requests += 1;
         }
-        
+
         if response.conflict_analysis.is_some() {
             metrics.conflict_resolution_requests += 1;
         }
-        
+
         if response.dependency_consistency_check.is_some() {
             metrics.dependency_consistency_checks += 1;
         }
-        
+
         if let Some(recommendations) = &response.recommendations {
             if !recommendations.is_empty() {
                 metrics.ai_assisted_resolutions += 1;
             }
         }
-        
+
         metrics.last_updated = Utc::now();
     }
 
@@ -931,9 +1012,10 @@ impl AIService {
             if let Some(integration) = &self.lock_file_integration {
                 if let Ok(context) = integration.get_comprehensive_context() {
                     if context.health_assessment.overall_score < 50.0 {
-                        return Err(RhemaError::ConfigError(
-                            format!("Lock file health is poor: {:.1}/100", context.health_assessment.overall_score)
-                        ));
+                        return Err(RhemaError::ConfigError(format!(
+                            "Lock file health is poor: {:.1}/100",
+                            context.health_assessment.overall_score
+                        )));
                     }
                 }
             }
@@ -966,7 +1048,8 @@ impl AIService {
                 lock_file_context: None,
                 task_type: None,
                 scope_path: None,
-            }).await
+            })
+            .await
         } else {
             Ok(DependencyConsistencyResult {
                 is_consistent: true,
@@ -979,7 +1062,11 @@ impl AIService {
     }
 
     /// Generate AI-assisted conflict resolution
-    pub async fn generate_conflict_resolution(&self, conflict_type: ConflictType, context: &str) -> RhemaResult<Vec<ConflictResolutionSuggestion>> {
+    pub async fn generate_conflict_resolution(
+        &self,
+        conflict_type: ConflictType,
+        context: &str,
+    ) -> RhemaResult<Vec<ConflictResolutionSuggestion>> {
         let prompt = format!(
             "Analyze the following conflict and provide resolution suggestions:\n\nConflict Type: {:?}\nContext: {}\n\nProvide specific, actionable steps to resolve this conflict.",
             conflict_type, context
@@ -1009,7 +1096,7 @@ impl AIService {
         };
 
         let response = self.process_request(request).await?;
-        
+
         // Parse response to extract resolution suggestions
         // This is a simplified implementation - in practice, you'd want more sophisticated parsing
         let suggestions = vec![ConflictResolutionSuggestion {
@@ -1033,7 +1120,9 @@ impl AIService {
             let mut manager = agent_manager.write().await;
             manager.agent_join(agent_id).await
         } else {
-            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Agent state management is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1043,17 +1132,25 @@ impl AIService {
             let mut manager = agent_manager.write().await;
             manager.agent_leave(agent_id).await
         } else {
-            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Agent state management is not enabled".to_string(),
+            ))
         }
     }
 
     /// Update agent state
-    pub async fn update_agent_state(&self, agent_id: &str, new_state: AgentState) -> RhemaResult<()> {
+    pub async fn update_agent_state(
+        &self,
+        agent_id: &str,
+        new_state: AgentState,
+    ) -> RhemaResult<()> {
         if let Some(agent_manager) = &self.agent_manager {
             let mut manager = agent_manager.write().await;
             manager.set_agent_state(agent_id, new_state).await
         } else {
-            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Agent state management is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1063,7 +1160,9 @@ impl AIService {
             let mut manager = agent_manager.write().await;
             manager.update_heartbeat(agent_id).await
         } else {
-            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Agent state management is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1078,7 +1177,10 @@ impl AIService {
     }
 
     /// Get agent metadata
-    pub async fn get_agent_metadata(&self, agent_id: &str) -> Option<crate::agent::state::AgentMetadata> {
+    pub async fn get_agent_metadata(
+        &self,
+        agent_id: &str,
+    ) -> Option<crate::agent::state::AgentMetadata> {
         if let Some(agent_manager) = &self.agent_manager {
             let manager = agent_manager.read().await;
             manager.get_agent_metadata(agent_id).cloned()
@@ -1123,7 +1225,9 @@ impl AIService {
             let mut manager = agent_manager.write().await;
             manager.check_agent_health().await
         } else {
-            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Agent state management is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1133,7 +1237,9 @@ impl AIService {
             let manager = agent_manager.read().await;
             manager.validate_state().await
         } else {
-            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Agent state management is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1143,7 +1249,9 @@ impl AIService {
             let manager = agent_manager.read().await;
             manager.persist_state().await
         } else {
-            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Agent state management is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1153,15 +1261,25 @@ impl AIService {
             let mut manager = agent_manager.write().await;
             manager.start_monitoring().await
         } else {
-            Err(RhemaError::ConfigError("Agent state management is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Agent state management is not enabled".to_string(),
+            ))
         }
     }
 
     /// Get agent state history
-    pub async fn get_agent_history(&self, agent_id: &str, limit: usize) -> Vec<crate::agent::state::StateTransition> {
+    pub async fn get_agent_history(
+        &self,
+        agent_id: &str,
+        limit: usize,
+    ) -> Vec<crate::agent::state::StateTransition> {
         if let Some(agent_manager) = &self.agent_manager {
             let manager = agent_manager.read().await;
-            manager.get_agent_history(agent_id, limit).into_iter().cloned().collect()
+            manager
+                .get_agent_history(agent_id, limit)
+                .into_iter()
+                .cloned()
+                .collect()
         } else {
             Vec::new()
         }
@@ -1179,7 +1297,9 @@ impl AIService {
         if let Some(coordination) = &self.coordination_integration {
             coordination.register_rhema_agent(&agent_info).await
         } else {
-            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Coordination integration is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1188,16 +1308,24 @@ impl AIService {
         if let Some(coordination) = &self.coordination_integration {
             coordination.bridge_rhema_message(&message).await
         } else {
-            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Coordination integration is not enabled".to_string(),
+            ))
         }
     }
 
     /// Create a coordination session
-    pub async fn create_session(&self, topic: String, participants: Vec<String>) -> RhemaResult<String> {
+    pub async fn create_session(
+        &self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> RhemaResult<String> {
         if let Some(coordination) = &self.coordination_integration {
             coordination.create_session(topic, participants).await
         } else {
-            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Coordination integration is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1206,21 +1334,31 @@ impl AIService {
         if let Some(coordination) = &self.coordination_integration {
             coordination.join_session(session_id, agent_id).await
         } else {
-            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Coordination integration is not enabled".to_string(),
+            ))
         }
     }
 
     /// Send a session message
-    pub async fn send_session_message(&self, session_id: &str, message: AgentMessage) -> RhemaResult<()> {
+    pub async fn send_session_message(
+        &self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> RhemaResult<()> {
         if let Some(coordination) = &self.coordination_integration {
             coordination.send_session_message(session_id, message).await
         } else {
-            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Coordination integration is not enabled".to_string(),
+            ))
         }
     }
 
     /// Get coordination integration statistics
-    pub async fn get_coordination_stats(&self) -> Option<crate::coordination_integration::IntegrationStats> {
+    pub async fn get_coordination_stats(
+        &self,
+    ) -> Option<crate::coordination_integration::IntegrationStats> {
         if let Some(coordination) = &self.coordination_integration {
             Some(coordination.get_integration_stats().await)
         } else {
@@ -1229,7 +1367,9 @@ impl AIService {
     }
 
     /// Get Syneidesis connection status
-    pub async fn get_syneidesis_status(&self) -> Option<crate::grpc::coordination_client::ConnectionStatus> {
+    pub async fn get_syneidesis_status(
+        &self,
+    ) -> Option<crate::grpc::coordination_client::ConnectionStatus> {
         if let Some(coordination) = &self.coordination_integration {
             coordination.get_syneidesis_status().await
         } else {
@@ -1242,7 +1382,9 @@ impl AIService {
         if let Some(coordination) = &self.coordination_integration {
             coordination.start_health_monitoring().await
         } else {
-            Err(RhemaError::ConfigError("Coordination integration is not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Coordination integration is not enabled".to_string(),
+            ))
         }
     }
 
@@ -1272,11 +1414,16 @@ impl AIService {
     }
 
     /// Add a prediction model to the advanced conflict prevention system
-    pub async fn add_conflict_prediction_model(&self, model: ConflictPredictionModel) -> RhemaResult<()> {
+    pub async fn add_conflict_prediction_model(
+        &self,
+        model: ConflictPredictionModel,
+    ) -> RhemaResult<()> {
         if let Some(system) = &self.advanced_conflict_prevention {
             system.add_prediction_model(model).await
         } else {
-            Err(RhemaError::ConfigError("Advanced conflict prevention not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Advanced conflict prevention not enabled".to_string(),
+            ))
         }
     }
 
@@ -1285,7 +1432,9 @@ impl AIService {
         if let Some(system) = &self.advanced_conflict_prevention {
             system.add_consensus_config(config).await
         } else {
-            Err(RhemaError::ConfigError("Advanced conflict prevention not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Advanced conflict prevention not enabled".to_string(),
+            ))
         }
     }
 
@@ -1312,16 +1461,24 @@ impl AIService {
         if let Some(system) = &self.advanced_conflict_prevention {
             system.create_coordination_session(topic).await
         } else {
-            Err(RhemaError::ConfigError("Advanced conflict prevention not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Advanced conflict prevention not enabled".to_string(),
+            ))
         }
     }
 
     /// Add a participant to a conflict resolution session
-    pub async fn add_session_participant(&self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
+    pub async fn add_session_participant(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> RhemaResult<()> {
         if let Some(system) = &self.advanced_conflict_prevention {
             system.add_session_participant(session_id, agent_id).await
         } else {
-            Err(RhemaError::ConfigError("Advanced conflict prevention not enabled".to_string()))
+            Err(RhemaError::ConfigError(
+                "Advanced conflict prevention not enabled".to_string(),
+            ))
         }
     }
 }
@@ -1391,7 +1548,7 @@ mod tests {
         };
 
         let service = AIService::new(config).await.unwrap();
-        
+
         let request = AIRequest {
             id: "test-id".to_string(),
             prompt: "test prompt".to_string(),

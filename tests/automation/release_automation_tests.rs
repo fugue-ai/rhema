@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use rhema_git::git::workflow::{WorkflowManager, default_git_flow_config};
 use git2::Repository;
+use rhema_git::git::workflow::{default_git_flow_config, WorkflowManager};
 use tempfile::TempDir;
 
 fn setup_test_repo() -> (TempDir, WorkflowManager) {
@@ -50,4 +50,4 @@ fn test_merge_and_cleanup_release_branch() {
     let _ = manager.merge_to_develop(&release_branch);
     // Cleanup
     assert!(manager.cleanup_release_branch(&release_branch).is_ok());
-} 
+}

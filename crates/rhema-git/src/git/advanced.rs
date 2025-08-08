@@ -15,4 +15,4 @@
  */
 
 // Re-export all advanced Git integration modules
-// This module provides advanced Git functionality 
+// This module provides advanced Git functionality

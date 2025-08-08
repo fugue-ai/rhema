@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use crate::agent::{AgentId, AgentState, AgentType, AgentCapability};
+use crate::agent::{AgentCapability, AgentId, AgentState, AgentType};
 use crate::error::{AgentError, AgentResult};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 
 /// Agent metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -262,7 +262,10 @@ pub struct MetricsSnapshot {
 }
 
 impl MetricsSnapshot {
-    pub fn new(agent_metrics: HashMap<AgentId, AgentMetrics>, global_metrics: GlobalMetrics) -> Self {
+    pub fn new(
+        agent_metrics: HashMap<AgentId, AgentMetrics>,
+        global_metrics: GlobalMetrics,
+    ) -> Self {
         Self {
             snapshot_id: uuid::Uuid::new_v4().to_string(),
             timestamp: Utc::now(),
@@ -286,22 +289,26 @@ impl MetricsCollector {
     pub async fn initialize(&self) -> AgentResult<()> {
         // Start metrics collection
         self.start_metrics_collection().await;
-        
+
         Ok(())
     }
 
     /// Update agent metrics
-    pub async fn update_agent_metrics(&self, agent_id: &AgentId, metrics: AgentMetrics) -> AgentResult<()> {
+    pub async fn update_agent_metrics(
+        &self,
+        agent_id: &AgentId,
+        metrics: AgentMetrics,
+    ) -> AgentResult<()> {
         let mut agent_metrics = self.agent_metrics.write().await;
         agent_metrics.insert(agent_id.clone(), metrics);
-        
+
         Ok(())
     }
 
     /// Get agent metrics
     pub async fn get_agent_metrics(&self, agent_id: &AgentId) -> AgentResult<AgentMetrics> {
         let agent_metrics = self.agent_metrics.read().await;
-        
+
         agent_metrics
             .get(agent_id)
             .cloned()
@@ -322,12 +329,12 @@ impl MetricsCollector {
         performance: PerformanceMetrics,
     ) -> AgentResult<()> {
         let mut agent_metrics = self.agent_metrics.write().await;
-        
+
         if let Some(metrics) = agent_metrics.get_mut(agent_id) {
             metrics.performance = performance;
             metrics.last_update = Utc::now();
         }
-        
+
         Ok(())
     }
 
@@ -338,12 +345,12 @@ impl MetricsCollector {
         resources: ResourceMetrics,
     ) -> AgentResult<()> {
         let mut agent_metrics = self.agent_metrics.write().await;
-        
+
         if let Some(metrics) = agent_metrics.get_mut(agent_id) {
             metrics.resources = resources;
             metrics.last_update = Utc::now();
         }
-        
+
         Ok(())
     }
 
@@ -354,12 +361,12 @@ impl MetricsCollector {
         tasks: TaskMetrics,
     ) -> AgentResult<()> {
         let mut agent_metrics = self.agent_metrics.write().await;
-        
+
         if let Some(metrics) = agent_metrics.get_mut(agent_id) {
             metrics.tasks = tasks;
             metrics.last_update = Utc::now();
         }
-        
+
         Ok(())
     }
 
@@ -370,12 +377,12 @@ impl MetricsCollector {
         communication: CommunicationMetrics,
     ) -> AgentResult<()> {
         let mut agent_metrics = self.agent_metrics.write().await;
-        
+
         if let Some(metrics) = agent_metrics.get_mut(agent_id) {
             metrics.communication = communication;
             metrics.last_update = Utc::now();
         }
-        
+
         Ok(())
     }
 
@@ -386,12 +393,12 @@ impl MetricsCollector {
         errors: ErrorMetrics,
     ) -> AgentResult<()> {
         let mut agent_metrics = self.agent_metrics.write().await;
-        
+
         if let Some(metrics) = agent_metrics.get_mut(agent_id) {
             metrics.errors = errors;
             metrics.last_update = Utc::now();
         }
-        
+
         Ok(())
     }
 
@@ -403,19 +410,19 @@ impl MetricsCollector {
         value: f64,
     ) -> AgentResult<()> {
         let mut agent_metrics = self.agent_metrics.write().await;
-        
+
         if let Some(metrics) = agent_metrics.get_mut(agent_id) {
             metrics.custom.insert(key, value);
             metrics.last_update = Utc::now();
         }
-        
+
         Ok(())
     }
 
     /// Get custom metric
     pub async fn get_custom_metric(&self, agent_id: &AgentId, key: &str) -> Option<f64> {
         let agent_metrics = self.agent_metrics.read().await;
-        
+
         agent_metrics
             .get(agent_id)
             .and_then(|metrics| metrics.custom.get(key))
@@ -431,14 +438,14 @@ impl MetricsCollector {
     pub async fn update_global_metrics(&self, global_metrics: GlobalMetrics) -> AgentResult<()> {
         let mut global = self.global_metrics.write().await;
         *global = global_metrics;
-        
+
         Ok(())
     }
 
     /// Get metrics history
     pub async fn get_metrics_history(&self, limit: Option<usize>) -> Vec<MetricsSnapshot> {
         let history = self.metrics_history.read().await;
-        
+
         if let Some(limit) = limit {
             history.iter().rev().take(limit).cloned().collect()
         } else {
@@ -450,17 +457,17 @@ impl MetricsCollector {
     pub async fn create_snapshot(&self) -> AgentResult<()> {
         let agent_metrics = self.agent_metrics.read().await.clone();
         let global_metrics = self.global_metrics.read().await.clone();
-        
+
         let snapshot = MetricsSnapshot::new(agent_metrics, global_metrics);
-        
+
         let mut history = self.metrics_history.write().await;
         history.push(snapshot);
-        
+
         // Keep only last 1000 snapshots
         if history.len() > 1000 {
             history.remove(0);
         }
-        
+
         Ok(())
     }
 
@@ -468,29 +475,40 @@ impl MetricsCollector {
     pub async fn get_metrics_summary(&self) -> MetricsSummary {
         let agent_metrics = self.agent_metrics.read().await;
         let global_metrics = self.global_metrics.read().await;
-        
+
         let total_agents = agent_metrics.len();
         let active_agents = agent_metrics
             .values()
             .filter(|m| m.state == AgentState::Ready)
             .count();
-        
+
         let total_tasks: u64 = agent_metrics.values().map(|m| m.tasks.total_tasks).sum();
-        let total_messages: u64 = agent_metrics.values().map(|m| m.communication.messages_sent + m.communication.messages_received).sum();
+        let total_messages: u64 = agent_metrics
+            .values()
+            .map(|m| m.communication.messages_sent + m.communication.messages_received)
+            .sum();
         let total_errors: u64 = agent_metrics.values().map(|m| m.errors.total_errors).sum();
-        
+
         let avg_response_time = if total_agents > 0 {
-            agent_metrics.values().map(|m| m.performance.avg_response_time).sum::<f64>() / total_agents as f64
+            agent_metrics
+                .values()
+                .map(|m| m.performance.avg_response_time)
+                .sum::<f64>()
+                / total_agents as f64
         } else {
             0.0
         };
-        
+
         let avg_success_rate = if total_agents > 0 {
-            agent_metrics.values().map(|m| m.performance.success_rate).sum::<f64>() / total_agents as f64
+            agent_metrics
+                .values()
+                .map(|m| m.performance.success_rate)
+                .sum::<f64>()
+                / total_agents as f64
         } else {
             1.0
         };
-        
+
         MetricsSummary {
             total_agents,
             active_agents,
@@ -510,41 +528,51 @@ impl MetricsCollector {
         let global_metrics = self.global_metrics.clone();
         let metrics_history = self.metrics_history.clone();
         let collection_interval = self.collection_interval;
-        
+
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(collection_interval));
-            
+            let mut interval =
+                tokio::time::interval(tokio::time::Duration::from_secs(collection_interval));
+
             loop {
                 interval.tick().await;
-                
+
                 // Update global metrics
                 {
                     let agent_metrics_guard = agent_metrics.read().await;
                     let mut global_metrics_guard = global_metrics.write().await;
-                    
+
                     global_metrics_guard.total_agents = agent_metrics_guard.len();
                     global_metrics_guard.active_agents = agent_metrics_guard
                         .values()
                         .filter(|m| m.state == AgentState::Ready)
                         .count();
-                    
-                    global_metrics_guard.total_tasks = agent_metrics_guard.values().map(|m| m.tasks.total_tasks).sum();
-                    global_metrics_guard.total_messages = agent_metrics_guard.values().map(|m| m.communication.messages_sent + m.communication.messages_received).sum();
-                    global_metrics_guard.total_errors = agent_metrics_guard.values().map(|m| m.errors.total_errors).sum();
-                    
+
+                    global_metrics_guard.total_tasks = agent_metrics_guard
+                        .values()
+                        .map(|m| m.tasks.total_tasks)
+                        .sum();
+                    global_metrics_guard.total_messages = agent_metrics_guard
+                        .values()
+                        .map(|m| m.communication.messages_sent + m.communication.messages_received)
+                        .sum();
+                    global_metrics_guard.total_errors = agent_metrics_guard
+                        .values()
+                        .map(|m| m.errors.total_errors)
+                        .sum();
+
                     global_metrics_guard.last_update = Utc::now();
                 }
-                
+
                 // Create snapshot
                 {
                     let agent_metrics_guard = agent_metrics.read().await.clone();
                     let global_metrics_guard = global_metrics.read().await.clone();
-                    
+
                     let snapshot = MetricsSnapshot::new(agent_metrics_guard, global_metrics_guard);
-                    
+
                     let mut history = metrics_history.write().await;
                     history.push(snapshot);
-                    
+
                     // Keep only last 1000 snapshots
                     if history.len() > 1000 {
                         history.remove(0);
@@ -558,7 +586,7 @@ impl MetricsCollector {
     pub async fn shutdown(&self) -> AgentResult<()> {
         // Create final snapshot
         self.create_snapshot().await?;
-        
+
         Ok(())
     }
 }
@@ -605,7 +633,7 @@ impl std::fmt::Display for MetricsSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::{AgentType, AgentState};
+    use crate::agent::{AgentState, AgentType};
 
     #[tokio::test]
     async fn test_metrics_collector_creation() {
@@ -617,7 +645,7 @@ mod tests {
     async fn test_agent_metrics_update() {
         let collector = MetricsCollector::new();
         collector.initialize().await.unwrap();
-        
+
         let agent_id = "test-agent".to_string();
         let metrics = AgentMetrics {
             agent_id: agent_id.clone(),
@@ -631,9 +659,12 @@ mod tests {
             custom: HashMap::new(),
             last_update: Utc::now(),
         };
-        
-        assert!(collector.update_agent_metrics(&agent_id, metrics).await.is_ok());
-        
+
+        assert!(collector
+            .update_agent_metrics(&agent_id, metrics)
+            .await
+            .is_ok());
+
         let retrieved_metrics = collector.get_agent_metrics(&agent_id).await.unwrap();
         assert_eq!(retrieved_metrics.agent_id, agent_id);
         assert_eq!(retrieved_metrics.agent_type, AgentType::Development);
@@ -643,7 +674,7 @@ mod tests {
     async fn test_performance_metrics_update() {
         let collector = MetricsCollector::new();
         collector.initialize().await.unwrap();
-        
+
         let agent_id = "test-agent".to_string();
         let performance = PerformanceMetrics {
             avg_response_time: 100.0,
@@ -653,19 +684,27 @@ mod tests {
             total_execution_time: 3600.0,
             avg_task_duration: 50.0,
         };
-        
-        assert!(collector.update_performance_metrics(&agent_id, performance).await.is_ok());
+
+        assert!(collector
+            .update_performance_metrics(&agent_id, performance)
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
     async fn test_custom_metrics() {
         let collector = MetricsCollector::new();
         collector.initialize().await.unwrap();
-        
+
         let agent_id = "test-agent".to_string();
-        assert!(collector.add_custom_metric(&agent_id, "custom_metric".to_string(), 42.0).await.is_ok());
-        
-        let value = collector.get_custom_metric(&agent_id, "custom_metric").await;
+        assert!(collector
+            .add_custom_metric(&agent_id, "custom_metric".to_string(), 42.0)
+            .await
+            .is_ok());
+
+        let value = collector
+            .get_custom_metric(&agent_id, "custom_metric")
+            .await;
         assert_eq!(value, Some(42.0));
     }
 
@@ -673,7 +712,7 @@ mod tests {
     async fn test_metrics_summary() {
         let collector = MetricsCollector::new();
         collector.initialize().await.unwrap();
-        
+
         let summary = collector.get_metrics_summary().await;
         assert_eq!(summary.total_agents, 0);
         assert_eq!(summary.active_agents, 0);
@@ -700,10 +739,10 @@ mod tests {
             system_uptime: 3600,
             last_update: Utc::now(),
         };
-        
+
         let display = summary.to_string();
         assert!(display.contains("8/10 active"));
         assert!(display.contains("1000"));
         assert!(display.contains("150.00ms"));
     }
-} 
+}

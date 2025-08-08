@@ -1403,8 +1403,6 @@ impl AlertManager {
     }
 }
 
-
-
 impl AdvancedMonitor {
     pub fn new(
         anomaly_detection: bool,
@@ -1461,18 +1459,29 @@ impl AdvancedMonitor {
         Ok(anomalies)
     }
 
-    pub fn predict_metrics(&mut self, metric_name: &str, horizon: usize) -> RhemaResult<Vec<Prediction>> {
+    pub fn predict_metrics(
+        &mut self,
+        metric_name: &str,
+        horizon: usize,
+    ) -> RhemaResult<Vec<Prediction>> {
         let model = self.get_or_create_model(metric_name);
         let model_clone = model.clone();
         let predictions = self.generate_predictions(&model_clone, horizon)?;
         Ok(predictions)
     }
 
-    pub fn analyze_correlations(&mut self, metrics: &[(&str, f64)]) -> RhemaResult<Vec<Correlation>> {
+    pub fn analyze_correlations(
+        &mut self,
+        metrics: &[(&str, f64)],
+    ) -> RhemaResult<Vec<Correlation>> {
         self.correlation_analyzer.analyze(metrics)
     }
 
-    pub fn profile_operation(&mut self, operation_name: &str, duration: Duration) -> RhemaResult<OperationProfile> {
+    pub fn profile_operation(
+        &mut self,
+        operation_name: &str,
+        duration: Duration,
+    ) -> RhemaResult<OperationProfile> {
         self.performance_profiler.profile(operation_name, duration)
     }
 
@@ -1500,8 +1509,13 @@ impl AdvancedMonitor {
     }
 
     /// Generate predictions from model
-    fn generate_predictions(&mut self, model: &PredictionModel, horizon: usize) -> RhemaResult<Vec<Prediction>> {
-        self.predictive_analyzer.generate_predictions(model, horizon)
+    fn generate_predictions(
+        &mut self,
+        model: &PredictionModel,
+        horizon: usize,
+    ) -> RhemaResult<Vec<Prediction>> {
+        self.predictive_analyzer
+            .generate_predictions(model, horizon)
     }
 }
 
@@ -1517,7 +1531,7 @@ impl AnomalyDetector {
     pub fn detect_anomaly(&mut self, metric_name: &str, value: f64) -> RhemaResult<Vec<Anomaly>> {
         let window_size = self.window_size;
         let sensitivity = self.sensitivity;
-        
+
         // Get or create baseline and update it
         {
             let baseline = self.get_or_create_baseline(metric_name);
@@ -1526,13 +1540,13 @@ impl AnomalyDetector {
                 baseline.samples.remove(0);
             }
         }
-        
+
         // Update baseline statistics
         let baseline = self.get_or_create_baseline(metric_name);
         Self::update_baseline_statistics_static(baseline);
-        
+
         let mut anomalies = Vec::new();
-        
+
         // Check for anomalies
         let z_score = (value - baseline.mean) / baseline.std_dev;
         if z_score.abs() > sensitivity {
@@ -1557,14 +1571,16 @@ impl AnomalyDetector {
     }
 
     fn get_or_create_baseline(&mut self, metric_name: &str) -> &mut BaselineMetric {
-        self.baseline_metrics.entry(metric_name.to_string()).or_insert_with(|| BaselineMetric {
-            metric_name: metric_name.to_string(),
-            mean: 0.0,
-            std_dev: 1.0,
-            min: f64::MAX,
-            max: f64::MIN,
-            samples: Vec::new(),
-        })
+        self.baseline_metrics
+            .entry(metric_name.to_string())
+            .or_insert_with(|| BaselineMetric {
+                metric_name: metric_name.to_string(),
+                mean: 0.0,
+                std_dev: 1.0,
+                min: f64::MAX,
+                max: f64::MIN,
+                samples: Vec::new(),
+            })
     }
 
     fn update_baseline_statistics_static(baseline: &mut BaselineMetric) {
@@ -1576,10 +1592,12 @@ impl AnomalyDetector {
         let sum: f64 = baseline.samples.iter().sum();
         let mean = sum / n;
 
-        let variance: f64 = baseline.samples
+        let variance: f64 = baseline
+            .samples
             .iter()
             .map(|&x| (x - mean).powi(2))
-            .sum::<f64>() / n;
+            .sum::<f64>()
+            / n;
 
         baseline.mean = mean;
         baseline.std_dev = variance.sqrt().max(1e-10); // Avoid division by zero
@@ -1589,17 +1607,17 @@ impl AnomalyDetector {
 
     fn update_baseline(&mut self, metric_name: &str, value: f64) -> RhemaResult<()> {
         let window_size = self.window_size;
-        
+
         // Get or create baseline and update it
         let baseline = self.get_or_create_baseline(metric_name);
         if baseline.samples.len() > window_size {
             baseline.samples.remove(0);
         }
         baseline.samples.push(value);
-        
+
         // Update baseline statistics
         Self::update_baseline_statistics_static(baseline);
-        
+
         Ok(())
     }
 }
@@ -1621,16 +1639,22 @@ impl PredictiveAnalyzer {
     }
 
     fn get_or_create_model(&mut self, metric_name: &str) -> &mut PredictionModel {
-        self.models.entry(metric_name.to_string()).or_insert_with(|| PredictionModel {
-            metric_name: metric_name.to_string(),
-            model_type: ModelType::LinearRegression,
-            parameters: HashMap::new(),
-            accuracy: 0.0,
-            last_updated: Utc::now(),
-        })
+        self.models
+            .entry(metric_name.to_string())
+            .or_insert_with(|| PredictionModel {
+                metric_name: metric_name.to_string(),
+                model_type: ModelType::LinearRegression,
+                parameters: HashMap::new(),
+                accuracy: 0.0,
+                last_updated: Utc::now(),
+            })
     }
 
-    fn generate_predictions(&self, model: &PredictionModel, horizon: usize) -> RhemaResult<Vec<Prediction>> {
+    fn generate_predictions(
+        &self,
+        model: &PredictionModel,
+        horizon: usize,
+    ) -> RhemaResult<Vec<Prediction>> {
         let mut predictions = Vec::new();
         let now = Utc::now();
 
@@ -1641,7 +1665,8 @@ impl PredictiveAnalyzer {
 
         for i in 1..=horizon {
             let predicted_value = intercept + slope * (i as f64);
-            let confidence_interval = self.calculate_confidence_interval(predicted_value, model.accuracy);
+            let confidence_interval =
+                self.calculate_confidence_interval(predicted_value, model.accuracy);
 
             predictions.push(Prediction {
                 metric_name: model.metric_name.clone(),
@@ -1737,18 +1762,25 @@ impl PerformanceProfiler {
         }
     }
 
-    pub fn profile(&mut self, operation_name: &str, duration: Duration) -> RhemaResult<OperationProfile> {
-        let profile = self.profiles.entry(operation_name.to_string()).or_insert_with(|| OperationProfile {
-            operation_name: operation_name.to_string(),
-            call_graph: CallGraph {
-                nodes: Vec::new(),
-                edges: Vec::new(),
-                total_time: Duration::zero(),
-            },
-            hotspots: Vec::new(),
-            recommendations: Vec::new(),
-            last_updated: Utc::now(),
-        });
+    pub fn profile(
+        &mut self,
+        operation_name: &str,
+        duration: Duration,
+    ) -> RhemaResult<OperationProfile> {
+        let profile = self
+            .profiles
+            .entry(operation_name.to_string())
+            .or_insert_with(|| OperationProfile {
+                operation_name: operation_name.to_string(),
+                call_graph: CallGraph {
+                    nodes: Vec::new(),
+                    edges: Vec::new(),
+                    total_time: Duration::zero(),
+                },
+                hotspots: Vec::new(),
+                recommendations: Vec::new(),
+                last_updated: Utc::now(),
+            });
 
         // Update call graph with new timing data
         Self::update_call_graph_static(profile, duration)?;
@@ -1763,7 +1795,10 @@ impl PerformanceProfiler {
         Ok(profile.clone())
     }
 
-    fn update_call_graph_static(profile: &mut OperationProfile, duration: Duration) -> RhemaResult<()> {
+    fn update_call_graph_static(
+        profile: &mut OperationProfile,
+        duration: Duration,
+    ) -> RhemaResult<()> {
         // Simplified call graph update
         // In a real implementation, this would use actual call stack data
         profile.call_graph.total_time = duration;
@@ -1785,10 +1820,12 @@ impl PerformanceProfiler {
         profile.hotspots.clear();
 
         for node in &profile.call_graph.nodes {
-            let time_percentage = node.total_time.num_milliseconds() as f64 / 
-                                profile.call_graph.total_time.num_milliseconds() as f64 * 100.0;
+            let time_percentage = node.total_time.num_milliseconds() as f64
+                / profile.call_graph.total_time.num_milliseconds() as f64
+                * 100.0;
 
-            if time_percentage > 10.0 { // 10% threshold
+            if time_percentage > 10.0 {
+                // 10% threshold
                 profile.hotspots.push(Hotspot {
                     function_name: node.function_name.clone(),
                     time_percentage,
@@ -1893,11 +1930,11 @@ impl ResourceMonitor {
         };
 
         let memory_metrics = MemoryMetrics {
-            total: 16_000_000_000, // 16GB
-            used: 8_000_000_000,   // 8GB
-            free: 8_000_000_000,   // 8GB
-            cached: 2_000_000_000, // 2GB
-            buffers: 500_000_000,  // 500MB
+            total: 16_000_000_000,     // 16GB
+            used: 8_000_000_000,       // 8GB
+            free: 8_000_000_000,       // 8GB
+            cached: 2_000_000_000,     // 2GB
+            buffers: 500_000_000,      // 500MB
             swap_total: 4_000_000_000, // 4GB
             swap_used: 0,
             timestamp: Utc::now(),
@@ -1930,7 +1967,12 @@ impl ResourceMonitor {
         *self.disk_usage.lock().unwrap() = disk_metrics.clone();
         *self.network_usage.lock().unwrap() = network_metrics.clone();
 
-        let alerts = self.check_thresholds(&cpu_metrics, &memory_metrics, &disk_metrics, &network_metrics);
+        let alerts = self.check_thresholds(
+            &cpu_metrics,
+            &memory_metrics,
+            &disk_metrics,
+            &network_metrics,
+        );
         Ok(ResourceMetrics {
             cpu: cpu_metrics,
             memory: memory_metrics,
@@ -2084,21 +2126,6 @@ pub enum SecurityAlertType {
 }
 
 // Implement Clone for types that need it
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Implement the missing methods for ThreatDetector, ComplianceChecker, and AuditLogger
 impl ThreatDetector {

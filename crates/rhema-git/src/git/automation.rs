@@ -16,6 +16,7 @@
 
 use chrono::{DateTime, Utc};
 use git2::Repository;
+use regex::Regex;
 use rhema_core::{RhemaError, RhemaResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -23,9 +24,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
-use tokio::time::interval;
 use tokio;
-use regex::Regex;
+use tokio::time::interval;
 
 /// Enhanced automation configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -475,21 +475,21 @@ impl GitAutomationManager {
     /// Implement context update logic
     fn perform_context_update(config: &AutomationConfig, repo_path: &Path) -> RhemaResult<()> {
         let context_dir = repo_path.join(".rhema").join("context");
-        
+
         // Create context directory if it doesn't exist
         if !context_dir.exists() {
             std::fs::create_dir_all(&context_dir)?;
         }
-        
+
         // Update context based on current Git state
         let repo = git2::Repository::open(repo_path)?;
         let head = repo.head()?;
         let current_branch = head.shorthand().unwrap_or("unknown");
-        
+
         // Create or update branch context
         let branch_context_dir = context_dir.join(current_branch);
         std::fs::create_dir_all(&branch_context_dir)?;
-        
+
         // Update context configuration
         let context_config = serde_json::json!({
             "branch_name": current_branch,
@@ -499,16 +499,16 @@ impl GitAutomationManager {
             "backup_enabled": config.auto_backups,
             "notification_enabled": config.auto_notifications
         });
-        
+
         let config_file = branch_context_dir.join("automation-config.json");
         std::fs::write(&config_file, serde_json::to_string_pretty(&context_config)?)?;
-        
+
         // Update context files based on Git status
         let status = repo.statuses(None)?;
         let mut modified_files = Vec::new();
         let mut new_files = Vec::new();
         let mut deleted_files = Vec::new();
-        
+
         for entry in status.iter() {
             let path = entry.path().unwrap_or("");
             match entry.status() {
@@ -524,7 +524,7 @@ impl GitAutomationManager {
                 _ => {}
             }
         }
-        
+
         // Update context file list
         let file_list = serde_json::json!({
             "modified_files": modified_files,
@@ -532,10 +532,10 @@ impl GitAutomationManager {
             "deleted_files": deleted_files,
             "last_updated": chrono::Utc::now().to_rfc3339()
         });
-        
+
         let file_list_path = branch_context_dir.join("file-list.json");
         std::fs::write(&file_list_path, serde_json::to_string_pretty(&file_list)?)?;
-        
+
         Ok(())
     }
 
@@ -607,7 +607,7 @@ impl GitAutomationManager {
     /// Implement synchronization logic
     fn perform_synchronization(config: &AutomationConfig, repo_path: &Path) -> RhemaResult<()> {
         let context_dir = repo_path.join(".rhema").join("context");
-        
+
         match config.sync_settings.strategy {
             SyncStrategy::Full => {
                 Self::perform_full_sync(repo_path)?;
@@ -622,29 +622,29 @@ impl GitAutomationManager {
                 Self::perform_custom_sync(config, repo_path)?;
             }
         }
-        
+
         // Apply conflict resolution
         Self::apply_conflict_resolution(&config.sync_settings.conflict_resolution, repo_path)?;
-        
+
         // Apply filters
         Self::apply_sync_filters(&config.sync_settings.filters, repo_path)?;
-        
+
         // Run validation if enabled
         if config.sync_settings.validation.validate_before {
             Self::validate_sync(repo_path)?;
         }
-        
+
         Ok(())
     }
 
     /// Implement full synchronization
     fn perform_full_sync(repo_path: &Path) -> RhemaResult<()> {
         let repo = git2::Repository::open(repo_path)?;
-        
+
         // Get all tracked files
         let head = repo.head()?;
         let tree = head.peel_to_tree()?;
-        
+
         let mut all_files = Vec::new();
         tree.walk(git2::TreeWalkMode::PreOrder, |root, entry| {
             if let Some(name) = entry.name() {
@@ -657,12 +657,12 @@ impl GitAutomationManager {
             }
             git2::TreeWalkResult::Ok
         })?;
-        
+
         // Sync all files to context
         let context_dir = repo_path.join(".rhema").join("context");
         let sync_dir = context_dir.join("sync");
         std::fs::create_dir_all(&sync_dir)?;
-        
+
         let file_count = all_files.len();
         for file_path in &all_files {
             let source_path = repo_path.join(file_path);
@@ -681,36 +681,36 @@ impl GitAutomationManager {
             "sync_time": chrono::Utc::now().to_rfc3339(),
             "files": all_files
         });
-        
+
         let manifest_path = sync_dir.join("sync-manifest.json");
         std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest)?)?;
-        
+
         Ok(())
     }
 
     /// Implement incremental synchronization
     fn perform_incremental_sync(repo_path: &Path) -> RhemaResult<()> {
         let repo = git2::Repository::open(repo_path)?;
-        
+
         // Get status to find changed files
         let status = repo.statuses(None)?;
         let mut changed_files = Vec::new();
-        
+
         for entry in status.iter() {
             if let Some(path) = entry.path() {
                 changed_files.push(path.to_string());
             }
         }
-        
+
         if changed_files.is_empty() {
             return Ok(());
         }
-        
+
         // Sync only changed files
         let context_dir = repo_path.join(".rhema").join("context");
         let sync_dir = context_dir.join("sync");
         std::fs::create_dir_all(&sync_dir)?;
-        
+
         for file_path in &changed_files {
             let source_path = repo_path.join(file_path);
             if source_path.exists() {
@@ -721,7 +721,7 @@ impl GitAutomationManager {
                 std::fs::copy(&source_path, &dest_path)?;
             }
         }
-        
+
         // Update sync manifest
         let manifest_path = sync_dir.join("sync-manifest.json");
         let mut manifest = if manifest_path.exists() {
@@ -735,27 +735,33 @@ impl GitAutomationManager {
                 "files": Vec::<String>::new()
             })
         };
-        
+
         if let Some(files) = manifest.get_mut("files") {
             if let Some(files_array) = files.as_array() {
-                let mut all_files: Vec<String> = files_array.iter()
+                let mut all_files: Vec<String> = files_array
+                    .iter()
                     .filter_map(|v| v.as_str().map(|s| s.to_string()))
                     .collect();
                 all_files.extend(changed_files.clone());
-                *files = serde_json::Value::Array(all_files.into_iter().map(serde_json::Value::String).collect());
+                *files = serde_json::Value::Array(
+                    all_files
+                        .into_iter()
+                        .map(serde_json::Value::String)
+                        .collect(),
+                );
             }
         }
-        
+
         if let Some(count) = manifest.get_mut("files_synced") {
             *count = serde_json::Value::Number(serde_json::Number::from(changed_files.len()));
         }
-        
+
         if let Some(time) = manifest.get_mut("sync_time") {
             *time = serde_json::Value::String(chrono::Utc::now().to_rfc3339());
         }
-        
+
         std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest)?)?;
-        
+
         Ok(())
     }
 
@@ -764,7 +770,7 @@ impl GitAutomationManager {
         let context_dir = repo_path.join(".rhema").join("context");
         let sync_dir = context_dir.join("sync");
         std::fs::create_dir_all(&sync_dir)?;
-        
+
         // Walk through repository and apply patterns
         for entry in walkdir::WalkDir::new(repo_path)
             .into_iter()
@@ -772,26 +778,37 @@ impl GitAutomationManager {
             .filter(|e| e.file_type().is_file())
         {
             let relative_path = entry.path().strip_prefix(repo_path)?.to_string_lossy();
-            
+
             // Check include patterns
-            let should_include = config.sync_settings.filters.include_patterns.is_empty() ||
-                config.sync_settings.filters.include_patterns.iter().any(|pattern| {
-                    if let Ok(regex) = Regex::new(pattern) {
-                        regex.is_match(&relative_path)
-                    } else {
-                        false
-                    }
-                });
-            
+            let should_include = config.sync_settings.filters.include_patterns.is_empty()
+                || config
+                    .sync_settings
+                    .filters
+                    .include_patterns
+                    .iter()
+                    .any(|pattern| {
+                        if let Ok(regex) = Regex::new(pattern) {
+                            regex.is_match(&relative_path)
+                        } else {
+                            false
+                        }
+                    });
+
             // Check exclude patterns
-            let should_exclude = config.sync_settings.filters.exclude_patterns.iter().any(|pattern| {
-                if let Ok(regex) = Regex::new(pattern) {
-                    regex.is_match(&relative_path)
-                } else {
-                    false
-                }
-            });
-            
+            let should_exclude =
+                config
+                    .sync_settings
+                    .filters
+                    .exclude_patterns
+                    .iter()
+                    .any(|pattern| {
+                        if let Ok(regex) = Regex::new(pattern) {
+                            regex.is_match(&relative_path)
+                        } else {
+                            false
+                        }
+                    });
+
             if should_include && !should_exclude {
                 // Check file size limit
                 if let Some(max_size) = config.sync_settings.filters.max_file_size {
@@ -799,19 +816,24 @@ impl GitAutomationManager {
                         continue;
                     }
                 }
-                
+
                 // Check file extension
                 if !config.sync_settings.filters.allowed_extensions.is_empty() {
                     if let Some(ext) = entry.path().extension() {
                         let ext_str = ext.to_string_lossy();
-                        if !config.sync_settings.filters.allowed_extensions.contains(&ext_str.to_string()) {
+                        if !config
+                            .sync_settings
+                            .filters
+                            .allowed_extensions
+                            .contains(&ext_str.to_string())
+                        {
                             continue;
                         }
                     } else {
                         continue;
                     }
                 }
-                
+
                 // Copy file to sync directory
                 let dest_path = sync_dir.join(&*relative_path);
                 if let Some(parent) = dest_path.parent() {
@@ -820,7 +842,7 @@ impl GitAutomationManager {
                 std::fs::copy(entry.path(), &dest_path)?;
             }
         }
-        
+
         Ok(())
     }
 
@@ -833,14 +855,17 @@ impl GitAutomationManager {
     }
 
     /// Apply conflict resolution strategy
-    fn apply_conflict_resolution(resolution: &ConflictResolution, repo_path: &Path) -> RhemaResult<()> {
+    fn apply_conflict_resolution(
+        resolution: &ConflictResolution,
+        repo_path: &Path,
+    ) -> RhemaResult<()> {
         let context_dir = repo_path.join(".rhema").join("context");
         let sync_dir = context_dir.join("sync");
-        
+
         if !sync_dir.exists() {
             return Ok(());
         }
-        
+
         // Find conflicts by comparing sync directory with repository
         for entry in walkdir::WalkDir::new(&sync_dir)
             .into_iter()
@@ -849,26 +874,27 @@ impl GitAutomationManager {
         {
             let relative_path = entry.path().strip_prefix(&sync_dir)?.to_string_lossy();
             let repo_file = repo_path.join(&*relative_path);
-            
+
             if repo_file.exists() {
                 // Check if files are different
                 let sync_content = std::fs::read(entry.path())?;
                 let repo_content = std::fs::read(&repo_file)?;
-                
+
                 if sync_content != repo_content {
                     match resolution {
                         ConflictResolution::Auto => {
                             // Auto-resolve by taking the newer file
                             let sync_modified = entry.metadata()?.modified()?;
                             let repo_modified = repo_file.metadata()?.modified()?;
-                            
+
                             if sync_modified > repo_modified {
                                 std::fs::copy(entry.path(), &repo_file)?;
                             }
                         }
                         ConflictResolution::Manual => {
                             // Create conflict marker
-                            let conflict_path = repo_path.join(format!("{}.conflict", relative_path));
+                            let conflict_path =
+                                repo_path.join(format!("{}.conflict", relative_path));
                             std::fs::copy(entry.path(), &conflict_path)?;
                         }
                         ConflictResolution::Skip => {
@@ -883,7 +909,7 @@ impl GitAutomationManager {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -898,21 +924,21 @@ impl GitAutomationManager {
     fn validate_sync(repo_path: &Path) -> RhemaResult<()> {
         let context_dir = repo_path.join(".rhema").join("context");
         let sync_dir = context_dir.join("sync");
-        
+
         if !sync_dir.exists() {
             return Ok(());
         }
-        
+
         // Validate sync integrity
         let manifest_path = sync_dir.join("sync-manifest.json");
         if manifest_path.exists() {
             let content = std::fs::read_to_string(&manifest_path)?;
             let _manifest: serde_json::Value = serde_json::from_str(&content)?;
-            
+
             // Additional validation logic can be added here
             // For example, checking file checksums, sizes, etc.
         }
-        
+
         Ok(())
     }
 
@@ -981,28 +1007,32 @@ impl GitAutomationManager {
     fn perform_backup(config: &AutomationConfig, repo_path: &Path) -> RhemaResult<()> {
         let backup_dir = &config.backup_settings.backup_directory;
         std::fs::create_dir_all(backup_dir)?;
-        
+
         // Create backup filename with timestamp
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
         let repo_name = repo_path.file_name().unwrap().to_string_lossy();
         let backup_filename = format!("{}_{}.tar.gz", repo_name, timestamp);
         let backup_path = backup_dir.join(&backup_filename);
-        
+
         // Create backup archive
         Self::create_backup_archive(repo_path, &backup_path, config)?;
-        
+
         // Apply retention policy
         Self::apply_retention_policy(config)?;
-        
+
         Ok(())
     }
 
     /// Implement backup archive creation
-    fn create_backup_archive(repo_path: &Path, backup_file: &Path, config: &AutomationConfig) -> RhemaResult<()> {
+    fn create_backup_archive(
+        repo_path: &Path,
+        backup_file: &Path,
+        config: &AutomationConfig,
+    ) -> RhemaResult<()> {
         let file = std::fs::File::create(backup_file)?;
         let gz = flate2::write::GzEncoder::new(file, flate2::Compression::default());
         let mut tar = tar::Builder::new(gz);
-        
+
         // Add repository files to archive
         for entry in walkdir::WalkDir::new(repo_path)
             .into_iter()
@@ -1012,32 +1042,32 @@ impl GitAutomationManager {
             let relative_path = entry.path().strip_prefix(repo_path)?;
             tar.append_path_with_name(entry.path(), relative_path)?;
         }
-        
+
         tar.finish()?;
-        
+
         Ok(())
     }
 
     /// Implement retention policy
     fn apply_retention_policy(config: &AutomationConfig) -> RhemaResult<()> {
         let backup_dir = &config.backup_settings.backup_directory;
-        
+
         if !backup_dir.exists() {
             return Ok(());
         }
-        
+
         let mut backup_files: Vec<_> = std::fs::read_dir(backup_dir)?
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().map(|ft| ft.is_file()).unwrap_or(false))
             .collect();
-        
+
         // Sort by modification time (oldest first)
         backup_files.sort_by(|a, b| {
             let a_time = a.metadata().unwrap().modified().unwrap();
             let b_time = b.metadata().unwrap().modified().unwrap();
             a_time.cmp(&b_time)
         });
-        
+
         // Apply retention policy
         let max_backups = config.backup_settings.max_backups;
         if backup_files.len() > max_backups {
@@ -1046,7 +1076,7 @@ impl GitAutomationManager {
                 std::fs::remove_file(entry.path())?;
             }
         }
-        
+
         Ok(())
     }
 
@@ -1119,7 +1149,7 @@ impl GitAutomationManager {
     fn perform_health_check(repo_path: &Path) -> RhemaResult<()> {
         // Check repository integrity
         let repo = git2::Repository::open(repo_path)?;
-        
+
         // Validate repository
         repo.odb()?.foreach(|oid| {
             if let Ok(obj) = repo.find_object(*oid, None) {
@@ -1131,27 +1161,27 @@ impl GitAutomationManager {
             }
             true
         })?;
-        
+
         // Check for corruption
         let head = repo.head()?;
         let _commit = head.peel_to_commit()?;
-        
+
         // Check file system health
         Self::validate_context(repo_path)?;
         Self::check_dependencies(repo_path)?;
         Self::run_additional_health_checks(repo_path)?;
-        
+
         Ok(())
     }
 
     /// Implement context validation
     fn validate_context(repo_path: &Path) -> RhemaResult<()> {
         let context_dir = repo_path.join(".rhema").join("context");
-        
+
         if !context_dir.exists() {
             return Ok(());
         }
-        
+
         // Validate context files
         for entry in walkdir::WalkDir::new(&context_dir)
             .into_iter()
@@ -1165,28 +1195,34 @@ impl GitAutomationManager {
                 }
             }
         }
-        
+
         Ok(())
     }
 
     /// Implement dependency checking
     fn check_dependencies(repo_path: &Path) -> RhemaResult<()> {
         // Check for lock files and validate dependencies
-        let lock_files = vec!["Cargo.lock", "package-lock.json", "yarn.lock", "Gemfile.lock"];
-        
+        let lock_files = vec![
+            "Cargo.lock",
+            "package-lock.json",
+            "yarn.lock",
+            "Gemfile.lock",
+        ];
+
         for lock_file in lock_files {
             let lock_path = repo_path.join(lock_file);
             if lock_path.exists() {
                 // Validate lock file integrity
                 let content = std::fs::read_to_string(&lock_path)?;
                 if content.is_empty() {
-                    return Err(rhema_core::RhemaError::ValidationError(
-                        format!("Empty lock file: {}", lock_file)
-                    ));
+                    return Err(rhema_core::RhemaError::ValidationError(format!(
+                        "Empty lock file: {}",
+                        lock_file
+                    )));
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -1195,18 +1231,19 @@ impl GitAutomationManager {
         // Check disk space
         let metadata = std::fs::metadata(repo_path)?;
         let available_space = metadata.len();
-        
-        if available_space < 1024 * 1024 * 100 { // 100MB
+
+        if available_space < 1024 * 1024 * 100 {
+            // 100MB
             return Err(rhema_core::RhemaError::ValidationError(
-                "Insufficient disk space".to_string()
+                "Insufficient disk space".to_string(),
             ));
         }
-        
+
         // Check file permissions
         if !std::fs::metadata(repo_path)?.permissions().readonly() {
             // Repository is writable, which is good
         }
-        
+
         Ok(())
     }
 
@@ -1242,7 +1279,7 @@ impl GitAutomationManager {
         tracing::info!("  To: {:?}", config.recipients);
         tracing::info!("  Subject: {}", title);
         tracing::info!("  Message: {}", message);
-        
+
         Ok(())
     }
 
@@ -1258,7 +1295,7 @@ impl GitAutomationManager {
         tracing::info!("  Channel: {}", config.channel);
         tracing::info!("  Title: {}", title);
         tracing::info!("  Message: {}", message);
-        
+
         Ok(())
     }
 
@@ -1275,7 +1312,7 @@ impl GitAutomationManager {
         tracing::info!("  Method: {}", config.method);
         tracing::info!("  Title: {}", title);
         tracing::info!("  Message: {}", message);
-        
+
         Ok(())
     }
 
@@ -1344,10 +1381,16 @@ impl GitAutomationManager {
     // Workflow Automation Methods
 
     /// Trigger workflow automation based on events or schedules
-    pub fn trigger_workflow_automation(&self, trigger_type: &str, data: Option<HashMap<String, String>>) -> RhemaResult<()> {
+    pub fn trigger_workflow_automation(
+        &self,
+        trigger_type: &str,
+        data: Option<HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         // Validate input parameters
         if trigger_type.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Trigger type cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Trigger type cannot be empty".to_string(),
+            ));
         }
 
         if !self.config.git_workflow_integration.workflow_automation {
@@ -1355,14 +1398,26 @@ impl GitAutomationManager {
         }
 
         // Validate trigger type
-        let valid_triggers = ["branch_creation", "branch_merge", "commit_push", "pull_request", "scheduled", "manual"];
+        let valid_triggers = [
+            "branch_creation",
+            "branch_merge",
+            "commit_push",
+            "pull_request",
+            "scheduled",
+            "manual",
+        ];
         if !valid_triggers.contains(&trigger_type) {
-            return Err(RhemaError::ValidationError(
-                format!("Invalid trigger type: {}. Valid triggers are: {:?}", trigger_type, valid_triggers)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Invalid trigger type: {}. Valid triggers are: {:?}",
+                trigger_type, valid_triggers
+            )));
         }
 
-        let task_id = format!("workflow_{}_{}", trigger_type, chrono::Utc::now().timestamp());
+        let task_id = format!(
+            "workflow_{}_{}",
+            trigger_type,
+            chrono::Utc::now().timestamp()
+        );
         let task = AutomationTask {
             id: task_id.clone(),
             task_type: TaskType::WorkflowValidation,
@@ -1374,9 +1429,10 @@ impl GitAutomationManager {
             error: None,
         };
 
-        let mut tasks = self.tasks.lock().map_err(|_| {
-            RhemaError::ValidationError("Failed to acquire task lock".to_string())
-        })?;
+        let mut tasks = self
+            .tasks
+            .lock()
+            .map_err(|_| RhemaError::ValidationError("Failed to acquire task lock".to_string()))?;
         tasks.push(task);
 
         // Spawn async task for workflow automation
@@ -1389,7 +1445,15 @@ impl GitAutomationManager {
         let trigger_type = trigger_type.to_string();
 
         tokio::spawn(async move {
-            if let Err(e) = Self::run_workflow_automation(&config, &tasks_clone, &repo_path, &trigger_type, data).await {
+            if let Err(e) = Self::run_workflow_automation(
+                &config,
+                &tasks_clone,
+                &repo_path,
+                &trigger_type,
+                data,
+            )
+            .await
+            {
                 eprintln!("Workflow automation error: {:?}", e);
             }
         });
@@ -1401,10 +1465,14 @@ impl GitAutomationManager {
     pub fn trigger_feature_automation(&self, feature_name: &str, action: &str) -> RhemaResult<()> {
         // Validate input parameters
         if feature_name.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Feature name cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Feature name cannot be empty".to_string(),
+            ));
         }
         if action.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Action cannot be empty".to_string(),
+            ));
         }
 
         if !self.config.git_workflow_integration.workflow_automation {
@@ -1414,12 +1482,18 @@ impl GitAutomationManager {
         // Validate action
         let valid_actions = ["setup_context", "validate", "merge", "cleanup"];
         if !valid_actions.contains(&action) {
-            return Err(RhemaError::ValidationError(
-                format!("Invalid feature action: {}. Valid actions are: {:?}", action, valid_actions)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Invalid feature action: {}. Valid actions are: {:?}",
+                action, valid_actions
+            )));
         }
 
-        let task_id = format!("feature_{}_{}_{}", action, feature_name, chrono::Utc::now().timestamp());
+        let task_id = format!(
+            "feature_{}_{}_{}",
+            action,
+            feature_name,
+            chrono::Utc::now().timestamp()
+        );
         let task = AutomationTask {
             id: task_id.clone(),
             task_type: TaskType::FeatureAutomation,
@@ -1431,9 +1505,10 @@ impl GitAutomationManager {
             error: None,
         };
 
-        let mut tasks = self.tasks.lock().map_err(|_| {
-            RhemaError::ValidationError("Failed to acquire task lock".to_string())
-        })?;
+        let mut tasks = self
+            .tasks
+            .lock()
+            .map_err(|_| RhemaError::ValidationError("Failed to acquire task lock".to_string()))?;
         tasks.push(task);
 
         // Spawn async task for feature automation
@@ -1447,7 +1522,15 @@ impl GitAutomationManager {
         let action = action.to_string();
 
         tokio::spawn(async move {
-            if let Err(e) = Self::run_feature_automation(&config, &tasks_clone, &repo_path, &feature_name, &action).await {
+            if let Err(e) = Self::run_feature_automation(
+                &config,
+                &tasks_clone,
+                &repo_path,
+                &feature_name,
+                &action,
+            )
+            .await
+            {
                 eprintln!("Feature automation error: {:?}", e);
             }
         });
@@ -1459,10 +1542,14 @@ impl GitAutomationManager {
     pub fn trigger_release_automation(&self, version: &str, action: &str) -> RhemaResult<()> {
         // Validate input parameters
         if version.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Version cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Version cannot be empty".to_string(),
+            ));
         }
         if action.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Action cannot be empty".to_string(),
+            ));
         }
 
         if !self.config.git_workflow_integration.workflow_automation {
@@ -1470,21 +1557,34 @@ impl GitAutomationManager {
         }
 
         // Validate action
-        let valid_actions = ["prepare_context", "validate", "merge_to_main", "merge_to_develop", "cleanup"];
+        let valid_actions = [
+            "prepare_context",
+            "validate",
+            "merge_to_main",
+            "merge_to_develop",
+            "cleanup",
+        ];
         if !valid_actions.contains(&action) {
-            return Err(RhemaError::ValidationError(
-                format!("Invalid release action: {}. Valid actions are: {:?}", action, valid_actions)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Invalid release action: {}. Valid actions are: {:?}",
+                action, valid_actions
+            )));
         }
 
         // Validate version format (basic semver check)
         if !Self::is_valid_version_format(version) {
-            return Err(RhemaError::ValidationError(
-                format!("Invalid version format: {}. Expected format: x.y.z[-prerelease][+build]", version)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Invalid version format: {}. Expected format: x.y.z[-prerelease][+build]",
+                version
+            )));
         }
 
-        let task_id = format!("release_{}_{}_{}", action, version, chrono::Utc::now().timestamp());
+        let task_id = format!(
+            "release_{}_{}_{}",
+            action,
+            version,
+            chrono::Utc::now().timestamp()
+        );
         let task = AutomationTask {
             id: task_id.clone(),
             task_type: TaskType::ReleaseAutomation,
@@ -1496,9 +1596,10 @@ impl GitAutomationManager {
             error: None,
         };
 
-        let mut tasks = self.tasks.lock().map_err(|_| {
-            RhemaError::ValidationError("Failed to acquire task lock".to_string())
-        })?;
+        let mut tasks = self
+            .tasks
+            .lock()
+            .map_err(|_| RhemaError::ValidationError("Failed to acquire task lock".to_string()))?;
         tasks.push(task);
 
         // Spawn async task for release automation
@@ -1512,7 +1613,10 @@ impl GitAutomationManager {
         let action = action.to_string();
 
         tokio::spawn(async move {
-            if let Err(e) = Self::run_release_automation(&config, &tasks_clone, &repo_path, &version, &action).await {
+            if let Err(e) =
+                Self::run_release_automation(&config, &tasks_clone, &repo_path, &version, &action)
+                    .await
+            {
                 eprintln!("Release automation error: {:?}", e);
             }
         });
@@ -1524,10 +1628,14 @@ impl GitAutomationManager {
     pub fn trigger_hotfix_automation(&self, version: &str, action: &str) -> RhemaResult<()> {
         // Validate input parameters
         if version.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Version cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Version cannot be empty".to_string(),
+            ));
         }
         if action.trim().is_empty() {
-            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Action cannot be empty".to_string(),
+            ));
         }
 
         if !self.config.git_workflow_integration.workflow_automation {
@@ -1535,21 +1643,34 @@ impl GitAutomationManager {
         }
 
         // Validate action
-        let valid_actions = ["setup_context", "validate", "merge_to_main", "merge_to_develop", "cleanup"];
+        let valid_actions = [
+            "setup_context",
+            "validate",
+            "merge_to_main",
+            "merge_to_develop",
+            "cleanup",
+        ];
         if !valid_actions.contains(&action) {
-            return Err(RhemaError::ValidationError(
-                format!("Invalid hotfix action: {}. Valid actions are: {:?}", action, valid_actions)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Invalid hotfix action: {}. Valid actions are: {:?}",
+                action, valid_actions
+            )));
         }
 
         // Validate version format (basic semver check)
         if !Self::is_valid_version_format(version) {
-            return Err(RhemaError::ValidationError(
-                format!("Invalid version format: {}. Expected format: x.y.z[-prerelease][+build]", version)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Invalid version format: {}. Expected format: x.y.z[-prerelease][+build]",
+                version
+            )));
         }
 
-        let task_id = format!("hotfix_{}_{}_{}", action, version, chrono::Utc::now().timestamp());
+        let task_id = format!(
+            "hotfix_{}_{}_{}",
+            action,
+            version,
+            chrono::Utc::now().timestamp()
+        );
         let task = AutomationTask {
             id: task_id.clone(),
             task_type: TaskType::HotfixAutomation,
@@ -1561,9 +1682,10 @@ impl GitAutomationManager {
             error: None,
         };
 
-        let mut tasks = self.tasks.lock().map_err(|_| {
-            RhemaError::ValidationError("Failed to acquire task lock".to_string())
-        })?;
+        let mut tasks = self
+            .tasks
+            .lock()
+            .map_err(|_| RhemaError::ValidationError("Failed to acquire task lock".to_string()))?;
         tasks.push(task);
 
         // Spawn async task for hotfix automation
@@ -1577,7 +1699,10 @@ impl GitAutomationManager {
         let action = action.to_string();
 
         tokio::spawn(async move {
-            if let Err(e) = Self::run_hotfix_automation(&config, &tasks_clone, &repo_path, &version, &action).await {
+            if let Err(e) =
+                Self::run_hotfix_automation(&config, &tasks_clone, &repo_path, &version, &action)
+                    .await
+            {
                 eprintln!("Hotfix automation error: {:?}", e);
             }
         });
@@ -1594,7 +1719,9 @@ impl GitAutomationManager {
         // Validate intervals
         let intervals = &self.config.git_workflow_integration.intervals;
         if intervals.workflow_validation_interval == 0 {
-            return Err(RhemaError::ValidationError("Workflow validation interval cannot be zero".to_string()));
+            return Err(RhemaError::ValidationError(
+                "Workflow validation interval cannot be zero".to_string(),
+            ));
         }
 
         let config = self.config.clone();
@@ -1605,7 +1732,9 @@ impl GitAutomationManager {
         };
 
         tokio::spawn(async move {
-            if let Err(e) = Self::run_scheduled_workflow_automation(&config, &tasks_clone, &repo_path).await {
+            if let Err(e) =
+                Self::run_scheduled_workflow_automation(&config, &tasks_clone, &repo_path).await
+            {
                 eprintln!("Scheduled workflow automation error: {:?}", e);
             }
         });
@@ -1623,12 +1752,18 @@ impl GitAutomationManager {
         data: Option<HashMap<String, String>>,
     ) -> RhemaResult<()> {
         let start_time = Instant::now();
-        let task_id = format!("workflow_{}_{}", trigger_type, chrono::Utc::now().timestamp());
+        let task_id = format!(
+            "workflow_{}_{}",
+            trigger_type,
+            chrono::Utc::now().timestamp()
+        );
 
         // Update task status to running
         {
             let mut tasks_guard = tasks.lock().map_err(|_| {
-                RhemaError::ValidationError("Failed to acquire task lock for status update".to_string())
+                RhemaError::ValidationError(
+                    "Failed to acquire task lock for status update".to_string(),
+                )
             })?;
             if let Some(task) = tasks_guard.iter_mut().find(|t| t.id == task_id) {
                 task.status = TaskStatus::Running;
@@ -1643,23 +1778,32 @@ impl GitAutomationManager {
             "pull_request" => Self::handle_pull_request(config, repo_path, data).await,
             "schedule" => Self::handle_scheduled_workflow(config, repo_path).await,
             "manual" => Self::handle_manual_workflow(config, repo_path, data).await,
-            _ => Err(RhemaError::ValidationError(format!("Unknown trigger type: {}", trigger_type))),
+            _ => Err(RhemaError::ValidationError(format!(
+                "Unknown trigger type: {}",
+                trigger_type
+            ))),
         };
 
         // Update task status and result with error handling
         {
             let mut tasks_guard = tasks.lock().map_err(|_| {
-                RhemaError::ValidationError("Failed to acquire task lock for result update".to_string())
+                RhemaError::ValidationError(
+                    "Failed to acquire task lock for result update".to_string(),
+                )
             })?;
             if let Some(task) = tasks_guard.iter_mut().find(|t| t.id == task_id) {
-                task.status = if result.is_ok() { TaskStatus::Completed } else { TaskStatus::Failed };
+                task.status = if result.is_ok() {
+                    TaskStatus::Completed
+                } else {
+                    TaskStatus::Failed
+                };
                 task.completed_at = Some(chrono::Utc::now());
                 task.result = Some(TaskResult {
                     success: result.is_ok(),
-                    message: if result.is_ok() { 
-                        "Workflow automation completed successfully".to_string() 
-                    } else { 
-                        format!("Workflow automation failed: {:?}", result.as_ref().err()) 
+                    message: if result.is_ok() {
+                        "Workflow automation completed successfully".to_string()
+                    } else {
+                        format!("Workflow automation failed: {:?}", result.as_ref().err())
                     },
                     details: HashMap::new(),
                     duration: start_time.elapsed(),
@@ -1672,7 +1816,10 @@ impl GitAutomationManager {
         if config.auto_notifications {
             let title = "Workflow Automation";
             let message = if result.is_ok() {
-                format!("Workflow automation triggered by {} completed successfully", trigger_type)
+                format!(
+                    "Workflow automation triggered by {} completed successfully",
+                    trigger_type
+                )
             } else {
                 format!("Workflow automation triggered by {} failed", trigger_type)
             };
@@ -1690,12 +1837,19 @@ impl GitAutomationManager {
         action: &str,
     ) -> RhemaResult<()> {
         let start_time = Instant::now();
-        let task_id = format!("feature_{}_{}_{}", action, feature_name, chrono::Utc::now().timestamp());
+        let task_id = format!(
+            "feature_{}_{}_{}",
+            action,
+            feature_name,
+            chrono::Utc::now().timestamp()
+        );
 
         // Update task status to running
         {
             let mut tasks_guard = tasks.lock().map_err(|_| {
-                RhemaError::ValidationError("Failed to acquire task lock for status update".to_string())
+                RhemaError::ValidationError(
+                    "Failed to acquire task lock for status update".to_string(),
+                )
             })?;
             if let Some(task) = tasks_guard.iter_mut().find(|t| t.id == task_id) {
                 task.status = TaskStatus::Running;
@@ -1704,27 +1858,43 @@ impl GitAutomationManager {
         }
 
         let result = match action {
-            "setup_context" => Self::handle_feature_context_setup(config, repo_path, feature_name).await,
+            "setup_context" => {
+                Self::handle_feature_context_setup(config, repo_path, feature_name).await
+            }
             "validate" => Self::handle_feature_validation(config, repo_path, feature_name).await,
             "merge" => Self::handle_feature_merge(config, repo_path, feature_name).await,
             "cleanup" => Self::handle_feature_cleanup(config, repo_path, feature_name).await,
-            _ => Err(RhemaError::ValidationError(format!("Unknown feature action: {}", action))),
+            _ => Err(RhemaError::ValidationError(format!(
+                "Unknown feature action: {}",
+                action
+            ))),
         };
 
         // Update task status and result with error handling
         {
             let mut tasks_guard = tasks.lock().map_err(|_| {
-                RhemaError::ValidationError("Failed to acquire task lock for result update".to_string())
+                RhemaError::ValidationError(
+                    "Failed to acquire task lock for result update".to_string(),
+                )
             })?;
             if let Some(task) = tasks_guard.iter_mut().find(|t| t.id == task_id) {
-                task.status = if result.is_ok() { TaskStatus::Completed } else { TaskStatus::Failed };
+                task.status = if result.is_ok() {
+                    TaskStatus::Completed
+                } else {
+                    TaskStatus::Failed
+                };
                 task.completed_at = Some(chrono::Utc::now());
                 task.result = Some(TaskResult {
                     success: result.is_ok(),
-                    message: if result.is_ok() { 
-                        format!("Feature {} {} completed successfully", feature_name, action) 
-                    } else { 
-                        format!("Feature {} {} failed: {:?}", feature_name, action, result.as_ref().err()) 
+                    message: if result.is_ok() {
+                        format!("Feature {} {} completed successfully", feature_name, action)
+                    } else {
+                        format!(
+                            "Feature {} {} failed: {:?}",
+                            feature_name,
+                            action,
+                            result.as_ref().err()
+                        )
                     },
                     details: HashMap::new(),
                     duration: start_time.elapsed(),
@@ -1744,12 +1914,19 @@ impl GitAutomationManager {
         action: &str,
     ) -> RhemaResult<()> {
         let start_time = Instant::now();
-        let task_id = format!("release_{}_{}_{}", action, version, chrono::Utc::now().timestamp());
+        let task_id = format!(
+            "release_{}_{}_{}",
+            action,
+            version,
+            chrono::Utc::now().timestamp()
+        );
 
         // Update task status to running
         {
             let mut tasks_guard = tasks.lock().map_err(|_| {
-                RhemaError::ValidationError("Failed to acquire task lock for status update".to_string())
+                RhemaError::ValidationError(
+                    "Failed to acquire task lock for status update".to_string(),
+                )
             })?;
             if let Some(task) = tasks_guard.iter_mut().find(|t| t.id == task_id) {
                 task.status = TaskStatus::Running;
@@ -1758,28 +1935,46 @@ impl GitAutomationManager {
         }
 
         let result = match action {
-            "prepare_context" => Self::handle_release_context_preparation(config, repo_path, version).await,
+            "prepare_context" => {
+                Self::handle_release_context_preparation(config, repo_path, version).await
+            }
             "validate" => Self::handle_release_validation(config, repo_path, version).await,
             "merge_to_main" => Self::handle_release_merge_to_main(config, repo_path, version).await,
-            "merge_to_develop" => Self::handle_release_merge_to_develop(config, repo_path, version).await,
+            "merge_to_develop" => {
+                Self::handle_release_merge_to_develop(config, repo_path, version).await
+            }
             "cleanup" => Self::handle_release_cleanup(config, repo_path, version).await,
-            _ => Err(RhemaError::ValidationError(format!("Unknown release action: {}", action))),
+            _ => Err(RhemaError::ValidationError(format!(
+                "Unknown release action: {}",
+                action
+            ))),
         };
 
         // Update task status and result with error handling
         {
             let mut tasks_guard = tasks.lock().map_err(|_| {
-                RhemaError::ValidationError("Failed to acquire task lock for result update".to_string())
+                RhemaError::ValidationError(
+                    "Failed to acquire task lock for result update".to_string(),
+                )
             })?;
             if let Some(task) = tasks_guard.iter_mut().find(|t| t.id == task_id) {
-                task.status = if result.is_ok() { TaskStatus::Completed } else { TaskStatus::Failed };
+                task.status = if result.is_ok() {
+                    TaskStatus::Completed
+                } else {
+                    TaskStatus::Failed
+                };
                 task.completed_at = Some(chrono::Utc::now());
                 task.result = Some(TaskResult {
                     success: result.is_ok(),
-                    message: if result.is_ok() { 
-                        format!("Release {} {} completed successfully", version, action) 
-                    } else { 
-                        format!("Release {} {} failed: {:?}", version, action, result.as_ref().err()) 
+                    message: if result.is_ok() {
+                        format!("Release {} {} completed successfully", version, action)
+                    } else {
+                        format!(
+                            "Release {} {} failed: {:?}",
+                            version,
+                            action,
+                            result.as_ref().err()
+                        )
                     },
                     details: HashMap::new(),
                     duration: start_time.elapsed(),
@@ -1799,12 +1994,19 @@ impl GitAutomationManager {
         action: &str,
     ) -> RhemaResult<()> {
         let start_time = Instant::now();
-        let task_id = format!("hotfix_{}_{}_{}", action, version, chrono::Utc::now().timestamp());
+        let task_id = format!(
+            "hotfix_{}_{}_{}",
+            action,
+            version,
+            chrono::Utc::now().timestamp()
+        );
 
         // Update task status to running
         {
             let mut tasks_guard = tasks.lock().map_err(|_| {
-                RhemaError::ValidationError("Failed to acquire task lock for status update".to_string())
+                RhemaError::ValidationError(
+                    "Failed to acquire task lock for status update".to_string(),
+                )
             })?;
             if let Some(task) = tasks_guard.iter_mut().find(|t| t.id == task_id) {
                 task.status = TaskStatus::Running;
@@ -1816,25 +2018,41 @@ impl GitAutomationManager {
             "setup_context" => Self::handle_hotfix_context_setup(config, repo_path, version).await,
             "validate" => Self::handle_hotfix_validation(config, repo_path, version).await,
             "merge_to_main" => Self::handle_hotfix_merge_to_main(config, repo_path, version).await,
-            "merge_to_develop" => Self::handle_hotfix_merge_to_develop(config, repo_path, version).await,
+            "merge_to_develop" => {
+                Self::handle_hotfix_merge_to_develop(config, repo_path, version).await
+            }
             "cleanup" => Self::handle_hotfix_cleanup(config, repo_path, version).await,
-            _ => Err(RhemaError::ValidationError(format!("Unknown hotfix action: {}", action))),
+            _ => Err(RhemaError::ValidationError(format!(
+                "Unknown hotfix action: {}",
+                action
+            ))),
         };
 
         // Update task status and result with error handling
         {
             let mut tasks_guard = tasks.lock().map_err(|_| {
-                RhemaError::ValidationError("Failed to acquire task lock for result update".to_string())
+                RhemaError::ValidationError(
+                    "Failed to acquire task lock for result update".to_string(),
+                )
             })?;
             if let Some(task) = tasks_guard.iter_mut().find(|t| t.id == task_id) {
-                task.status = if result.is_ok() { TaskStatus::Completed } else { TaskStatus::Failed };
+                task.status = if result.is_ok() {
+                    TaskStatus::Completed
+                } else {
+                    TaskStatus::Failed
+                };
                 task.completed_at = Some(chrono::Utc::now());
                 task.result = Some(TaskResult {
                     success: result.is_ok(),
-                    message: if result.is_ok() { 
-                        format!("Hotfix {} {} completed successfully", version, action) 
-                    } else { 
-                        format!("Hotfix {} {} failed: {:?}", version, action, result.as_ref().err()) 
+                    message: if result.is_ok() {
+                        format!("Hotfix {} {} completed successfully", version, action)
+                    } else {
+                        format!(
+                            "Hotfix {} {} failed: {:?}",
+                            version,
+                            action,
+                            result.as_ref().err()
+                        )
                     },
                     details: HashMap::new(),
                     duration: start_time.elapsed(),
@@ -1851,11 +2069,16 @@ impl GitAutomationManager {
         tasks: &Arc<Mutex<Vec<AutomationTask>>>,
         repo_path: &Path,
     ) -> RhemaResult<()> {
-        let mut interval = interval(Duration::from_secs(config.git_workflow_integration.intervals.workflow_validation_interval));
-        
+        let mut interval = interval(Duration::from_secs(
+            config
+                .git_workflow_integration
+                .intervals
+                .workflow_validation_interval,
+        ));
+
         loop {
             interval.tick().await;
-            
+
             // Run scheduled workflow tasks with error handling
             if let Err(e) = Self::handle_scheduled_workflow(config, repo_path).await {
                 eprintln!("Scheduled workflow error: {:?}", e);
@@ -1873,14 +2096,34 @@ impl GitAutomationManager {
     ) -> RhemaResult<()> {
         if let Some(data) = data {
             if let Some(branch_name) = data.get("branch_name") {
-                if branch_name.starts_with("feature/") && config.git_workflow_integration.rules.feature_rules.auto_setup_context {
+                if branch_name.starts_with("feature/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .feature_rules
+                        .auto_setup_context
+                {
                     // Auto-setup feature context
-                    let _ = Self::handle_feature_context_setup(config, repo_path, branch_name).await;
-                } else if branch_name.starts_with("release/") && config.git_workflow_integration.rules.release_rules.auto_prepare_context {
+                    let _ =
+                        Self::handle_feature_context_setup(config, repo_path, branch_name).await;
+                } else if branch_name.starts_with("release/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .release_rules
+                        .auto_prepare_context
+                {
                     // Auto-prepare release context
                     let version = branch_name.trim_start_matches("release/");
-                    let _ = Self::handle_release_context_preparation(config, repo_path, version).await;
-                } else if branch_name.starts_with("hotfix/") && config.git_workflow_integration.rules.hotfix_rules.auto_setup_context {
+                    let _ =
+                        Self::handle_release_context_preparation(config, repo_path, version).await;
+                } else if branch_name.starts_with("hotfix/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .hotfix_rules
+                        .auto_setup_context
+                {
                     // Auto-setup hotfix context
                     let version = branch_name.trim_start_matches("hotfix/");
                     let _ = Self::handle_hotfix_context_setup(config, repo_path, version).await;
@@ -1897,14 +2140,32 @@ impl GitAutomationManager {
     ) -> RhemaResult<()> {
         if let Some(data) = data {
             if let Some(branch_name) = data.get("branch_name") {
-                if branch_name.starts_with("feature/") && config.git_workflow_integration.rules.feature_rules.auto_cleanup {
+                if branch_name.starts_with("feature/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .feature_rules
+                        .auto_cleanup
+                {
                     // Auto-cleanup feature branch
                     let _ = Self::handle_feature_cleanup(config, repo_path, branch_name).await;
-                } else if branch_name.starts_with("release/") && config.git_workflow_integration.rules.release_rules.auto_cleanup {
+                } else if branch_name.starts_with("release/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .release_rules
+                        .auto_cleanup
+                {
                     // Auto-cleanup release branch
                     let version = branch_name.trim_start_matches("release/");
                     let _ = Self::handle_release_cleanup(config, repo_path, version).await;
-                } else if branch_name.starts_with("hotfix/") && config.git_workflow_integration.rules.hotfix_rules.auto_cleanup {
+                } else if branch_name.starts_with("hotfix/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .hotfix_rules
+                        .auto_cleanup
+                {
                     // Auto-cleanup hotfix branch
                     let version = branch_name.trim_start_matches("hotfix/");
                     let _ = Self::handle_hotfix_cleanup(config, repo_path, version).await;
@@ -1922,12 +2183,30 @@ impl GitAutomationManager {
         // Trigger validation on commit push
         if let Some(data) = data {
             if let Some(branch_name) = data.get("branch_name") {
-                if branch_name.starts_with("feature/") && config.git_workflow_integration.rules.feature_rules.auto_validate {
+                if branch_name.starts_with("feature/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .feature_rules
+                        .auto_validate
+                {
                     let _ = Self::handle_feature_validation(config, repo_path, branch_name).await;
-                } else if branch_name.starts_with("release/") && config.git_workflow_integration.rules.release_rules.auto_validate {
+                } else if branch_name.starts_with("release/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .release_rules
+                        .auto_validate
+                {
                     let version = branch_name.trim_start_matches("release/");
                     let _ = Self::handle_release_validation(config, repo_path, version).await;
-                } else if branch_name.starts_with("hotfix/") && config.git_workflow_integration.rules.hotfix_rules.auto_validate {
+                } else if branch_name.starts_with("hotfix/")
+                    && config
+                        .git_workflow_integration
+                        .rules
+                        .hotfix_rules
+                        .auto_validate
+                {
                     let version = branch_name.trim_start_matches("hotfix/");
                     let _ = Self::handle_hotfix_validation(config, repo_path, version).await;
                 }
@@ -1948,16 +2227,31 @@ impl GitAutomationManager {
                     "opened" | "synchronize" => {
                         // Trigger validation
                         if let Some(branch_name) = data.get("branch_name") {
-                            if branch_name.starts_with("feature/") && config.git_workflow_integration.rules.feature_rules.auto_validate {
-                                let _ = Self::handle_feature_validation(config, repo_path, branch_name).await;
+                            if branch_name.starts_with("feature/")
+                                && config
+                                    .git_workflow_integration
+                                    .rules
+                                    .feature_rules
+                                    .auto_validate
+                            {
+                                let _ =
+                                    Self::handle_feature_validation(config, repo_path, branch_name)
+                                        .await;
                             }
                         }
                     }
                     "closed" => {
                         // Trigger merge if auto-merge is enabled
                         if let Some(branch_name) = data.get("branch_name") {
-                            if branch_name.starts_with("feature/") && config.git_workflow_integration.rules.feature_rules.auto_merge {
-                                let _ = Self::handle_feature_merge(config, repo_path, branch_name).await;
+                            if branch_name.starts_with("feature/")
+                                && config
+                                    .git_workflow_integration
+                                    .rules
+                                    .feature_rules
+                                    .auto_merge
+                            {
+                                let _ = Self::handle_feature_merge(config, repo_path, branch_name)
+                                    .await;
                             }
                         }
                     }
@@ -1990,21 +2284,31 @@ impl GitAutomationManager {
                     "feature" => {
                         if let Some(feature_name) = data.get("feature_name") {
                             if let Some(action) = data.get("action") {
-                                let _ = Self::handle_feature_action(config, repo_path, feature_name, action).await;
+                                let _ = Self::handle_feature_action(
+                                    config,
+                                    repo_path,
+                                    feature_name,
+                                    action,
+                                )
+                                .await;
                             }
                         }
                     }
                     "release" => {
                         if let Some(version) = data.get("version") {
                             if let Some(action) = data.get("action") {
-                                let _ = Self::handle_release_action(config, repo_path, version, action).await;
+                                let _ =
+                                    Self::handle_release_action(config, repo_path, version, action)
+                                        .await;
                             }
                         }
                     }
                     "hotfix" => {
                         if let Some(version) = data.get("version") {
                             if let Some(action) = data.get("action") {
-                                let _ = Self::handle_hotfix_action(config, repo_path, version, action).await;
+                                let _ =
+                                    Self::handle_hotfix_action(config, repo_path, version, action)
+                                        .await;
                             }
                         }
                     }
@@ -2026,16 +2330,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow setup
         workflow_manager.setup_feature_context(feature_name)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Feature Context Setup", 
-                &format!("Feature context setup completed for: {}", feature_name))?;
+            Self::send_notification(
+                config,
+                "Feature Context Setup",
+                &format!("Feature context setup completed for: {}", feature_name),
+            )?;
         }
-        
+
         println!("Feature context setup completed for: {}", feature_name);
         Ok(())
     }
@@ -2049,16 +2356,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow validation
         workflow_manager.validate_feature_branch(feature_name)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.validation_failed {
-            Self::send_notification(config, "Feature Validation", 
-                &format!("Feature validation completed for: {}", feature_name))?;
+            Self::send_notification(
+                config,
+                "Feature Validation",
+                &format!("Feature validation completed for: {}", feature_name),
+            )?;
         }
-        
+
         println!("Feature validation completed for: {}", feature_name);
         Ok(())
     }
@@ -2072,16 +2382,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow merge
         workflow_manager.merge_feature_branch(feature_name)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Feature Merge", 
-                &format!("Feature merge completed for: {}", feature_name))?;
+            Self::send_notification(
+                config,
+                "Feature Merge",
+                &format!("Feature merge completed for: {}", feature_name),
+            )?;
         }
-        
+
         println!("Feature merge completed for: {}", feature_name);
         Ok(())
     }
@@ -2095,16 +2408,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow cleanup
         workflow_manager.cleanup_feature_branch(feature_name)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Feature Cleanup", 
-                &format!("Feature cleanup completed for: {}", feature_name))?;
+            Self::send_notification(
+                config,
+                "Feature Cleanup",
+                &format!("Feature cleanup completed for: {}", feature_name),
+            )?;
         }
-        
+
         println!("Feature cleanup completed for: {}", feature_name);
         Ok(())
     }
@@ -2116,11 +2432,16 @@ impl GitAutomationManager {
         action: &str,
     ) -> RhemaResult<()> {
         match action {
-            "setup_context" => Self::handle_feature_context_setup(config, repo_path, feature_name).await,
+            "setup_context" => {
+                Self::handle_feature_context_setup(config, repo_path, feature_name).await
+            }
             "validate" => Self::handle_feature_validation(config, repo_path, feature_name).await,
             "merge" => Self::handle_feature_merge(config, repo_path, feature_name).await,
             "cleanup" => Self::handle_feature_cleanup(config, repo_path, feature_name).await,
-            _ => Err(RhemaError::ValidationError(format!("Unknown feature action: {}", action))),
+            _ => Err(RhemaError::ValidationError(format!(
+                "Unknown feature action: {}",
+                action
+            ))),
         }
     }
 
@@ -2135,17 +2456,26 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow preparation
         workflow_manager.prepare_release_context(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Release Context Preparation", 
-                &format!("Release context preparation completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Release Context Preparation",
+                &format!(
+                    "Release context preparation completed for version: {}",
+                    version
+                ),
+            )?;
         }
-        
-        println!("Release context preparation completed for version: {}", version);
+
+        println!(
+            "Release context preparation completed for version: {}",
+            version
+        );
         Ok(())
     }
 
@@ -2158,16 +2488,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow validation
         workflow_manager.validate_release(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.validation_failed {
-            Self::send_notification(config, "Release Validation", 
-                &format!("Release validation completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Release Validation",
+                &format!("Release validation completed for version: {}", version),
+            )?;
         }
-        
+
         println!("Release validation completed for version: {}", version);
         Ok(())
     }
@@ -2181,16 +2514,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow merge
         workflow_manager.merge_to_main(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Release Merge to Main", 
-                &format!("Release merge to main completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Release Merge to Main",
+                &format!("Release merge to main completed for version: {}", version),
+            )?;
         }
-        
+
         println!("Release merge to main completed for version: {}", version);
         Ok(())
     }
@@ -2204,17 +2540,26 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow merge
         workflow_manager.merge_to_develop(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Release Merge to Develop", 
-                &format!("Release merge to develop completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Release Merge to Develop",
+                &format!(
+                    "Release merge to develop completed for version: {}",
+                    version
+                ),
+            )?;
         }
-        
-        println!("Release merge to develop completed for version: {}", version);
+
+        println!(
+            "Release merge to develop completed for version: {}",
+            version
+        );
         Ok(())
     }
 
@@ -2227,16 +2572,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow cleanup
         workflow_manager.cleanup_release_branch(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Release Cleanup", 
-                &format!("Release cleanup completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Release Cleanup",
+                &format!("Release cleanup completed for version: {}", version),
+            )?;
         }
-        
+
         println!("Release cleanup completed for version: {}", version);
         Ok(())
     }
@@ -2248,12 +2596,19 @@ impl GitAutomationManager {
         action: &str,
     ) -> RhemaResult<()> {
         match action {
-            "prepare_context" => Self::handle_release_context_preparation(config, repo_path, version).await,
+            "prepare_context" => {
+                Self::handle_release_context_preparation(config, repo_path, version).await
+            }
             "validate" => Self::handle_release_validation(config, repo_path, version).await,
             "merge_to_main" => Self::handle_release_merge_to_main(config, repo_path, version).await,
-            "merge_to_develop" => Self::handle_release_merge_to_develop(config, repo_path, version).await,
+            "merge_to_develop" => {
+                Self::handle_release_merge_to_develop(config, repo_path, version).await
+            }
             "cleanup" => Self::handle_release_cleanup(config, repo_path, version).await,
-            _ => Err(RhemaError::ValidationError(format!("Unknown release action: {}", action))),
+            _ => Err(RhemaError::ValidationError(format!(
+                "Unknown release action: {}",
+                action
+            ))),
         }
     }
 
@@ -2268,16 +2623,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow setup
         workflow_manager.setup_hotfix_context(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Hotfix Context Setup", 
-                &format!("Hotfix context setup completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Hotfix Context Setup",
+                &format!("Hotfix context setup completed for version: {}", version),
+            )?;
         }
-        
+
         println!("Hotfix context setup completed for version: {}", version);
         Ok(())
     }
@@ -2291,16 +2649,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow validation
         workflow_manager.validate_hotfix(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.validation_failed {
-            Self::send_notification(config, "Hotfix Validation", 
-                &format!("Hotfix validation completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Hotfix Validation",
+                &format!("Hotfix validation completed for version: {}", version),
+            )?;
         }
-        
+
         println!("Hotfix validation completed for version: {}", version);
         Ok(())
     }
@@ -2314,16 +2675,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow merge
         workflow_manager.merge_to_main(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Hotfix Merge to Main", 
-                &format!("Hotfix merge to main completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Hotfix Merge to Main",
+                &format!("Hotfix merge to main completed for version: {}", version),
+            )?;
         }
-        
+
         println!("Hotfix merge to main completed for version: {}", version);
         Ok(())
     }
@@ -2337,16 +2701,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow merge
         workflow_manager.merge_to_develop(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Hotfix Merge to Develop", 
-                &format!("Hotfix merge to develop completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Hotfix Merge to Develop",
+                &format!("Hotfix merge to develop completed for version: {}", version),
+            )?;
         }
-        
+
         println!("Hotfix merge to develop completed for version: {}", version);
         Ok(())
     }
@@ -2360,16 +2727,19 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Execute the workflow cleanup
         workflow_manager.cleanup_hotfix_branch(version)?;
-        
+
         // Send notification if enabled
         if config.notifications.events.context_updated {
-            Self::send_notification(config, "Hotfix Cleanup", 
-                &format!("Hotfix cleanup completed for version: {}", version))?;
+            Self::send_notification(
+                config,
+                "Hotfix Cleanup",
+                &format!("Hotfix cleanup completed for version: {}", version),
+            )?;
         }
-        
+
         println!("Hotfix cleanup completed for version: {}", version);
         Ok(())
     }
@@ -2384,9 +2754,14 @@ impl GitAutomationManager {
             "setup_context" => Self::handle_hotfix_context_setup(config, repo_path, version).await,
             "validate" => Self::handle_hotfix_validation(config, repo_path, version).await,
             "merge_to_main" => Self::handle_hotfix_merge_to_main(config, repo_path, version).await,
-            "merge_to_develop" => Self::handle_hotfix_merge_to_develop(config, repo_path, version).await,
+            "merge_to_develop" => {
+                Self::handle_hotfix_merge_to_develop(config, repo_path, version).await
+            }
             "cleanup" => Self::handle_hotfix_cleanup(config, repo_path, version).await,
-            _ => Err(RhemaError::ValidationError(format!("Unknown hotfix action: {}", action))),
+            _ => Err(RhemaError::ValidationError(format!(
+                "Unknown hotfix action: {}",
+                action
+            ))),
         }
     }
 
@@ -2396,11 +2771,20 @@ impl GitAutomationManager {
     }
 
     /// Trigger context-aware workflow automation
-    pub fn trigger_context_aware_workflow(&self, trigger_type: &str, data: Option<HashMap<String, String>>) -> RhemaResult<()> {
-        let repo_path = self.repo.lock().unwrap().path().parent().ok_or_else(|| {
-            RhemaError::ConfigError("Failed to get repository path".to_string())
-        })?.to_path_buf();
-        
+    pub fn trigger_context_aware_workflow(
+        &self,
+        trigger_type: &str,
+        data: Option<HashMap<String, String>>,
+    ) -> RhemaResult<()> {
+        let repo_path = self
+            .repo
+            .lock()
+            .unwrap()
+            .path()
+            .parent()
+            .ok_or_else(|| RhemaError::ConfigError("Failed to get repository path".to_string()))?
+            .to_path_buf();
+
         // Create task for context-aware workflow
         let task = AutomationTask {
             id: format!("context_aware_{}", chrono::Utc::now().timestamp()),
@@ -2412,23 +2796,30 @@ impl GitAutomationManager {
             result: None,
             error: None,
         };
-        
+
         // Add task to queue
         {
             let mut tasks = self.tasks.lock().unwrap();
             tasks.push(task);
         }
-        
+
         // Execute context-aware workflow automation
         let config = self.config.clone();
         let tasks = self.tasks.clone();
         let running = self.running.clone();
         let trigger_type = trigger_type.to_string();
-        
+
         tokio::spawn(async move {
-            Self::run_context_aware_workflow_automation(&config, &tasks, &repo_path, &trigger_type, data).await
+            Self::run_context_aware_workflow_automation(
+                &config,
+                &tasks,
+                &repo_path,
+                &trigger_type,
+                data,
+            )
+            .await
         });
-        
+
         Ok(())
     }
 
@@ -2448,9 +2839,9 @@ impl GitAutomationManager {
                 task.started_at = Some(chrono::Utc::now());
             }
         }
-        
+
         let start_time = std::time::Instant::now();
-        
+
         match trigger_type {
             "context_update" => {
                 // Handle context-aware updates
@@ -2475,12 +2866,15 @@ impl GitAutomationManager {
                 Self::perform_workflow_validation(config, repo_path).await?;
             }
             _ => {
-                return Err(RhemaError::ValidationError(format!("Unknown trigger type: {}", trigger_type)));
+                return Err(RhemaError::ValidationError(format!(
+                    "Unknown trigger type: {}",
+                    trigger_type
+                )));
             }
         }
-        
+
         let duration = start_time.elapsed();
-        
+
         // Update task status to completed
         {
             let mut tasks_guard = tasks.lock().unwrap();
@@ -2489,29 +2883,38 @@ impl GitAutomationManager {
                 task.completed_at = Some(chrono::Utc::now());
                 task.result = Some(TaskResult {
                     success: true,
-                    message: format!("Context-aware workflow automation completed for trigger: {}", trigger_type),
+                    message: format!(
+                        "Context-aware workflow automation completed for trigger: {}",
+                        trigger_type
+                    ),
                     details: HashMap::new(),
                     duration,
                 });
             }
         }
-        
+
         Ok(())
     }
 
     /// Perform context-aware update
-    async fn perform_context_aware_update(config: &AutomationConfig, repo_path: &Path) -> RhemaResult<()> {
-        println!("Performing context-aware update for repository: {:?}", repo_path);
-        
+    async fn perform_context_aware_update(
+        config: &AutomationConfig,
+        repo_path: &Path,
+    ) -> RhemaResult<()> {
+        println!(
+            "Performing context-aware update for repository: {:?}",
+            repo_path
+        );
+
         // Get current branch and workflow status
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Get current workflow status
         let status = workflow_manager.get_workflow_status()?;
         println!("Current workflow status: {:?}", status);
-        
+
         // Perform context-aware updates based on current branch type
         match status.branch_type {
             crate::git::workflow::FlowBranchType::Feature => {
@@ -2531,23 +2934,29 @@ impl GitAutomationManager {
                 println!("Updating main/develop branch context");
             }
         }
-        
+
         Ok(())
     }
 
     /// Perform context-aware synchronization
-    async fn perform_context_aware_sync(config: &AutomationConfig, repo_path: &Path) -> RhemaResult<()> {
-        println!("Performing context-aware synchronization for repository: {:?}", repo_path);
-        
+    async fn perform_context_aware_sync(
+        config: &AutomationConfig,
+        repo_path: &Path,
+    ) -> RhemaResult<()> {
+        println!(
+            "Performing context-aware synchronization for repository: {:?}",
+            repo_path
+        );
+
         // Get current branch and workflow status
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Get current workflow status
         let status = workflow_manager.get_workflow_status()?;
         println!("Current workflow status: {:?}", status);
-        
+
         // Perform context-aware synchronization based on current branch type
         match status.branch_type {
             crate::git::workflow::FlowBranchType::Feature => {
@@ -2567,23 +2976,29 @@ impl GitAutomationManager {
                 println!("Synchronizing main/develop branches");
             }
         }
-        
+
         Ok(())
     }
 
     /// Perform context-aware backup
-    async fn perform_context_aware_backup(config: &AutomationConfig, repo_path: &Path) -> RhemaResult<()> {
-        println!("Performing context-aware backup for repository: {:?}", repo_path);
-        
+    async fn perform_context_aware_backup(
+        config: &AutomationConfig,
+        repo_path: &Path,
+    ) -> RhemaResult<()> {
+        println!(
+            "Performing context-aware backup for repository: {:?}",
+            repo_path
+        );
+
         // Get current branch and workflow status
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Get current workflow status
         let status = workflow_manager.get_workflow_status()?;
         println!("Current workflow status: {:?}", status);
-        
+
         // Perform context-aware backup based on current branch type
         match status.branch_type {
             crate::git::workflow::FlowBranchType::Feature => {
@@ -2603,23 +3018,29 @@ impl GitAutomationManager {
                 println!("Backing up main/develop branch context");
             }
         }
-        
+
         Ok(())
     }
 
     /// Perform workflow validation
-    async fn perform_workflow_validation(config: &AutomationConfig, repo_path: &Path) -> RhemaResult<()> {
-        println!("Performing workflow validation for repository: {:?}", repo_path);
-        
+    async fn perform_workflow_validation(
+        config: &AutomationConfig,
+        repo_path: &Path,
+    ) -> RhemaResult<()> {
+        println!(
+            "Performing workflow validation for repository: {:?}",
+            repo_path
+        );
+
         // Get current branch and workflow status
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         // Get current workflow status
         let status = workflow_manager.get_workflow_status()?;
         println!("Current workflow status: {:?}", status);
-        
+
         // Perform workflow validation based on current branch type
         match status.branch_type {
             crate::git::workflow::FlowBranchType::Feature => {
@@ -2639,7 +3060,7 @@ impl GitAutomationManager {
                 println!("Validating main/develop branch workflow");
             }
         }
-        
+
         Ok(())
     }
 
@@ -2653,8 +3074,11 @@ impl GitAutomationManager {
             return Ok(vec![]);
         }
 
-        println!("Generating AI-driven workflow suggestions for repository: {:?}", repo_path);
-        
+        println!(
+            "Generating AI-driven workflow suggestions for repository: {:?}",
+            repo_path
+        );
+
         // Get AI service configuration
         let ai_config = match &config.context_aware_automation.ai_service_config {
             Some(config) => config,
@@ -2666,7 +3090,7 @@ impl GitAutomationManager {
 
         // Prepare context for AI analysis
         let enhanced_context = Self::prepare_ai_context(config, repo_path, context).await?;
-        
+
         // Generate AI suggestions (placeholder for actual AI integration)
         let suggestions = vec![
             WorkflowSuggestion {
@@ -2682,7 +3106,8 @@ impl GitAutomationManager {
             WorkflowSuggestion {
                 suggestion_type: SuggestionType::WorkflowOptimization,
                 title: "Streamline feature branch workflow".to_string(),
-                description: "Reduce merge conflicts by improving branch synchronization".to_string(),
+                description: "Reduce merge conflicts by improving branch synchronization"
+                    .to_string(),
                 confidence: 0.78,
                 implementation_steps: vec![
                     "Enable automatic branch syncing".to_string(),
@@ -2703,14 +3128,24 @@ impl GitAutomationManager {
     ) -> RhemaResult<String> {
         if !config.context_aware_automation.smart_branch_naming {
             // Fall back to basic naming
-            return Ok(format!("{}/{}", task_type, description.replace(" ", "-").to_lowercase()));
+            return Ok(format!(
+                "{}/{}",
+                task_type,
+                description.replace(" ", "-").to_lowercase()
+            ));
         }
 
-        println!("Generating smart branch name for task: {} - {}", task_type, description);
-        
+        println!(
+            "Generating smart branch name for task: {} - {}",
+            task_type, description
+        );
+
         // Get branch naming patterns
-        let patterns = &config.context_aware_automation.smart_automation_rules.branch_naming_patterns;
-        
+        let patterns = &config
+            .context_aware_automation
+            .smart_automation_rules
+            .branch_naming_patterns;
+
         // Select appropriate pattern based on task type
         let pattern = match task_type.to_lowercase().as_str() {
             "feature" => &patterns.feature_pattern,
@@ -2725,17 +3160,24 @@ impl GitAutomationManager {
 
         // Generate branch name using pattern and AI enhancement
         let base_name = if pattern.is_empty() {
-            format!("{}/{}", task_type, description.replace(" ", "-").to_lowercase())
+            format!(
+                "{}/{}",
+                task_type,
+                description.replace(" ", "-").to_lowercase()
+            )
         } else {
-            pattern.replace("{task_type}", task_type)
-                  .replace("{description}", &description.replace(" ", "-").to_lowercase())
+            pattern.replace("{task_type}", task_type).replace(
+                "{description}",
+                &description.replace(" ", "-").to_lowercase(),
+            )
         };
 
         // Apply AI enhancement if available
         if let Some(ai_config) = &config.context_aware_automation.ai_service_config {
             // Here we would call the AI service to enhance the branch name
             // For now, we'll use a simple enhancement
-            let enhanced_name = Self::enhance_branch_name_with_ai(ai_config, &base_name, description).await?;
+            let enhanced_name =
+                Self::enhance_branch_name_with_ai(ai_config, &base_name, description).await?;
             Ok(enhanced_name)
         } else {
             Ok(base_name)
@@ -2754,11 +3196,17 @@ impl GitAutomationManager {
             return Ok(format!("{}: {}", task_type, changes.join(", ")));
         }
 
-        println!("Generating automated commit message for changes: {:?}", changes);
-        
+        println!(
+            "Generating automated commit message for changes: {:?}",
+            changes
+        );
+
         // Get commit message patterns
-        let patterns = &config.context_aware_automation.smart_automation_rules.commit_message_patterns;
-        
+        let patterns = &config
+            .context_aware_automation
+            .smart_automation_rules
+            .commit_message_patterns;
+
         // Select appropriate pattern based on task type
         let pattern = match task_type.to_lowercase().as_str() {
             "feature" => &patterns.feature_pattern,
@@ -2775,14 +3223,17 @@ impl GitAutomationManager {
         let base_message = if pattern.is_empty() {
             format!("{}: {}", task_type, changes.join(", "))
         } else {
-            pattern.replace("{task_type}", task_type)
-                  .replace("{changes}", &changes.join(", "))
+            pattern
+                .replace("{task_type}", task_type)
+                .replace("{changes}", &changes.join(", "))
         };
 
         // Apply AI enhancement if available
         if let Some(ai_config) = &config.context_aware_automation.ai_service_config {
             // Here we would call the AI service to enhance the commit message
-            let enhanced_message = Self::enhance_commit_message_with_ai(ai_config, &base_message, changes, task_type).await?;
+            let enhanced_message =
+                Self::enhance_commit_message_with_ai(ai_config, &base_message, changes, task_type)
+                    .await?;
             Ok(enhanced_message)
         } else {
             Ok(base_message)
@@ -2800,8 +3251,11 @@ impl GitAutomationManager {
         }
 
         println!("Injecting context into workflow operation: {}", operation);
-        
-        let rules = &config.context_aware_automation.smart_automation_rules.context_injection_rules;
+
+        let rules = &config
+            .context_aware_automation
+            .smart_automation_rules
+            .context_injection_rules;
         let mut context_parts = Vec::new();
 
         // Collect relevant context based on rules
@@ -2845,7 +3299,7 @@ impl GitAutomationManager {
         let repo = git2::Repository::open(repo_path)?;
         let workflow_config = crate::git::workflow::default_git_flow_config();
         let workflow_manager = crate::git::workflow::WorkflowManager::new(repo, workflow_config);
-        
+
         if let Ok(status) = workflow_manager.get_workflow_status() {
             context_parts.push(format!("Workflow Status: {:?}", status));
         }
@@ -2931,51 +3385,93 @@ impl GitAutomationManager {
     }
 
     /// Generate AI-driven workflow suggestions for the current repository
-    pub async fn get_workflow_suggestions(&self, context: &str) -> RhemaResult<Vec<WorkflowSuggestion>> {
-        let repo_path = self.repo.lock().unwrap().path().parent().ok_or_else(|| {
-            RhemaError::ConfigError("Failed to get repository path".to_string())
-        })?.to_path_buf();
-        
+    pub async fn get_workflow_suggestions(
+        &self,
+        context: &str,
+    ) -> RhemaResult<Vec<WorkflowSuggestion>> {
+        let repo_path = self
+            .repo
+            .lock()
+            .unwrap()
+            .path()
+            .parent()
+            .ok_or_else(|| RhemaError::ConfigError("Failed to get repository path".to_string()))?
+            .to_path_buf();
+
         Self::generate_ai_workflow_suggestions(&self.config, &repo_path, context).await
     }
 
     /// Generate a smart branch name for a given task
-    pub async fn generate_branch_name(&self, task_type: &str, description: &str) -> RhemaResult<String> {
-        let repo_path = self.repo.lock().unwrap().path().parent().ok_or_else(|| {
-            RhemaError::ConfigError("Failed to get repository path".to_string())
-        })?.to_path_buf();
-        
+    pub async fn generate_branch_name(
+        &self,
+        task_type: &str,
+        description: &str,
+    ) -> RhemaResult<String> {
+        let repo_path = self
+            .repo
+            .lock()
+            .unwrap()
+            .path()
+            .parent()
+            .ok_or_else(|| RhemaError::ConfigError("Failed to get repository path".to_string()))?
+            .to_path_buf();
+
         Self::generate_smart_branch_name(&self.config, &repo_path, task_type, description).await
     }
 
     /// Generate an automated commit message for given changes
-    pub async fn generate_commit_message(&self, changes: &[String], task_type: &str) -> RhemaResult<String> {
-        let repo_path = self.repo.lock().unwrap().path().parent().ok_or_else(|| {
-            RhemaError::ConfigError("Failed to get repository path".to_string())
-        })?.to_path_buf();
-        
+    pub async fn generate_commit_message(
+        &self,
+        changes: &[String],
+        task_type: &str,
+    ) -> RhemaResult<String> {
+        let repo_path = self
+            .repo
+            .lock()
+            .unwrap()
+            .path()
+            .parent()
+            .ok_or_else(|| RhemaError::ConfigError("Failed to get repository path".to_string()))?
+            .to_path_buf();
+
         Self::generate_automated_commit_message(&self.config, &repo_path, changes, task_type).await
     }
 
     /// Inject context into a workflow operation
     pub async fn inject_workflow_context(&self, operation: &str) -> RhemaResult<String> {
-        let repo_path = self.repo.lock().unwrap().path().parent().ok_or_else(|| {
-            RhemaError::ConfigError("Failed to get repository path".to_string())
-        })?.to_path_buf();
-        
+        let repo_path = self
+            .repo
+            .lock()
+            .unwrap()
+            .path()
+            .parent()
+            .ok_or_else(|| RhemaError::ConfigError("Failed to get repository path".to_string()))?
+            .to_path_buf();
+
         Self::inject_context_into_workflow(&self.config, &repo_path, operation).await
     }
 
     /// Trigger AI-driven workflow automation
-    pub async fn trigger_ai_workflow(&self, trigger_type: String, data: Option<HashMap<String, String>>) -> RhemaResult<()> {
+    pub async fn trigger_ai_workflow(
+        &self,
+        trigger_type: String,
+        data: Option<HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         if !self.config.context_aware_automation.ai_driven_workflows {
-            return Err(RhemaError::ValidationError("AI-driven workflows are not enabled".to_string()));
+            return Err(RhemaError::ValidationError(
+                "AI-driven workflows are not enabled".to_string(),
+            ));
         }
 
-        let repo_path = self.repo.lock().unwrap().path().parent().ok_or_else(|| {
-            RhemaError::ConfigError("Failed to get repository path".to_string())
-        })?.to_path_buf();
-        
+        let repo_path = self
+            .repo
+            .lock()
+            .unwrap()
+            .path()
+            .parent()
+            .ok_or_else(|| RhemaError::ConfigError("Failed to get repository path".to_string()))?
+            .to_path_buf();
+
         // Create task for AI workflow
         let task = AutomationTask {
             id: format!("ai_workflow_{}", chrono::Utc::now().timestamp()),
@@ -2987,24 +3483,27 @@ impl GitAutomationManager {
             result: None,
             error: None,
         };
-        
+
         // Add task to queue
         {
             let mut tasks = self.tasks.lock().unwrap();
             tasks.push(task);
         }
-        
+
         // Execute AI workflow automation
         let config = self.config.clone();
         let tasks = self.tasks.clone();
         let data_clone = data.clone();
-        
+
         tokio::spawn(async move {
-            if let Err(e) = Self::run_ai_workflow_automation(config, tasks, repo_path, trigger_type, data_clone).await {
+            if let Err(e) =
+                Self::run_ai_workflow_automation(config, tasks, repo_path, trigger_type, data_clone)
+                    .await
+            {
                 eprintln!("AI workflow automation failed: {:?}", e);
             }
         });
-        
+
         Ok(())
     }
 
@@ -3024,50 +3523,79 @@ impl GitAutomationManager {
                 task.started_at = Some(chrono::Utc::now());
             }
         }
-        
+
         let start_time = std::time::Instant::now();
-        
+
         match trigger_type.as_str() {
             "smart_branch_creation" => {
                 if let Some(data) = data {
-                    if let (Some(task_type), Some(description)) = (data.get("task_type"), data.get("description")) {
-                        let branch_name = Self::generate_smart_branch_name(&config, &repo_path, task_type, description).await?;
+                    if let (Some(task_type), Some(description)) =
+                        (data.get("task_type"), data.get("description"))
+                    {
+                        let branch_name = Self::generate_smart_branch_name(
+                            &config,
+                            &repo_path,
+                            task_type,
+                            description,
+                        )
+                        .await?;
                         println!("Generated smart branch name: {}", branch_name);
                     }
                 }
             }
             "smart_commit_message" => {
                 if let Some(data) = data {
-                    if let (Some(changes), Some(task_type)) = (data.get("changes"), data.get("task_type")) {
-                        let changes_vec: Vec<String> = changes.split(',').map(|s| s.trim().to_string()).collect();
-                        let commit_message = Self::generate_automated_commit_message(&config, &repo_path, &changes_vec, task_type).await?;
+                    if let (Some(changes), Some(task_type)) =
+                        (data.get("changes"), data.get("task_type"))
+                    {
+                        let changes_vec: Vec<String> =
+                            changes.split(',').map(|s| s.trim().to_string()).collect();
+                        let commit_message = Self::generate_automated_commit_message(
+                            &config,
+                            &repo_path,
+                            &changes_vec,
+                            task_type,
+                        )
+                        .await?;
                         println!("Generated commit message: {}", commit_message);
                     }
                 }
             }
             "workflow_optimization" => {
                 let context = "Current workflow analysis";
-                let suggestions = Self::generate_ai_workflow_suggestions(&config, &repo_path, context).await?;
+                let suggestions =
+                    Self::generate_ai_workflow_suggestions(&config, &repo_path, context).await?;
                 println!("Generated {} workflow suggestions", suggestions.len());
                 for suggestion in suggestions {
-                    println!("Suggestion: {} (confidence: {:.2})", suggestion.title, suggestion.confidence);
+                    println!(
+                        "Suggestion: {} (confidence: {:.2})",
+                        suggestion.title, suggestion.confidence
+                    );
                 }
             }
             "context_injection" => {
                 if let Some(data) = data {
                     if let Some(operation) = data.get("operation") {
-                        let context = Self::inject_context_into_workflow(&config, &repo_path, operation).await?;
-                        println!("Injected context for operation '{}': {}", operation, context);
+                        let context =
+                            Self::inject_context_into_workflow(&config, &repo_path, operation)
+                                .await?;
+                        println!(
+                            "Injected context for operation '{}': {}",
+                            operation, context
+                        );
                     }
                 }
             }
             _ => {
-                return Err(RhemaError::ValidationError(format!("Unknown AI workflow trigger type: {}", trigger_type)));
+                return Err(RhemaError::ValidationError(format!(
+                    "Unknown AI workflow trigger type: {}",
+                    trigger_type
+                )));
             }
         }
-        
+
         let duration = start_time.elapsed();
-        
+
         // Update task status to completed
         {
             let mut tasks_guard = tasks.lock().unwrap();
@@ -3076,13 +3604,16 @@ impl GitAutomationManager {
                 task.completed_at = Some(chrono::Utc::now());
                 task.result = Some(TaskResult {
                     success: true,
-                    message: format!("AI workflow automation completed for trigger: {}", trigger_type),
+                    message: format!(
+                        "AI workflow automation completed for trigger: {}",
+                        trigger_type
+                    ),
                     details: HashMap::new(),
                     duration,
                 });
             }
         }
-        
+
         Ok(())
     }
 }

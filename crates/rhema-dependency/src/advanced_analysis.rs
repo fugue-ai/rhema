@@ -1,8 +1,8 @@
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc, Duration};
-use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore};
@@ -263,7 +263,9 @@ impl AdvancedAnalyzer {
         &self,
         dependencies: &[DependencyConfig],
     ) -> Result<Vec<DependencyCluster>> {
-        self.clustering_engine.cluster_dependencies(dependencies).await
+        self.clustering_engine
+            .cluster_dependencies(dependencies)
+            .await
     }
 
     /// Score dependencies
@@ -280,7 +282,9 @@ impl AdvancedAnalyzer {
         dependency_id: &str,
         historical_data: &[TrendDataPoint],
     ) -> Result<TrendAnalysis> {
-        self.trend_analyzer.analyze_trends(dependency_id, historical_data).await
+        self.trend_analyzer
+            .analyze_trends(dependency_id, historical_data)
+            .await
     }
 
     /// Assess risks
@@ -304,7 +308,9 @@ impl AdvancedAnalyzer {
         &self,
         dependencies: &[DependencyConfig],
     ) -> Result<Vec<PerformanceImpact>> {
-        self.performance_analyzer.analyze_performance_impact(dependencies).await
+        self.performance_analyzer
+            .analyze_performance_impact(dependencies)
+            .await
     }
 
     /// Analyze security
@@ -380,7 +386,10 @@ impl ClusteringAlgorithm for FunctionalClustering {
         // Group by dependency type
         for dep in dependencies {
             let group_key = format!("{:?}", dep.dependency_type);
-            grouped.entry(group_key).or_insert_with(Vec::new).push(dep.id.clone());
+            grouped
+                .entry(group_key)
+                .or_insert_with(Vec::new)
+                .push(dep.id.clone());
         }
 
         // Create clusters
@@ -557,7 +566,9 @@ impl TrendAnalyzer {
         historical_data: &[TrendDataPoint],
     ) -> Result<TrendAnalysis> {
         if historical_data.len() < 2 {
-            return Err(Error::InvalidInput("Insufficient data for trend analysis".to_string()));
+            return Err(Error::InvalidInput(
+                "Insufficient data for trend analysis".to_string(),
+            ));
         }
 
         let trend_direction = self.calculate_trend_direction(historical_data);
@@ -612,7 +623,11 @@ impl TrendAnalyzer {
         let n = data.len() as f64;
         let sum_x: f64 = (0..data.len()).map(|i| i as f64).sum();
         let sum_y: f64 = data.iter().map(|d| d.value).sum();
-        let sum_xy: f64 = data.iter().enumerate().map(|(i, d)| i as f64 * d.value).sum();
+        let sum_xy: f64 = data
+            .iter()
+            .enumerate()
+            .map(|(i, d)| i as f64 * d.value)
+            .sum();
         let sum_x2: f64 = (0..data.len()).map(|i| (i as f64).powi(2)).sum();
 
         let slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x);
@@ -624,7 +639,8 @@ impl TrendAnalyzer {
     /// Calculate confidence interval
     fn calculate_confidence_interval(&self, data: &[TrendDataPoint]) -> (f64, f64) {
         let mean = data.iter().map(|d| d.value).sum::<f64>() / data.len() as f64;
-        let std_dev = (data.iter().map(|d| (d.value - mean).powi(2)).sum::<f64>() / data.len() as f64).sqrt();
+        let std_dev =
+            (data.iter().map(|d| (d.value - mean).powi(2)).sum::<f64>() / data.len() as f64).sqrt();
         let margin = 1.96 * std_dev / (data.len() as f64).sqrt(); // 95% confidence interval
 
         (mean - margin, mean + margin)
@@ -726,7 +742,11 @@ impl RiskAssessor {
     }
 
     /// Generate mitigation strategies
-    fn generate_mitigation_strategies(&self, _dep: &DependencyConfig, risk_level: &RiskLevel) -> Vec<String> {
+    fn generate_mitigation_strategies(
+        &self,
+        _dep: &DependencyConfig,
+        risk_level: &RiskLevel,
+    ) -> Vec<String> {
         match risk_level {
             RiskLevel::Low => vec!["Monitor regularly".to_string()],
             RiskLevel::Medium => vec![
@@ -773,23 +793,29 @@ impl CostAnalyzer {
     /// Create a new cost analyzer
     pub fn new() -> Self {
         let mut cost_models = HashMap::new();
-        
-        // Add some example cost models
-        cost_models.insert("database".to_string(), CostModel {
-            name: "Database".to_string(),
-            base_cost: 100.0,
-            cost_per_usage: 0.01,
-            cost_per_storage: 0.05,
-            cost_per_request: 0.001,
-        });
 
-        cost_models.insert("api".to_string(), CostModel {
-            name: "API".to_string(),
-            base_cost: 50.0,
-            cost_per_usage: 0.02,
-            cost_per_storage: 0.0,
-            cost_per_request: 0.005,
-        });
+        // Add some example cost models
+        cost_models.insert(
+            "database".to_string(),
+            CostModel {
+                name: "Database".to_string(),
+                base_cost: 100.0,
+                cost_per_usage: 0.01,
+                cost_per_storage: 0.05,
+                cost_per_request: 0.001,
+            },
+        );
+
+        cost_models.insert(
+            "api".to_string(),
+            CostModel {
+                name: "API".to_string(),
+                base_cost: 50.0,
+                cost_per_usage: 0.02,
+                cost_per_storage: 0.0,
+                cost_per_request: 0.005,
+            },
+        );
 
         Self { cost_models }
     }
@@ -805,7 +831,9 @@ impl CostAnalyzer {
             let cost_breakdown = self.calculate_cost_breakdown(dep).await?;
             let total_cost = self.calculate_total_cost(&cost_breakdown);
             let cost_trend = TrendDirection::Stable; // Simplified
-            let efficiency_score = self.calculate_efficiency_score(dep, &cost_breakdown).await?;
+            let efficiency_score = self
+                .calculate_efficiency_score(dep, &cost_breakdown)
+                .await?;
 
             let analysis = CostAnalysis {
                 dependency_id: dep.id.clone(),
@@ -845,7 +873,11 @@ impl CostAnalyzer {
     }
 
     /// Calculate efficiency score
-    async fn calculate_efficiency_score(&self, _dep: &DependencyConfig, _breakdown: &CostBreakdown) -> Result<f64> {
+    async fn calculate_efficiency_score(
+        &self,
+        _dep: &DependencyConfig,
+        _breakdown: &CostBreakdown,
+    ) -> Result<f64> {
         // Simplified implementation
         Ok(0.8)
     }
@@ -922,7 +954,10 @@ impl PerformanceAnalyzer {
     }
 
     /// Collect performance metrics
-    async fn collect_performance_metrics(&self, _dep: &DependencyConfig) -> Result<PerformanceMetrics> {
+    async fn collect_performance_metrics(
+        &self,
+        _dep: &DependencyConfig,
+    ) -> Result<PerformanceMetrics> {
         Ok(PerformanceMetrics {
             avg_response_time: 150.0,
             p95_response_time: 300.0,
@@ -936,11 +971,12 @@ impl PerformanceAnalyzer {
 
     /// Calculate impact score
     async fn calculate_impact_score(&self, metrics: &PerformanceMetrics) -> Result<f64> {
-        let response_time_score = if metrics.avg_response_time < self.thresholds.response_time_threshold {
-            1.0 - (metrics.avg_response_time / self.thresholds.response_time_threshold)
-        } else {
-            0.0
-        };
+        let response_time_score =
+            if metrics.avg_response_time < self.thresholds.response_time_threshold {
+                1.0 - (metrics.avg_response_time / self.thresholds.response_time_threshold)
+            } else {
+                0.0
+            };
 
         let throughput_score = if metrics.throughput > self.thresholds.throughput_threshold {
             1.0
@@ -956,7 +992,8 @@ impl PerformanceAnalyzer {
     /// Calculate response time impact
     fn calculate_response_time_impact(&self, metrics: &PerformanceMetrics) -> f64 {
         if metrics.avg_response_time > self.thresholds.response_time_threshold {
-            (metrics.avg_response_time - self.thresholds.response_time_threshold) / self.thresholds.response_time_threshold
+            (metrics.avg_response_time - self.thresholds.response_time_threshold)
+                / self.thresholds.response_time_threshold
         } else {
             0.0
         }
@@ -965,7 +1002,8 @@ impl PerformanceAnalyzer {
     /// Calculate throughput impact
     fn calculate_throughput_impact(&self, metrics: &PerformanceMetrics) -> f64 {
         if metrics.throughput < self.thresholds.throughput_threshold {
-            (self.thresholds.throughput_threshold - metrics.throughput) / self.thresholds.throughput_threshold
+            (self.thresholds.throughput_threshold - metrics.throughput)
+                / self.thresholds.throughput_threshold
         } else {
             0.0
         }
@@ -974,13 +1012,15 @@ impl PerformanceAnalyzer {
     /// Calculate resource usage impact
     fn calculate_resource_usage_impact(&self, metrics: &PerformanceMetrics) -> f64 {
         let cpu_impact = if metrics.cpu_usage > self.thresholds.cpu_usage_threshold {
-            (metrics.cpu_usage - self.thresholds.cpu_usage_threshold) / (100.0 - self.thresholds.cpu_usage_threshold)
+            (metrics.cpu_usage - self.thresholds.cpu_usage_threshold)
+                / (100.0 - self.thresholds.cpu_usage_threshold)
         } else {
             0.0
         };
 
         let memory_impact = if metrics.memory_usage > self.thresholds.memory_usage_threshold {
-            (metrics.memory_usage - self.thresholds.memory_usage_threshold) / (100.0 - self.thresholds.memory_usage_threshold)
+            (metrics.memory_usage - self.thresholds.memory_usage_threshold)
+                / (100.0 - self.thresholds.memory_usage_threshold)
         } else {
             0.0
         };
@@ -1097,7 +1137,9 @@ impl SecurityAnalyzer {
         for dep in dependencies {
             let security_score = self.calculate_security_score(dep).await?;
             let security_issues = self.identify_security_issues(dep).await?;
-            let recommendations = self.generate_security_recommendations(dep, &security_issues).await?;
+            let recommendations = self
+                .generate_security_recommendations(dep, &security_issues)
+                .await?;
 
             let analysis = SecurityAnalysis {
                 dependency_id: dep.id.clone(),
@@ -1120,7 +1162,10 @@ impl SecurityAnalyzer {
     }
 
     /// Identify security issues
-    async fn identify_security_issues(&self, _dep: &DependencyConfig) -> Result<Vec<SecurityIssue>> {
+    async fn identify_security_issues(
+        &self,
+        _dep: &DependencyConfig,
+    ) -> Result<Vec<SecurityIssue>> {
         // Simplified implementation
         Ok(Vec::new())
     }
@@ -1146,15 +1191,14 @@ mod tests {
     #[tokio::test]
     async fn test_advanced_analyzer() {
         let analyzer = AdvancedAnalyzer::new();
-        let dependencies = vec![
-            DependencyConfig::new(
-                "test-dep".to_string(),
-                "Test Dependency".to_string(),
-                DependencyType::ApiCall,
-                "https://api.example.com".to_string(),
-                vec!["GET".to_string()],
-            ).unwrap(),
-        ];
+        let dependencies = vec![DependencyConfig::new(
+            "test-dep".to_string(),
+            "Test Dependency".to_string(),
+            DependencyType::ApiCall,
+            "https://api.example.com".to_string(),
+            vec!["GET".to_string()],
+        )
+        .unwrap()];
 
         // Test clustering
         let clusters = analyzer.cluster_dependencies(&dependencies).await.unwrap();
@@ -1173,7 +1217,10 @@ mod tests {
         assert_eq!(costs.len(), 1);
 
         // Test performance analysis
-        let performance = analyzer.analyze_performance_impact(&dependencies).await.unwrap();
+        let performance = analyzer
+            .analyze_performance_impact(&dependencies)
+            .await
+            .unwrap();
         assert_eq!(performance.len(), 1);
 
         // Test security analysis
@@ -1199,8 +1246,11 @@ mod tests {
             },
         ];
 
-        let analysis = analyzer.analyze_trends("test-dep", &historical_data).await.unwrap();
+        let analysis = analyzer
+            .analyze_trends("test-dep", &historical_data)
+            .await
+            .unwrap();
         assert_eq!(analysis.trend_direction, TrendDirection::Increasing);
         assert!(analysis.trend_strength > 0.0);
     }
-} 
+}

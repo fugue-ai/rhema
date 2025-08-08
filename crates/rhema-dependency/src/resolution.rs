@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet, BTreeMap};
-use std::cmp::Ordering;
-use semver::{Version, VersionReq};
 use chrono::{DateTime, Utc};
+use semver::{Version, VersionReq};
+use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::error::{Error, Result};
 use crate::types::{DependencyConfig, DependencyType, HealthStatus};
@@ -22,10 +22,18 @@ pub struct VersionConstraint {
 
 impl VersionConstraint {
     /// Create a new version constraint
-    pub fn new(requirement: String, preferred_version: Option<Version>, is_hard_requirement: bool) -> Result<Self> {
-        let parsed_requirement = VersionReq::parse(&requirement)
-            .map_err(|e| Error::InvalidVersionConstraint(format!("Invalid version requirement '{}': {}", requirement, e)))?;
-        
+    pub fn new(
+        requirement: String,
+        preferred_version: Option<Version>,
+        is_hard_requirement: bool,
+    ) -> Result<Self> {
+        let parsed_requirement = VersionReq::parse(&requirement).map_err(|e| {
+            Error::InvalidVersionConstraint(format!(
+                "Invalid version requirement '{}': {}",
+                requirement, e
+            ))
+        })?;
+
         Ok(Self {
             requirement,
             parsed_requirement,
@@ -232,7 +240,7 @@ impl DependencyResolver {
         strategy: ResolutionStrategy,
     ) -> Result<ResolutionResult> {
         let start_time = std::time::Instant::now();
-        
+
         let mut resolved_dependencies = HashMap::new();
         let mut unresolved_dependencies = Vec::new();
         let mut conflicts = Vec::new();
@@ -292,7 +300,8 @@ impl DependencyResolver {
         dependency: &DependencyConfig,
         strategy: &ResolutionStrategy,
     ) -> Result<ResolvedDependency> {
-        let available_versions = self.available_versions
+        let available_versions = self
+            .available_versions
             .get(&dependency.id)
             .ok_or_else(|| Error::DependencyNotFound(dependency.id.clone()))?;
 
@@ -312,22 +321,19 @@ impl DependencyResolver {
         }
 
         let resolved_version = match strategy {
-            ResolutionStrategy::Latest => {
-                compatible_versions.iter().max().cloned().unwrap()
-            }
-            ResolutionStrategy::Minimum => {
-                compatible_versions.iter().min().cloned().unwrap()
-            }
+            ResolutionStrategy::Latest => compatible_versions.iter().max().cloned().unwrap(),
+            ResolutionStrategy::Minimum => compatible_versions.iter().min().cloned().unwrap(),
             ResolutionStrategy::Specific(version) => {
                 if compatible_versions.contains(version) {
                     version.clone()
                 } else {
-                    return Err(Error::SpecificVersionNotFound(dependency.id.clone(), version.clone()));
+                    return Err(Error::SpecificVersionNotFound(
+                        dependency.id.clone(),
+                        version.clone(),
+                    ));
                 }
             }
-            ResolutionStrategy::MostStable => {
-                self.select_most_stable_version(&compatible_versions)
-            }
+            ResolutionStrategy::MostStable => self.select_most_stable_version(&compatible_versions),
             ResolutionStrategy::BestHealth => {
                 self.select_best_health_version(&dependency.id, &compatible_versions)
             }
@@ -428,7 +434,10 @@ impl DependencyResolver {
     }
 
     /// Detect circular dependencies
-    fn detect_circular_dependencies(&self, dependencies: &[DependencyConfig]) -> Vec<DependencyConflict> {
+    fn detect_circular_dependencies(
+        &self,
+        dependencies: &[DependencyConfig],
+    ) -> Vec<DependencyConflict> {
         // This is a simplified implementation
         // In a real implementation, you would use a proper graph algorithm
         Vec::new()
@@ -445,29 +454,32 @@ impl DependencyResolver {
     }
 
     /// Generate cache key for resolution result
-    fn generate_cache_key(&self, dependencies: &[DependencyConfig], strategy: &ResolutionStrategy) -> String {
+    fn generate_cache_key(
+        &self,
+        dependencies: &[DependencyConfig],
+        strategy: &ResolutionStrategy,
+    ) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
         let mut hasher = DefaultHasher::new();
-        
+
         // Hash dependency IDs and versions
         for dep in dependencies {
             dep.id.hash(&mut hasher);
         }
-        
+
         // Hash strategy
         format!("{:?}", strategy).hash(&mut hasher);
-        
+
         format!("{:x}", hasher.finish())
     }
 
     /// Clear expired cache entries
     pub fn clear_expired_cache(&mut self) {
         let now = std::time::Instant::now();
-        self.resolution_cache.retain(|_, result| {
-            result.resolution_time < self.cache_ttl
-        });
+        self.resolution_cache
+            .retain(|_, result| result.resolution_time < self.cache_ttl);
     }
 
     /// Get cached resolution result
@@ -481,7 +493,7 @@ impl DependencyResolver {
             total_resolutions: self.resolution_cache.len(),
             cache_hit_rate: 0.0, // Would need to track hits/misses
             average_resolution_time: std::time::Duration::from_millis(0), // Would need to track
-            total_conflicts: 0, // Would need to track
+            total_conflicts: 0,  // Would need to track
         }
     }
 }
@@ -504,14 +516,19 @@ mod tests {
     use super::*;
     use crate::types::DependencyConfig;
 
-    fn create_test_dependency(id: &str, name: &str, dependency_type: DependencyType) -> DependencyConfig {
+    fn create_test_dependency(
+        id: &str,
+        name: &str,
+        dependency_type: DependencyType,
+    ) -> DependencyConfig {
         DependencyConfig::new(
             id.to_string(),
             name.to_string(),
             dependency_type,
             "test-target".to_string(),
             vec!["test".to_string()],
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[test]
@@ -537,7 +554,7 @@ mod tests {
             Version::parse("1.5.0").unwrap(),
             Version::parse("2.0.0").unwrap(),
         ];
-        
+
         let best_match = constraint.best_match(&versions);
         assert_eq!(best_match, Some(Version::parse("1.5.0").unwrap()));
     }
@@ -557,8 +574,11 @@ mod tests {
             Version::parse("1.1.0").unwrap(),
             Version::parse("2.0.0").unwrap(),
         ];
-        
+
         resolver.add_available_versions("test-dep".to_string(), versions);
-        assert_eq!(resolver.available_versions.get("test-dep").unwrap().len(), 3);
+        assert_eq!(
+            resolver.available_versions.get("test-dep").unwrap().len(),
+            3
+        );
     }
-} 
+}

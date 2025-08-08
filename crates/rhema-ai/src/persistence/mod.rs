@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-pub mod session_store;
 pub mod consensus_store;
+pub mod session_store;
 pub mod state_manager;
 
-pub use session_store::SessionStore;
 pub use consensus_store::ConsensusStore;
+pub use session_store::SessionStore;
 pub use state_manager::StateManager;
 
 use rhema_core::RhemaResult;
@@ -167,7 +167,9 @@ impl PersistenceManager {
             session_stats: session_stats.clone(),
             consensus_stats: consensus_stats.clone(),
             state_stats: state_stats.clone(),
-            total_size_bytes: session_stats.size_bytes + consensus_stats.size_bytes + state_stats.size_bytes,
+            total_size_bytes: session_stats.size_bytes
+                + consensus_stats.size_bytes
+                + state_stats.size_bytes,
         })
     }
 }
@@ -189,4 +191,4 @@ pub struct StoreStats {
     pub last_backup: Option<chrono::DateTime<chrono::Utc>>,
     pub last_cleanup: Option<chrono::DateTime<chrono::Utc>>,
     pub validation_errors: usize,
-} 
+}

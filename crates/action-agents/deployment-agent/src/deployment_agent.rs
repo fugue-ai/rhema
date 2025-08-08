@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use rhema_agent::agent::AgentCapability;
 use rhema_agent::agent::{
     Agent, AgentConfig, AgentContext, AgentId, AgentMessage, AgentRequest, AgentResponse,
     AgentType, BaseAgent, HealthStatus,
 };
-use rhema_agent::agent::AgentCapability;
 use rhema_agent::error::{AgentError, AgentResult};
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::process::Command;
-use chrono::{DateTime, Utc};
 
 /// Deployment configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -414,9 +414,9 @@ impl DeploymentAgent {
                 AgentCapability::Deployment,
             ],
             max_concurrent_tasks: 3,
-            task_timeout: 1800, // 30 minutes
+            task_timeout: 1800,       // 30 minutes
             memory_limit: Some(2048), // 2 GB
-            cpu_limit: Some(100.0), // 100% CPU
+            cpu_limit: Some(100.0),   // 100% CPU
             retry_attempts: 2,
             retry_delay: 30,
             parameters: HashMap::new(),
@@ -435,7 +435,10 @@ impl DeploymentAgent {
     }
 
     /// Deploy an application
-    async fn deploy_application(&mut self, request: DeploymentRequest) -> AgentResult<DeploymentResult> {
+    async fn deploy_application(
+        &mut self,
+        request: DeploymentRequest,
+    ) -> AgentResult<DeploymentResult> {
         let deployment_id = uuid::Uuid::new_v4().to_string();
         let mut result = DeploymentResult {
             deployment_id: deployment_id.clone(),
@@ -449,22 +452,26 @@ impl DeploymentAgent {
         };
 
         // Store active deployment
-        self.active_deployments.insert(deployment_id.clone(), request.config.clone());
+        self.active_deployments
+            .insert(deployment_id.clone(), request.config.clone());
 
         // Update status
         result.status = DeploymentStatus::Building;
-        self.update_deployment_status(&deployment_id, &result.status).await?;
+        self.update_deployment_status(&deployment_id, &result.status)
+            .await?;
 
         // Build application
         match self.build_application(&request, &mut result).await {
             Ok(_) => {
                 result.status = DeploymentStatus::Testing;
-                self.update_deployment_status(&deployment_id, &result.status).await?;
+                self.update_deployment_status(&deployment_id, &result.status)
+                    .await?;
             }
             Err(e) => {
                 result.status = DeploymentStatus::Failed;
                 result.error = Some(e.to_string());
-                self.deployment_history.insert(deployment_id.clone(), result.clone());
+                self.deployment_history
+                    .insert(deployment_id.clone(), result.clone());
                 return Ok(result);
             }
         }
@@ -473,12 +480,14 @@ impl DeploymentAgent {
         match self.run_tests(&request, &mut result).await {
             Ok(_) => {
                 result.status = DeploymentStatus::Deploying;
-                self.update_deployment_status(&deployment_id, &result.status).await?;
+                self.update_deployment_status(&deployment_id, &result.status)
+                    .await?;
             }
             Err(e) => {
                 result.status = DeploymentStatus::Failed;
                 result.error = Some(e.to_string());
-                self.deployment_history.insert(deployment_id.clone(), result.clone());
+                self.deployment_history
+                    .insert(deployment_id.clone(), result.clone());
                 return Ok(result);
             }
         }
@@ -487,12 +496,14 @@ impl DeploymentAgent {
         match self.deploy_to_infrastructure(&request, &mut result).await {
             Ok(_) => {
                 result.status = DeploymentStatus::Deployed;
-                self.update_deployment_status(&deployment_id, &result.status).await?;
+                self.update_deployment_status(&deployment_id, &result.status)
+                    .await?;
             }
             Err(e) => {
                 result.status = DeploymentStatus::Failed;
                 result.error = Some(e.to_string());
-                self.deployment_history.insert(deployment_id.clone(), result.clone());
+                self.deployment_history
+                    .insert(deployment_id.clone(), result.clone());
                 return Ok(result);
             }
         }
@@ -501,14 +512,19 @@ impl DeploymentAgent {
         self.run_health_checks(&request, &mut result).await?;
 
         // Store in history
-        self.deployment_history.insert(deployment_id.clone(), result.clone());
+        self.deployment_history
+            .insert(deployment_id.clone(), result.clone());
         self.active_deployments.remove(&deployment_id);
 
         Ok(result)
     }
 
     /// Build application
-    async fn build_application(&self, request: &DeploymentRequest, result: &mut DeploymentResult) -> AgentResult<()> {
+    async fn build_application(
+        &self,
+        request: &DeploymentRequest,
+        result: &mut DeploymentResult,
+    ) -> AgentResult<()> {
         let build_log = format!("Building application: {}", request.config.app_name);
         result.build_logs.push(build_log);
 
@@ -517,17 +533,28 @@ impl DeploymentAgent {
         if dockerfile_path.exists() {
             // Build Docker image
             let output = Command::new("docker")
-                .args(&["build", "-t", &request.config.app_name, &request.source_path])
+                .args(&[
+                    "build",
+                    "-t",
+                    &request.config.app_name,
+                    &request.source_path,
+                ])
                 .output()
                 .await
-                .map_err(|e| AgentError::ExecutionFailed { reason: format!("Docker build failed: {}", e) })?;
+                .map_err(|e| AgentError::ExecutionFailed {
+                    reason: format!("Docker build failed: {}", e),
+                })?;
 
             if !output.status.success() {
                 let error = String::from_utf8_lossy(&output.stderr);
-                return Err(AgentError::ExecutionFailed { reason: format!("Docker build failed: {}", error) });
+                return Err(AgentError::ExecutionFailed {
+                    reason: format!("Docker build failed: {}", error),
+                });
             }
 
-            result.build_logs.push("Docker image built successfully".to_string());
+            result
+                .build_logs
+                .push("Docker image built successfully".to_string());
         } else {
             // Use default build process
             let output = Command::new("cargo")
@@ -535,21 +562,31 @@ impl DeploymentAgent {
                 .current_dir(&request.source_path)
                 .output()
                 .await
-                .map_err(|e| AgentError::ExecutionFailed { reason: format!("Build failed: {}", e) })?;
+                .map_err(|e| AgentError::ExecutionFailed {
+                    reason: format!("Build failed: {}", e),
+                })?;
 
             if !output.status.success() {
                 let error = String::from_utf8_lossy(&output.stderr);
-                return Err(AgentError::ExecutionFailed { reason: format!("Build failed: {}", error) });
+                return Err(AgentError::ExecutionFailed {
+                    reason: format!("Build failed: {}", error),
+                });
             }
 
-            result.build_logs.push("Application built successfully".to_string());
+            result
+                .build_logs
+                .push("Application built successfully".to_string());
         }
 
         Ok(())
     }
 
     /// Run tests
-    async fn run_tests(&self, request: &DeploymentRequest, result: &mut DeploymentResult) -> AgentResult<()> {
+    async fn run_tests(
+        &self,
+        request: &DeploymentRequest,
+        result: &mut DeploymentResult,
+    ) -> AgentResult<()> {
         let test_log = format!("Running tests for: {}", request.config.app_name);
         result.build_logs.push(test_log);
 
@@ -558,40 +595,59 @@ impl DeploymentAgent {
             .current_dir(&request.source_path)
             .output()
             .await
-                            .map_err(|e| AgentError::ExecutionFailed { reason: format!("Test execution failed: {}", e) })?;
+            .map_err(|e| AgentError::ExecutionFailed {
+                reason: format!("Test execution failed: {}", e),
+            })?;
 
         if !output.status.success() {
             let error = String::from_utf8_lossy(&output.stderr);
-                            return Err(AgentError::ExecutionFailed { reason: format!("Tests failed: {}", error) });
+            return Err(AgentError::ExecutionFailed {
+                reason: format!("Tests failed: {}", error),
+            });
         }
 
-        result.build_logs.push("Tests passed successfully".to_string());
+        result
+            .build_logs
+            .push("Tests passed successfully".to_string());
         Ok(())
     }
 
     /// Deploy to infrastructure
-    async fn deploy_to_infrastructure(&self, request: &DeploymentRequest, result: &mut DeploymentResult) -> AgentResult<()> {
-        let deploy_log = format!("Deploying {} to {}", request.config.app_name, 
+    async fn deploy_to_infrastructure(
+        &self,
+        request: &DeploymentRequest,
+        result: &mut DeploymentResult,
+    ) -> AgentResult<()> {
+        let deploy_log = format!(
+            "Deploying {} to {}",
+            request.config.app_name,
             match &request.config.environment {
                 DeploymentEnvironment::Development => "development",
-                DeploymentEnvironment::Staging => "staging", 
+                DeploymentEnvironment::Staging => "staging",
                 DeploymentEnvironment::Production => "production",
                 DeploymentEnvironment::Custom(name) => name,
-            });
+            }
+        );
         result.deploy_logs.push(deploy_log);
 
         // For now, simulate deployment
         // In a real implementation, this would integrate with cloud providers
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
 
-        result.deploy_logs.push("Deployment completed successfully".to_string());
+        result
+            .deploy_logs
+            .push("Deployment completed successfully".to_string());
         result.deployment_url = Some(format!("https://{}.example.com", request.config.app_name));
 
         Ok(())
     }
 
     /// Run health checks
-    async fn run_health_checks(&self, request: &DeploymentRequest, result: &mut DeploymentResult) -> AgentResult<()> {
+    async fn run_health_checks(
+        &self,
+        request: &DeploymentRequest,
+        result: &mut DeploymentResult,
+    ) -> AgentResult<()> {
         if let Some(health_config) = &request.config.health_check_config {
             let health_result = HealthCheckResult {
                 timestamp: Utc::now(),
@@ -606,7 +662,11 @@ impl DeploymentAgent {
     }
 
     /// Update deployment status
-    async fn update_deployment_status(&self, deployment_id: &str, status: &DeploymentStatus) -> AgentResult<()> {
+    async fn update_deployment_status(
+        &self,
+        deployment_id: &str,
+        status: &DeploymentStatus,
+    ) -> AgentResult<()> {
         // In a real implementation, this would update external systems
         println!("Deployment {} status: {:?}", deployment_id, status);
         Ok(())
@@ -667,26 +727,37 @@ impl Agent for DeploymentAgent {
         match request.request_type.as_str() {
             "deploy" => {
                 let deployment_request: DeploymentRequest = serde_json::from_value(request.payload)
-                    .map_err(|e| AgentError::SerializationError { reason: e.to_string() })?;
+                    .map_err(|e| AgentError::SerializationError {
+                        reason: e.to_string(),
+                    })?;
 
                 let start_time = std::time::Instant::now();
                 let result = self.deploy_application(deployment_request).await?;
                 let execution_time = start_time.elapsed().as_millis() as u64;
 
-                Ok(AgentResponse::success(request.id, serde_json::to_value(result).unwrap())
-                    .with_execution_time(execution_time))
+                Ok(
+                    AgentResponse::success(request.id, serde_json::to_value(result).unwrap())
+                        .with_execution_time(execution_time),
+                )
             }
             "get_deployment_history" => {
                 let history = self.get_deployment_history();
-                Ok(AgentResponse::success(request.id, serde_json::to_value(history).unwrap()))
+                Ok(AgentResponse::success(
+                    request.id,
+                    serde_json::to_value(history).unwrap(),
+                ))
             }
             "get_active_deployments" => {
                 let active = self.get_active_deployments();
-                Ok(AgentResponse::success(request.id, serde_json::to_value(active).unwrap()))
+                Ok(AgentResponse::success(
+                    request.id,
+                    serde_json::to_value(active).unwrap(),
+                ))
             }
-            _ => {
-                Ok(AgentResponse::error(request.id, "Unknown task type".to_string()))
-            }
+            _ => Ok(AgentResponse::error(
+                request.id,
+                "Unknown task type".to_string(),
+            )),
         }
     }
 
@@ -706,8 +777,8 @@ impl Agent for DeploymentAgent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_deployment_agent_creation() {
@@ -762,4 +833,4 @@ mod tests {
         assert_eq!(request.config.app_name, "test-app");
         assert_eq!(request.source_path, "/tmp/test");
     }
-} 
+}

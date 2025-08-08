@@ -1,15 +1,15 @@
+use chrono::{DateTime, Utc};
+use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
 use tokio::net::{TcpListener, TcpStream};
-use tokio_tungstenite::{accept_async, WebSocketStream, MaybeTlsStream};
-use futures_util::{SinkExt, StreamExt};
-use chrono::{DateTime, Utc};
+use tokio::sync::{mpsc, RwLock};
+use tokio_tungstenite::{accept_async, MaybeTlsStream, WebSocketStream};
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, HealthStatus, ImpactScore};
 use crate::graph::DependencyGraph;
+use crate::types::{DependencyConfig, HealthStatus, ImpactScore};
 
 /// Real-time event types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -137,48 +137,30 @@ pub struct RealtimeServer {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientMessage {
     /// Subscribe to events
-    Subscribe {
-        event_types: Vec<String>,
-    },
+    Subscribe { event_types: Vec<String> },
     /// Unsubscribe from events
-    Unsubscribe {
-        event_types: Vec<String>,
-    },
+    Unsubscribe { event_types: Vec<String> },
     /// Ping message
-    Ping {
-        timestamp: DateTime<Utc>,
-    },
+    Ping { timestamp: DateTime<Utc> },
     /// Pong response
-    Pong {
-        timestamp: DateTime<Utc>,
-    },
+    Pong { timestamp: DateTime<Utc> },
     /// Authentication message
-    Authenticate {
-        token: String,
-    },
+    Authenticate { token: String },
     /// Request dependency information
-    GetDependency {
-        dependency_id: String,
-    },
+    GetDependency { dependency_id: String },
     /// Request all dependencies
     GetAllDependencies,
     /// Request health status
-    GetHealthStatus {
-        dependency_id: String,
-    },
+    GetHealthStatus { dependency_id: String },
     /// Request impact analysis
-    GetImpactAnalysis {
-        dependency_id: String,
-    },
+    GetImpactAnalysis { dependency_id: String },
 }
 
 /// Real-time server message
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerMessage {
     /// Event notification
-    Event {
-        event: RealtimeEvent,
-    },
+    Event { event: RealtimeEvent },
     /// Response to client request
     Response {
         request_id: Option<String>,
@@ -187,25 +169,18 @@ pub enum ServerMessage {
         error_message: Option<String>,
     },
     /// Pong response
-    Pong {
-        timestamp: DateTime<Utc>,
-    },
+    Pong { timestamp: DateTime<Utc> },
     /// Authentication result
-    AuthenticationResult {
-        success: bool,
-        message: String,
-    },
+    AuthenticationResult { success: bool, message: String },
     /// Heartbeat message
-    Heartbeat {
-        timestamp: DateTime<Utc>,
-    },
+    Heartbeat { timestamp: DateTime<Utc> },
 }
 
 impl RealtimeServer {
     /// Create a new real-time server
     pub fn new(config: RealtimeServerConfig, graph: Arc<RwLock<DependencyGraph>>) -> Self {
         let (event_sender, event_receiver) = mpsc::channel(1000);
-        
+
         Self {
             config,
             clients: Arc::new(RwLock::new(HashMap::new())),
@@ -219,7 +194,9 @@ impl RealtimeServer {
     /// Start the real-time server
     pub async fn start(&mut self) -> Result<()> {
         if self.server_task.is_some() {
-            return Err(Error::RealtimeCommunication("Server already started".to_string()));
+            return Err(Error::RealtimeCommunication(
+                "Server already started".to_string(),
+            ));
         }
 
         let config = self.config.clone();
@@ -246,7 +223,9 @@ impl RealtimeServer {
                 let config = config.clone();
 
                 tokio::spawn(async move {
-                    if let Err(e) = Self::handle_connection(stream, addr, clients_inner, graph, config).await {
+                    if let Err(e) =
+                        Self::handle_connection(stream, addr, clients_inner, graph, config).await
+                    {
                         tracing::error!("Connection error: {}", e);
                     }
                 });
@@ -275,7 +254,8 @@ impl RealtimeServer {
         graph: Arc<RwLock<DependencyGraph>>,
         config: RealtimeServerConfig,
     ) -> Result<()> {
-        let ws_stream = accept_async(stream).await
+        let ws_stream = accept_async(stream)
+            .await
             .map_err(|e| Error::WebSocket(e.to_string()))?;
 
         let client_id = uuid::Uuid::new_v4().to_string();
@@ -300,7 +280,8 @@ impl RealtimeServer {
         while let Some(msg) = client.stream.next().await {
             match msg {
                 Ok(msg) => {
-                    if let Err(e) = Self::handle_client_message(client, msg, &graph, &config).await {
+                    if let Err(e) = Self::handle_client_message(client, msg, &graph, &config).await
+                    {
                         tracing::error!("Error handling client message: {}", e);
                         break;
                     }
@@ -331,8 +312,9 @@ impl RealtimeServer {
     ) -> Result<()> {
         match msg {
             tokio_tungstenite::tungstenite::Message::Text(text) => {
-                let client_msg: ClientMessage = serde_json::from_str(&text)
-                    .map_err(|e| Error::RealtimeCommunication(format!("Invalid message format: {}", e)))?;
+                let client_msg: ClientMessage = serde_json::from_str(&text).map_err(|e| {
+                    Error::RealtimeCommunication(format!("Invalid message format: {}", e))
+                })?;
 
                 match client_msg {
                     ClientMessage::Subscribe { event_types } => {
@@ -345,11 +327,16 @@ impl RealtimeServer {
                         };
                         let response_text = serde_json::to_string(&response)
                             .map_err(|e| Error::Serialization(e.into()))?;
-                        client.stream.send(tokio_tungstenite::tungstenite::Message::Text(response_text)).await
+                        client
+                            .stream
+                            .send(tokio_tungstenite::tungstenite::Message::Text(response_text))
+                            .await
                             .map_err(|e| Error::WebSocket(e.to_string()))?;
                     }
                     ClientMessage::Unsubscribe { event_types } => {
-                        client.subscriptions.retain(|sub| !event_types.contains(sub));
+                        client
+                            .subscriptions
+                            .retain(|sub| !event_types.contains(sub));
                         let response = ServerMessage::Response {
                             request_id: None,
                             data: serde_json::json!({ "message": "Unsubscribed successfully" }),
@@ -358,14 +345,20 @@ impl RealtimeServer {
                         };
                         let response_text = serde_json::to_string(&response)
                             .map_err(|e| Error::Serialization(e.into()))?;
-                        client.stream.send(tokio_tungstenite::tungstenite::Message::Text(response_text)).await
+                        client
+                            .stream
+                            .send(tokio_tungstenite::tungstenite::Message::Text(response_text))
+                            .await
                             .map_err(|e| Error::WebSocket(e.to_string()))?;
                     }
                     ClientMessage::Ping { timestamp } => {
                         let pong = ServerMessage::Pong { timestamp };
                         let pong_text = serde_json::to_string(&pong)
                             .map_err(|e| Error::Serialization(e.into()))?;
-                        client.stream.send(tokio_tungstenite::tungstenite::Message::Text(pong_text)).await
+                        client
+                            .stream
+                            .send(tokio_tungstenite::tungstenite::Message::Text(pong_text))
+                            .await
                             .map_err(|e| Error::WebSocket(e.to_string()))?;
                     }
                     ClientMessage::Pong { .. } => {
@@ -380,17 +373,24 @@ impl RealtimeServer {
 
                         let response = ServerMessage::AuthenticationResult {
                             success,
-                            message: if success { "Authentication successful".to_string() } else { "Authentication failed".to_string() },
+                            message: if success {
+                                "Authentication successful".to_string()
+                            } else {
+                                "Authentication failed".to_string()
+                            },
                         };
                         let response_text = serde_json::to_string(&response)
                             .map_err(|e| Error::Serialization(e.into()))?;
-                        client.stream.send(tokio_tungstenite::tungstenite::Message::Text(response_text)).await
+                        client
+                            .stream
+                            .send(tokio_tungstenite::tungstenite::Message::Text(response_text))
+                            .await
                             .map_err(|e| Error::WebSocket(e.to_string()))?;
                     }
                     ClientMessage::GetDependency { dependency_id } => {
                         let graph_guard = graph.read().await;
                         let dependency = graph_guard.get_dependency_config(&dependency_id);
-                        
+
                         let response = ServerMessage::Response {
                             request_id: None,
                             data: if let Ok(config) = dependency {
@@ -404,13 +404,16 @@ impl RealtimeServer {
                         };
                         let response_text = serde_json::to_string(&response)
                             .map_err(|e| Error::Serialization(e.into()))?;
-                        client.stream.send(tokio_tungstenite::tungstenite::Message::Text(response_text)).await
+                        client
+                            .stream
+                            .send(tokio_tungstenite::tungstenite::Message::Text(response_text))
+                            .await
                             .map_err(|e| Error::WebSocket(e.to_string()))?;
                     }
                     ClientMessage::GetAllDependencies => {
                         let graph_guard = graph.read().await;
                         let dependencies = graph_guard.get_all_dependency_configs();
-                        
+
                         let response = ServerMessage::Response {
                             request_id: None,
                             data: serde_json::to_value(dependencies)
@@ -420,7 +423,10 @@ impl RealtimeServer {
                         };
                         let response_text = serde_json::to_string(&response)
                             .map_err(|e| Error::Serialization(e.into()))?;
-                        client.stream.send(tokio_tungstenite::tungstenite::Message::Text(response_text)).await
+                        client
+                            .stream
+                            .send(tokio_tungstenite::tungstenite::Message::Text(response_text))
+                            .await
                             .map_err(|e| Error::WebSocket(e.to_string()))?;
                     }
                     ClientMessage::GetHealthStatus { dependency_id } => {
@@ -433,7 +439,10 @@ impl RealtimeServer {
                         };
                         let response_text = serde_json::to_string(&response)
                             .map_err(|e| Error::Serialization(e.into()))?;
-                        client.stream.send(tokio_tungstenite::tungstenite::Message::Text(response_text)).await
+                        client
+                            .stream
+                            .send(tokio_tungstenite::tungstenite::Message::Text(response_text))
+                            .await
                             .map_err(|e| Error::WebSocket(e.to_string()))?;
                     }
                     ClientMessage::GetImpactAnalysis { dependency_id } => {
@@ -446,7 +455,10 @@ impl RealtimeServer {
                         };
                         let response_text = serde_json::to_string(&response)
                             .map_err(|e| Error::Serialization(e.into()))?;
-                        client.stream.send(tokio_tungstenite::tungstenite::Message::Text(response_text)).await
+                        client
+                            .stream
+                            .send(tokio_tungstenite::tungstenite::Message::Text(response_text))
+                            .await
                             .map_err(|e| Error::WebSocket(e.to_string()))?;
                     }
                 }
@@ -488,7 +500,9 @@ impl RealtimeServer {
                         RealtimeEvent::RelationshipAdded { .. } => "relationship_added",
                         RealtimeEvent::RelationshipRemoved { .. } => "relationship_removed",
                         RealtimeEvent::ImpactAnalysisUpdated { .. } => "impact_analysis_updated",
-                        RealtimeEvent::CircularDependencyDetected { .. } => "circular_dependency_detected",
+                        RealtimeEvent::CircularDependencyDetected { .. } => {
+                            "circular_dependency_detected"
+                        }
                         RealtimeEvent::HealthCheckFailed { .. } => "health_check_failed",
                         RealtimeEvent::AlertTriggered { .. } => "alert_triggered",
                         RealtimeEvent::SystemStatusUpdate { .. } => "system_status_update",
@@ -497,7 +511,13 @@ impl RealtimeServer {
                 };
 
                 if client.subscriptions.contains(&event_type.to_string()) {
-                    if let Err(e) = client.stream.send(tokio_tungstenite::tungstenite::Message::Text(event_text.clone())).await {
+                    if let Err(e) = client
+                        .stream
+                        .send(tokio_tungstenite::tungstenite::Message::Text(
+                            event_text.clone(),
+                        ))
+                        .await
+                    {
                         tracing::error!("Failed to send event to client {}: {}", client_id, e);
                         disconnected_clients.push(client_id.clone());
                     }
@@ -514,7 +534,9 @@ impl RealtimeServer {
 
     /// Broadcast event to all connected clients
     pub async fn broadcast_event(&self, event: RealtimeEvent) -> Result<()> {
-        self.event_sender.send(event).await
+        self.event_sender
+            .send(event)
+            .await
             .map_err(|e| Error::RealtimeCommunication(format!("Failed to send event: {}", e)))?;
         Ok(())
     }
@@ -527,7 +549,7 @@ impl RealtimeServer {
     /// Get server statistics
     pub async fn get_statistics(&self) -> RealtimeServerStatistics {
         let clients_count = self.get_connected_clients_count().await;
-        
+
         RealtimeServerStatistics {
             connected_clients: clients_count,
             server_address: format!("{}:{}", self.config.address, self.config.port),
@@ -597,7 +619,12 @@ mod tests {
         let deserialized: RealtimeEvent = serde_json::from_str(&serialized).unwrap();
 
         match deserialized {
-            RealtimeEvent::HealthStatusChanged { dependency_id, old_status, new_status, .. } => {
+            RealtimeEvent::HealthStatusChanged {
+                dependency_id,
+                old_status,
+                new_status,
+                ..
+            } => {
                 assert_eq!(dependency_id, "test-1");
                 assert_eq!(old_status, HealthStatus::Healthy);
                 assert_eq!(new_status, HealthStatus::Degraded);
@@ -609,7 +636,10 @@ mod tests {
     #[test]
     fn test_client_message_serialization() {
         let message = ClientMessage::Subscribe {
-            event_types: vec!["health_status_changed".to_string(), "dependency_added".to_string()],
+            event_types: vec![
+                "health_status_changed".to_string(),
+                "dependency_added".to_string(),
+            ],
         };
 
         let serialized = serde_json::to_string(&message).unwrap();
@@ -634,7 +664,8 @@ mod tests {
                 DependencyType::ApiCall,
                 "http://test.example.com".to_string(),
                 vec!["GET".to_string()],
-            ).unwrap(),
+            )
+            .unwrap(),
             timestamp: Utc::now(),
         };
 
@@ -644,15 +675,13 @@ mod tests {
         let deserialized: ServerMessage = serde_json::from_str(&serialized).unwrap();
 
         match deserialized {
-            ServerMessage::Event { event } => {
-                match event {
-                    RealtimeEvent::DependencyAdded { dependency, .. } => {
-                        assert_eq!(dependency.id, "test-1");
-                        assert_eq!(dependency.name, "Test Dependency");
-                    }
-                    _ => panic!("Unexpected event type"),
+            ServerMessage::Event { event } => match event {
+                RealtimeEvent::DependencyAdded { dependency, .. } => {
+                    assert_eq!(dependency.id, "test-1");
+                    assert_eq!(dependency.name, "Test Dependency");
                 }
-            }
+                _ => panic!("Unexpected event type"),
+            },
             _ => panic!("Unexpected message type"),
         }
     }
@@ -672,4 +701,4 @@ mod tests {
         assert!(!stats.enable_ssl);
         assert_eq!(stats.max_connections, 1000);
     }
-} 
+}

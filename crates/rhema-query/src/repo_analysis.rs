@@ -383,10 +383,8 @@ impl RepoAnalysis {
             serde_yaml::Value::String("build_tools".to_string()),
             serde_yaml::to_value(&self.build_tools)?,
         );
-        self.custom_fields.insert(
-            "tech_stack".to_string(),
-            serde_yaml::to_value(tech_stack)?,
-        );
+        self.custom_fields
+            .insert("tech_stack".to_string(), serde_yaml::to_value(tech_stack)?);
 
         Ok(())
     }
@@ -593,7 +591,10 @@ impl RepoAnalysis {
                                 let trimmed = line.trim();
                                 if trimmed.is_empty() {
                                     blank_lines += 1;
-                                } else if trimmed.starts_with("//") || trimmed.starts_with("#") || trimmed.starts_with("/*") {
+                                } else if trimmed.starts_with("//")
+                                    || trimmed.starts_with("#")
+                                    || trimmed.starts_with("/*")
+                                {
                                     comment_lines += 1;
                                 } else {
                                     code_lines += 1;
@@ -605,10 +606,22 @@ impl RepoAnalysis {
             }
         }
 
-        quality_metrics.insert("total_lines".to_string(), serde_yaml::Value::Number(total_lines.into()));
-        quality_metrics.insert("code_lines".to_string(), serde_yaml::Value::Number(code_lines.into()));
-        quality_metrics.insert("comment_lines".to_string(), serde_yaml::Value::Number(comment_lines.into()));
-        quality_metrics.insert("blank_lines".to_string(), serde_yaml::Value::Number(blank_lines.into()));
+        quality_metrics.insert(
+            "total_lines".to_string(),
+            serde_yaml::Value::Number(total_lines.into()),
+        );
+        quality_metrics.insert(
+            "code_lines".to_string(),
+            serde_yaml::Value::Number(code_lines.into()),
+        );
+        quality_metrics.insert(
+            "comment_lines".to_string(),
+            serde_yaml::Value::Number(comment_lines.into()),
+        );
+        quality_metrics.insert(
+            "blank_lines".to_string(),
+            serde_yaml::Value::Number(blank_lines.into()),
+        );
 
         // Calculate code quality ratios
         if total_lines > 0 {
@@ -616,12 +629,24 @@ impl RepoAnalysis {
             let blank_ratio = blank_lines as f64 / total_lines as f64;
             let code_ratio = code_lines as f64 / total_lines as f64;
 
-            quality_metrics.insert("comment_ratio".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(comment_ratio)));
-            quality_metrics.insert("blank_ratio".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(blank_ratio)));
-            quality_metrics.insert("code_ratio".to_string(), serde_yaml::Value::Number(serde_yaml::Number::from(code_ratio)));
+            quality_metrics.insert(
+                "comment_ratio".to_string(),
+                serde_yaml::Value::Number(serde_yaml::Number::from(comment_ratio)),
+            );
+            quality_metrics.insert(
+                "blank_ratio".to_string(),
+                serde_yaml::Value::Number(serde_yaml::Number::from(blank_ratio)),
+            );
+            quality_metrics.insert(
+                "code_ratio".to_string(),
+                serde_yaml::Value::Number(serde_yaml::Number::from(code_ratio)),
+            );
         }
 
-        self.custom_fields.insert("code_quality".to_string(), serde_yaml::to_value(quality_metrics)?);
+        self.custom_fields.insert(
+            "code_quality".to_string(),
+            serde_yaml::to_value(quality_metrics)?,
+        );
         Ok(())
     }
 
@@ -654,7 +679,11 @@ impl RepoAnalysis {
                             for (issue_type, pattern) in &security_patterns {
                                 if let Ok(regex) = regex::Regex::new(pattern) {
                                     if regex.is_match(&content) {
-                                        security_issues.push(format!("{}:{}", issue_type, path.display()));
+                                        security_issues.push(format!(
+                                            "{}:{}",
+                                            issue_type,
+                                            path.display()
+                                        ));
                                     }
                                 }
                             }
@@ -664,9 +693,15 @@ impl RepoAnalysis {
             }
         }
 
-        security_analysis.insert("security_issues".to_string(), serde_yaml::Value::Sequence(
-            security_issues.into_iter().map(|s| serde_yaml::Value::String(s)).collect()
-        ));
+        security_analysis.insert(
+            "security_issues".to_string(),
+            serde_yaml::Value::Sequence(
+                security_issues
+                    .into_iter()
+                    .map(|s| serde_yaml::Value::String(s))
+                    .collect(),
+            ),
+        );
 
         // Check for security configuration files
         let security_files = vec!["security.txt", ".security", "security.yml", "security.yaml"];
@@ -678,11 +713,20 @@ impl RepoAnalysis {
             }
         }
 
-        security_analysis.insert("security_files".to_string(), serde_yaml::Value::Sequence(
-            found_security_files.into_iter().map(|s| serde_yaml::Value::String(s)).collect()
-        ));
+        security_analysis.insert(
+            "security_files".to_string(),
+            serde_yaml::Value::Sequence(
+                found_security_files
+                    .into_iter()
+                    .map(|s| serde_yaml::Value::String(s))
+                    .collect(),
+            ),
+        );
 
-        self.custom_fields.insert("security_analysis".to_string(), serde_yaml::to_value(security_analysis)?);
+        self.custom_fields.insert(
+            "security_analysis".to_string(),
+            serde_yaml::to_value(security_analysis)?,
+        );
         Ok(())
     }
 }

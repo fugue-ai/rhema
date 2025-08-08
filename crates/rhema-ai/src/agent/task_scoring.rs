@@ -312,7 +312,8 @@ impl TaskScoringSystem {
         self.tasks.insert(task.id.clone(), task.clone());
 
         // Update dependencies graph
-        self.dependencies_graph.insert(task.id.clone(), task.dependencies.clone());
+        self.dependencies_graph
+            .insert(task.id.clone(), task.dependencies.clone());
 
         // Clear score cache for this task
         self.scores_cache.remove(&task.id);
@@ -331,7 +332,8 @@ impl TaskScoringSystem {
             if deps.contains(&task_id.to_string()) {
                 return Err(TaskScoringError::PrioritizationFailed(
                     "Cannot remove task that is depended upon".to_string(),
-                ).into());
+                )
+                .into());
             }
         }
 
@@ -349,15 +351,14 @@ impl TaskScoringSystem {
 
     /// Get all tasks for a scope
     pub fn get_scope_tasks(&self, scope: &str) -> Vec<&Task> {
-        self.tasks
-            .values()
-            .filter(|t| t.scope == scope)
-            .collect()
+        self.tasks.values().filter(|t| t.scope == scope).collect()
     }
 
     /// Calculate score for a task
     pub fn calculate_task_score(&mut self, task_id: &str) -> RhemaResult<TaskScore> {
-        let task = self.tasks.get(task_id)
+        let task = self
+            .tasks
+            .get(task_id)
             .ok_or_else(|| TaskScoringError::TaskNotFound(task_id.to_string()))?;
 
         // Check cache first
@@ -389,18 +390,17 @@ impl TaskScoringSystem {
         };
 
         // Calculate overall score using weighted average
-        let overall_score = (
-            business_value_score * self.weights.business_value_weight +
-            technical_debt_score * self.weights.technical_debt_weight +
-            user_impact_score * self.weights.user_impact_weight +
-            dependency_score * self.weights.dependency_weight +
-            effort_efficiency_score * self.weights.effort_efficiency_weight +
-            risk_adjusted_score * self.weights.risk_weight +
-            urgency_score * self.weights.urgency_weight +
-            team_capacity_score * self.weights.team_capacity_weight +
-            learning_value_score * self.weights.learning_value_weight +
-            strategic_alignment_score * self.weights.strategic_alignment_weight
-        ) / self.get_total_weight();
+        let overall_score = (business_value_score * self.weights.business_value_weight
+            + technical_debt_score * self.weights.technical_debt_weight
+            + user_impact_score * self.weights.user_impact_weight
+            + dependency_score * self.weights.dependency_weight
+            + effort_efficiency_score * self.weights.effort_efficiency_weight
+            + risk_adjusted_score * self.weights.risk_weight
+            + urgency_score * self.weights.urgency_weight
+            + team_capacity_score * self.weights.team_capacity_weight
+            + learning_value_score * self.weights.learning_value_weight
+            + strategic_alignment_score * self.weights.strategic_alignment_weight)
+            / self.get_total_weight();
 
         let score = TaskScore {
             task_id: task_id.to_string(),
@@ -434,7 +434,11 @@ impl TaskScoringSystem {
     ) -> RhemaResult<TaskPrioritization> {
         let start_time = std::time::Instant::now();
 
-        let scope_tasks: Vec<_> = self.get_scope_tasks(scope).iter().map(|t| t.id.clone()).collect();
+        let scope_tasks: Vec<_> = self
+            .get_scope_tasks(scope)
+            .iter()
+            .map(|t| t.id.clone())
+            .collect();
         let mut task_scores = Vec::new();
 
         // Calculate scores for all tasks
@@ -454,9 +458,7 @@ impl TaskScoringSystem {
             PrioritizationStrategy::TechnicalDebtFirst => {
                 self.prioritize_by_technical_debt(task_scores)
             }
-            PrioritizationStrategy::UserImpactFirst => {
-                self.prioritize_by_user_impact(task_scores)
-            }
+            PrioritizationStrategy::UserImpactFirst => self.prioritize_by_user_impact(task_scores),
             PrioritizationStrategy::RiskAdjustedReturn => {
                 self.prioritize_by_risk_adjusted_return(task_scores)
             }
@@ -466,9 +468,7 @@ impl TaskScoringSystem {
             PrioritizationStrategy::StrategicAlignment => {
                 self.prioritize_by_strategic_alignment(task_scores)
             }
-            PrioritizationStrategy::Custom(_) => {
-                self.prioritize_by_weighted_scoring(task_scores)
-            }
+            PrioritizationStrategy::Custom(_) => self.prioritize_by_weighted_scoring(task_scores),
         };
 
         let prioritization_time = start_time.elapsed().as_millis() as u64;
@@ -510,7 +510,8 @@ impl TaskScoringSystem {
         }
 
         // Higher score for tasks with high value and low effort
-        let value_per_hour = (factors.business_value + factors.user_impact) / factors.estimated_effort_hours;
+        let value_per_hour =
+            (factors.business_value + factors.user_impact) / factors.estimated_effort_hours;
         let max_value_per_hour = 2.0; // Assume 2.0 is maximum reasonable value per hour
 
         (value_per_hour / max_value_per_hour).min(1.0)
@@ -527,22 +528,25 @@ impl TaskScoringSystem {
 
     /// Get total weight for normalization
     fn get_total_weight(&self) -> f64 {
-        self.weights.business_value_weight +
-        self.weights.technical_debt_weight +
-        self.weights.user_impact_weight +
-        self.weights.dependency_weight +
-        self.weights.effort_efficiency_weight +
-        self.weights.risk_weight +
-        self.weights.urgency_weight +
-        self.weights.team_capacity_weight +
-        self.weights.learning_value_weight +
-        self.weights.strategic_alignment_weight
+        self.weights.business_value_weight
+            + self.weights.technical_debt_weight
+            + self.weights.user_impact_weight
+            + self.weights.dependency_weight
+            + self.weights.effort_efficiency_weight
+            + self.weights.risk_weight
+            + self.weights.urgency_weight
+            + self.weights.team_capacity_weight
+            + self.weights.learning_value_weight
+            + self.weights.strategic_alignment_weight
     }
 
     /// Generate score explanation
     fn generate_score_explanation(&self, task: &Task, overall_score: &f64) -> String {
         let factors = &task.scoring_factors;
-        let mut explanation = format!("Task '{}' scored {:.2} overall. ", task.title, overall_score);
+        let mut explanation = format!(
+            "Task '{}' scored {:.2} overall. ",
+            task.title, overall_score
+        );
 
         if factors.business_value > 0.7 {
             explanation.push_str("High business value. ");
@@ -575,37 +579,64 @@ impl TaskScoringSystem {
 
     /// Prioritize by business value
     fn prioritize_by_business_value(&self, mut task_scores: Vec<TaskScore>) -> Vec<TaskScore> {
-        task_scores.sort_by(|a, b| b.business_value_score.partial_cmp(&a.business_value_score).unwrap());
+        task_scores.sort_by(|a, b| {
+            b.business_value_score
+                .partial_cmp(&a.business_value_score)
+                .unwrap()
+        });
         task_scores
     }
 
     /// Prioritize by technical debt
     fn prioritize_by_technical_debt(&self, mut task_scores: Vec<TaskScore>) -> Vec<TaskScore> {
-        task_scores.sort_by(|a, b| b.technical_debt_score.partial_cmp(&a.technical_debt_score).unwrap());
+        task_scores.sort_by(|a, b| {
+            b.technical_debt_score
+                .partial_cmp(&a.technical_debt_score)
+                .unwrap()
+        });
         task_scores
     }
 
     /// Prioritize by user impact
     fn prioritize_by_user_impact(&self, mut task_scores: Vec<TaskScore>) -> Vec<TaskScore> {
-        task_scores.sort_by(|a, b| b.user_impact_score.partial_cmp(&a.user_impact_score).unwrap());
+        task_scores.sort_by(|a, b| {
+            b.user_impact_score
+                .partial_cmp(&a.user_impact_score)
+                .unwrap()
+        });
         task_scores
     }
 
     /// Prioritize by risk-adjusted return
-    fn prioritize_by_risk_adjusted_return(&self, mut task_scores: Vec<TaskScore>) -> Vec<TaskScore> {
-        task_scores.sort_by(|a, b| b.risk_adjusted_score.partial_cmp(&a.risk_adjusted_score).unwrap());
+    fn prioritize_by_risk_adjusted_return(
+        &self,
+        mut task_scores: Vec<TaskScore>,
+    ) -> Vec<TaskScore> {
+        task_scores.sort_by(|a, b| {
+            b.risk_adjusted_score
+                .partial_cmp(&a.risk_adjusted_score)
+                .unwrap()
+        });
         task_scores
     }
 
     /// Prioritize by effort efficiency
     fn prioritize_by_effort_efficiency(&self, mut task_scores: Vec<TaskScore>) -> Vec<TaskScore> {
-        task_scores.sort_by(|a, b| b.effort_efficiency_score.partial_cmp(&a.effort_efficiency_score).unwrap());
+        task_scores.sort_by(|a, b| {
+            b.effort_efficiency_score
+                .partial_cmp(&a.effort_efficiency_score)
+                .unwrap()
+        });
         task_scores
     }
 
     /// Prioritize by strategic alignment
     fn prioritize_by_strategic_alignment(&self, mut task_scores: Vec<TaskScore>) -> Vec<TaskScore> {
-        task_scores.sort_by(|a, b| b.strategic_alignment_score.partial_cmp(&a.strategic_alignment_score).unwrap());
+        task_scores.sort_by(|a, b| {
+            b.strategic_alignment_score
+                .partial_cmp(&a.strategic_alignment_score)
+                .unwrap()
+        });
         task_scores
     }
 
@@ -635,7 +666,9 @@ impl TaskScoringSystem {
             } else {
                 "Low (0.0-0.2)"
             };
-            *score_distribution.entry(score_range.to_string()).or_insert(0) += 1;
+            *score_distribution
+                .entry(score_range.to_string())
+                .or_insert(0) += 1;
         }
 
         PrioritizationStats {
@@ -657,26 +690,35 @@ impl TaskScoringSystem {
         }
 
         // Always provide a general recommendation
-        recommendations.push("Review task priorities regularly and adjust based on changing requirements".to_string());
+        recommendations.push(
+            "Review task priorities regularly and adjust based on changing requirements"
+                .to_string(),
+        );
 
         // Analyze top tasks
         let top_tasks: Vec<_> = tasks.iter().take(3).collect();
         let avg_score = tasks.iter().map(|t| t.overall_score).sum::<f64>() / tasks.len() as f64;
 
         if avg_score < 0.5 {
-            recommendations.push("Consider reviewing task scoring factors - average score is low".to_string());
+            recommendations
+                .push("Consider reviewing task scoring factors - average score is low".to_string());
         }
 
         if top_tasks.iter().any(|t| t.business_value_score > 0.8) {
-            recommendations.push("High business value tasks identified - consider fast-tracking".to_string());
+            recommendations
+                .push("High business value tasks identified - consider fast-tracking".to_string());
         }
 
         if top_tasks.iter().any(|t| t.technical_debt_score > 0.8) {
-            recommendations.push("High technical debt impact tasks - consider addressing technical debt".to_string());
+            recommendations.push(
+                "High technical debt impact tasks - consider addressing technical debt".to_string(),
+            );
         }
 
         if top_tasks.iter().any(|t| t.risk_adjusted_score < 0.3) {
-            recommendations.push("High-risk tasks identified - consider risk mitigation strategies".to_string());
+            recommendations.push(
+                "High-risk tasks identified - consider risk mitigation strategies".to_string(),
+            );
         }
 
         recommendations
@@ -687,40 +729,46 @@ impl TaskScoringSystem {
         if task.id.is_empty() {
             return Err(TaskScoringError::InvalidScoringFactors(
                 "Task ID cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if task.title.is_empty() {
             return Err(TaskScoringError::InvalidScoringFactors(
                 "Task title cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if task.scope.is_empty() {
             return Err(TaskScoringError::InvalidScoringFactors(
                 "Task scope cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         // Validate scoring factors
         let factors = &task.scoring_factors;
-        if !(0.0..=1.0).contains(&factors.business_value) ||
-           !(0.0..=1.0).contains(&factors.technical_debt_impact) ||
-           !(0.0..=1.0).contains(&factors.user_impact) ||
-           !(0.0..=1.0).contains(&factors.risk_level) ||
-           !(0.0..=1.0).contains(&factors.urgency) ||
-           !(0.0..=1.0).contains(&factors.team_capacity_impact) ||
-           !(0.0..=1.0).contains(&factors.learning_value) ||
-           !(0.0..=1.0).contains(&factors.strategic_alignment) {
+        if !(0.0..=1.0).contains(&factors.business_value)
+            || !(0.0..=1.0).contains(&factors.technical_debt_impact)
+            || !(0.0..=1.0).contains(&factors.user_impact)
+            || !(0.0..=1.0).contains(&factors.risk_level)
+            || !(0.0..=1.0).contains(&factors.urgency)
+            || !(0.0..=1.0).contains(&factors.team_capacity_impact)
+            || !(0.0..=1.0).contains(&factors.learning_value)
+            || !(0.0..=1.0).contains(&factors.strategic_alignment)
+        {
             return Err(TaskScoringError::InvalidScoringFactors(
                 "Scoring factors must be between 0.0 and 1.0".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if factors.estimated_effort_hours < 0.0 {
             return Err(TaskScoringError::InvalidScoringFactors(
                 "Estimated effort cannot be negative".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         Ok(())
@@ -774,7 +822,7 @@ mod tests {
     #[test]
     fn test_add_task() {
         let mut system = TaskScoringSystem::new();
-        
+
         let task = Task {
             id: "test-task".to_string(),
             title: "Test Task".to_string(),
@@ -815,7 +863,7 @@ mod tests {
     #[tokio::test]
     async fn test_calculate_task_score() {
         let mut system = TaskScoringSystem::new();
-        
+
         let task = Task {
             id: "test-task".to_string(),
             title: "Test Task".to_string(),
@@ -851,7 +899,7 @@ mod tests {
 
         system.add_task(task).unwrap();
         let score = system.calculate_task_score("test-task").unwrap();
-        
+
         assert!(score.overall_score > 0.0);
         assert!(score.overall_score <= 1.0);
         assert_eq!(score.task_id, "test-task");
@@ -860,7 +908,7 @@ mod tests {
     #[tokio::test]
     async fn test_prioritize_tasks() {
         let mut system = TaskScoringSystem::new();
-        
+
         // Add multiple tasks
         for i in 0..3 {
             let task = Task {
@@ -898,11 +946,16 @@ mod tests {
             system.add_task(task).unwrap();
         }
 
-        let prioritization = system.prioritize_tasks("test-scope", PrioritizationStrategy::WeightedScoring).unwrap();
-        
+        let prioritization = system
+            .prioritize_tasks("test-scope", PrioritizationStrategy::WeightedScoring)
+            .unwrap();
+
         assert_eq!(prioritization.prioritized_tasks.len(), 3);
         assert!(prioritization.stats.total_tasks == 3);
         // Recommendations should be generated for any prioritization
-        assert!(!prioritization.recommendations.is_empty(), "Expected recommendations to be generated");
+        assert!(
+            !prioritization.recommendations.is_empty(),
+            "Expected recommendations to be generated"
+        );
     }
-} 
+}

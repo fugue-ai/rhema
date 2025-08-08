@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+use rhema_api::Rhema;
 use rhema_core::{
     schema::{
         ConceptDefinition, CqlExample, IntegrationGuide, PatternDefinition, ProtocolInfo,
@@ -21,7 +22,6 @@ use rhema_core::{
     },
     RhemaResult, Validatable,
 };
-use rhema_api::Rhema;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
@@ -31,40 +31,40 @@ use std::collections::HashMap;
 // Mock implementations for commands module
 mod commands {
     use super::*;
-    
+
     pub mod export_context {
         use super::*;
         pub fn run(_rhema: &Rhema, _scope_path: &str, _output_path: &str) -> RhemaResult<()> {
             Ok(())
         }
     }
-    
+
     pub mod primer {
         use super::*;
         pub fn run(_rhema: &Rhema, _scope_path: &str, _output_path: &str) -> RhemaResult<()> {
             Ok(())
         }
     }
-    
+
     pub mod generate_readme {
         use super::*;
         pub fn run(
-            _rhema: &Rhema, 
-            _scope_name: Option<&str>, 
+            _rhema: &Rhema,
+            _scope_name: Option<&str>,
             _output_path: Option<&str>,
             _scope_type: Option<&str>,
             _include_context: bool,
             _seo_optimized: bool,
-            _custom_sections: Option<Vec<String>>
+            _custom_sections: Option<Vec<String>>,
         ) -> RhemaResult<()> {
             Ok(())
         }
     }
-    
+
     pub mod bootstrap_context {
         use super::*;
         pub fn run(
-            _rhema: &Rhema, 
+            _rhema: &Rhema,
             _use_case: &str,
             _format: &str,
             _output_dir: Option<&str>,
@@ -72,12 +72,12 @@ mod commands {
             _include_all: bool,
             _optimize_for_ai: bool,
             _create_primer: bool,
-            _create_readme: bool
+            _create_readme: bool,
         ) -> RhemaResult<()> {
             Ok(())
         }
     }
-    
+
     pub mod migrate {
         use super::*;
         pub fn run(_rhema: &Rhema, _dry_run: bool, _force: bool) -> RhemaResult<()> {
@@ -181,11 +181,7 @@ fn test_export_context_functionality() -> RhemaResult<()> {
 
     // Test export context
     let output_file = temp_dir.path().join("export.json");
-    commands::export_context::run(
-        &rhema,
-        scope_name,
-        output_file.to_str().unwrap(),
-    )?;
+    commands::export_context::run(&rhema, scope_name, output_file.to_str().unwrap())?;
 
     // Verify export file was created
     assert!(output_file.exists());
@@ -222,11 +218,7 @@ fn test_primer_generation() -> RhemaResult<()> {
 
     // Test primer generation
     let primer_dir = temp_dir.path().join("primer");
-    commands::primer::run(
-        &rhema,
-        scope_name,
-        primer_dir.to_str().unwrap(),
-    )?;
+    commands::primer::run(&rhema, scope_name, primer_dir.to_str().unwrap())?;
 
     // Verify primer files were created
     let scope_primer_dir = primer_dir.join(scope_name);

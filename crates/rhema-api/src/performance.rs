@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
 /// Performance metrics for operations
@@ -26,31 +26,31 @@ use tracing::{info, instrument};
 pub struct PerformanceMetrics {
     /// Operation name
     pub operation_name: String,
-    
+
     /// Execution time in milliseconds
     pub execution_time_ms: u64,
-    
+
     /// Memory usage in bytes
     pub memory_usage_bytes: Option<usize>,
-    
+
     /// CPU usage percentage
     pub cpu_usage_percent: Option<f64>,
-    
+
     /// Number of files processed
     pub files_processed: Option<usize>,
-    
+
     /// Cache hit rate
     pub cache_hit_rate: Option<f64>,
-    
+
     /// Error count
     pub error_count: u32,
-    
+
     /// Success count
     pub success_count: u32,
-    
+
     /// Additional custom metrics
     pub custom_metrics: HashMap<String, serde_yaml::Value>,
-    
+
     /// Timestamp when metrics were recorded
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -102,7 +102,10 @@ impl PerformanceMonitor {
             operation_metrics.remove(0);
         }
 
-        info!("Recorded performance metrics for operation: {}", operation_name);
+        info!(
+            "Recorded performance metrics for operation: {}",
+            operation_name
+        );
     }
 
     /// Get performance metrics for an operation
@@ -147,8 +150,12 @@ impl PerformanceMonitor {
 
         for metric in &metrics {
             total_execution_time += metric.execution_time_ms;
-            aggregated.min_execution_time_ms = aggregated.min_execution_time_ms.min(metric.execution_time_ms);
-            aggregated.max_execution_time_ms = aggregated.max_execution_time_ms.max(metric.execution_time_ms);
+            aggregated.min_execution_time_ms = aggregated
+                .min_execution_time_ms
+                .min(metric.execution_time_ms);
+            aggregated.max_execution_time_ms = aggregated
+                .max_execution_time_ms
+                .max(metric.execution_time_ms);
             aggregated.total_errors += metric.error_count;
             aggregated.total_successes += metric.success_count;
 
@@ -174,15 +181,15 @@ impl PerformanceMonitor {
         }
 
         aggregated.avg_execution_time_ms = total_execution_time as f64 / metrics.len() as f64;
-        
+
         if memory_count > 0 {
             aggregated.avg_memory_usage_bytes = Some(total_memory_usage / memory_count);
         }
-        
+
         if cpu_count > 0 {
             aggregated.avg_cpu_usage_percent = Some(total_cpu_usage / cpu_count as f64);
         }
-        
+
         if cache_count > 0 {
             aggregated.avg_cache_hit_rate = Some(total_cache_hit_rate / cache_count as f64);
         }
@@ -215,7 +222,11 @@ impl PerformanceMonitor {
 
     /// Check if performance is within acceptable limits
     #[instrument(skip_all)]
-    pub async fn check_performance_limits(&self, operation_name: &str, limits: &PerformanceLimits) -> PerformanceCheckResult {
+    pub async fn check_performance_limits(
+        &self,
+        operation_name: &str,
+        limits: &PerformanceLimits,
+    ) -> PerformanceCheckResult {
         if let Some(aggregated) = self.get_aggregated_metrics(operation_name).await {
             let mut violations = Vec::new();
 
@@ -286,34 +297,34 @@ impl PerformanceMonitor {
 pub struct AggregatedMetrics {
     /// Operation name
     pub operation_name: String,
-    
+
     /// Total number of executions
     pub total_executions: usize,
-    
+
     /// Average execution time in milliseconds
     pub avg_execution_time_ms: f64,
-    
+
     /// Minimum execution time in milliseconds
     pub min_execution_time_ms: u64,
-    
+
     /// Maximum execution time in milliseconds
     pub max_execution_time_ms: u64,
-    
+
     /// Total number of errors
     pub total_errors: u32,
-    
+
     /// Total number of successes
     pub total_successes: u32,
-    
+
     /// Average memory usage in bytes
     pub avg_memory_usage_bytes: Option<usize>,
-    
+
     /// Average CPU usage percentage
     pub avg_cpu_usage_percent: Option<f64>,
-    
+
     /// Average cache hit rate
     pub avg_cache_hit_rate: Option<f64>,
-    
+
     /// Custom metrics
     pub custom_metrics: HashMap<String, serde_yaml::Value>,
 }
@@ -341,16 +352,16 @@ impl Default for AggregatedMetrics {
 pub struct PerformanceLimits {
     /// Maximum average execution time in milliseconds
     pub max_avg_execution_time_ms: u64,
-    
+
     /// Maximum execution time in milliseconds
     pub max_execution_time_ms: u64,
-    
+
     /// Maximum memory usage in bytes
     pub max_memory_usage_bytes: usize,
-    
+
     /// Maximum CPU usage percentage
     pub max_cpu_usage_percent: f64,
-    
+
     /// Maximum error rate (0.0 to 1.0)
     pub max_error_rate: f64,
 }
@@ -358,8 +369,8 @@ pub struct PerformanceLimits {
 impl Default for PerformanceLimits {
     fn default() -> Self {
         Self {
-            max_avg_execution_time_ms: 1000, // 1 second
-            max_execution_time_ms: 5000,     // 5 seconds
+            max_avg_execution_time_ms: 1000,           // 1 second
+            max_execution_time_ms: 5000,               // 5 seconds
             max_memory_usage_bytes: 100 * 1024 * 1024, // 100 MB
             max_cpu_usage_percent: 80.0,
             max_error_rate: 0.1, // 10%
@@ -372,13 +383,13 @@ impl Default for PerformanceLimits {
 pub struct PerformanceCheckResult {
     /// Operation name
     pub operation_name: String,
-    
+
     /// Whether performance is within limits
     pub passed: bool,
-    
+
     /// List of violations
     pub violations: Vec<String>,
-    
+
     /// Aggregated metrics
     pub metrics: AggregatedMetrics,
 }
@@ -451,7 +462,7 @@ impl ResourceManager {
     pub fn new() -> Self {
         Self {
             memory_limit: 100 * 1024 * 1024, // 100 MB
-            cpu_limit: 80.0,                  // 80%
+            cpu_limit: 80.0,                 // 80%
             connection_pool_size: 10,
             cache_size: 1000,
         }
@@ -477,7 +488,7 @@ impl ResourceManager {
         // This is a simplified implementation
         // In a real implementation, you would measure actual system resources
         ResourceUsageStatus {
-            memory_usage_bytes: 0, // Placeholder
+            memory_usage_bytes: 0,  // Placeholder
             cpu_usage_percent: 0.0, // Placeholder
             within_limits: true,
             warnings: Vec::new(),
@@ -504,13 +515,13 @@ impl ResourceManager {
 pub struct ResourceUsageStatus {
     /// Current memory usage in bytes
     pub memory_usage_bytes: usize,
-    
+
     /// Current CPU usage percentage
     pub cpu_usage_percent: f64,
-    
+
     /// Whether usage is within limits
     pub within_limits: bool,
-    
+
     /// List of warnings
     pub warnings: Vec<String>,
 }
@@ -539,4 +550,4 @@ impl PerformanceOptimizer {
         // In a real implementation, you would optimize data structures
         data.clone()
     }
-} 
+}

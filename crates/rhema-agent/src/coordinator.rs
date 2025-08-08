@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-use crate::agent::{AgentId, AgentState, AgentType, AgentCapability};
+use crate::agent::{AgentCapability, AgentId, AgentState, AgentType};
 use crate::error::{AgentError, AgentResult};
 use crate::registry::AgentRegistry;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 /// Coordination policy for agent interactions
@@ -174,7 +174,10 @@ impl CoordinationSession {
     }
 
     pub fn is_active(&self) -> bool {
-        matches!(self.status, CoordinationStatus::Pending | CoordinationStatus::InProgress)
+        matches!(
+            self.status,
+            CoordinationStatus::Pending | CoordinationStatus::InProgress
+        )
     }
 
     pub fn is_completed(&self) -> bool {
@@ -182,7 +185,10 @@ impl CoordinationSession {
     }
 
     pub fn is_failed(&self) -> bool {
-        matches!(self.status, CoordinationStatus::Failed | CoordinationStatus::Cancelled)
+        matches!(
+            self.status,
+            CoordinationStatus::Failed | CoordinationStatus::Cancelled
+        )
     }
 }
 
@@ -243,7 +249,7 @@ impl AgentCoordinator {
     pub async fn initialize(&self) -> AgentResult<()> {
         // Start session monitoring
         self.start_session_monitoring().await;
-        
+
         Ok(())
     }
 
@@ -252,7 +258,7 @@ impl AgentCoordinator {
         // For now, just log the registration
         // In a full implementation, this would update coordination state
         tracing::debug!("Agent {} registered with coordinator", agent_id);
-        
+
         Ok(())
     }
 
@@ -260,7 +266,7 @@ impl AgentCoordinator {
     pub async fn agent_started(&self, agent_id: &AgentId) -> AgentResult<()> {
         // Update any sessions that include this agent
         let mut sessions = self.sessions.write().await;
-        
+
         for session in sessions.values_mut() {
             if session.participants.contains(agent_id) {
                 // Check if all participants are now ready
@@ -269,7 +275,7 @@ impl AgentCoordinator {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -277,17 +283,17 @@ impl AgentCoordinator {
     pub async fn agent_stopped(&self, agent_id: &AgentId) -> AgentResult<()> {
         // Update any sessions that include this agent
         let mut sessions = self.sessions.write().await;
-        
+
         for session in sessions.values_mut() {
             if session.participants.contains(agent_id) && session.is_active() {
                 session.status = CoordinationStatus::Failed;
                 session.end_time = Some(Utc::now());
             }
         }
-        
+
         // Update statistics
         self.update_stats().await;
-        
+
         Ok(())
     }
 
@@ -306,7 +312,7 @@ impl AgentCoordinator {
                 });
             }
         }
-        
+
         // Check session limits
         let sessions = self.sessions.read().await;
         if sessions.len() >= self.policy.max_sessions {
@@ -314,28 +320,28 @@ impl AgentCoordinator {
                 reason: "Maximum number of coordination sessions reached".to_string(),
             });
         }
-        
+
         // Create session
         let session_policy = policy.unwrap_or_else(|| self.policy.clone());
         let session = CoordinationSession::new(topic, participants, session_policy);
         let session_id = session.session_id.clone();
-        
+
         // Add session
         {
             let mut sessions = self.sessions.write().await;
             sessions.insert(session_id.clone(), session);
         }
-        
+
         // Update statistics
         self.update_stats().await;
-        
+
         Ok(session_id)
     }
 
     /// Get coordination session
     pub async fn get_session(&self, session_id: &str) -> AgentResult<CoordinationSession> {
         let sessions = self.sessions.read().await;
-        
+
         sessions
             .get(session_id)
             .cloned()
@@ -351,17 +357,17 @@ impl AgentCoordinator {
         status: CoordinationStatus,
     ) -> AgentResult<()> {
         let mut sessions = self.sessions.write().await;
-        
+
         if let Some(session) = sessions.get_mut(session_id) {
             session.status = status;
-            
+
             if session.is_completed() || session.is_failed() {
                 session.end_time = Some(Utc::now());
             }
-            
+
             // Update statistics
             self.update_stats().await;
-            
+
             Ok(())
         } else {
             Err(AgentError::CoordinationFailed {
@@ -378,7 +384,7 @@ impl AgentCoordinator {
         value: serde_json::Value,
     ) -> AgentResult<()> {
         let mut sessions = self.sessions.write().await;
-        
+
         if let Some(session) = sessions.get_mut(session_id) {
             session.add_data(key, value);
             Ok(())
@@ -390,9 +396,13 @@ impl AgentCoordinator {
     }
 
     /// Get session data
-    pub async fn get_session_data(&self, session_id: &str, key: &str) -> AgentResult<Option<serde_json::Value>> {
+    pub async fn get_session_data(
+        &self,
+        session_id: &str,
+        key: &str,
+    ) -> AgentResult<Option<serde_json::Value>> {
         let sessions = self.sessions.read().await;
-        
+
         if let Some(session) = sessions.get(session_id) {
             Ok(session.get_data(key).cloned())
         } else {
@@ -404,13 +414,14 @@ impl AgentCoordinator {
 
     /// Cancel coordination session
     pub async fn cancel_session(&self, session_id: &str) -> AgentResult<()> {
-        self.update_session_status(session_id, CoordinationStatus::Cancelled).await
+        self.update_session_status(session_id, CoordinationStatus::Cancelled)
+            .await
     }
 
     /// Get all active sessions
     pub async fn get_active_sessions(&self) -> Vec<CoordinationSession> {
         let sessions = self.sessions.read().await;
-        
+
         sessions
             .values()
             .filter(|session| session.is_active())
@@ -421,7 +432,7 @@ impl AgentCoordinator {
     /// Get sessions for an agent
     pub async fn get_agent_sessions(&self, agent_id: &AgentId) -> Vec<CoordinationSession> {
         let sessions = self.sessions.read().await;
-        
+
         sessions
             .values()
             .filter(|session| session.participants.contains(agent_id))
@@ -454,17 +465,17 @@ impl AgentCoordinator {
         let sessions = self.sessions.clone();
         let stats = self.stats.clone();
         let timeout = self.policy.session_timeout;
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
-            
+
             loop {
                 interval.tick().await;
-                
+
                 let now = Utc::now();
                 let mut sessions_guard = sessions.write().await;
                 let mut updated = false;
-                
+
                 // Check for timed out sessions
                 for session in sessions_guard.values_mut() {
                     if session.is_active() {
@@ -476,13 +487,16 @@ impl AgentCoordinator {
                         }
                     }
                 }
-                
+
                 if updated {
                     // Update statistics
                     let mut stats_guard = stats.write().await;
-                    stats_guard.active_sessions = sessions_guard.values().filter(|s| s.is_active()).count();
-                    stats_guard.failed_sessions = sessions_guard.values().filter(|s| s.is_failed()).count();
-                    stats_guard.completed_sessions = sessions_guard.values().filter(|s| s.is_completed()).count();
+                    stats_guard.active_sessions =
+                        sessions_guard.values().filter(|s| s.is_active()).count();
+                    stats_guard.failed_sessions =
+                        sessions_guard.values().filter(|s| s.is_failed()).count();
+                    stats_guard.completed_sessions =
+                        sessions_guard.values().filter(|s| s.is_completed()).count();
                     stats_guard.last_update = now;
                 }
             }
@@ -508,13 +522,13 @@ impl AgentCoordinator {
     async fn update_stats(&self) {
         let sessions = self.sessions.read().await;
         let mut stats = self.stats.write().await;
-        
+
         stats.total_sessions = sessions.len();
         stats.active_sessions = sessions.values().filter(|s| s.is_active()).count();
         stats.completed_sessions = sessions.values().filter(|s| s.is_completed()).count();
         stats.failed_sessions = sessions.values().filter(|s| s.is_failed()).count();
         stats.last_update = Utc::now();
-        
+
         // Calculate average session duration
         let completed_sessions: Vec<_> = sessions.values().filter(|s| s.is_completed()).collect();
         if !completed_sessions.is_empty() {
@@ -536,14 +550,14 @@ impl AgentCoordinator {
                 session.end_time = Some(Utc::now());
             }
         }
-        
+
         // Clear all sessions
         sessions.clear();
-        
+
         // Reset statistics
         let mut stats = self.stats.write().await;
         *stats = CoordinationStats::default();
-        
+
         Ok(())
     }
 }
@@ -551,7 +565,7 @@ impl AgentCoordinator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::{BaseAgent, AgentConfig, AgentType, AgentCapability};
+    use crate::agent::{AgentCapability, AgentConfig, AgentType, BaseAgent};
 
     #[tokio::test]
     async fn test_coordinator_creation() {
@@ -563,14 +577,13 @@ mod tests {
     async fn test_session_creation() {
         let coordinator = AgentCoordinator::new();
         coordinator.initialize().await.unwrap();
-        
+
         let participants = vec!["agent1".to_string(), "agent2".to_string()];
-        let session_id = coordinator.create_session(
-            "test-topic".to_string(),
-            participants,
-            None,
-        ).await.unwrap();
-        
+        let session_id = coordinator
+            .create_session("test-topic".to_string(), participants, None)
+            .await
+            .unwrap();
+
         assert!(!session_id.is_empty());
         assert_eq!(coordinator.get_session_count().await, 1);
     }
@@ -579,16 +592,18 @@ mod tests {
     async fn test_session_status_update() {
         let coordinator = AgentCoordinator::new();
         coordinator.initialize().await.unwrap();
-        
+
         let participants = vec!["agent1".to_string(), "agent2".to_string()];
-        let session_id = coordinator.create_session(
-            "test-topic".to_string(),
-            participants,
-            None,
-        ).await.unwrap();
-        
-        assert!(coordinator.update_session_status(&session_id, CoordinationStatus::InProgress).await.is_ok());
-        
+        let session_id = coordinator
+            .create_session("test-topic".to_string(), participants, None)
+            .await
+            .unwrap();
+
+        assert!(coordinator
+            .update_session_status(&session_id, CoordinationStatus::InProgress)
+            .await
+            .is_ok());
+
         let session = coordinator.get_session(&session_id).await.unwrap();
         assert_eq!(session.status, CoordinationStatus::InProgress);
     }
@@ -606,4 +621,4 @@ mod tests {
         assert_eq!(CoordinationStrategy::RoundRobin.to_string(), "RoundRobin");
         assert_eq!(CoordinationStrategy::LoadBased.to_string(), "LoadBased");
     }
-} 
+}

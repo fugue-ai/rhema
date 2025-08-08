@@ -1,13 +1,11 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
 use thiserror::Error;
+use tokio::sync::RwLock;
 
-use super::{
-    PatternContext, PatternError, PatternState, ValidationResult
-};
+use super::{PatternContext, PatternError, PatternState, ValidationResult};
 
 /// Recovery strategy for pattern execution failures
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -222,25 +220,25 @@ pub struct ResourceStateSnapshot {
 pub enum RecoveryError {
     #[error("Checkpoint not found: {0}")]
     CheckpointNotFound(String),
-    
+
     #[error("Rollback failed: {0}")]
     RollbackFailed(String),
-    
+
     #[error("Recovery strategy not supported: {0}")]
     UnsupportedStrategy(String),
-    
+
     #[error("Recovery timeout: {0}")]
     RecoveryTimeout(String),
-    
+
     #[error("Resource restoration failed: {0}")]
     ResourceRestorationFailed(String),
-    
+
     #[error("Agent state restoration failed: {0}")]
     AgentStateRestorationFailed(String),
-    
+
     #[error("Checkpoint creation failed: {0}")]
     CheckpointCreationFailed(String),
-    
+
     #[error("Recovery validation failed: {0}")]
     RecoveryValidationFailed(String),
 }
@@ -269,18 +267,21 @@ impl PatternRecoveryManager {
         metadata: Option<HashMap<String, String>>,
     ) -> Result<String, RecoveryError> {
         let checkpoint_id = format!("{}_{}", pattern_id, Utc::now().timestamp_millis());
-        
+
         // Create agent state snapshots
         let mut agent_states = HashMap::new();
         for agent in &context.agents {
-            agent_states.insert(agent.id.clone(), AgentStateSnapshot {
-                agent_id: agent.id.clone(),
-                status: agent.status.clone(),
-                current_workload: agent.current_workload,
-                assigned_tasks: agent.assigned_tasks.clone(),
-                performance_metrics: agent.performance_metrics.clone(),
-                agent_data: HashMap::new(), // Could be extended with agent-specific data
-            });
+            agent_states.insert(
+                agent.id.clone(),
+                AgentStateSnapshot {
+                    agent_id: agent.id.clone(),
+                    status: agent.status.clone(),
+                    current_workload: agent.current_workload,
+                    assigned_tasks: agent.assigned_tasks.clone(),
+                    performance_metrics: agent.performance_metrics.clone(),
+                    agent_data: HashMap::new(), // Could be extended with agent-specific data
+                },
+            );
         }
 
         // Create resource state snapshot
@@ -319,7 +320,8 @@ impl PatternRecoveryManager {
     ) -> Result<(), RecoveryError> {
         let checkpoint = {
             let checkpoints = self.checkpoints.read().await;
-            checkpoints.get(checkpoint_id)
+            checkpoints
+                .get(checkpoint_id)
                 .ok_or_else(|| RecoveryError::CheckpointNotFound(checkpoint_id.to_string()))?
                 .clone()
         };
@@ -356,7 +358,7 @@ impl PatternRecoveryManager {
         error: &PatternError,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let start_time = std::time::Instant::now();
-        
+
         let result = match strategy {
             EnhancedRecoveryStrategy::IntelligentRetry {
                 max_attempts,
@@ -376,9 +378,10 @@ impl PatternRecoveryManager {
                     *circuit_breaker_timeout_ms,
                     context,
                     error,
-                ).await
+                )
+                .await
             }
-            
+
             EnhancedRecoveryStrategy::PartialRollback {
                 checkpoint_id,
                 rollback_steps,
@@ -393,9 +396,10 @@ impl PatternRecoveryManager {
                     *restore_resources,
                     *restore_agent_states,
                     context,
-                ).await
+                )
+                .await
             }
-            
+
             EnhancedRecoveryStrategy::GracefulDegradation {
                 primary_pattern_id,
                 fallback_patterns,
@@ -409,9 +413,10 @@ impl PatternRecoveryManager {
                     *preserve_context,
                     context,
                     error,
-                ).await
+                )
+                .await
             }
-            
+
             EnhancedRecoveryStrategy::StateReconstruction {
                 checkpoint_ids,
                 reconstruction_strategy,
@@ -422,9 +427,10 @@ impl PatternRecoveryManager {
                     reconstruction_strategy,
                     *validate_reconstructed_state,
                     context,
-                ).await
+                )
+                .await
             }
-            
+
             EnhancedRecoveryStrategy::ResourceAwareRecovery {
                 resource_constraints,
                 recovery_priority,
@@ -436,9 +442,10 @@ impl PatternRecoveryManager {
                     *adaptive_timeout,
                     context,
                     error,
-                ).await
+                )
+                .await
             }
-            
+
             EnhancedRecoveryStrategy::AgentSpecificRecovery {
                 agent_recovery_strategies,
                 coordination_timeout_ms,
@@ -450,17 +457,22 @@ impl PatternRecoveryManager {
                     fallback_agents,
                     context,
                     error,
-                ).await
+                )
+                .await
             }
         };
 
         let duration = start_time.elapsed().as_secs_f64();
-        
+
         // Record recovery attempt
         let recovery_record = RecoveryRecord {
             pattern_id: pattern_id.to_string(),
             timestamp: Utc::now(),
-            strategy: RecoveryStrategy::Retry { max_attempts: 1, backoff_delay_ms: 0, exponential_backoff: false },
+            strategy: RecoveryStrategy::Retry {
+                max_attempts: 1,
+                backoff_delay_ms: 0,
+                exponential_backoff: false,
+            },
             success: result.as_ref().map(|r| r.success).unwrap_or(false),
             duration_seconds: duration,
             error_message: None,
@@ -510,7 +522,7 @@ impl PatternRecoveryManager {
 
             // Attempt recovery
             let recovery_start = std::time::Instant::now();
-            
+
             // Create checkpoint if needed
             let checkpoint_id = if attempt == 1 {
                 match self.create_checkpoint(pattern_id, context, None).await {
@@ -529,10 +541,10 @@ impl PatternRecoveryManager {
 
             // Simulate recovery attempt (in real implementation, this would retry the pattern)
             let recovery_success = attempt > 2; // Simulate success after 2 attempts
-            
+
             if recovery_success {
                 total_recovery_time = recovery_start.elapsed().as_secs_f64();
-                
+
                 return Ok(EnhancedRecoveryResult {
                     strategy: EnhancedRecoveryStrategy::IntelligentRetry {
                         max_attempts,
@@ -596,11 +608,12 @@ impl PatternRecoveryManager {
         context: &mut PatternContext,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let start_time = std::time::Instant::now();
-        
+
         // Get checkpoint
         let checkpoint = {
             let checkpoints = self.checkpoints.read().await;
-            checkpoints.get(checkpoint_id)
+            checkpoints
+                .get(checkpoint_id)
                 .ok_or_else(|| RecoveryError::CheckpointNotFound(checkpoint_id.to_string()))?
                 .clone()
         };
@@ -621,7 +634,8 @@ impl PatternRecoveryManager {
             // Fix: Use the resource state directly instead of trying to convert
             context.resources.memory_pool = checkpoint.resource_state.memory_pool.clone();
             context.resources.cpu_allocator = checkpoint.resource_state.cpu_allocator.clone();
-            context.resources.network_resources = checkpoint.resource_state.network_resources.clone();
+            context.resources.network_resources =
+                checkpoint.resource_state.network_resources.clone();
             context.resources.file_locks = checkpoint.resource_state.file_locks.clone();
             context.resources.custom_resources = checkpoint.resource_state.custom_resources.clone();
             resource_restoration_time = resource_start.elapsed().as_secs_f64();
@@ -671,7 +685,11 @@ impl PatternRecoveryManager {
                 validation_time: 0.0,
                 rollback_steps_count: rollback_steps_executed.len(),
                 resources_restored: if restore_resources { 4 } else { 0 }, // memory, cpu, network, file_locks
-                agents_recovered: if restore_agent_states { checkpoint.agent_states.len() } else { 0 },
+                agents_recovered: if restore_agent_states {
+                    checkpoint.agent_states.len()
+                } else {
+                    0
+                },
                 state_consistency_score: 0.95,
             },
             rollback_steps: rollback_steps_executed,
@@ -684,10 +702,10 @@ impl PatternRecoveryManager {
                 restoration_errors: vec![],
             },
             agent_recovery: AgentRecoveryResult {
-                agents_restored: if restore_agent_states { 
-                    checkpoint.agent_states.keys().cloned().collect() 
-                } else { 
-                    vec![] 
+                agents_restored: if restore_agent_states {
+                    checkpoint.agent_states.keys().cloned().collect()
+                } else {
+                    vec![]
                 },
                 agents_failed: vec![],
                 state_consistency: HashMap::new(),
@@ -707,13 +725,15 @@ impl PatternRecoveryManager {
         error: &PatternError,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let start_time = std::time::Instant::now();
-        
+
         // Check degradation criteria
-        let should_degrade = self.check_degradation_criteria(degradation_criteria, context, error).await;
-        
+        let should_degrade = self
+            .check_degradation_criteria(degradation_criteria, context, error)
+            .await;
+
         if !should_degrade {
             return Err(RecoveryError::RecoveryValidationFailed(
-                "Degradation criteria not met".to_string()
+                "Degradation criteria not met".to_string(),
             ));
         }
 
@@ -727,11 +747,11 @@ impl PatternRecoveryManager {
 
             // Simulate fallback pattern execution
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            
+
             // Simulate success for the first fallback pattern
             if fallback_pattern_id == &fallback_patterns[0] {
                 let total_recovery_time = start_time.elapsed().as_secs_f64();
-                
+
                 return Ok(EnhancedRecoveryResult {
                     strategy: EnhancedRecoveryStrategy::GracefulDegradation {
                         primary_pattern_id: primary_pattern_id.to_string(),
@@ -775,7 +795,7 @@ impl PatternRecoveryManager {
         }
 
         Err(RecoveryError::RecoveryTimeout(
-            "All fallback patterns failed".to_string()
+            "All fallback patterns failed".to_string(),
         ))
     }
 
@@ -797,7 +817,7 @@ impl PatternRecoveryManager {
                 }
                 "resource_utilization" => {
                     if let Some(threshold) = value.as_f64() {
-                        let utilization = context.resources.memory_pool.allocated_memory as f64 
+                        let utilization = context.resources.memory_pool.allocated_memory as f64
                             / context.resources.memory_pool.total_memory as f64;
                         if utilization < threshold {
                             return false;
@@ -806,7 +826,9 @@ impl PatternRecoveryManager {
                 }
                 "agent_availability" => {
                     if let Some(min_agents) = value.as_u64() {
-                        let available_agents = context.agents.iter()
+                        let available_agents = context
+                            .agents
+                            .iter()
                             .filter(|a| a.status == super::AgentStatus::Idle)
                             .count();
                         if available_agents < min_agents as usize {
@@ -829,7 +851,7 @@ impl PatternRecoveryManager {
         context: &mut PatternContext,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let start_time = std::time::Instant::now();
-        
+
         // Get checkpoints
         let checkpoints = {
             let checkpoint_map = self.checkpoints.read().await;
@@ -844,7 +866,7 @@ impl PatternRecoveryManager {
 
         if checkpoints.is_empty() {
             return Err(RecoveryError::CheckpointNotFound(
-                "No valid checkpoints found".to_string()
+                "No valid checkpoints found".to_string(),
             ));
         }
 
@@ -852,19 +874,17 @@ impl PatternRecoveryManager {
 
         // Reconstruct state based on strategy
         let reconstructed_state = match reconstruction_strategy {
-            ReconstructionStrategy::MostRecent => {
-                checkpoints.iter().max_by_key(|cp| cp.timestamp).unwrap().clone()
-            }
-            ReconstructionStrategy::Merge => {
-                self.merge_checkpoint_states(&checkpoints)
-            }
+            ReconstructionStrategy::MostRecent => checkpoints
+                .iter()
+                .max_by_key(|cp| cp.timestamp)
+                .unwrap()
+                .clone(),
+            ReconstructionStrategy::Merge => self.merge_checkpoint_states(&checkpoints),
             ReconstructionStrategy::BestSuccessRate => {
                 // Simulate finding checkpoint with best success rate
                 checkpoints.first().unwrap().clone()
             }
-            ReconstructionStrategy::Partial => {
-                self.reconstruct_partial_state(&checkpoints)
-            }
+            ReconstructionStrategy::Partial => self.reconstruct_partial_state(&checkpoints),
         };
 
         // Apply reconstructed state
@@ -872,9 +892,11 @@ impl PatternRecoveryManager {
         // Fix: Use the resource state directly instead of trying to convert
         context.resources.memory_pool = reconstructed_state.resource_state.memory_pool.clone();
         context.resources.cpu_allocator = reconstructed_state.resource_state.cpu_allocator.clone();
-        context.resources.network_resources = reconstructed_state.resource_state.network_resources.clone();
+        context.resources.network_resources =
+            reconstructed_state.resource_state.network_resources.clone();
         context.resources.file_locks = reconstructed_state.resource_state.file_locks.clone();
-        context.resources.custom_resources = reconstructed_state.resource_state.custom_resources.clone();
+        context.resources.custom_resources =
+            reconstructed_state.resource_state.custom_resources.clone();
 
         // Validate reconstructed state if requested
         let validation_time = if validate_reconstructed_state {
@@ -930,15 +952,21 @@ impl PatternRecoveryManager {
     /// Merge multiple checkpoint states
     fn merge_checkpoint_states(&self, checkpoints: &[PatternCheckpoint]) -> PatternCheckpoint {
         // Simple merge strategy - use the most recent checkpoint as base
-        let mut merged = checkpoints.iter().max_by_key(|cp| cp.timestamp).unwrap().clone();
-        
+        let mut merged = checkpoints
+            .iter()
+            .max_by_key(|cp| cp.timestamp)
+            .unwrap()
+            .clone();
+
         // Merge agent states from all checkpoints
         for checkpoint in checkpoints {
             for (agent_id, agent_state) in &checkpoint.agent_states {
-                merged.agent_states.insert(agent_id.clone(), agent_state.clone());
+                merged
+                    .agent_states
+                    .insert(agent_id.clone(), agent_state.clone());
             }
         }
-        
+
         merged
     }
 
@@ -946,21 +974,24 @@ impl PatternRecoveryManager {
     fn reconstruct_partial_state(&self, checkpoints: &[PatternCheckpoint]) -> PatternCheckpoint {
         // Use the first checkpoint as base and fill in missing parts from others
         let mut reconstructed = checkpoints[0].clone();
-        
+
         for checkpoint in &checkpoints[1..] {
             // Merge missing agent states
             for (agent_id, agent_state) in &checkpoint.agent_states {
                 if !reconstructed.agent_states.contains_key(agent_id) {
-                    reconstructed.agent_states.insert(agent_id.clone(), agent_state.clone());
+                    reconstructed
+                        .agent_states
+                        .insert(agent_id.clone(), agent_state.clone());
                 }
             }
-            
+
             // Merge missing resources
             if reconstructed.resource_state.memory_pool.available_memory == 0 {
-                reconstructed.resource_state.memory_pool = checkpoint.resource_state.memory_pool.clone();
+                reconstructed.resource_state.memory_pool =
+                    checkpoint.resource_state.memory_pool.clone();
             }
         }
-        
+
         reconstructed
     }
 
@@ -974,12 +1005,14 @@ impl PatternRecoveryManager {
         error: &PatternError,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let start_time = std::time::Instant::now();
-        
+
         // Check resource constraints
-        let resource_available = self.check_resource_constraints(resource_constraints, context).await;
+        let resource_available = self
+            .check_resource_constraints(resource_constraints, context)
+            .await;
         if !resource_available {
             return Err(RecoveryError::ResourceRestorationFailed(
-                "Resource constraints not satisfied".to_string()
+                "Resource constraints not satisfied".to_string(),
             ));
         }
 
@@ -993,7 +1026,7 @@ impl PatternRecoveryManager {
 
         let adjusted_timeout = if adaptive_timeout {
             // Adjust timeout based on current resource utilization
-            let utilization = context.resources.memory_pool.allocated_memory as f64 
+            let utilization = context.resources.memory_pool.allocated_memory as f64
                 / context.resources.memory_pool.total_memory as f64;
             (timeout_ms as f64 * (1.0 + utilization)) as u64
         } else {
@@ -1002,7 +1035,7 @@ impl PatternRecoveryManager {
 
         // Simulate resource-aware recovery
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        
+
         let total_recovery_time = start_time.elapsed().as_secs_f64();
 
         Ok(EnhancedRecoveryResult {
@@ -1033,7 +1066,10 @@ impl PatternRecoveryManager {
                 cpu_restored: true,
                 network_restored: true,
                 file_locks_restored: true,
-                custom_resources_restored: resource_constraints.keys().map(|k| (k.clone(), true)).collect(),
+                custom_resources_restored: resource_constraints
+                    .keys()
+                    .map(|k| (k.clone(), true))
+                    .collect(),
                 restoration_errors: vec![],
             },
             agent_recovery: AgentRecoveryResult {
@@ -1090,7 +1126,7 @@ impl PatternRecoveryManager {
         error: &PatternError,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let start_time = std::time::Instant::now();
-        
+
         let mut agents_restored = Vec::new();
         let mut agents_failed = Vec::new();
         let mut state_consistency = HashMap::new();
@@ -1128,7 +1164,11 @@ impl PatternRecoveryManager {
             },
             success: !agents_restored.is_empty(),
             duration_seconds: total_recovery_time,
-            error_message: if recovery_errors.is_empty() { None } else { Some(recovery_errors.join("; ")) },
+            error_message: if recovery_errors.is_empty() {
+                None
+            } else {
+                Some(recovery_errors.join("; "))
+            },
             checkpoint_id: None,
             restored_state: !agents_restored.is_empty(),
             recovery_metrics: RecoveryMetrics {
@@ -1140,7 +1180,8 @@ impl PatternRecoveryManager {
                 rollback_steps_count: 0,
                 resources_restored: 0,
                 agents_recovered: agents_restored.len(),
-                state_consistency_score: state_consistency.values().sum::<f64>() / state_consistency.len() as f64,
+                state_consistency_score: state_consistency.values().sum::<f64>()
+                    / state_consistency.len() as f64,
             },
             rollback_steps: vec![],
             resource_restoration: ResourceRestorationResult {
@@ -1169,19 +1210,20 @@ impl PatternRecoveryManager {
     ) -> Result<f64, RecoveryError> {
         // Simulate agent recovery
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-        
+
         // Find agent in context
         if let Some(agent) = context.agents.iter_mut().find(|a| a.id == agent_id) {
             // Simulate successful recovery
             agent.status = super::AgentStatus::Idle;
             agent.current_workload = 0.0;
             agent.assigned_tasks.clear();
-            
+
             Ok(0.95) // High consistency score
         } else {
-            Err(RecoveryError::AgentStateRestorationFailed(
-                format!("Agent {} not found", agent_id)
-            ))
+            Err(RecoveryError::AgentStateRestorationFailed(format!(
+                "Agent {} not found",
+                agent_id
+            )))
         }
     }
 
@@ -1191,7 +1233,9 @@ impl PatternRecoveryManager {
         let mut warnings = Vec::new();
 
         // Check if agents are still available
-        let available_agents = context.agents.iter()
+        let available_agents = context
+            .agents
+            .iter()
             .filter(|agent| agent.status != super::AgentStatus::Offline)
             .count();
 
@@ -1221,7 +1265,7 @@ impl PatternRecoveryManager {
     /// Get recovery statistics
     pub async fn get_recovery_statistics(&self) -> RecoveryStatistics {
         let history = self.recovery_history.read().await;
-        
+
         let mut stats = RecoveryStatistics {
             total_recoveries: history.len(),
             successful_recoveries: 0,
@@ -1235,7 +1279,7 @@ impl PatternRecoveryManager {
 
         for record in history.iter() {
             total_duration += record.duration_seconds;
-            
+
             if record.success {
                 stats.successful_recoveries += 1;
             } else {
@@ -1251,11 +1295,17 @@ impl PatternRecoveryManager {
                 RecoveryStrategy::ManualIntervention { .. } => "manual_intervention",
                 RecoveryStrategy::Abort { .. } => "abort",
             };
-            *stats.strategy_usage.entry(strategy_name.to_string()).or_insert(0) += 1;
+            *stats
+                .strategy_usage
+                .entry(strategy_name.to_string())
+                .or_insert(0) += 1;
 
             // Count error types
             if let Some(error_msg) = &record.error_message {
-                *stats.most_common_errors.entry(error_msg.clone()).or_insert(0) += 1;
+                *stats
+                    .most_common_errors
+                    .entry(error_msg.clone())
+                    .or_insert(0) += 1;
             }
         }
 
@@ -1277,10 +1327,10 @@ impl PatternRecoveryManager {
     pub async fn cleanup_old_checkpoints(&self, max_age_hours: u64) -> usize {
         let cutoff_time = Utc::now() - chrono::Duration::hours(max_age_hours as i64);
         let mut checkpoints = self.checkpoints.write().await;
-        
+
         let initial_count = checkpoints.len();
         checkpoints.retain(|_, checkpoint| checkpoint.timestamp > cutoff_time);
-        
+
         initial_count - checkpoints.len()
     }
 }
@@ -1326,13 +1376,12 @@ pub struct RecoveryStatistics {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::{
-        PatternState, PatternPhase, PatternStatus, PatternConfig,
-        AgentInfo, AgentStatus, AgentPerformanceMetrics,
-        ResourcePool, MemoryPool, CpuAllocator, NetworkResources,
-        ValidationResult
+        AgentInfo, AgentPerformanceMetrics, AgentStatus, CpuAllocator, MemoryPool,
+        NetworkResources, PatternConfig, PatternPhase, PatternState, PatternStatus, ResourcePool,
+        ValidationResult,
     };
+    use super::*;
 
     #[tokio::test]
     async fn test_recovery_manager_creation() {
@@ -1344,15 +1393,21 @@ mod tests {
     #[tokio::test]
     async fn test_checkpoint_creation_and_restoration() {
         let manager = PatternRecoveryManager::new();
-        
+
         let context = create_test_context();
-        let checkpoint_id = manager.create_checkpoint("test_pattern", &context, None).await.unwrap();
-        
+        let checkpoint_id = manager
+            .create_checkpoint("test_pattern", &context, None)
+            .await
+            .unwrap();
+
         assert!(!checkpoint_id.is_empty());
-        
+
         let mut restored_context = create_test_context();
-        manager.restore_from_checkpoint(&checkpoint_id, &mut restored_context).await.unwrap();
-        
+        manager
+            .restore_from_checkpoint(&checkpoint_id, &mut restored_context)
+            .await
+            .unwrap();
+
         // Verify restoration
         assert_eq!(restored_context.state.pattern_id, "test_pattern");
     }
@@ -1362,22 +1417,30 @@ mod tests {
         let manager = PatternRecoveryManager::new();
         let mut context = create_test_context();
         let error = PatternError::ExecutionError("Test error".to_string());
-        
+
         let strategy = RecoveryStrategy::Retry {
             max_attempts: 3,
             backoff_delay_ms: 10,
             exponential_backoff: true,
         };
-        
-        let result = manager.execute_enhanced_recovery_strategy("test_pattern", &EnhancedRecoveryStrategy::IntelligentRetry {
-            max_attempts: 3,
-            initial_backoff_ms: 10,
-            max_backoff_ms: 1000,
-            backoff_multiplier: 2.0,
-            circuit_breaker_threshold: 3,
-            circuit_breaker_timeout_ms: 5000,
-        }, &mut context, &error).await.unwrap();
-        
+
+        let result = manager
+            .execute_enhanced_recovery_strategy(
+                "test_pattern",
+                &EnhancedRecoveryStrategy::IntelligentRetry {
+                    max_attempts: 3,
+                    initial_backoff_ms: 10,
+                    max_backoff_ms: 1000,
+                    backoff_multiplier: 2.0,
+                    circuit_breaker_threshold: 3,
+                    circuit_breaker_timeout_ms: 5000,
+                },
+                &mut context,
+                &error,
+            )
+            .await
+            .unwrap();
+
         // Retry strategy should eventually succeed
         assert!(result.success);
     }
@@ -1386,28 +1449,39 @@ mod tests {
     async fn test_rollback_recovery_strategy() {
         let manager = PatternRecoveryManager::new();
         let mut context = create_test_context();
-        
+
         // Create checkpoint first
-        let checkpoint_id = manager.create_checkpoint("test_pattern", &context, None).await.unwrap();
-        
+        let checkpoint_id = manager
+            .create_checkpoint("test_pattern", &context, None)
+            .await
+            .unwrap();
+
         // Modify context
         context.state.phase = PatternPhase::Failed;
-        
+
         let strategy = RecoveryStrategy::Rollback {
             checkpoint_id: checkpoint_id.clone(),
             restore_resources: true,
             restore_agent_states: true,
         };
-        
+
         let error = PatternError::ExecutionError("Test error".to_string());
-        let result = manager.execute_enhanced_recovery_strategy("test_pattern", &EnhancedRecoveryStrategy::PartialRollback {
-            checkpoint_id: checkpoint_id.clone(),
-            rollback_steps: vec![],
-            preserve_successful_steps: false,
-            restore_resources: true,
-            restore_agent_states: true,
-        }, &mut context, &error).await.unwrap();
-        
+        let result = manager
+            .execute_enhanced_recovery_strategy(
+                "test_pattern",
+                &EnhancedRecoveryStrategy::PartialRollback {
+                    checkpoint_id: checkpoint_id.clone(),
+                    rollback_steps: vec![],
+                    preserve_successful_steps: false,
+                    restore_resources: true,
+                    restore_agent_states: true,
+                },
+                &mut context,
+                &error,
+            )
+            .await
+            .unwrap();
+
         assert!(result.success);
         assert_eq!(result.checkpoint_id, Some(checkpoint_id));
         assert!(result.restored_state);
@@ -1416,24 +1490,31 @@ mod tests {
     #[tokio::test]
     async fn test_recovery_statistics() {
         let manager = PatternRecoveryManager::new();
-        
+
         // Execute some recovery strategies
         let mut context = create_test_context();
         let error = PatternError::ExecutionError("Test error".to_string());
-        
+
         // This should fail after 2 attempts, which is expected behavior
-        let result = manager.execute_enhanced_recovery_strategy("test_pattern", &EnhancedRecoveryStrategy::IntelligentRetry {
-            max_attempts: 2,
-            initial_backoff_ms: 10,
-            max_backoff_ms: 1000,
-            backoff_multiplier: 2.0,
-            circuit_breaker_threshold: 3,
-            circuit_breaker_timeout_ms: 5000,
-        }, &mut context, &error).await;
-        
+        let result = manager
+            .execute_enhanced_recovery_strategy(
+                "test_pattern",
+                &EnhancedRecoveryStrategy::IntelligentRetry {
+                    max_attempts: 2,
+                    initial_backoff_ms: 10,
+                    max_backoff_ms: 1000,
+                    backoff_multiplier: 2.0,
+                    circuit_breaker_threshold: 3,
+                    circuit_breaker_timeout_ms: 5000,
+                },
+                &mut context,
+                &error,
+            )
+            .await;
+
         // The strategy should fail after max attempts, which is expected
         assert!(result.is_err());
-        
+
         let stats = manager.get_recovery_statistics().await;
         assert_eq!(stats.total_recoveries, 1);
         assert_eq!(stats.successful_recoveries, 0); // Should be 0 since it failed
@@ -1443,17 +1524,15 @@ mod tests {
 
     fn create_test_context() -> PatternContext {
         PatternContext {
-            agents: vec![
-                AgentInfo {
-                    id: "agent1".to_string(),
-                    name: "Test Agent".to_string(),
-                    capabilities: vec!["test".to_string()],
-                    status: AgentStatus::Idle,
-                    performance_metrics: AgentPerformanceMetrics::default(),
-                    current_workload: 0.0,
-                    assigned_tasks: vec![],
-                }
-            ],
+            agents: vec![AgentInfo {
+                id: "agent1".to_string(),
+                name: "Test Agent".to_string(),
+                capabilities: vec!["test".to_string()],
+                status: AgentStatus::Idle,
+                performance_metrics: AgentPerformanceMetrics::default(),
+                current_workload: 0.0,
+                assigned_tasks: vec![],
+            }],
             resources: ResourcePool {
                 file_locks: HashMap::new(),
                 memory_pool: MemoryPool {
@@ -1496,4 +1575,4 @@ mod tests {
             parent_pattern_id: None,
         }
     }
-} 
+}

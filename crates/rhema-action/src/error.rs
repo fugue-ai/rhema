@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use thiserror::Error;
 use std::path::PathBuf;
+use thiserror::Error;
 
 /// Action Protocol specific errors
 #[derive(Error, Debug)]
@@ -104,113 +104,159 @@ pub enum ActionError {
 impl ActionError {
     /// Create a schema validation error
     pub fn schema_validation(message: impl Into<String>) -> Self {
-        Self::SchemaValidation { message: message.into() }
+        Self::SchemaValidation {
+            message: message.into(),
+        }
     }
 
     /// Create an intent parsing error
     pub fn intent_parsing(message: impl Into<String>) -> Self {
-        Self::IntentParsing { message: message.into() }
+        Self::IntentParsing {
+            message: message.into(),
+        }
     }
 
     /// Create a file operation error
     pub fn file_operation(path: PathBuf, message: impl Into<String>) -> Self {
-        Self::FileOperation { path, message: message.into() }
+        Self::FileOperation {
+            path,
+            message: message.into(),
+        }
     }
 
     /// Create a tool execution error
     pub fn tool_execution(tool: impl Into<String>, message: impl Into<String>) -> Self {
-        Self::ToolExecution { tool: tool.into(), message: message.into() }
+        Self::ToolExecution {
+            tool: tool.into(),
+            message: message.into(),
+        }
     }
 
     /// Create a validation error
     pub fn validation(message: impl Into<String>) -> Self {
-        Self::Validation { message: message.into() }
+        Self::Validation {
+            message: message.into(),
+        }
     }
 
     /// Create a safety check error
     pub fn safety_check(check: impl Into<String>, message: impl Into<String>) -> Self {
-        Self::SafetyCheck { check: check.into(), message: message.into() }
+        Self::SafetyCheck {
+            check: check.into(),
+            message: message.into(),
+        }
     }
 
     /// Create a rollback error
     pub fn rollback(message: impl Into<String>) -> Self {
-        Self::Rollback { message: message.into() }
+        Self::Rollback {
+            message: message.into(),
+        }
     }
 
     /// Create an approval error
     pub fn approval(message: impl Into<String>) -> Self {
-        Self::Approval { message: message.into() }
+        Self::Approval {
+            message: message.into(),
+        }
     }
 
     /// Create a git error
     pub fn git(operation: impl Into<String>, message: impl Into<String>) -> Self {
-        Self::Git { operation: operation.into(), message: message.into() }
+        Self::Git {
+            operation: operation.into(),
+            message: message.into(),
+        }
     }
 
     /// Create a pipeline error
     pub fn pipeline(stage: impl Into<String>, message: impl Into<String>) -> Self {
-        Self::Pipeline { stage: stage.into(), message: message.into() }
+        Self::Pipeline {
+            stage: stage.into(),
+            message: message.into(),
+        }
     }
 
     /// Create a configuration error
     pub fn configuration(message: impl Into<String>) -> Self {
-        Self::Configuration { message: message.into() }
+        Self::Configuration {
+            message: message.into(),
+        }
     }
 
     /// Create a permission error
     pub fn permission(message: impl Into<String>) -> Self {
-        Self::Permission { message: message.into() }
+        Self::Permission {
+            message: message.into(),
+        }
     }
 
     /// Create a timeout error
     pub fn timeout(operation: impl Into<String>) -> Self {
-        Self::Timeout { operation: operation.into() }
+        Self::Timeout {
+            operation: operation.into(),
+        }
     }
 
     /// Create a not found error
     pub fn not_found(resource: impl Into<String>) -> Self {
-        Self::NotFound { resource: resource.into() }
+        Self::NotFound {
+            resource: resource.into(),
+        }
     }
 
     /// Create an invalid state error
     pub fn invalid_state(message: impl Into<String>) -> Self {
-        Self::InvalidState { message: message.into() }
+        Self::InvalidState {
+            message: message.into(),
+        }
     }
 
     /// Create an external tool error
     pub fn external_tool(tool: impl Into<String>, message: impl Into<String>) -> Self {
-        Self::ExternalTool { tool: tool.into(), message: message.into() }
+        Self::ExternalTool {
+            tool: tool.into(),
+            message: message.into(),
+        }
     }
 
     /// Create a network error
     pub fn network(message: impl Into<String>) -> Self {
-        Self::Network { message: message.into() }
+        Self::Network {
+            message: message.into(),
+        }
     }
 
     /// Create a serialization error
     pub fn serialization(message: impl Into<String>) -> Self {
-        Self::Serialization { message: message.into() }
+        Self::Serialization {
+            message: message.into(),
+        }
     }
 
     /// Create a deserialization error
     pub fn deserialization(message: impl Into<String>) -> Self {
-        Self::Deserialization { message: message.into() }
+        Self::Deserialization {
+            message: message.into(),
+        }
     }
 
     /// Create an internal error
     pub fn internal(message: impl Into<String>) -> Self {
-        Self::Internal { message: message.into() }
+        Self::Internal {
+            message: message.into(),
+        }
     }
 
     /// Check if this is a recoverable error
     pub fn is_recoverable(&self) -> bool {
         matches!(
             self,
-            Self::Validation { .. } |
-            Self::SafetyCheck { .. } |
-            Self::Timeout { .. } |
-            Self::Network { .. } |
-            Self::ExternalTool { .. }
+            Self::Validation { .. }
+                | Self::SafetyCheck { .. }
+                | Self::Timeout { .. }
+                | Self::Network { .. }
+                | Self::ExternalTool { .. }
         )
     }
 
@@ -218,12 +264,12 @@ impl ActionError {
     pub fn is_fatal(&self) -> bool {
         matches!(
             self,
-            Self::SchemaValidation { .. } |
-            Self::IntentParsing { .. } |
-            Self::Configuration { .. } |
-            Self::Permission { .. } |
-            Self::InvalidState { .. } |
-            Self::Internal { .. }
+            Self::SchemaValidation { .. }
+                | Self::IntentParsing { .. }
+                | Self::Configuration { .. }
+                | Self::Permission { .. }
+                | Self::InvalidState { .. }
+                | Self::Internal { .. }
         )
     }
 
@@ -232,8 +278,12 @@ impl ActionError {
         match self {
             Self::SchemaValidation { message } => format!("Schema validation: {}", message),
             Self::IntentParsing { message } => format!("Intent parsing: {}", message),
-            Self::FileOperation { path, message } => format!("File operation on {:?}: {}", path, message),
-            Self::ToolExecution { tool, message } => format!("Tool execution for {}: {}", tool, message),
+            Self::FileOperation { path, message } => {
+                format!("File operation on {:?}: {}", path, message)
+            }
+            Self::ToolExecution { tool, message } => {
+                format!("Tool execution for {}: {}", tool, message)
+            }
             Self::Validation { message } => format!("Validation: {}", message),
             Self::SafetyCheck { check, message } => format!("Safety check {}: {}", check, message),
             Self::Rollback { message } => format!("Rollback: {}", message),
@@ -286,4 +336,4 @@ mod tests {
         assert!(!fatal.is_recoverable());
         assert!(fatal.is_fatal());
     }
-} 
+}

@@ -1,0 +1,27 @@
+[package]
+name = "syneidesis-agent"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Agent management for the Syneidesis coordination ecosystem"
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+syneidesis-core = { path = "../core" }
+syneidesis-config = { path = "../config" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+async-trait = "0.1"
+dashmap.workspace = true
+parking_lot.workspace = true
+tokio-tungstenite = "0.21"
+futures = "0.3"
+validator = { version = "0.16", features = ["derive"] }

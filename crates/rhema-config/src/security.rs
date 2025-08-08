@@ -621,18 +621,18 @@ impl SecurityManager {
     /// Encrypt configuration data
     pub async fn encrypt_configuration<T: Config>(&self, config: &T) -> RhemaResult<Vec<u8>> {
         let start_time = std::time::Instant::now();
-        
+
         // Serialize configuration to JSON
         let config_json = serde_json::to_value(config)
             .map_err(|e| rhema_core::RhemaError::SerializationError(e.to_string()))?;
-        
+
         // Convert to bytes
         let config_bytes = serde_json::to_vec(&config_json)
             .map_err(|e| rhema_core::RhemaError::SerializationError(e.to_string()))?;
-        
+
         // Encrypt the configuration
         let encrypted_data = self.encryption_manager.encrypt(&config_bytes)?;
-        
+
         let duration = start_time.elapsed();
         tracing::debug!(
             "Configuration encryption completed in {:?}, original size: {}, encrypted size: {}",
@@ -640,25 +640,25 @@ impl SecurityManager {
             config_bytes.len(),
             encrypted_data.len()
         );
-        
+
         Ok(encrypted_data)
     }
 
     /// Decrypt configuration data
     pub async fn decrypt_configuration<T: Config>(&self, encrypted_data: &[u8]) -> RhemaResult<T> {
         let start_time = std::time::Instant::now();
-        
+
         // Decrypt the data
         let decrypted_bytes = self.encryption_manager.decrypt(encrypted_data)?;
-        
+
         // Deserialize from JSON
         let config_json: serde_json::Value = serde_json::from_slice(&decrypted_bytes)
             .map_err(|e| rhema_core::RhemaError::SerializationError(e.to_string()))?;
-        
+
         // Deserialize to configuration type
         let config: T = serde_json::from_value(config_json)
             .map_err(|e| rhema_core::RhemaError::SerializationError(e.to_string()))?;
-        
+
         let duration = start_time.elapsed();
         tracing::debug!(
             "Configuration decryption completed in {:?}, encrypted size: {}, decrypted size: {}",
@@ -666,50 +666,59 @@ impl SecurityManager {
             encrypted_data.len(),
             decrypted_bytes.len()
         );
-        
+
         Ok(config)
     }
 
     /// Verify configuration integrity
     pub async fn verify_integrity<T: Config>(&self, config: &T) -> RhemaResult<bool> {
         let start_time = std::time::Instant::now();
-        
+
         // Serialize configuration
         let config_json = serde_json::to_value(config)
             .map_err(|e| rhema_core::RhemaError::SerializationError(e.to_string()))?;
-        
+
         // Calculate checksum
         let config_bytes = serde_json::to_vec(&config_json)
             .map_err(|e| rhema_core::RhemaError::SerializationError(e.to_string()))?;
         let calculated_checksum = self.calculate_checksum(&config_bytes);
-        
+
         // Validate configuration structure
         if let Err(e) = config.validate_config() {
-            tracing::warn!("Configuration validation failed during integrity check: {}", e);
+            tracing::warn!(
+                "Configuration validation failed during integrity check: {}",
+                e
+            );
             return Ok(false);
         }
-        
+
         // Check for required fields
         let missing_fields = self.check_required_fields(&config_json)?;
         if !missing_fields.is_empty() {
-            tracing::warn!("Missing required fields during integrity check: {:?}", missing_fields);
+            tracing::warn!(
+                "Missing required fields during integrity check: {:?}",
+                missing_fields
+            );
             return Ok(false);
         }
-        
+
         // Check for suspicious patterns
         let suspicious_patterns = self.detect_suspicious_patterns(&config_json)?;
         if !suspicious_patterns.is_empty() {
-            tracing::warn!("Suspicious patterns detected during integrity check: {:?}", suspicious_patterns);
+            tracing::warn!(
+                "Suspicious patterns detected during integrity check: {:?}",
+                suspicious_patterns
+            );
             return Ok(false);
         }
-        
+
         let duration = start_time.elapsed();
         tracing::debug!(
             "Configuration integrity verification completed in {:?}, checksum: {}",
             duration,
             calculated_checksum
         );
-        
+
         Ok(true)
     }
 
@@ -722,7 +731,7 @@ impl SecurityManager {
         context: Option<&str>,
     ) -> RhemaResult<AccessDecision> {
         let start_time = std::time::Instant::now();
-        
+
         // Check if access control is enabled
         if !self.config.access_control.enabled {
             return Ok(AccessDecision {
@@ -732,13 +741,16 @@ impl SecurityManager {
                 timestamp: chrono::Utc::now(),
             });
         }
-        
+
         // Get user permissions
         let user_permissions = self.access_control.get_user_permissions(user).await?;
-        
+
         // Check resource permissions
-        let resource_permissions = self.access_control.get_resource_permissions(resource).await?;
-        
+        let resource_permissions = self
+            .access_control
+            .get_resource_permissions(resource)
+            .await?;
+
         // Evaluate permissions
         let decision = self.evaluate_permissions(
             user,
@@ -748,16 +760,12 @@ impl SecurityManager {
             &user_permissions,
             &resource_permissions,
         )?;
-        
+
         // Log access attempt
-        self.audit_logger.log_access_attempt(
-            user,
-            resource,
-            action,
-            decision.allowed,
-            &decision.reason,
-        ).await?;
-        
+        self.audit_logger
+            .log_access_attempt(user, resource, action, decision.allowed, &decision.reason)
+            .await?;
+
         let duration = start_time.elapsed();
         tracing::debug!(
             "Access control check completed in {:?}, user: {}, resource: {}, action: {}, allowed: {}",
@@ -767,13 +775,13 @@ impl SecurityManager {
             action,
             decision.allowed
         );
-        
+
         Ok(decision)
     }
 
     /// Calculate checksum for data integrity
     fn calculate_checksum(&self, data: &[u8]) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(data);
         format!("{:x}", hasher.finalize())
@@ -782,44 +790,44 @@ impl SecurityManager {
     /// Check for required fields in configuration
     fn check_required_fields(&self, config: &serde_json::Value) -> RhemaResult<Vec<String>> {
         let mut missing_fields = Vec::new();
-        
+
         // Define required fields based on configuration type
         let required_fields = vec!["version", "name"];
-        
+
         for field in required_fields {
             if !config.get(field).is_some() {
                 missing_fields.push(field.to_string());
             }
         }
-        
+
         Ok(missing_fields)
     }
 
     /// Detect suspicious patterns in configuration
     fn detect_suspicious_patterns(&self, config: &serde_json::Value) -> RhemaResult<Vec<String>> {
         let mut suspicious_patterns = Vec::new();
-        
+
         // Check for suspicious values
         if let Some(serde_json::Value::String(value)) = config.get("password") {
             if value.len() < 8 {
                 suspicious_patterns.push("Weak password detected".to_string());
             }
         }
-        
+
         // Check for suspicious URLs
         if let Some(serde_json::Value::String(url)) = config.get("url") {
             if url.contains("http://") && !url.contains("localhost") {
                 suspicious_patterns.push("Insecure HTTP URL detected".to_string());
             }
         }
-        
+
         // Check for suspicious file paths
         if let Some(serde_json::Value::String(path)) = config.get("path") {
             if path.contains("..") || path.contains("/etc/passwd") || path.contains("/etc/shadow") {
                 suspicious_patterns.push("Suspicious file path detected".to_string());
             }
         }
-        
+
         Ok(suspicious_patterns)
     }
 
@@ -836,7 +844,7 @@ impl SecurityManager {
         let mut allowed = false;
         let mut reason = "Access denied".to_string();
         let mut permissions = Vec::new();
-        
+
         // Check user permissions
         for permission in user_permissions {
             if self.matches_permission(permission, resource, action) {
@@ -845,7 +853,7 @@ impl SecurityManager {
                 permissions.push(permission.clone());
             }
         }
-        
+
         // Check resource permissions
         for permission in resource_permissions {
             if self.matches_permission(permission, resource, action) {
@@ -854,7 +862,7 @@ impl SecurityManager {
                 permissions.push(permission.clone());
             }
         }
-        
+
         // Check context-specific permissions
         if let Some(ctx) = context {
             if self.check_context_permissions(user, resource, action, ctx)? {
@@ -862,7 +870,7 @@ impl SecurityManager {
                 reason = "Context allows access".to_string();
             }
         }
-        
+
         Ok(AccessDecision {
             allowed,
             reason,
@@ -987,10 +995,7 @@ impl AccessControlManager {
     pub async fn get_user_permissions(&self, user: &str) -> RhemaResult<Vec<String>> {
         // In a real implementation, this would load permissions from a database or file
         // For now, return some default permissions
-        Ok(vec![
-            format!("{}:read", user),
-            format!("{}:write", user),
-        ])
+        Ok(vec![format!("{}:read", user), format!("{}:write", user)])
     }
 
     /// Get resource permissions

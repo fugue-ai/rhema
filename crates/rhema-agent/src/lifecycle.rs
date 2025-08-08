@@ -16,13 +16,13 @@
 
 use crate::agent::{Agent, AgentId, AgentState};
 use crate::error::{AgentError, AgentResult};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
-use std::fmt;
 
 /// Agent lifecycle states
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -244,7 +244,7 @@ impl AgentLifecycle {
         reason: Option<String>,
     ) -> AgentResult<()> {
         let old_state = self.state.clone();
-        
+
         // Validate transition
         if !self.is_valid_transition(&old_state, &new_state) {
             return Err(AgentError::LifecycleError {
@@ -275,7 +275,10 @@ impl AgentLifecycle {
     where
         F: Fn(&AgentId, &LifecycleState) + Send + Sync + 'static,
     {
-        self.callbacks.entry(state).or_insert_with(Vec::new).push(Box::new(callback));
+        self.callbacks
+            .entry(state)
+            .or_insert_with(Vec::new)
+            .push(Box::new(callback));
     }
 
     /// Get transition history
@@ -295,7 +298,10 @@ impl AgentLifecycle {
 
     /// Get events for a specific agent
     pub fn get_events_for_agent(&self, agent_id: &AgentId) -> Vec<&LifecycleEvent> {
-        self.events.iter().filter(|event| event.agent_id() == agent_id).collect()
+        self.events
+            .iter()
+            .filter(|event| event.agent_id() == agent_id)
+            .collect()
     }
 
     /// Clear old events
@@ -313,10 +319,13 @@ impl AgentLifecycle {
             0
         };
 
-        let state_counts = self.transitions.iter().fold(HashMap::new(), |mut acc, transition| {
-            *acc.entry(transition.to.clone()).or_insert(0) += 1;
-            acc
-        });
+        let state_counts = self
+            .transitions
+            .iter()
+            .fold(HashMap::new(), |mut acc, transition| {
+                *acc.entry(transition.to.clone()).or_insert(0) += 1;
+                acc
+            });
 
         LifecycleStats {
             current_state: self.state.clone(),
@@ -354,7 +363,11 @@ impl AgentLifecycle {
     }
 
     /// Create event for transition
-    fn create_event_for_transition(&self, from: &LifecycleState, to: &LifecycleState) -> LifecycleEvent {
+    fn create_event_for_transition(
+        &self,
+        from: &LifecycleState,
+        to: &LifecycleState,
+    ) -> LifecycleEvent {
         match to {
             LifecycleState::Initializing => LifecycleEvent::Created {
                 agent_id: self.agent_id.clone(),
@@ -446,22 +459,34 @@ mod tests {
     #[tokio::test]
     async fn test_valid_transition() {
         let mut lifecycle = AgentLifecycle::new("test-agent".to_string());
-        assert!(lifecycle.transition_to(LifecycleState::Initializing).await.is_ok());
+        assert!(lifecycle
+            .transition_to(LifecycleState::Initializing)
+            .await
+            .is_ok());
         assert_eq!(lifecycle.current_state(), &LifecycleState::Initializing);
     }
 
     #[tokio::test]
     async fn test_invalid_transition() {
         let mut lifecycle = AgentLifecycle::new("test-agent".to_string());
-        assert!(lifecycle.transition_to(LifecycleState::Running).await.is_err());
+        assert!(lifecycle
+            .transition_to(LifecycleState::Running)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_lifecycle_stats() {
         let mut lifecycle = AgentLifecycle::new("test-agent".to_string());
-        lifecycle.transition_to(LifecycleState::Initializing).await.unwrap();
-        lifecycle.transition_to(LifecycleState::Ready).await.unwrap();
-        
+        lifecycle
+            .transition_to(LifecycleState::Initializing)
+            .await
+            .unwrap();
+        lifecycle
+            .transition_to(LifecycleState::Ready)
+            .await
+            .unwrap();
+
         let stats = lifecycle.get_lifecycle_stats();
         assert_eq!(stats.total_transitions, 2);
         assert_eq!(stats.current_state, LifecycleState::Ready);
@@ -472,4 +497,4 @@ mod tests {
         assert_eq!(LifecycleState::Running.to_string(), "Running");
         assert_eq!(LifecycleState::Error.to_string(), "Error");
     }
-} 
+}

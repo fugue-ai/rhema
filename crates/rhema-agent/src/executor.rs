@@ -17,12 +17,12 @@
 use crate::agent::{Agent, AgentId, AgentRequest, AgentResponse, AgentState};
 use crate::error::{AgentError, AgentResult};
 use crate::registry::AgentRegistry;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{Duration, Instant};
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 /// Execution context for task execution
@@ -47,10 +47,9 @@ pub struct ExecutionContext {
 impl ExecutionContext {
     pub fn new(agent_id: AgentId, request: AgentRequest, policy: ExecutionPolicy) -> Self {
         let start_time = Utc::now();
-        let expected_end_time = start_time + chrono::Duration::seconds(
-            request.timeout.unwrap_or(policy.default_timeout) as i64
-        );
-        
+        let expected_end_time = start_time
+            + chrono::Duration::seconds(request.timeout.unwrap_or(policy.default_timeout) as i64);
+
         Self {
             execution_id: Uuid::new_v4().to_string(),
             agent_id,
@@ -226,12 +225,16 @@ impl AgentExecutor {
     }
 
     /// Execute a task with an agent
-    pub async fn execute(&self, agent_id: &AgentId, request: AgentRequest) -> AgentResult<AgentResponse> {
+    pub async fn execute(
+        &self,
+        agent_id: &AgentId,
+        request: AgentRequest,
+    ) -> AgentResult<AgentResponse> {
         let start_time = Instant::now();
-        
+
         // Get the agent
         let agent = self.registry.get_agent(agent_id).await?;
-        
+
         // Check if agent is ready
         let agent_guard = agent.read().await;
         if agent_guard.context().state != AgentState::Ready {
@@ -239,11 +242,11 @@ impl AgentExecutor {
                 agent_id: agent_id.clone(),
             });
         }
-        
+
         // Create execution context
         let policy = self.get_execution_policy(&request).await;
         let mut context = ExecutionContext::new(agent_id.clone(), request.clone(), policy.clone());
-        
+
         // Check concurrency limits
         if !policy.allow_concurrent {
             let active_count = self.get_active_executions_count(agent_id).await;
@@ -253,28 +256,28 @@ impl AgentExecutor {
                 });
             }
         }
-        
+
         // Add to active executions
         {
             let mut active = self.active_executions.write().await;
             active.insert(context.execution_id.clone(), context.clone());
         }
-        
+
         // Execute with retries
         let mut last_error = None;
         let mut attempt = 0;
-        
+
         while attempt <= policy.max_retries {
             attempt += 1;
-            
+
             // Update context for retry
             if attempt > 1 {
                 context.add_metadata("retry_attempt".to_string(), attempt.to_string());
             }
-            
+
             // Execute the task
             let result = self.execute_single_attempt(&agent, &context).await;
-            
+
             match result {
                 Ok(response) => {
                     // Success - record result and return
@@ -284,24 +287,24 @@ impl AgentExecutor {
                         response.clone(),
                         execution_time,
                     );
-                    
+
                     // Remove from active executions
                     {
                         let mut active = self.active_executions.write().await;
                         active.remove(&context.execution_id);
                     }
-                    
+
                     // Add to history
                     {
                         let mut history = self.execution_results.write().await;
                         history.push(execution_result);
                     }
-                    
+
                     return Ok(response);
                 }
                 Err(error) => {
                     last_error = Some(error);
-                    
+
                     // Check if we should retry
                     if attempt <= policy.max_retries && policy.enable_retries {
                         // Wait before retry
@@ -313,31 +316,31 @@ impl AgentExecutor {
                 }
             }
         }
-        
+
         // All attempts failed
         let execution_time = start_time.elapsed().as_millis() as u64;
         let error_msg = last_error
             .map(|e| e.to_string())
             .unwrap_or_else(|| "Unknown execution error".to_string());
-        
+
         let execution_result = ExecutionResult::failure(
             context.execution_id.clone(),
             error_msg.clone(),
             execution_time,
         );
-        
+
         // Remove from active executions
         {
             let mut active = self.active_executions.write().await;
             active.remove(&context.execution_id);
         }
-        
+
         // Add to history
         {
             let mut history = self.execution_results.write().await;
             history.push(execution_result);
         }
-        
+
         Err(AgentError::ExecutionFailed { reason: error_msg })
     }
 
@@ -353,10 +356,10 @@ impl AgentExecutor {
                 agent_id: context.agent_id.clone(),
             });
         }
-        
+
         // Execute with timeout
         let timeout_duration = context.remaining_time();
-        
+
         let execution_result = if timeout_duration.as_secs() > 0 {
             tokio::time::timeout(timeout_duration, async {
                 let mut agent_guard = agent.write().await;
@@ -367,7 +370,7 @@ impl AgentExecutor {
             let mut agent_guard = agent.write().await;
             Ok(agent_guard.execute_task(context.request.clone()).await)
         };
-        
+
         match execution_result {
             Ok(result) => result,
             Err(_) => Err(AgentError::AgentTimeout {
@@ -386,7 +389,8 @@ impl AgentExecutor {
     /// Get active executions count for an agent
     async fn get_active_executions_count(&self, agent_id: &AgentId) -> usize {
         let active = self.active_executions.read().await;
-        active.values()
+        active
+            .values()
             .filter(|context| &context.agent_id == agent_id)
             .count()
     }
@@ -394,7 +398,8 @@ impl AgentExecutor {
     /// Get active executions for an agent
     pub async fn get_active_executions(&self, agent_id: &AgentId) -> Vec<ExecutionContext> {
         let active = self.active_executions.read().await;
-        active.values()
+        active
+            .values()
             .filter(|context| &context.agent_id == agent_id)
             .cloned()
             .collect()
@@ -417,14 +422,18 @@ impl AgentExecutor {
     }
 
     /// Get execution history for an agent
-    pub async fn get_agent_execution_history(&self, agent_id: &AgentId, limit: Option<usize>) -> Vec<ExecutionResult> {
+    pub async fn get_agent_execution_history(
+        &self,
+        agent_id: &AgentId,
+        limit: Option<usize>,
+    ) -> Vec<ExecutionResult> {
         let history = self.execution_results.read().await;
         let filtered: Vec<ExecutionResult> = history
             .iter()
             .filter(|result| result.response.request_id == *agent_id)
             .cloned()
             .collect();
-        
+
         if let Some(limit) = limit {
             filtered.into_iter().rev().take(limit).collect()
         } else {
@@ -435,7 +444,7 @@ impl AgentExecutor {
     /// Cancel an execution
     pub async fn cancel_execution(&self, execution_id: &str) -> AgentResult<()> {
         let mut active = self.active_executions.write().await;
-        
+
         if let Some(context) = active.remove(execution_id) {
             // Add cancellation to history
             let execution_result = ExecutionResult::failure(
@@ -443,10 +452,10 @@ impl AgentExecutor {
                 "Execution cancelled".to_string(),
                 0,
             );
-            
+
             let mut history = self.execution_results.write().await;
             history.push(execution_result);
-            
+
             Ok(())
         } else {
             Err(AgentError::ExecutionFailed {
@@ -506,7 +515,7 @@ impl std::fmt::Display for ExecutionStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::{BaseAgent, AgentConfig, AgentType, AgentCapability};
+    use crate::agent::{AgentCapability, AgentConfig, AgentType, BaseAgent};
 
     #[tokio::test]
     async fn test_execution_policy_default() {
@@ -521,9 +530,9 @@ mod tests {
         let agent_id = "test-agent".to_string();
         let request = AgentRequest::new("test".to_string(), serde_json::json!({}));
         let policy = ExecutionPolicy::default();
-        
+
         let context = ExecutionContext::new(agent_id.clone(), request.clone(), policy);
-        
+
         assert_eq!(context.agent_id, agent_id);
         assert_eq!(context.request.id, request.id);
         assert!(!context.is_timed_out());
@@ -533,9 +542,9 @@ mod tests {
     async fn test_execution_result() {
         let execution_id = "test-execution".to_string();
         let response = AgentResponse::success("test-request".to_string(), serde_json::json!({}));
-        
+
         let result = ExecutionResult::success(execution_id.clone(), response.clone(), 100);
-        
+
         assert_eq!(result.execution_id, execution_id);
         assert!(result.success);
         assert_eq!(result.execution_time, 100);
@@ -545,9 +554,9 @@ mod tests {
     async fn test_agent_executor_creation() {
         let registry = AgentRegistry::new();
         let executor = AgentExecutor::new(registry);
-        
+
         let stats = executor.get_execution_stats().await;
         assert_eq!(stats.total_executions, 0);
         assert_eq!(stats.active_executions, 0);
     }
-} 
+}

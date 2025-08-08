@@ -14,41 +14,44 @@
  * limitations under the License.
  */
 
+pub mod advanced_conflict_prevention;
+pub mod conflict_analysis;
+pub mod conflict_prevention;
+pub mod constraint_system;
 pub mod coordination;
 pub mod lock_context;
 pub mod lock_context_integration;
-pub mod constraint_system;
-pub mod task_scoring;
-pub mod real_time_coordination;
-pub mod conflict_prevention;
-pub mod advanced_conflict_prevention;
 pub mod ml_conflict_prediction;
-pub mod conflict_analysis;
-pub mod state;
 pub mod patterns;
+pub mod real_time_coordination;
+pub mod state;
+pub mod task_scoring;
 
 // Re-export main components
-pub use coordination::{SyncCoordinator, SyncStatus, SyncError};
-pub use lock_context::{LockFileContextProvider, LockFileAIContext};
-pub use lock_context_integration::{LockFileAIIntegration};
-pub use constraint_system::{ConstraintSystem, Constraint, ConstraintViolation};
-pub use task_scoring::{TaskScoringSystem, TaskScore, TaskScoringFactors};
-pub use real_time_coordination::{RealTimeCoordinationSystem, AgentMessage, AgentStatus};
-pub use conflict_prevention::{ConflictPreventionSystem, ConflictType, ResolutionStrategy};
 pub use advanced_conflict_prevention::{
-    AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig, AdvancedResolutionStrategy,
-    ConflictPredictionModel, ConsensusConfig, CoordinationSession, AdvancedConflictStats,
-    ConflictPrediction, PreventiveAction,
-};
-pub use ml_conflict_prediction::{
-    MLConflictPredictionSystem, MLConflictPredictionConfig, MLConflictPredictionModel,
-    ConflictPredictionResult, PreventionAction as MLPreventionAction, ConflictLearningSystem,
-    LearningMetrics, MLConflictPredictionStats,
+    AdvancedConflictPreventionConfig, AdvancedConflictPreventionSystem, AdvancedConflictStats,
+    AdvancedResolutionStrategy, ConflictPrediction, ConflictPredictionModel, ConsensusConfig,
+    CoordinationSession, PreventiveAction,
 };
 pub use conflict_analysis::{
-    ConflictAnalysisSystem, ConflictAnalysisConfig, ConflictAnalysisReport, ReportType,
-    ReportData, ConflictStatistics, ResolutionStatistics, PredictionStatistics,
-    LearningInsights, TrendAnalysis, PerformanceMetrics, Recommendation,
+    ConflictAnalysisConfig, ConflictAnalysisReport, ConflictAnalysisSystem, ConflictStatistics,
+    LearningInsights, PerformanceMetrics, PredictionStatistics, Recommendation, ReportData,
+    ReportType, ResolutionStatistics, TrendAnalysis,
 };
-pub use state::{AgentState, AgentManager, StateTransition};
-pub use patterns::{CoordinationPattern, PatternRegistry, PatternExecutor, PatternContext, PatternResult, PatternError}; 
+pub use conflict_prevention::{ConflictPreventionSystem, ConflictType, ResolutionStrategy};
+pub use constraint_system::{Constraint, ConstraintSystem, ConstraintViolation};
+pub use coordination::{SyncCoordinator, SyncError, SyncStatus};
+pub use lock_context::{LockFileAIContext, LockFileContextProvider};
+pub use lock_context_integration::LockFileAIIntegration;
+pub use ml_conflict_prediction::{
+    ConflictLearningSystem, ConflictPredictionResult, LearningMetrics, MLConflictPredictionConfig,
+    MLConflictPredictionModel, MLConflictPredictionStats, MLConflictPredictionSystem,
+    PreventionAction as MLPreventionAction,
+};
+pub use patterns::{
+    CoordinationPattern, PatternContext, PatternError, PatternExecutor, PatternRegistry,
+    PatternResult,
+};
+pub use real_time_coordination::{AgentMessage, AgentStatus, RealTimeCoordinationSystem};
+pub use state::{AgentManager, AgentState, StateTransition};
+pub use task_scoring::{TaskScore, TaskScoringFactors, TaskScoringSystem};

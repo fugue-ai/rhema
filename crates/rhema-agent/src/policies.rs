@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use crate::agent::{AgentId, AgentType, AgentCapability};
+use crate::agent::{AgentCapability, AgentId, AgentType};
 use crate::error::{AgentError, AgentResult};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 /// Policy enforcement mode
@@ -265,18 +265,18 @@ impl PolicyEngine {
         // Clear any existing data
         self.policies.write().await.clear();
         self.violations.write().await.clear();
-        
+
         // Reset statistics
         let mut stats = self.stats.write().await;
         *stats = PolicyStats::default();
-        
+
         Ok(())
     }
 
     /// Register a policy
     pub async fn register_policy(&self, policy: Policy) -> AgentResult<()> {
         let policy_id = policy.policy_id.clone();
-        
+
         // Check if policy already exists
         {
             let policies = self.policies.read().await;
@@ -286,23 +286,23 @@ impl PolicyEngine {
                 });
             }
         }
-        
+
         // Add policy
         {
             let mut policies = self.policies.write().await;
             policies.insert(policy_id, policy);
         }
-        
+
         // Update statistics
         self.update_stats().await;
-        
+
         Ok(())
     }
 
     /// Unregister a policy
     pub async fn unregister_policy(&self, policy_id: &str) -> AgentResult<()> {
         let mut policies = self.policies.write().await;
-        
+
         if policies.remove(policy_id).is_some() {
             // Update statistics
             self.update_stats().await;
@@ -317,7 +317,7 @@ impl PolicyEngine {
     /// Get a policy
     pub async fn get_policy(&self, policy_id: &str) -> AgentResult<Policy> {
         let policies = self.policies.read().await;
-        
+
         policies
             .get(policy_id)
             .cloned()
@@ -354,29 +354,38 @@ impl PolicyEngine {
         let mut violations = Vec::new();
         let mut allowed_actions = Vec::new();
         let mut denied_actions = Vec::new();
-        
+
         for policy in policies {
             // Check if policy applies to this agent
-            if !self.policy_applies_to_agent(&policy, agent_id, agent_type).await {
+            if !self
+                .policy_applies_to_agent(&policy, agent_id, agent_type)
+                .await
+            {
                 continue;
             }
-            
+
             // Evaluate policy rules
             for rule in &policy.rules {
-                if self.rule_condition_matches(&rule.condition, agent_type, capabilities, context).await {
+                if self
+                    .rule_condition_matches(&rule.condition, agent_type, capabilities, context)
+                    .await
+                {
                     match &rule.action {
                         PolicyAction::Allow => {
                             allowed_actions.push((policy.policy_id.clone(), rule.rule_id.clone()));
                         }
                         PolicyAction::Deny => {
                             denied_actions.push((policy.policy_id.clone(), rule.rule_id.clone()));
-                            
+
                             // Record violation
                             let violation = PolicyViolation {
                                 violation_id: Uuid::new_v4().to_string(),
                                 agent_id: agent_id.clone(),
                                 policy_id: policy.policy_id.clone(),
-                                description: format!("Policy '{}' rule '{}' denied action", policy.name, rule.name),
+                                description: format!(
+                                    "Policy '{}' rule '{}' denied action",
+                                    policy.name, rule.name
+                                ),
                                 severity: PolicyViolationSeverity::High,
                                 timestamp: Utc::now(),
                                 context: context.clone(),
@@ -389,7 +398,10 @@ impl PolicyEngine {
                                 violation_id: Uuid::new_v4().to_string(),
                                 agent_id: agent_id.clone(),
                                 policy_id: policy.policy_id.clone(),
-                                description: format!("Policy '{}' rule '{}' warning", policy.name, rule.name),
+                                description: format!(
+                                    "Policy '{}' rule '{}' warning",
+                                    policy.name, rule.name
+                                ),
                                 severity: PolicyViolationSeverity::Medium,
                                 timestamp: Utc::now(),
                                 context: context.clone(),
@@ -408,16 +420,16 @@ impl PolicyEngine {
                 }
             }
         }
-        
+
         // Store violations
         if !violations.is_empty() {
             let mut violations_store = self.violations.write().await;
             violations_store.extend(violations.clone());
         }
-        
+
         // Update statistics
         self.update_stats().await;
-        
+
         Ok(PolicyEvaluationResult {
             agent_id: agent_id.clone(),
             violations,
@@ -428,7 +440,12 @@ impl PolicyEngine {
     }
 
     /// Check if policy applies to agent
-    async fn policy_applies_to_agent(&self, policy: &Policy, agent_id: &AgentId, agent_type: &AgentType) -> bool {
+    async fn policy_applies_to_agent(
+        &self,
+        policy: &Policy,
+        agent_id: &AgentId,
+        agent_type: &AgentType,
+    ) -> bool {
         match &policy.scope {
             PolicyScope::Global => true,
             PolicyScope::Agent(policy_agent_id) => agent_id == policy_agent_id,
@@ -468,7 +485,7 @@ impl PolicyEngine {
     /// Get policy violations
     pub async fn get_violations(&self, limit: Option<usize>) -> Vec<PolicyViolation> {
         let violations = self.violations.read().await;
-        
+
         if let Some(limit) = limit {
             violations.iter().rev().take(limit).cloned().collect()
         } else {
@@ -477,15 +494,19 @@ impl PolicyEngine {
     }
 
     /// Get violations for an agent
-    pub async fn get_agent_violations(&self, agent_id: &AgentId, limit: Option<usize>) -> Vec<PolicyViolation> {
+    pub async fn get_agent_violations(
+        &self,
+        agent_id: &AgentId,
+        limit: Option<usize>,
+    ) -> Vec<PolicyViolation> {
         let violations = self.violations.read().await;
-        
+
         let filtered: Vec<PolicyViolation> = violations
             .iter()
             .filter(|v| &v.agent_id == agent_id)
             .cloned()
             .collect();
-        
+
         if let Some(limit) = limit {
             filtered.into_iter().rev().take(limit).collect()
         } else {
@@ -508,16 +529,17 @@ impl PolicyEngine {
         let policies = self.policies.read().await;
         let violations = self.violations.read().await;
         let mut stats = self.stats.write().await;
-        
+
         stats.total_policies = policies.len();
         stats.active_policies = policies.values().filter(|p| p.active).count();
         stats.total_violations = violations.len();
         stats.last_update = Utc::now();
-        
+
         // Count violations by severity
         stats.violations_by_severity.clear();
         for violation in violations.iter() {
-            *stats.violations_by_severity
+            *stats
+                .violations_by_severity
                 .entry(violation.severity.to_string())
                 .or_insert(0) += 1;
         }
@@ -528,11 +550,11 @@ impl PolicyEngine {
         // Clear all data
         self.policies.write().await.clear();
         self.violations.write().await.clear();
-        
+
         // Reset statistics
         let mut stats = self.stats.write().await;
         *stats = PolicyStats::default();
-        
+
         Ok(())
     }
 }
@@ -556,11 +578,13 @@ impl PolicyEvaluationResult {
     pub fn has_violations(&self) -> bool {
         !self.violations.is_empty()
     }
-    
+
     pub fn has_critical_violations(&self) -> bool {
-        self.violations.iter().any(|v| v.severity == PolicyViolationSeverity::Critical)
+        self.violations
+            .iter()
+            .any(|v| v.severity == PolicyViolationSeverity::Critical)
     }
-    
+
     pub fn is_allowed(&self) -> bool {
         self.denied_actions.is_empty()
     }
@@ -569,7 +593,7 @@ impl PolicyEvaluationResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::{AgentType, AgentCapability};
+    use crate::agent::{AgentCapability, AgentType};
 
     #[tokio::test]
     async fn test_policy_engine_creation() {
@@ -581,7 +605,7 @@ mod tests {
     async fn test_policy_registration() {
         let engine = PolicyEngine::new();
         engine.initialize().await.unwrap();
-        
+
         let policy = Policy {
             policy_id: "test-policy".to_string(),
             name: "Test Policy".to_string(),
@@ -593,9 +617,9 @@ mod tests {
             active: true,
             metadata: HashMap::new(),
         };
-        
+
         assert!(engine.register_policy(policy).await.is_ok());
-        
+
         let policies = engine.get_all_policies().await;
         assert_eq!(policies.len(), 1);
         assert_eq!(policies[0].name, "Test Policy");
@@ -605,37 +629,38 @@ mod tests {
     async fn test_policy_evaluation() {
         let engine = PolicyEngine::new();
         engine.initialize().await.unwrap();
-        
+
         let policy = Policy {
             policy_id: "test-policy".to_string(),
             name: "Test Policy".to_string(),
             description: "A test policy".to_string(),
             enforcement: PolicyEnforcement::Strict,
-            rules: vec![
-                PolicyRule {
-                    rule_id: "test-rule".to_string(),
-                    name: "Test Rule".to_string(),
-                    description: "A test rule".to_string(),
-                    condition: PolicyCondition::AgentType(AgentType::Development),
-                    action: PolicyAction::Allow,
-                    priority: 5,
-                }
-            ],
+            rules: vec![PolicyRule {
+                rule_id: "test-rule".to_string(),
+                name: "Test Rule".to_string(),
+                description: "A test rule".to_string(),
+                condition: PolicyCondition::AgentType(AgentType::Development),
+                action: PolicyAction::Allow,
+                priority: 5,
+            }],
             scope: PolicyScope::Global,
             priority: 5,
             active: true,
             metadata: HashMap::new(),
         };
-        
+
         engine.register_policy(policy).await.unwrap();
-        
+
         let agent_id = "test-agent".to_string();
         let agent_type = AgentType::Development;
         let capabilities = vec![AgentCapability::CodeExecution];
         let context = HashMap::new();
-        
-        let result = engine.evaluate_policies(&agent_id, &agent_type, &capabilities, &context).await.unwrap();
-        
+
+        let result = engine
+            .evaluate_policies(&agent_id, &agent_type, &capabilities, &context)
+            .await
+            .unwrap();
+
         assert!(!result.has_violations());
         assert!(result.is_allowed());
     }
@@ -653,4 +678,4 @@ mod tests {
         assert_eq!(PolicyEnforcement::Warning.to_string(), "Warning");
         assert_eq!(PolicyEnforcement::Disabled.to_string(), "Disabled");
     }
-} 
+}

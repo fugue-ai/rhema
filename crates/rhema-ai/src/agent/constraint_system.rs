@@ -362,7 +362,8 @@ impl ConstraintSystem {
             if deps.contains(&constraint_id.to_string()) {
                 return Err(ConstraintError::EnforcementFailed(
                     "Cannot remove constraint that is depended upon".to_string(),
-                ).into());
+                )
+                .into());
             }
         }
 
@@ -462,24 +463,17 @@ impl ConstraintSystem {
             ConstraintType::Dependency => {
                 self.check_dependency_constraint(constraint, context).await
             }
-            ConstraintType::Time => {
-                self.check_time_constraint(constraint, context).await
-            }
-            ConstraintType::Quality => {
-                self.check_quality_constraint(constraint, context).await
-            }
-            ConstraintType::Security => {
-                self.check_security_constraint(constraint, context).await
-            }
+            ConstraintType::Time => self.check_time_constraint(constraint, context).await,
+            ConstraintType::Quality => self.check_quality_constraint(constraint, context).await,
+            ConstraintType::Security => self.check_security_constraint(constraint, context).await,
             ConstraintType::Performance => {
                 self.check_performance_constraint(constraint, context).await
             }
             ConstraintType::Collaboration => {
-                self.check_collaboration_constraint(constraint, context).await
+                self.check_collaboration_constraint(constraint, context)
+                    .await
             }
-            ConstraintType::Custom(_) => {
-                self.check_custom_constraint(constraint, context).await
-            }
+            ConstraintType::Custom(_) => self.check_custom_constraint(constraint, context).await,
         }
     }
 
@@ -496,8 +490,10 @@ impl ConstraintSystem {
                     return Err(ConstraintViolation {
                         id: format!("{}-cpu", constraint.id),
                         constraint_id: constraint.id.clone(),
-                        description: format!("CPU usage {}% exceeds limit of {}%", 
-                            context.current_cpu_percent, max_cpu),
+                        description: format!(
+                            "CPU usage {}% exceeds limit of {}%",
+                            context.current_cpu_percent, max_cpu
+                        ),
                         severity: constraint.severity.clone(),
                         timestamp: Utc::now(),
                         context: HashMap::new(),
@@ -514,8 +510,10 @@ impl ConstraintSystem {
                     return Err(ConstraintViolation {
                         id: format!("{}-memory", constraint.id),
                         constraint_id: constraint.id.clone(),
-                        description: format!("Memory usage {}MB exceeds limit of {}MB", 
-                            context.current_memory_mb, max_memory),
+                        description: format!(
+                            "Memory usage {}MB exceeds limit of {}MB",
+                            context.current_memory_mb, max_memory
+                        ),
                         severity: constraint.severity.clone(),
                         timestamp: Utc::now(),
                         context: HashMap::new(),
@@ -544,8 +542,10 @@ impl ConstraintSystem {
                         return Err(ConstraintViolation {
                             id: format!("{}-file-access", constraint.id),
                             constraint_id: constraint.id.clone(),
-                            description: format!("File access denied: {} matches pattern {}", 
-                                file_path, pattern),
+                            description: format!(
+                                "File access denied: {} matches pattern {}",
+                                file_path, pattern
+                            ),
                             severity: constraint.severity.clone(),
                             timestamp: Utc::now(),
                             context: HashMap::new(),
@@ -668,8 +668,10 @@ impl ConstraintSystem {
                     return Err(ConstraintViolation {
                         id: format!("{}-response-time", constraint.id),
                         constraint_id: constraint.id.clone(),
-                        description: format!("Response time {}ms exceeds limit of {}ms", 
-                            context.response_time_ms, max_response_time),
+                        description: format!(
+                            "Response time {}ms exceeds limit of {}ms",
+                            context.response_time_ms, max_response_time
+                        ),
                         severity: constraint.severity.clone(),
                         timestamp: Utc::now(),
                         context: HashMap::new(),
@@ -721,19 +723,22 @@ impl ConstraintSystem {
         if constraint.id.is_empty() {
             return Err(ConstraintError::InvalidConstraintDefinition(
                 "Constraint ID cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if constraint.name.is_empty() {
             return Err(ConstraintError::InvalidConstraintDefinition(
                 "Constraint name cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         if constraint.scope.is_empty() {
             return Err(ConstraintError::InvalidConstraintDefinition(
                 "Constraint scope cannot be empty".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         Ok(())
@@ -767,22 +772,28 @@ impl ConstraintSystem {
         for violation in violations {
             match violation.description.as_str() {
                 desc if desc.contains("CPU usage") => {
-                    recommendations.push("Consider optimizing CPU-intensive operations".to_string());
+                    recommendations
+                        .push("Consider optimizing CPU-intensive operations".to_string());
                 }
                 desc if desc.contains("Memory usage") => {
-                    recommendations.push("Consider implementing memory management strategies".to_string());
+                    recommendations
+                        .push("Consider implementing memory management strategies".to_string());
                 }
                 desc if desc.contains("File access denied") => {
                     recommendations.push("Review file access permissions and patterns".to_string());
                 }
                 desc if desc.contains("Deadline exceeded") => {
-                    recommendations.push("Consider extending deadline or optimizing task execution".to_string());
+                    recommendations.push(
+                        "Consider extending deadline or optimizing task execution".to_string(),
+                    );
                 }
                 desc if desc.contains("Response time") => {
-                    recommendations.push("Consider optimizing performance-critical operations".to_string());
+                    recommendations
+                        .push("Consider optimizing performance-critical operations".to_string());
                 }
                 _ => {
-                    recommendations.push("Review constraint configuration and adjust as needed".to_string());
+                    recommendations
+                        .push("Review constraint configuration and adjust as needed".to_string());
                 }
             }
         }
@@ -849,11 +860,11 @@ impl ConstraintContext {
         self.current_memory_mb.hash(&mut hasher);
         self.current_disk_mb.hash(&mut hasher);
         self.response_time_ms.hash(&mut hasher);
-        
+
         for file in &self.accessed_files {
             file.hash(&mut hasher);
         }
-        
+
         for endpoint in &self.network_endpoints {
             endpoint.hash(&mut hasher);
         }
@@ -881,7 +892,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_constraint() {
         let mut system = ConstraintSystem::new();
-        
+
         let constraint = Constraint {
             id: "test-constraint".to_string(),
             name: "Test Constraint".to_string(),
@@ -919,7 +930,7 @@ mod tests {
     #[tokio::test]
     async fn test_enforce_constraints() {
         let mut system = ConstraintSystem::new();
-        
+
         // Add a resource constraint
         let constraint = Constraint {
             id: "cpu-constraint".to_string(),
@@ -957,14 +968,20 @@ mod tests {
         let mut context = ConstraintContext::new();
         context.current_cpu_percent = 30.0;
 
-        let result = system.enforce_constraints("test-scope", &context).await.unwrap();
+        let result = system
+            .enforce_constraints("test-scope", &context)
+            .await
+            .unwrap();
         assert!(result.satisfied);
         assert!(result.violations.is_empty());
 
         // Test with non-compliant context
         context.current_cpu_percent = 75.0;
-        let result = system.enforce_constraints("test-scope", &context).await.unwrap();
+        let result = system
+            .enforce_constraints("test-scope", &context)
+            .await
+            .unwrap();
         assert!(!result.satisfied);
         assert!(!result.violations.is_empty());
     }
-} 
+}

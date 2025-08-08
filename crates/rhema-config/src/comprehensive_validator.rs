@@ -10,11 +10,9 @@
  * limitations under the License.
  */
 
-use crate::{
-    ConfigIssueSeverity, GlobalConfig,
-};
+use crate::schema_validator::{SchemaType, SchemaValidationResult, SchemaValidator};
 use crate::validation::{ValidationManager, ValidationResult};
-use crate::schema_validator::{SchemaValidator, SchemaType, SchemaValidationResult};
+use crate::{ConfigIssueSeverity, GlobalConfig};
 use rhema_core::RhemaResult;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -36,10 +34,10 @@ pub struct ComprehensiveValidator {
 /// Validation level for comprehensive validation
 #[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
 pub enum ValidationLevel {
-    Basic,      // Schema validation only
-    Standard,   // Schema + basic business rules
-    Strict,     // Schema + all business rules + cross-references
-    Complete,   // All validations including performance and security
+    Basic,    // Schema validation only
+    Standard, // Schema + basic business rules
+    Strict,   // Schema + all business rules + cross-references
+    Complete, // All validations including performance and security
 }
 
 /// Comprehensive validation result
@@ -105,7 +103,10 @@ impl ComprehensiveValidator {
         validation_level: ValidationLevel,
         auto_fix: bool,
     ) -> RhemaResult<Self> {
-        let schema_validator = Arc::new(SchemaValidator::with_settings(cache_ttl, validation_level == ValidationLevel::Strict)?);
+        let schema_validator = Arc::new(SchemaValidator::with_settings(
+            cache_ttl,
+            validation_level == ValidationLevel::Strict,
+        )?);
         let validation_manager = Arc::new(ValidationManager::new(global_config)?);
 
         Ok(Self {
@@ -141,7 +142,8 @@ impl ComprehensiveValidator {
 
         // Load and parse the configuration file
         let config_content = std::fs::read_to_string(file_path)?;
-        let config_value: Value = if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
+        let config_value: Value = if let Some(ext) = file_path.extension().and_then(|s| s.to_str())
+        {
             if ext == "yaml" || ext == "yml" {
                 serde_yaml::from_str(&config_content)?
             } else {
@@ -152,7 +154,9 @@ impl ComprehensiveValidator {
         };
 
         // Perform comprehensive validation
-        let result = self.validate_config_value(&config_value, schema_type, file_path).await?;
+        let result = self
+            .validate_config_value(&config_value, schema_type, file_path)
+            .await?;
 
         // Cache the result
         {
@@ -183,7 +187,11 @@ impl ComprehensiveValidator {
         let mut all_warnings = Vec::new();
 
         // 1. Schema validation
-        let schema_result = match self.schema_validator.validate_against_schema(config_value, schema_type).await {
+        let schema_result = match self
+            .schema_validator
+            .validate_against_schema(config_value, schema_type)
+            .await
+        {
             Ok(result) => Some(result),
             Err(_) => {
                 // If schema not found, create a basic validation result
@@ -226,7 +234,10 @@ impl ComprehensiveValidator {
             None
         };
 
-        let business_valid = business_result.as_ref().map(|r: &ValidationResult| r.valid).unwrap_or(true);
+        let business_valid = business_result
+            .as_ref()
+            .map(|r: &ValidationResult| r.valid)
+            .unwrap_or(true);
 
         // Convert business issues to comprehensive issues
         if let Some(ref business_result) = business_result {
@@ -247,12 +258,16 @@ impl ComprehensiveValidator {
 
         // 3. Additional validations based on level
         if self.validation_level >= ValidationLevel::Strict {
-            let additional_issues = self.perform_strict_validations(config_value, schema_type, context).await?;
+            let additional_issues = self
+                .perform_strict_validations(config_value, schema_type, context)
+                .await?;
             all_issues.extend(additional_issues);
         }
 
         if self.validation_level >= ValidationLevel::Complete {
-            let complete_issues = self.perform_complete_validations(config_value, schema_type, context).await?;
+            let complete_issues = self
+                .perform_complete_validations(config_value, schema_type, context)
+                .await?;
             all_issues.extend(complete_issues);
         }
 
@@ -263,7 +278,11 @@ impl ComprehensiveValidator {
         }
 
         let duration = start_time.elapsed();
-        let valid = schema_valid && business_valid && all_issues.iter().all(|issue| issue.severity != ConfigIssueSeverity::Error);
+        let valid = schema_valid
+            && business_valid
+            && all_issues
+                .iter()
+                .all(|issue| issue.severity != ConfigIssueSeverity::Error);
 
         Ok(ComprehensiveValidationResult {
             valid,
@@ -341,11 +360,15 @@ impl ComprehensiveValidator {
         let mut issues = Vec::new();
 
         // Cross-reference validation
-        let cross_ref_issues = self.validate_cross_references(config_value, schema_type, context).await?;
+        let cross_ref_issues = self
+            .validate_cross_references(config_value, schema_type, context)
+            .await?;
         issues.extend(cross_ref_issues);
 
         // Dependency validation
-        let dep_issues = self.validate_dependencies(config_value, schema_type).await?;
+        let dep_issues = self
+            .validate_dependencies(config_value, schema_type)
+            .await?;
         issues.extend(dep_issues);
 
         // Security validation
@@ -373,7 +396,9 @@ impl ComprehensiveValidator {
         issues.extend(compliance_issues);
 
         // Custom validations
-        let custom_issues = self.validate_custom_rules(config_value, schema_type).await?;
+        let custom_issues = self
+            .validate_custom_rules(config_value, schema_type)
+            .await?;
         issues.extend(custom_issues);
 
         Ok(issues)
@@ -470,11 +495,17 @@ impl ComprehensiveValidator {
                             severity: ConfigIssueSeverity::Warning,
                             category: ValidationCategory::Security,
                             path: field.to_string(),
-                            message: format!("Sensitive field '{}' should use environment variables", field),
+                            message: format!(
+                                "Sensitive field '{}' should use environment variables",
+                                field
+                            ),
                             code: "SENSITIVE_FIELD_EXPOSED".to_string(),
                             details: None,
                             auto_fixable: true,
-                            suggested_fix: Some(Value::String(format!("${{{}}}", field.to_uppercase()))),
+                            suggested_fix: Some(Value::String(format!(
+                                "${{{}}}",
+                                field.to_uppercase()
+                            ))),
                         });
                     }
                 }
@@ -583,12 +614,22 @@ impl ComprehensiveValidator {
         duration.num_seconds() < self.cache_ttl as i64
     }
 
-    fn is_schema_issue_fixable(&self, issue: &crate::schema_validator::SchemaValidationIssue) -> bool {
+    fn is_schema_issue_fixable(
+        &self,
+        issue: &crate::schema_validator::SchemaValidationIssue,
+    ) -> bool {
         // Determine if a schema issue can be auto-fixed
-        matches!(issue.code.as_str(), "MISSING_REQUIRED_FIELD" | "INVALID_TYPE")
+        matches!(
+            issue.code.as_str(),
+            "MISSING_REQUIRED_FIELD" | "INVALID_TYPE"
+        )
     }
 
-    fn suggest_schema_fix(&self, issue: &crate::schema_validator::SchemaValidationIssue, _config: &Value) -> Option<Value> {
+    fn suggest_schema_fix(
+        &self,
+        issue: &crate::schema_validator::SchemaValidationIssue,
+        _config: &Value,
+    ) -> Option<Value> {
         // Suggest fixes for schema issues
         match issue.code.as_str() {
             "MISSING_REQUIRED_FIELD" => Some(Value::String("".to_string())),
@@ -604,7 +645,7 @@ impl ComprehensiveValidator {
         for entry in entries {
             let entry = entry?;
             let path = entry.path();
-            
+
             if path.is_file() {
                 if let Some(extension) = path.extension() {
                     if extension == "yaml" || extension == "yml" || extension == "json" {
@@ -620,7 +661,7 @@ impl ComprehensiveValidator {
     async fn detect_schema_type(&self, file_path: &Path) -> RhemaResult<SchemaType> {
         // Detect schema type based on filename or content
         let filename = file_path.file_name().and_then(|f| f.to_str()).unwrap_or("");
-        
+
         match filename {
             "rhema.yaml" | "rhema.yml" => Ok(SchemaType::Rhema),
             "scope.yaml" | "scope.yml" => Ok(SchemaType::Scope),
@@ -650,7 +691,10 @@ impl ComprehensiveValidator {
         }
     }
 
-    async fn extract_references(&self, _config_value: &Value) -> RhemaResult<HashMap<String, String>> {
+    async fn extract_references(
+        &self,
+        _config_value: &Value,
+    ) -> RhemaResult<HashMap<String, String>> {
         let references = HashMap::new();
         // Implementation to extract references from config_value
         // This would traverse the JSON structure looking for reference patterns
@@ -756,10 +800,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_schema_type_detection() {
-        let validator = ComprehensiveValidator::new(&GlobalConfig::new()).await.unwrap();
-        
+        let validator = ComprehensiveValidator::new(&GlobalConfig::new())
+            .await
+            .unwrap();
+
         let rhema_path = Path::new("rhema.yaml");
         let schema_type = validator.detect_schema_type(rhema_path).await.unwrap();
         assert_eq!(schema_type, SchemaType::Rhema);
     }
-} 
+}

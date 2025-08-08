@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use crate::agent::{AgentId, AgentCapability};
+use crate::agent::{AgentCapability, AgentId};
 use crate::error::{AgentError, AgentResult};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 
 /// Capability request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,7 +108,13 @@ impl std::fmt::Display for CapabilityResponseStatus {
 }
 
 impl CapabilityResponse {
-    pub fn available(response_id: String, request_id: String, providing_agent: AgentId, capability: AgentCapability, data: Option<serde_json::Value>) -> Self {
+    pub fn available(
+        response_id: String,
+        request_id: String,
+        providing_agent: AgentId,
+        capability: AgentCapability,
+        data: Option<serde_json::Value>,
+    ) -> Self {
         Self {
             response_id,
             request_id,
@@ -121,7 +127,13 @@ impl CapabilityResponse {
         }
     }
 
-    pub fn not_available(response_id: String, request_id: String, providing_agent: AgentId, capability: AgentCapability, error: String) -> Self {
+    pub fn not_available(
+        response_id: String,
+        request_id: String,
+        providing_agent: AgentId,
+        capability: AgentCapability,
+        error: String,
+    ) -> Self {
         Self {
             response_id,
             request_id,
@@ -134,7 +146,12 @@ impl CapabilityResponse {
         }
     }
 
-    pub fn busy(response_id: String, request_id: String, providing_agent: AgentId, capability: AgentCapability) -> Self {
+    pub fn busy(
+        response_id: String,
+        request_id: String,
+        providing_agent: AgentId,
+        capability: AgentCapability,
+    ) -> Self {
         Self {
             response_id,
             request_id,
@@ -206,22 +223,26 @@ impl CapabilityManager {
         self.agent_capabilities.write().await.clear();
         self.capability_providers.write().await.clear();
         self.active_requests.write().await.clear();
-        
+
         // Reset statistics
         let mut stats = self.stats.write().await;
         *stats = CapabilityStats::default();
-        
+
         Ok(())
     }
 
     /// Register capabilities for an agent
-    pub async fn register_capabilities(&self, agent_id: &AgentId, capabilities: Vec<AgentCapability>) -> AgentResult<()> {
+    pub async fn register_capabilities(
+        &self,
+        agent_id: &AgentId,
+        capabilities: Vec<AgentCapability>,
+    ) -> AgentResult<()> {
         // Register agent capabilities
         {
             let mut agent_caps = self.agent_capabilities.write().await;
             agent_caps.insert(agent_id.clone(), capabilities.clone());
         }
-        
+
         // Register capability providers
         {
             let mut providers = self.capability_providers.write().await;
@@ -232,10 +253,10 @@ impl CapabilityManager {
                     .push(agent_id.clone());
             }
         }
-        
+
         // Update statistics
         self.update_stats().await;
-        
+
         Ok(())
     }
 
@@ -246,20 +267,20 @@ impl CapabilityManager {
             let agent_caps = self.agent_capabilities.read().await;
             agent_caps.get(agent_id).cloned().unwrap_or_default()
         };
-        
+
         // Remove from agent capabilities
         {
             let mut agent_caps = self.agent_capabilities.write().await;
             agent_caps.remove(agent_id);
         }
-        
+
         // Remove from capability providers
         {
             let mut providers = self.capability_providers.write().await;
             for capability in &capabilities {
                 if let Some(agent_list) = providers.get_mut(capability) {
                     agent_list.retain(|id| id != agent_id);
-                    
+
                     // Remove capability if no providers left
                     if agent_list.is_empty() {
                         providers.remove(capability);
@@ -267,10 +288,10 @@ impl CapabilityManager {
                 }
             }
         }
-        
+
         // Update statistics
         self.update_stats().await;
-        
+
         Ok(())
     }
 
@@ -296,25 +317,28 @@ impl CapabilityManager {
     }
 
     /// Request a capability
-    pub async fn request_capability(&self, request: CapabilityRequest) -> AgentResult<CapabilityResponse> {
+    pub async fn request_capability(
+        &self,
+        request: CapabilityRequest,
+    ) -> AgentResult<CapabilityResponse> {
         // Get capability providers
         let providers = self.get_capability_providers(&request.capability).await;
-        
+
         if providers.is_empty() {
             return Err(AgentError::CapabilityNotAvailable {
                 capability: request.capability.to_string(),
             });
         }
-        
+
         // Store active request
         {
             let mut active_requests = self.active_requests.write().await;
             active_requests.insert(request.request_id.clone(), request.clone());
         }
-        
+
         // Find available provider (simple round-robin for now)
         let provider = providers.first().unwrap();
-        
+
         // Create response
         let response = CapabilityResponse::available(
             uuid::Uuid::new_v4().to_string(),
@@ -323,16 +347,16 @@ impl CapabilityManager {
             request.capability.clone(),
             None,
         );
-        
+
         // Remove from active requests
         {
             let mut active_requests = self.active_requests.write().await;
             active_requests.remove(&request.request_id);
         }
-        
+
         // Update statistics
         self.update_stats().await;
-        
+
         Ok(response)
     }
 
@@ -352,18 +376,21 @@ impl CapabilityManager {
         let agent_caps = self.agent_capabilities.read().await;
         let active_requests = self.active_requests.read().await;
         let mut stats = self.stats.write().await;
-        
+
         // Count total capabilities
         stats.total_capabilities = agent_caps.values().map(|caps| caps.len()).sum();
-        
+
         // Count capabilities by type
         stats.capabilities_by_type.clear();
         for capabilities in agent_caps.values() {
             for capability in capabilities {
-                *stats.capabilities_by_type.entry(capability.to_string()).or_insert(0) += 1;
+                *stats
+                    .capabilities_by_type
+                    .entry(capability.to_string())
+                    .or_insert(0) += 1;
             }
         }
-        
+
         // Update request counts
         stats.active_requests = active_requests.len();
         stats.last_update = Utc::now();
@@ -375,11 +402,11 @@ impl CapabilityManager {
         self.agent_capabilities.write().await.clear();
         self.capability_providers.write().await.clear();
         self.active_requests.write().await.clear();
-        
+
         // Reset statistics
         let mut stats = self.stats.write().await;
         *stats = CapabilityStats::default();
-        
+
         Ok(())
     }
 }
@@ -399,12 +426,15 @@ mod tests {
     async fn test_capability_registration() {
         let manager = CapabilityManager::new();
         manager.initialize().await.unwrap();
-        
+
         let agent_id = "test-agent".to_string();
         let capabilities = vec![AgentCapability::CodeExecution, AgentCapability::FileRead];
-        
-        assert!(manager.register_capabilities(&agent_id, capabilities.clone()).await.is_ok());
-        
+
+        assert!(manager
+            .register_capabilities(&agent_id, capabilities.clone())
+            .await
+            .is_ok());
+
         let registered_caps = manager.get_agent_capabilities(&agent_id).await;
         assert_eq!(registered_caps.len(), 2);
         assert!(registered_caps.contains(&AgentCapability::CodeExecution));
@@ -414,13 +444,18 @@ mod tests {
     async fn test_capability_providers() {
         let manager = CapabilityManager::new();
         manager.initialize().await.unwrap();
-        
+
         let agent_id = "test-agent".to_string();
         let capabilities = vec![AgentCapability::CodeExecution];
-        
-        manager.register_capabilities(&agent_id, capabilities).await.unwrap();
-        
-        let providers = manager.get_capability_providers(&AgentCapability::CodeExecution).await;
+
+        manager
+            .register_capabilities(&agent_id, capabilities)
+            .await
+            .unwrap();
+
+        let providers = manager
+            .get_capability_providers(&AgentCapability::CodeExecution)
+            .await;
         assert_eq!(providers.len(), 1);
         assert_eq!(providers[0], agent_id);
     }
@@ -429,17 +464,20 @@ mod tests {
     async fn test_capability_request() {
         let manager = CapabilityManager::new();
         manager.initialize().await.unwrap();
-        
+
         let agent_id = "test-agent".to_string();
         let capabilities = vec![AgentCapability::CodeExecution];
-        
-        manager.register_capabilities(&agent_id, capabilities).await.unwrap();
-        
+
+        manager
+            .register_capabilities(&agent_id, capabilities)
+            .await
+            .unwrap();
+
         let request = CapabilityRequest::new(
             "requesting-agent".to_string(),
             AgentCapability::CodeExecution,
         );
-        
+
         let response = manager.request_capability(request).await.unwrap();
         assert_eq!(response.status, CapabilityResponseStatus::Available);
         assert_eq!(response.providing_agent, agent_id);
@@ -451,7 +489,7 @@ mod tests {
         let request = CapabilityRequest::new(agent_id.clone(), AgentCapability::CodeExecution)
             .with_parameter("param1".to_string(), serde_json::json!("value1"))
             .with_priority(10);
-        
+
         assert_eq!(request.requesting_agent, agent_id);
         assert_eq!(request.capability, AgentCapability::CodeExecution);
         assert_eq!(request.priority, 10);
@@ -467,9 +505,9 @@ mod tests {
             AgentCapability::CodeExecution,
             Some(serde_json::json!({"result": "success"})),
         );
-        
+
         assert_eq!(response.status, CapabilityResponseStatus::Available);
         assert_eq!(response.providing_agent, "provider-agent");
         assert!(response.data.is_some());
     }
-} 
+}

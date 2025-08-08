@@ -15,9 +15,9 @@
  */
 
 use async_trait::async_trait;
+use rhema_action_tool::{ActionError, ActionIntent, ActionResult};
+use rhema_action_tool::{ToolResult, ValidationTool};
 use tracing::{info, warn};
-use rhema_action_tool::{ActionIntent, ActionResult, ActionError};
-use rhema_action_tool::{ValidationTool, ToolResult};
 
 /// PyTest validation tool
 pub struct PyTestTool;
@@ -26,20 +26,23 @@ pub struct PyTestTool;
 impl ValidationTool for PyTestTool {
     async fn validate(&self, intent: &ActionIntent) -> ActionResult<ToolResult> {
         info!("Running PyTest for intent: {}", intent.id);
-        
+
         let start = std::time::Instant::now();
-        
+
         // Extract file paths from intent
         let files = &intent.scope;
         if files.is_empty() {
-            return Err(ActionError::Validation("No files specified for PyTest".to_string()));
+            return Err(ActionError::Validation(
+                "No files specified for PyTest".to_string(),
+            ));
         }
-        
+
         // Find Python test files
-        let test_files: Vec<&String> = files.iter()
+        let test_files: Vec<&String> = files
+            .iter()
             .filter(|f| f.ends_with(".py") && (f.contains("test") || f.contains("spec")))
             .collect();
-        
+
         if test_files.is_empty() {
             return Ok(ToolResult {
                 success: true,
@@ -50,24 +53,24 @@ impl ValidationTool for PyTestTool {
                 duration: start.elapsed(),
             });
         }
-        
+
         // Run PyTest
         let mut changes = Vec::new();
         let mut errors = Vec::new();
         let warnings = Vec::new();
-        
+
         match self.run_pytest_tests(&test_files).await {
             Ok(output) => {
                 changes.push("PyTest completed successfully".to_string());
                 if !output.is_empty() {
                     changes.push(format!("PyTest output: {}", output));
                 }
-            },
+            }
             Err(e) => errors.push(format!("PyTest failed: {}", e)),
         }
-        
+
         let success = errors.is_empty();
-        
+
         Ok(ToolResult {
             success,
             changes,
@@ -77,15 +80,15 @@ impl ValidationTool for PyTestTool {
             duration: start.elapsed(),
         })
     }
-    
+
     fn name(&self) -> &str {
         "pytest"
     }
-    
+
     fn version(&self) -> &str {
         "1.0.0"
     }
-    
+
     async fn is_available(&self) -> bool {
         // Check if PyTest is installed
         tokio::process::Command::new("pytest")
@@ -101,37 +104,34 @@ impl PyTestTool {
     /// Run PyTest on specified files
     async fn run_pytest_tests(&self, test_files: &[&String]) -> ActionResult<String> {
         info!("Running PyTest on {} files", test_files.len());
-        
+
         // Execute PyTest
         let output = tokio::process::Command::new("pytest")
-            .args(&[
-                "--verbose",
-                "--tb=short"
-            ])
+            .args(&["--verbose", "--tb=short"])
             .args(test_files.iter().map(|f| f.as_str()))
             .output()
             .await
-            .map_err(|e| ActionError::ToolExecution { 
-                tool: "pytest".to_string(), 
-                message: format!("Failed to execute PyTest: {}", e) 
+            .map_err(|e| ActionError::ToolExecution {
+                tool: "pytest".to_string(),
+                message: format!("Failed to execute PyTest: {}", e),
             })?;
-        
+
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             let stderr = String::from_utf8_lossy(&output.stderr);
-            
+
             info!("PyTest stdout: {}", stdout);
             if !stderr.is_empty() {
                 warn!("PyTest stderr: {}", stderr);
             }
-            
+
             Ok(stdout.to_string())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(ActionError::ToolExecution { 
-                tool: "pytest".to_string(), 
-                message: format!("PyTest failed: {}", stderr) 
+            Err(ActionError::ToolExecution {
+                tool: "pytest".to_string(),
+                message: format!("PyTest failed: {}", stderr),
             })
         }
     }
-} 
+}

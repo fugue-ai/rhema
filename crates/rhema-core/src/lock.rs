@@ -16,8 +16,8 @@
 
 use crate::{
     file_ops::{read_yaml_file, write_yaml_file},
-    RhemaError, RhemaResult, RhemaLock, LockedScope, LockedDependency,
-    ConflictResolution, LockPerformanceMetrics,
+    ConflictResolution, LockPerformanceMetrics, LockedDependency, LockedScope, RhemaError,
+    RhemaLock, RhemaResult,
 };
 use chrono::Utc;
 use sha2::{Digest, Sha256};
@@ -45,10 +45,10 @@ impl LockFileOps {
         }
 
         let lock_data: RhemaLock = read_yaml_file(lock_path)?;
-        
+
         // Validate the lock file after reading
         lock_data.validate()?;
-        
+
         Ok(lock_data)
     }
 
@@ -57,22 +57,22 @@ impl LockFileOps {
         // Create a mutable copy to update checksum
         let mut lock_data = lock_data.clone();
         lock_data.update_checksum();
-        
+
         // Validate the lock data after updating checksum
         lock_data.validate()?;
-        
+
         write_yaml_file(lock_path, &lock_data)
     }
 
     /// Create a new lock file at the specified path
     pub fn create_lock_file(lock_path: &Path, generated_by: &str) -> RhemaResult<RhemaLock> {
         let mut lock_data = RhemaLock::new(generated_by);
-        
+
         // Update checksum before writing
         lock_data.update_checksum();
-        
+
         Self::write_lock_file(lock_path, &lock_data)?;
-        
+
         Ok(lock_data)
     }
 
@@ -152,27 +152,27 @@ impl LockFileOps {
         scope_data: LockedScope,
     ) -> RhemaResult<RhemaLock> {
         let mut lock_data = Self::read_lock_file(lock_path)?;
-        
+
         lock_data.add_scope(scope_path.to_string(), scope_data);
-        
+
         Self::write_lock_file(lock_path, &lock_data)?;
-        
+
         Ok(lock_data)
     }
 
     /// Remove a scope from a lock file
     pub fn remove_lock_file_scope(lock_path: &Path, scope_path: &str) -> RhemaResult<RhemaLock> {
         let mut lock_data = Self::read_lock_file(lock_path)?;
-        
+
         if lock_data.remove_scope(scope_path).is_none() {
             return Err(RhemaError::LockError(format!(
                 "Scope {} not found in lock file",
                 scope_path
             )));
         }
-        
+
         Self::write_lock_file(lock_path, &lock_data)?;
-        
+
         Ok(lock_data)
     }
 
@@ -184,7 +184,7 @@ impl LockFileOps {
         dependency: LockedDependency,
     ) -> RhemaResult<RhemaLock> {
         let mut lock_data = Self::read_lock_file(lock_path)?;
-        
+
         if let Some(scope) = lock_data.scopes.get_mut(scope_path) {
             scope.add_dependency(dep_name.to_string(), dependency);
         } else {
@@ -193,9 +193,9 @@ impl LockFileOps {
                 scope_path
             )));
         }
-        
+
         Self::write_lock_file(lock_path, &lock_data)?;
-        
+
         Ok(lock_data)
     }
 
@@ -206,7 +206,7 @@ impl LockFileOps {
         dep_name: &str,
     ) -> RhemaResult<RhemaLock> {
         let mut lock_data = Self::read_lock_file(lock_path)?;
-        
+
         if let Some(scope) = lock_data.scopes.get_mut(scope_path) {
             if scope.remove_dependency(dep_name).is_none() {
                 return Err(RhemaError::LockError(format!(
@@ -220,9 +220,9 @@ impl LockFileOps {
                 scope_path
             )));
         }
-        
+
         Self::write_lock_file(lock_path, &lock_data)?;
-        
+
         Ok(lock_data)
     }
 
@@ -239,7 +239,7 @@ impl LockFileOps {
         let mut hasher = Sha256::new();
         hasher.update(&content);
         let result = hasher.finalize();
-        
+
         Ok(format!("{:x}", result))
     }
 
@@ -248,7 +248,7 @@ impl LockFileOps {
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
         let result = hasher.finalize();
-        
+
         format!("{:x}", result)
     }
 
@@ -259,14 +259,14 @@ impl LockFileOps {
         }
 
         let lock_data = Self::read_lock_file(lock_path)?;
-        
+
         for source_path in source_paths {
             if !source_path.exists() {
                 continue; // Skip non-existent files
             }
 
             let current_checksum = Self::calculate_file_checksum(source_path)?;
-            
+
             // Check if this source file is tracked in the lock file
             if let Some(scope) = lock_data.get_scope(source_path.to_str().unwrap()) {
                 if let Some(expected_checksum) = &scope.source_checksum {
@@ -287,22 +287,22 @@ impl LockFileOps {
         scopes: HashMap<String, LockedScope>,
     ) -> RhemaResult<RhemaLock> {
         let start_time = Instant::now();
-        
+
         let mut lock_data = RhemaLock::new(generated_by);
-        
+
         // Add all scopes
         for (scope_path, scope) in scopes {
             lock_data.add_scope(scope_path, scope);
         }
-        
+
         // Update performance metrics
         let generation_time = start_time.elapsed().as_millis() as u64;
         let metrics = LockPerformanceMetrics::new(generation_time);
         lock_data.metadata.set_performance_metrics(metrics);
-        
+
         // Write the lock file
         Self::write_lock_file(lock_path, &lock_data)?;
-        
+
         Ok(lock_data)
     }
 
@@ -313,14 +313,16 @@ impl LockFileOps {
         conflict_resolution: ConflictResolution,
     ) -> RhemaResult<RhemaLock> {
         if lock_files.is_empty() {
-            return Err(RhemaError::LockError("No lock files provided for merging".to_string()));
+            return Err(RhemaError::LockError(
+                "No lock files provided for merging".to_string(),
+            ));
         }
 
         let mut merged_lock = Self::read_lock_file(&lock_files[0])?;
-        
+
         for lock_file in &lock_files[1..] {
             let lock_data = Self::read_lock_file(lock_file)?;
-            
+
             // Merge scopes
             for (scope_path, scope) in lock_data.scopes {
                 match conflict_resolution {
@@ -365,9 +367,9 @@ impl LockFileOps {
                 }
             }
         }
-        
+
         Self::write_lock_file(output_path, &merged_lock)?;
-        
+
         Ok(merged_lock)
     }
 
@@ -381,11 +383,15 @@ impl LockFileOps {
         }
 
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
-        let backup_name = format!("{}.backup.{}", lock_path.file_name().unwrap().to_str().unwrap(), timestamp);
+        let backup_name = format!(
+            "{}.backup.{}",
+            lock_path.file_name().unwrap().to_str().unwrap(),
+            timestamp
+        );
         let backup_path = lock_path.parent().unwrap().join(backup_name);
-        
+
         std::fs::copy(lock_path, &backup_path)?;
-        
+
         Ok(backup_path)
     }
 
@@ -400,10 +406,10 @@ impl LockFileOps {
 
         // Validate the backup file
         Self::read_lock_file(backup_path)?;
-        
+
         // Copy backup to target
         std::fs::copy(backup_path, target_path)?;
-        
+
         Ok(())
     }
 }
@@ -413,10 +419,10 @@ impl LockFileOps {
 pub struct ValidationResult {
     /// Whether the lock file is valid
     pub is_valid: bool,
-    
+
     /// Validation messages (warnings, errors)
     pub messages: Vec<String>,
-    
+
     /// Time taken for validation in milliseconds
     pub validation_time_ms: u64,
 }
@@ -443,19 +449,19 @@ impl ValidationResult {
 pub struct LockFileStats {
     /// Total number of scopes in the lock file
     pub total_scopes: usize,
-    
+
     /// Total number of dependencies across all scopes
     pub total_dependencies: usize,
-    
+
     /// Number of circular dependencies
     pub circular_dependencies: usize,
-    
+
     /// Lock file size in bytes
     pub file_size_bytes: u64,
-    
+
     /// Last modified timestamp
     pub last_modified: chrono::DateTime<Utc>,
-    
+
     /// Generation time in milliseconds
     pub generation_time_ms: u64,
 }
@@ -465,14 +471,21 @@ impl LockFileStats {
     pub fn from_lock_file(lock_path: &Path) -> RhemaResult<Self> {
         let lock_data = LockFileOps::read_lock_file(lock_path)?;
         let metadata = std::fs::metadata(lock_path)?;
-        
+
         Ok(Self {
             total_scopes: lock_data.scopes.len(),
-            total_dependencies: lock_data.scopes.values().map(|s| s.dependencies.len()).sum(),
+            total_dependencies: lock_data
+                .scopes
+                .values()
+                .map(|s| s.dependencies.len())
+                .sum(),
             circular_dependencies: lock_data.metadata.circular_dependencies as usize,
             file_size_bytes: metadata.len(),
             last_modified: chrono::DateTime::from(metadata.modified()?),
-            generation_time_ms: lock_data.metadata.performance_metrics.as_ref()
+            generation_time_ms: lock_data
+                .metadata
+                .performance_metrics
+                .as_ref()
                 .map(|m| m.generation_time_ms)
                 .unwrap_or(0),
         })
@@ -488,12 +501,12 @@ mod tests {
     fn test_create_and_read_lock_file() {
         let temp_dir = tempdir().unwrap();
         let lock_path = temp_dir.path().join("test.lock");
-        
+
         // Create a new lock file
         let lock_data = LockFileOps::create_lock_file(&lock_path, "test").unwrap();
         assert_eq!(lock_data.generated_by, "test");
         assert!(lock_path.exists());
-        
+
         // Read the lock file
         let read_data = LockFileOps::read_lock_file(&lock_path).unwrap();
         assert_eq!(read_data.generated_by, lock_data.generated_by);
@@ -504,11 +517,11 @@ mod tests {
     fn test_get_or_create_lock_file() {
         let temp_dir = tempdir().unwrap();
         let lock_path = temp_dir.path().join("test.lock");
-        
+
         // Should create new file
         let lock_data = LockFileOps::get_or_create_lock_file(&lock_path, "test").unwrap();
         assert_eq!(lock_data.generated_by, "test");
-        
+
         // Should read existing file
         let read_data = LockFileOps::get_or_create_lock_file(&lock_path, "test2").unwrap();
         assert_eq!(read_data.generated_by, "test"); // Should keep original
@@ -518,10 +531,10 @@ mod tests {
     fn test_validate_lock_file_integrity() {
         let temp_dir = tempdir().unwrap();
         let lock_path = temp_dir.path().join("test.lock");
-        
+
         // Create a valid lock file
         LockFileOps::create_lock_file(&lock_path, "test").unwrap();
-        
+
         // Validate it
         let result = LockFileOps::validate_lock_file_integrity(&lock_path).unwrap();
         assert!(result.is_valid);
@@ -533,11 +546,11 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let test_file = temp_dir.path().join("test.txt");
         std::fs::write(&test_file, "test content").unwrap();
-        
+
         // Test file checksum
         let file_checksum = LockFileOps::calculate_file_checksum(&test_file).unwrap();
         assert!(!file_checksum.is_empty());
-        
+
         // Test content checksum
         let content_checksum = LockFileOps::calculate_content_checksum("test content");
         assert_eq!(file_checksum, content_checksum);
@@ -547,18 +560,18 @@ mod tests {
     fn test_lock_file_stats() {
         let temp_dir = tempdir().unwrap();
         let lock_path = temp_dir.path().join("test.lock");
-        
+
         // Create a lock file with some scopes
         let mut lock_data = RhemaLock::new("test");
         let scope = LockedScope::new("1.0.0", "/test/scope");
         lock_data.add_scope("/test/scope".to_string(), scope);
-        
+
         LockFileOps::write_lock_file(&lock_path, &lock_data).unwrap();
-        
+
         // Get stats
         let stats = LockFileStats::from_lock_file(&lock_path).unwrap();
         assert_eq!(stats.total_scopes, 1);
         assert_eq!(stats.total_dependencies, 0);
         assert!(stats.file_size_bytes > 0);
     }
-} 
+}

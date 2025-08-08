@@ -14,37 +14,36 @@
  * limitations under the License.
  */
 
-use rhema_api::{
-    Rhema, AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority,
-    CoordinationConfig, AdvancedCoordinationConfig, LoadBalancingStrategy,
-    FaultToleranceConfig, EncryptionConfig, PerformanceMonitoringConfig,
-    ConsensusConfig, IntegrationConfig
-};
 use rhema_ai::agent::patterns::AgentPerformanceMetrics;
-use rhema_ai::agent::real_time_coordination::EncryptionAlgorithm;
 use rhema_ai::agent::real_time_coordination::ConsensusAlgorithm;
+use rhema_ai::agent::real_time_coordination::EncryptionAlgorithm;
+use rhema_api::{
+    AdvancedCoordinationConfig, AgentInfo, AgentMessage, AgentStatus, ConsensusConfig,
+    CoordinationConfig, EncryptionConfig, FaultToleranceConfig, IntegrationConfig,
+    LoadBalancingStrategy, MessagePriority, MessageType, PerformanceMonitoringConfig, Rhema,
+};
 use rhema_core::RhemaResult;
 use std::collections::HashMap;
-use tempfile::TempDir;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
+use tempfile::TempDir;
 use tokio::time::sleep;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 #[tokio::test]
 async fn test_basic_coordination_integration() {
     // Create a temporary directory for testing
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
-    
+
     // Initialize git repository
     init_test_repo(repo_path);
-    
+
     // Create Rhema instance
     let mut rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
-    
+
     // Test coordination initialization
     let config = CoordinationConfig {
         max_message_history: 100,
@@ -55,10 +54,10 @@ async fn test_basic_coordination_integration() {
         enable_encryption: false,
         enable_compression: true,
     };
-    
+
     rhema.init_coordination(Some(config)).await.unwrap();
     assert!(rhema.has_coordination());
-    
+
     // Test agent registration
     let agent = AgentInfo {
         id: "test-agent".to_string(),
@@ -72,17 +71,17 @@ async fn test_basic_coordination_integration() {
         is_online: true,
         performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
     };
-    
+
     rhema.register_agent(agent).await.unwrap();
-    
+
     // Test session creation
-    let session_id = rhema.create_coordination_session(
-        "Test Session".to_string(),
-        vec!["test-agent".to_string()]
-    ).await.unwrap();
-    
+    let session_id = rhema
+        .create_coordination_session("Test Session".to_string(), vec!["test-agent".to_string()])
+        .await
+        .unwrap();
+
     assert!(!session_id.is_empty());
-    
+
     // Test message sending
     let message = AgentMessage {
         id: uuid::Uuid::new_v4().to_string(),
@@ -97,29 +96,35 @@ async fn test_basic_coordination_integration() {
         expires_at: None,
         metadata: HashMap::new(),
     };
-    
-    rhema.send_session_message(&session_id, message).await.unwrap();
-    
+
+    rhema
+        .send_session_message(&session_id, message)
+        .await
+        .unwrap();
+
     // Test statistics
     let stats = rhema.get_coordination_stats().await.unwrap();
     assert_eq!(stats.active_agents, 1);
     assert_eq!(stats.active_sessions, 1);
-    
+
     // Test agent retrieval
     let agents = rhema.get_all_agents().await.unwrap();
     assert_eq!(agents.len(), 1);
     assert_eq!(agents[0].id, "test-agent");
-    
+
     // Test agent info retrieval
     let agent_info = rhema.get_agent_info("test-agent").await.unwrap();
     assert!(agent_info.is_some());
     assert_eq!(agent_info.unwrap().id, "test-agent");
-    
+
     // Test status update
-    rhema.update_agent_status("test-agent", AgentStatus::Busy).await.unwrap();
+    rhema
+        .update_agent_status("test-agent", AgentStatus::Busy)
+        .await
+        .unwrap();
     let updated_agent = rhema.get_agent_info("test-agent").await.unwrap().unwrap();
     assert_eq!(updated_agent.status, AgentStatus::Busy);
-    
+
     // Test shutdown
     rhema.shutdown_coordination().await.unwrap();
 }
@@ -129,13 +134,13 @@ async fn test_advanced_coordination_integration() {
     // Create a temporary directory for testing
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
-    
+
     // Initialize git repository
     init_test_repo(repo_path);
-    
+
     // Create Rhema instance
     let mut rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
-    
+
     // Test advanced coordination initialization
     let coordination_config = CoordinationConfig {
         max_message_history: 500,
@@ -146,7 +151,7 @@ async fn test_advanced_coordination_integration() {
         enable_encryption: true,
         enable_compression: true,
     };
-    
+
     let advanced_config = AdvancedCoordinationConfig {
         enable_load_balancing: true,
         enable_fault_tolerance: true,
@@ -183,17 +188,20 @@ async fn test_advanced_coordination_integration() {
             },
         },
     };
-    
-    rhema.init_advanced_coordination(coordination_config, advanced_config).await.unwrap();
+
+    rhema
+        .init_advanced_coordination(coordination_config, advanced_config)
+        .await
+        .unwrap();
     assert!(rhema.has_coordination());
-    
+
     // Test multiple agent registration
     let agents = vec![
         ("agent-1", "Agent 1", vec!["capability-1", "capability-2"]),
         ("agent-2", "Agent 2", vec!["capability-2", "capability-3"]),
         ("agent-3", "Agent 3", vec!["capability-1", "capability-3"]),
     ];
-    
+
     for (id, name, capabilities) in agents {
         let agent = AgentInfo {
             id: id.to_string(),
@@ -209,7 +217,7 @@ async fn test_advanced_coordination_integration() {
         };
         rhema.register_agent(agent).await.unwrap();
     }
-    
+
     // Test advanced session creation with consensus
     let consensus_config = ConsensusConfig {
         algorithm: ConsensusAlgorithm::Raft,
@@ -218,37 +226,47 @@ async fn test_advanced_coordination_integration() {
         enable_leader_election: true,
         leader_election_timeout_seconds: 60,
     };
-    
-    let session_id = rhema.get_coordination_system()
+
+    let session_id = rhema
+        .get_coordination_system()
         .unwrap()
         .create_advanced_session(
             "Advanced Test Session".to_string(),
-            vec!["agent-1".to_string(), "agent-2".to_string(), "agent-3".to_string()],
-            Some(consensus_config)
-        ).await.unwrap();
-    
+            vec![
+                "agent-1".to_string(),
+                "agent-2".to_string(),
+                "agent-3".to_string(),
+            ],
+            Some(consensus_config),
+        )
+        .await
+        .unwrap();
+
     assert!(!session_id.is_empty());
-    
+
     // Test performance monitoring
-    let performance_metrics = rhema.get_coordination_system()
+    let performance_metrics = rhema
+        .get_coordination_system()
         .unwrap()
-        .get_performance_metrics().await;
-    
+        .get_performance_metrics()
+        .await;
+
     assert!(performance_metrics.is_some());
-    
+
     // Test performance alerts
-    let alerts = rhema.get_coordination_system()
+    let alerts = rhema
+        .get_coordination_system()
         .unwrap()
         .get_performance_alerts();
-    
+
     // Alerts might be empty in test environment, which is fine
     println!("Performance alerts: {}", alerts.len());
-    
+
     // Test statistics
     let stats = rhema.get_coordination_stats().await.unwrap();
     assert_eq!(stats.active_agents, 3);
     assert_eq!(stats.active_sessions, 1);
-    
+
     // Test shutdown
     rhema.shutdown_coordination().await.unwrap();
 }
@@ -258,16 +276,16 @@ async fn test_coordination_integration_with_external_systems() {
     // Create a temporary directory for testing
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
-    
+
     // Initialize git repository
     init_test_repo(repo_path);
-    
+
     // Create Rhema instance
     let mut rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
-    
+
     // Initialize coordination system
     rhema.init_coordination(None).await.unwrap();
-    
+
     // Initialize coordination integration
     let integration_config = IntegrationConfig {
         run_local_server: true,
@@ -278,10 +296,13 @@ async fn test_coordination_integration_with_external_systems() {
         enable_health_monitoring: true,
         syneidesis: None, // No external Syneidesis for testing
     };
-    
-    rhema.init_coordination_integration(Some(integration_config)).await.unwrap();
+
+    rhema
+        .init_coordination_integration(Some(integration_config))
+        .await
+        .unwrap();
     assert!(rhema.has_coordination_integration());
-    
+
     // Test agent registration
     let agent = AgentInfo {
         id: "integration-agent".to_string(),
@@ -295,9 +316,9 @@ async fn test_coordination_integration_with_external_systems() {
         is_online: true,
         performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
     };
-    
+
     rhema.register_agent(agent).await.unwrap();
-    
+
     // Test message bridging
     let message = AgentMessage {
         id: uuid::Uuid::new_v4().to_string(),
@@ -315,19 +336,19 @@ async fn test_coordination_integration_with_external_systems() {
         expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
         metadata: HashMap::new(),
     };
-    
+
     rhema.bridge_coordination_message(&message).await.unwrap();
-    
+
     // Test integration statistics
     let integration_stats = rhema.get_integration_stats().await.unwrap();
     assert_eq!(integration_stats.rhema_agents, 1);
     assert_eq!(integration_stats.bridge_messages_sent, 1);
-    
+
     // Test coordination statistics
     let coordination_stats = rhema.get_coordination_stats().await.unwrap();
     assert_eq!(coordination_stats.active_agents, 1);
     assert_eq!(coordination_stats.total_messages, 1);
-    
+
     // Test shutdown
     rhema.shutdown_coordination().await.unwrap();
 }
@@ -337,16 +358,16 @@ async fn test_coordination_error_handling() {
     // Create a temporary directory for testing
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
-    
+
     // Initialize git repository
     init_test_repo(repo_path);
-    
+
     // Create Rhema instance without coordination
     let rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
-    
+
     // Test that coordination methods return errors when not initialized
     assert!(!rhema.has_coordination());
-    
+
     let agent = AgentInfo {
         id: "test-agent".to_string(),
         name: "Test Agent".to_string(),
@@ -359,14 +380,14 @@ async fn test_coordination_error_handling() {
         is_online: true,
         performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
     };
-    
+
     // These should fail because coordination is not initialized
     let result = rhema.register_agent(agent).await;
     assert!(result.is_err());
-    
+
     let result = rhema.get_coordination_stats().await;
     assert!(result.is_err());
-    
+
     let result = rhema.get_all_agents().await;
     assert!(result.is_err());
 }
@@ -376,13 +397,13 @@ async fn test_coordination_performance_monitoring() {
     // Create a temporary directory for testing
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
-    
+
     // Initialize git repository
     init_test_repo(repo_path);
-    
+
     // Create Rhema instance
     let mut rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
-    
+
     // Initialize coordination with performance monitoring
     let coordination_config = CoordinationConfig {
         max_message_history: 1000,
@@ -393,7 +414,7 @@ async fn test_coordination_performance_monitoring() {
         enable_encryption: false,
         enable_compression: true,
     };
-    
+
     let advanced_config = AdvancedCoordinationConfig {
         enable_load_balancing: false,
         enable_fault_tolerance: false,
@@ -417,9 +438,12 @@ async fn test_coordination_performance_monitoring() {
             },
         },
     };
-    
-    rhema.init_advanced_coordination(coordination_config, advanced_config).await.unwrap();
-    
+
+    rhema
+        .init_advanced_coordination(coordination_config, advanced_config)
+        .await
+        .unwrap();
+
     // Register test agent
     let agent = AgentInfo {
         id: "perf-test-agent".to_string(),
@@ -433,15 +457,18 @@ async fn test_coordination_performance_monitoring() {
         is_online: true,
         performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
     };
-    
+
     rhema.register_agent(agent).await.unwrap();
-    
+
     // Create session and send messages to generate metrics
-    let session_id = rhema.create_coordination_session(
-        "Performance Test Session".to_string(),
-        vec!["perf-test-agent".to_string()]
-    ).await.unwrap();
-    
+    let session_id = rhema
+        .create_coordination_session(
+            "Performance Test Session".to_string(),
+            vec!["perf-test-agent".to_string()],
+        )
+        .await
+        .unwrap();
+
     // Send multiple messages to generate performance data
     for i in 0..10 {
         let message = AgentMessage {
@@ -457,43 +484,55 @@ async fn test_coordination_performance_monitoring() {
             expires_at: None,
             metadata: HashMap::new(),
         };
-        
-        rhema.send_session_message(&session_id, message).await.unwrap();
-        
+
+        rhema
+            .send_session_message(&session_id, message)
+            .await
+            .unwrap();
+
         // Small delay to simulate real-world conditions
         tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
     }
-    
+
     // Wait for metrics to be collected
     tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-    
+
     // Check performance metrics
-    let performance_metrics = rhema.get_coordination_system()
+    let performance_metrics = rhema
+        .get_coordination_system()
         .unwrap()
-        .get_performance_metrics().await;
-    
+        .get_performance_metrics()
+        .await;
+
     assert!(performance_metrics.is_some());
-    
+
     if let Some(metrics) = performance_metrics {
         assert!(metrics.total_messages_processed > 0);
         assert!(metrics.average_message_latency_ms >= 0.0);
         assert!(metrics.memory_usage_percent >= 0.0);
         assert!(metrics.cpu_usage_percent >= 0.0);
-        
+
         println!("Performance metrics collected:");
-        println!("  Total messages processed: {}", metrics.total_messages_processed);
-        println!("  Average message latency: {:.2}ms", metrics.average_message_latency_ms);
+        println!(
+            "  Total messages processed: {}",
+            metrics.total_messages_processed
+        );
+        println!(
+            "  Average message latency: {:.2}ms",
+            metrics.average_message_latency_ms
+        );
         println!("  Memory usage: {:.2}%", metrics.memory_usage_percent);
         println!("  CPU usage: {:.2}%", metrics.cpu_usage_percent);
     }
-    
+
     // Check for alerts
-    let alerts = rhema.get_coordination_system()
+    let alerts = rhema
+        .get_coordination_system()
         .unwrap()
         .get_performance_alerts();
-    
+
     println!("Performance alerts: {}", alerts.len());
-    
+
     // Test shutdown
     rhema.shutdown_coordination().await.unwrap();
 }
@@ -503,12 +542,20 @@ fn init_test_repo(path: &Path) {
     // Create .git directory
     let git_dir = path.join(".git");
     fs::create_dir_all(&git_dir).unwrap();
-    
+
     // Create a simple README file
     let readme_path = path.join("README.md");
-    fs::write(readme_path, "# Test Repository\n\nThis is a test repository for coordination integration tests.").unwrap();
-    
+    fs::write(
+        readme_path,
+        "# Test Repository\n\nThis is a test repository for coordination integration tests.",
+    )
+    .unwrap();
+
     // Create a simple rhema scope file
     let scope_path = path.join("rhema.yml");
-    fs::write(scope_path, "name: test-scope\ndescription: Test scope for coordination integration").unwrap();
-} 
+    fs::write(
+        scope_path,
+        "name: test-scope\ndescription: Test scope for coordination integration",
+    )
+    .unwrap();
+}

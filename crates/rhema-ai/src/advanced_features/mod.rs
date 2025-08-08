@@ -16,18 +16,18 @@
  */
 
 pub mod compression;
-pub mod key_management;
 pub mod encryption;
+pub mod key_management;
 
-pub use compression::{MessageCompressor, CompressionAlgorithm, CompressionConfig};
+pub use compression::{CompressionAlgorithm, CompressionConfig, MessageCompressor};
+pub use encryption::{EncryptionAlgorithm, EncryptionConfig, MessageEncryption};
 pub use key_management::{KeyManager, KeyRotationPolicy, KeyStorage};
-pub use encryption::{MessageEncryption, EncryptionAlgorithm, EncryptionConfig};
 
+use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use chrono::{DateTime, Utc};
 
 /// Advanced features configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -255,11 +255,23 @@ impl AdvancedFeaturesManager {
 
         // Check performance threshold
         let compression_ratio = compressed.len() as f64 / data.len() as f64;
-        if compression_ratio > self.config.performance_monitoring.thresholds.max_compression_ratio {
+        if compression_ratio
+            > self
+                .config
+                .performance_monitoring
+                .thresholds
+                .max_compression_ratio
+        {
             self.performance_monitor.create_alert(
                 "compression_ratio_exceeded",
-                format!("Compression ratio {} exceeds threshold {}", 
-                       compression_ratio, self.config.performance_monitoring.thresholds.max_compression_ratio),
+                format!(
+                    "Compression ratio {} exceeds threshold {}",
+                    compression_ratio,
+                    self.config
+                        .performance_monitoring
+                        .thresholds
+                        .max_compression_ratio
+                ),
                 AlertSeverity::Medium,
             );
         }
@@ -300,11 +312,23 @@ impl AdvancedFeaturesManager {
 
         // Check encryption overhead
         let overhead_percent = (encrypted.len() - data.len()) as f64 / data.len() as f64 * 100.0;
-        if overhead_percent > self.config.performance_monitoring.thresholds.max_encryption_overhead_percent {
+        if overhead_percent
+            > self
+                .config
+                .performance_monitoring
+                .thresholds
+                .max_encryption_overhead_percent
+        {
             self.performance_monitor.create_alert(
                 "encryption_overhead_exceeded",
-                format!("Encryption overhead {}% exceeds threshold {}%", 
-                       overhead_percent, self.config.performance_monitoring.thresholds.max_encryption_overhead_percent),
+                format!(
+                    "Encryption overhead {}% exceeds threshold {}%",
+                    overhead_percent,
+                    self.config
+                        .performance_monitoring
+                        .thresholds
+                        .max_encryption_overhead_percent
+                ),
                 AlertSeverity::Medium,
             );
         }
@@ -344,11 +368,23 @@ impl AdvancedFeaturesManager {
         );
 
         // Check key rotation time
-        if processing_time.as_secs() > self.config.performance_monitoring.thresholds.max_key_rotation_time_seconds {
+        if processing_time.as_secs()
+            > self
+                .config
+                .performance_monitoring
+                .thresholds
+                .max_key_rotation_time_seconds
+        {
             self.performance_monitor.create_alert(
                 "key_rotation_time_exceeded",
-                format!("Key rotation took {} seconds, exceeds threshold {} seconds", 
-                       processing_time.as_secs(), self.config.performance_monitoring.thresholds.max_key_rotation_time_seconds),
+                format!(
+                    "Key rotation took {} seconds, exceeds threshold {} seconds",
+                    processing_time.as_secs(),
+                    self.config
+                        .performance_monitoring
+                        .thresholds
+                        .max_key_rotation_time_seconds
+                ),
                 AlertSeverity::High,
             );
         }
@@ -393,7 +429,13 @@ impl PerformanceMonitor {
     }
 
     /// Record a performance metric
-    pub fn record_metric(&mut self, name: &str, value: f64, unit: &str, metadata: HashMap<String, String>) {
+    pub fn record_metric(
+        &mut self,
+        name: &str,
+        value: f64,
+        unit: &str,
+        metadata: HashMap<String, String>,
+    ) {
         let metric = PerformanceMetric {
             name: name.to_string(),
             value,
@@ -433,4 +475,4 @@ impl PerformanceMonitor {
             alert.resolved = true;
         }
     }
-} 
+}
