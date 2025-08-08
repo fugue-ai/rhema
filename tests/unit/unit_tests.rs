@@ -1,17 +1,18 @@
 // Unit tests for Rhema CLI core functionality
 // This file contains focused unit tests for individual components
 
-use rhema::{Rhema, RhemaResult};
+use rhema_core::{RhemaResult, Scope};
+use rhema_query::query::CqlQuery;
+use rhema_config::ConflictResolutionStrategy;
+use rhema_cli::Rhema;
+use git2::Repository;
+use tempfile::TempDir;
+use std::path::PathBuf;
+use std::fs;
+use std::collections::HashMap;
 
 // Import test utilities
-mod common {
-    pub mod assertions;
-    pub mod fixtures;
-    pub mod helpers;
-    pub mod mocks;
-}
-
-use common::helpers::TestHelpers;
+use crate::common::helpers::TestHelpers;
 
 /// Test Rhema initialization
 #[test]
@@ -20,7 +21,7 @@ fn test_rhema_initialization() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -38,7 +39,7 @@ fn test_scope_discovery_basic() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -66,7 +67,7 @@ fn test_query_execution_filtered() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance with test data
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -94,7 +95,7 @@ fn test_scope_properties() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -124,7 +125,7 @@ fn test_query_with_stats() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance with test data
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -147,7 +148,7 @@ fn test_search_regex() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance with test data
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -167,7 +168,7 @@ fn test_invalid_query_handling() {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path).unwrap();
+    let _repo = Repository::init(temp_path).unwrap();
 
     let rhema = Rhema::new_from_path(temp_path.to_path_buf()).unwrap();
 
@@ -186,7 +187,7 @@ fn test_large_dataset() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -208,7 +209,7 @@ fn test_file_operations() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -233,7 +234,7 @@ fn test_concurrent_operations() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -263,7 +264,7 @@ fn test_memory_usage() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;

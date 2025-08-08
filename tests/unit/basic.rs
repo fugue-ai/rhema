@@ -1,7 +1,12 @@
-use rhema::{Rhema, RhemaResult};
-use std::fs;
-
+use rhema_core::{RhemaResult, Scope};
+use rhema_query::query::CqlQuery;
+use rhema_config::ConflictResolutionStrategy;
+use rhema_cli::Rhema;
+use git2::Repository;
 use tempfile::TempDir;
+use std::path::PathBuf;
+use std::fs;
+use std::collections::HashMap;
 
 #[test]
 fn test_rhema_initialization() -> RhemaResult<()> {
@@ -10,7 +15,7 @@ fn test_rhema_initialization() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a Rhema instance for the temp directory
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -35,7 +40,7 @@ fn test_scope_creation() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a .rhema directory manually
     let rhema_dir = temp_path.join(".rhema");
@@ -83,7 +88,7 @@ fn test_query_execution() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a .rhema directory manually
     let rhema_dir = temp_path.join(".rhema");
@@ -131,7 +136,7 @@ fn test_query_provenance() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a .rhema directory manually
     let rhema_dir = temp_path.join(".rhema");
@@ -186,7 +191,7 @@ todos:
     let has_where_filter = provenance
         .applied_filters
         .iter()
-        .any(|filter| matches!(filter.filter_type, query::FilterType::WhereCondition));
+        .any(|filter| matches!(filter.filter_type, rhema_query::FilterType::WhereCondition));
     assert!(has_where_filter);
 
     Ok(())
@@ -199,7 +204,7 @@ fn test_core_data_loading() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a .rhema directory manually
     let rhema_dir = temp_path.join(".rhema");
@@ -318,7 +323,7 @@ fn test_search_functionality() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a .rhema directory manually
     let rhema_dir = temp_path.join(".rhema");
@@ -371,7 +376,7 @@ fn test_query_with_stats() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a .rhema directory manually
     let rhema_dir = temp_path.join(".rhema");
@@ -426,7 +431,7 @@ fn test_current_scope_detection() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a .rhema directory manually
     let rhema_dir = temp_path.join(".rhema");

@@ -13,6 +13,9 @@ pub use rhema_mcp::*;
 // };
 pub use rhema_query::repo_analysis::RepoAnalysis;
 
+// Re-export core functionality
+pub use core::*;
+
 // Define Rhema struct for CLI use
 use std::collections::HashMap;
 use std::path::PathBuf;

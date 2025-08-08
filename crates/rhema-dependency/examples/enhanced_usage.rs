@@ -1,8 +1,9 @@
 use rhema_dependency::{
-    DependencyManager, DependencyType, HealthStatus, ImpactScore, HealthMetrics,
+    DependencyManager, DependencyType, HealthStatus, HealthMetrics,
     DependencyResolver, ResolutionStrategy, PredictiveAnalytics, SecurityScanner,
-    VersionConstraint, semver::Version
+    VersionConstraint
 };
+use semver::Version;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -284,17 +285,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let health_stats = manager.get_health_statistics().await;
     println!("  Health statistics:");
-    println!("    Total health checks: {}", health_stats.total_health_checks);
-    println!("    Successful checks: {}", health_stats.successful_checks);
-    println!("    Failed checks: {}", health_stats.failed_checks);
-    println!("    Average response time: {:.2}ms", health_stats.average_response_time);
+    println!("    Total dependencies: {}", health_stats.total_dependencies);
+    println!("    Healthy: {}", health_stats.healthy_count);
+    println!("    Degraded: {}", health_stats.degraded_count);
+    println!("    Unhealthy: {}", health_stats.unhealthy_count);
+    println!("    Down: {}", health_stats.down_count);
+    println!("    Average health score: {:.2}", health_stats.average_health_score);
 
-    let validation_stats = manager.get_validation_statistics().await;
+    let validation_stats = manager.get_validation_statistics().await?;
     println!("  Validation statistics:");
     println!("    Total validations: {}", validation_stats.total_validations);
     println!("    Successful validations: {}", validation_stats.successful_validations);
     println!("    Failed validations: {}", validation_stats.failed_validations);
-    println!("    Total errors: {}", validation_stats.total_errors);
+    println!("    Total errors: {}", validation_stats.failed_validations);
 
     let prediction_stats = predictive_analytics.get_statistics().await;
     println!("  Prediction statistics:");
@@ -328,9 +331,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Graph Statistics: {} nodes, {} edges", 
              report.graph_statistics.total_nodes, 
              report.graph_statistics.total_edges);
-    println!("  Health Statistics: {} checks, {:.2}ms avg response", 
-             report.health_statistics.total_health_checks,
-             report.health_statistics.average_response_time);
+    println!("  Health Statistics: {} dependencies, {:.2} avg health score", 
+             report.health_statistics.total_dependencies,
+             report.health_statistics.average_health_score);
     println!("  Validation Statistics: {} validations, {} errors", 
              report.validation_statistics.total_validations,
              report.validation_statistics.total_errors);

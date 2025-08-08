@@ -5,16 +5,10 @@ use std::collections::HashMap;
 use std::time::Duration;
 use serde::{Serialize, Deserialize};
 
-mod test_runner;
-mod common;
-mod unit;
-mod integration;
-mod performance;
-mod security;
-
-use test_runner::{TestRunner, TestRunnerReport};
-use crate::test_config::TestConfig;
-use common::enhanced_fixtures::EnhancedFixtures;
+use rhema_core::RhemaResult;
+use crate::runners::test_runner::{TestRunner, TestRunnerReport};
+use crate::common::enhanced_fixtures::EnhancedFixtures;
+use crate::config::test_config::TestConfig;
 
 /// Comprehensive test suite configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -213,20 +207,20 @@ pub struct ComprehensiveTestSuite {
 
 impl ComprehensiveTestSuite {
     /// Create a new comprehensive test suite
-    pub fn new(config: ComprehensiveTestConfig) -> crate::RhemaResult<Self> {
-        let fixtures = EnhancedFixtures::new()?;
+    pub fn new(config: ComprehensiveTestConfig) -> RhemaResult<Self> {
+        let (_temp_dir, _rhema) = EnhancedFixtures::advanced()?;
         let test_config = TestConfig::new();
         let test_runner = TestRunner::new(test_config);
         
         Ok(Self {
             config,
-            fixtures,
+            fixtures: EnhancedFixtures,
             test_runner,
         })
     }
 
     /// Run the complete test suite
-    pub fn run_complete_suite(&mut self) -> crate::RhemaResult<TestSuiteReport> {
+    pub fn run_complete_suite(&mut self) -> RhemaResult<TestSuiteReport> {
         println!("🚀 Starting Comprehensive Rhema CLI Test Suite");
         println!("Configuration: {:?}", self.config);
         
@@ -234,37 +228,37 @@ impl ComprehensiveTestSuite {
         
         // Run unit tests
         if self.config.unit_tests.enabled {
-            report.unit_tests = self.run_unit_tests()?;
+            report.unit_tests = Some(self.run_unit_tests()?);
         }
         
         // Run integration tests
         if self.config.integration_tests.enabled {
-            report.integration_tests = self.run_integration_tests()?;
+            report.integration_tests = Some(self.run_integration_tests()?);
         }
         
         // Run performance tests
         if self.config.performance_tests.enabled {
-            report.performance_tests = self.run_performance_tests()?;
+            report.performance_tests = Some(self.run_performance_tests()?);
         }
         
         // Run security tests
         if self.config.security_tests.enabled {
-            report.security_tests = self.run_security_tests()?;
+            report.security_tests = Some(self.run_security_tests()?);
         }
         
         // Run property tests
         if self.config.property_tests.enabled {
-            report.property_tests = self.run_property_tests()?;
+            report.property_tests = Some(self.run_property_tests()?);
         }
         
         // Run stress tests
         if self.config.stress_tests.enabled {
-            report.stress_tests = self.run_stress_tests()?;
+            report.stress_tests = Some(self.run_stress_tests()?);
         }
         
         // Run load tests
         if self.config.load_tests.enabled {
-            report.load_tests = self.run_load_tests()?;
+            report.load_tests = Some(self.run_load_tests()?);
         }
         
         // Generate reports
@@ -277,7 +271,7 @@ impl ComprehensiveTestSuite {
     }
 
     /// Run unit tests
-    fn run_unit_tests(&self) -> crate::RhemaResult<UnitTestReport> {
+    fn run_unit_tests(&self) -> RhemaResult<UnitTestReport> {
         println!("📋 Running Unit Tests");
         
         let mut report = UnitTestReport::new();
@@ -293,14 +287,14 @@ impl ComprehensiveTestSuite {
         
         // Run coverage analysis if enabled
         if self.config.unit_tests.coverage_analysis {
-            report.coverage = self.run_coverage_analysis()?;
+            report.coverage = Some(self.run_coverage_analysis()?);
         }
         
         Ok(report)
     }
 
     /// Run integration tests
-    fn run_integration_tests(&self) -> crate::RhemaResult<IntegrationTestReport> {
+    fn run_integration_tests(&self) -> RhemaResult<IntegrationTestReport> {
         println!("🔗 Running Integration Tests");
         
         let mut report = IntegrationTestReport::new();
@@ -334,7 +328,7 @@ impl ComprehensiveTestSuite {
     }
 
     /// Run performance tests
-    fn run_performance_tests(&self) -> crate::RhemaResult<PerformanceTestReport> {
+    fn run_performance_tests(&self) -> RhemaResult<PerformanceTestReport> {
         println!("⚡ Running Performance Tests");
         
         let mut report = PerformanceTestReport::new();
@@ -356,12 +350,12 @@ impl ComprehensiveTestSuite {
         
         // Run load testing
         if self.config.performance_tests.load_testing {
-            report.load_tests = self.run_load_tests()?;
+            report.load_tests = self.run_load_test_suite()?.into_iter().map(|_| TestResult::new("load_test")).next().unwrap_or_else(|| TestResult::new("load_test"));
         }
         
         // Run stress testing
         if self.config.performance_tests.stress_testing {
-            report.stress_tests = self.run_stress_tests()?;
+            report.stress_tests = self.run_stress_test_suite()?.into_iter().map(|_| TestResult::new("stress_test")).next().unwrap_or_else(|| TestResult::new("stress_test"));
         }
         
         // Run regression testing
@@ -373,7 +367,7 @@ impl ComprehensiveTestSuite {
     }
 
     /// Run security tests
-    fn run_security_tests(&self) -> crate::RhemaResult<SecurityTestReport> {
+    fn run_security_tests(&self) -> RhemaResult<SecurityTestReport> {
         println!("🔒 Running Security Tests");
         
         let mut report = SecurityTestReport::new();
@@ -412,7 +406,7 @@ impl ComprehensiveTestSuite {
     }
 
     /// Run property tests
-    fn run_property_tests(&self) -> crate::RhemaResult<PropertyTestReport> {
+    fn run_property_tests(&self) -> RhemaResult<PropertyTestReport> {
         println!("🎲 Running Property Tests");
         
         let mut report = PropertyTestReport::new();
@@ -424,7 +418,7 @@ impl ComprehensiveTestSuite {
     }
 
     /// Run stress tests
-    fn run_stress_tests(&self) -> crate::RhemaResult<StressTestReport> {
+    fn run_stress_tests(&self) -> RhemaResult<StressTestReport> {
         println!("💪 Running Stress Tests");
         
         let mut report = StressTestReport::new();
@@ -436,7 +430,7 @@ impl ComprehensiveTestSuite {
     }
 
     /// Run load tests
-    fn run_load_tests(&self) -> crate::RhemaResult<LoadTestReport> {
+    fn run_load_tests(&self) -> RhemaResult<LoadTestReport> {
         println!("📊 Running Load Tests");
         
         let mut report = LoadTestReport::new();
@@ -448,120 +442,120 @@ impl ComprehensiveTestSuite {
     }
 
     // Placeholder implementations for test methods
-    fn run_core_unit_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_core_unit_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run core unit tests
         Ok(TestResult::new("core_unit_tests"))
     }
 
-    fn run_command_unit_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_command_unit_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run command unit tests
         Ok(TestResult::new("command_unit_tests"))
     }
 
-    fn run_utility_unit_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_utility_unit_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run utility unit tests
         Ok(TestResult::new("utility_unit_tests"))
     }
 
-    fn run_coverage_analysis(&self) -> crate::RhemaResult<CoverageReport> {
+    fn run_coverage_analysis(&self) -> RhemaResult<CoverageReport> {
         // Implementation would run coverage analysis
         Ok(CoverageReport::new())
     }
 
-    fn run_end_to_end_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_end_to_end_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run end-to-end tests
         Ok(TestResult::new("end_to_end_tests"))
     }
 
-    fn run_service_integration_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_service_integration_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run service integration tests
         Ok(TestResult::new("service_integration_tests"))
     }
 
-    fn run_file_system_integration_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_file_system_integration_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run file system integration tests
         Ok(TestResult::new("file_system_integration_tests"))
     }
 
-    fn run_git_integration_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_git_integration_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run git integration tests
         Ok(TestResult::new("git_integration_tests"))
     }
 
-    fn run_cross_platform_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_cross_platform_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run cross-platform tests
         Ok(TestResult::new("cross_platform_tests"))
     }
 
-    fn run_query_benchmarks(&self) -> crate::RhemaResult<BenchmarkResult> {
+    fn run_query_benchmarks(&self) -> RhemaResult<BenchmarkResult> {
         // Implementation would run query benchmarks
         Ok(BenchmarkResult::new("query_benchmarks"))
     }
 
-    fn run_large_repository_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_large_repository_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run large repository tests
         Ok(TestResult::new("large_repository_tests"))
     }
 
-    fn run_memory_usage_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_memory_usage_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run memory usage tests
         Ok(TestResult::new("memory_usage_tests"))
     }
 
 
 
-    fn run_regression_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_regression_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run regression tests
         Ok(TestResult::new("regression_tests"))
     }
 
-    fn run_input_validation_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_input_validation_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run input validation tests
         Ok(TestResult::new("input_validation_tests"))
     }
 
-    fn run_file_permission_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_file_permission_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run file permission tests
         Ok(TestResult::new("file_permission_tests"))
     }
 
-    fn run_yaml_injection_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_yaml_injection_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run YAML injection tests
         Ok(TestResult::new("yaml_injection_tests"))
     }
 
-    fn run_path_traversal_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_path_traversal_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run path traversal tests
         Ok(TestResult::new("path_traversal_tests"))
     }
 
-    fn run_authentication_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_authentication_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run authentication tests
         Ok(TestResult::new("authentication_tests"))
     }
 
-    fn run_authorization_tests(&self) -> crate::RhemaResult<TestResult> {
+    fn run_authorization_tests(&self) -> RhemaResult<TestResult> {
         // Implementation would run authorization tests
         Ok(TestResult::new("authorization_tests"))
     }
 
-    fn run_property_test_suite(&self) -> crate::RhemaResult<Vec<PropertyTestResult>> {
+    fn run_property_test_suite(&self) -> RhemaResult<Vec<PropertyTestResult>> {
         // Implementation would run property test suite
         Ok(vec![PropertyTestResult::new("property_test_suite")])
     }
 
-    fn run_stress_test_suite(&self) -> crate::RhemaResult<Vec<StressTestResult>> {
+    fn run_stress_test_suite(&self) -> RhemaResult<Vec<StressTestResult>> {
         // Implementation would run stress test suite
         Ok(vec![StressTestResult::new("stress_test_suite")])
     }
 
-    fn run_load_test_suite(&self) -> crate::RhemaResult<Vec<LoadTestResult>> {
+    fn run_load_test_suite(&self) -> RhemaResult<Vec<LoadTestResult>> {
         // Implementation would run load test suite
         Ok(vec![LoadTestResult::new("load_test_suite")])
     }
 
     /// Generate test reports
-    fn generate_reports(&self, report: &TestSuiteReport) -> crate::RhemaResult<()> {
+    fn generate_reports(&self, report: &TestSuiteReport) -> RhemaResult<()> {
         println!("📊 Generating Test Reports");
         
         // Generate HTML report
@@ -588,28 +582,28 @@ impl ComprehensiveTestSuite {
     }
 
     /// Generate HTML report
-    fn generate_html_report(&self, report: &TestSuiteReport) -> crate::RhemaResult<()> {
+    fn generate_html_report(&self, report: &TestSuiteReport) -> RhemaResult<()> {
         // Implementation would generate HTML report
         println!("Generated HTML report");
         Ok(())
     }
 
     /// Generate JSON report
-    fn generate_json_report(&self, report: &TestSuiteReport) -> crate::RhemaResult<()> {
+    fn generate_json_report(&self, report: &TestSuiteReport) -> RhemaResult<()> {
         // Implementation would generate JSON report
         println!("Generated JSON report");
         Ok(())
     }
 
     /// Generate JUnit report
-    fn generate_junit_report(&self, report: &TestSuiteReport) -> crate::RhemaResult<()> {
+    fn generate_junit_report(&self, report: &TestSuiteReport) -> RhemaResult<()> {
         // Implementation would generate JUnit report
         println!("Generated JUnit report");
         Ok(())
     }
 
     /// Generate coverage report
-    fn generate_coverage_report(&self, report: &TestSuiteReport) -> crate::RhemaResult<()> {
+    fn generate_coverage_report(&self, report: &TestSuiteReport) -> RhemaResult<()> {
         // Implementation would generate coverage report
         println!("Generated coverage report");
         Ok(())
@@ -1092,7 +1086,7 @@ impl LoadTestResult {
 }
 
 /// Main function to run the comprehensive test suite
-pub fn run_comprehensive_test_suite() -> crate::RhemaResult<TestSuiteReport> {
+pub fn run_comprehensive_test_suite() -> RhemaResult<TestSuiteReport> {
     let config = ComprehensiveTestConfig::default();
     let mut suite = ComprehensiveTestSuite::new(config)?;
     suite.run_complete_suite()

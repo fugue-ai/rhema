@@ -53,7 +53,7 @@ pub struct LocomoReport {
 }
 
 /// Report type
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ReportType {
     Benchmark,
     Assessment,
@@ -787,14 +787,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_reporting_system_creation() {
-        let metrics_collector = Arc::new(LocomoMetricsCollector::new());
+        let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
         let reporting_system = LocomoReportingSystem::new(metrics_collector);
         assert!(reporting_system.report_history.read().await.is_empty());
     }
 
     #[tokio::test]
     async fn test_comprehensive_report_generation() {
-        let metrics_collector = Arc::new(LocomoMetricsCollector::new());
+        let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
         let reporting_system = LocomoReportingSystem::new(metrics_collector);
         
         let report = reporting_system.generate_comprehensive_report(7).await.unwrap();
@@ -806,7 +806,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_trend_report_generation() {
-        let metrics_collector = Arc::new(LocomoMetricsCollector::new());
+        let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
         let reporting_system = LocomoReportingSystem::new(metrics_collector);
         
         let report = reporting_system.generate_trend_report(30).await.unwrap();
@@ -816,7 +816,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dashboard_generation() {
-        let metrics_collector = Arc::new(LocomoMetricsCollector::new());
+        let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
         let reporting_system = LocomoReportingSystem::new(metrics_collector);
         
         let dashboard_data = reporting_system.generate_dashboard_data().await.unwrap();

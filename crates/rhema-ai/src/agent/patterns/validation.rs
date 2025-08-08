@@ -6,8 +6,7 @@ use chrono::{DateTime, Utc};
 use super::{
     PatternContext, ValidationResult, PatternMetadata,
     AgentInfo, AgentStatus, ConstraintType,
-    PatternPhase, PatternStatus, PatternCategory, AgentPerformanceMetrics, 
-    ResourcePool, MemoryPool, CpuAllocator, NetworkResources, PatternState, PatternConfig
+    PatternPhase, PatternStatus
 };
 
 /// Pattern validation rule

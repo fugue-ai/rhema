@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use rhema_api::{Rhema, RhemaResult};
 
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -96,9 +97,16 @@ enum Commands {
     
     /// Show statistics
     Stats,
+    
+    // /// Manage coordination between agents
+    // Coordination {
+    //     #[command(subcommand)]
+    //     subcommand: CoordinationSubcommands,
+    // },
 }
 
-fn main() -> RhemaResult<()> {
+#[tokio::main]
+async fn main() -> RhemaResult<()> {
     let cli = Cli::parse();
     
     let rhema = Rhema::new()?;
@@ -106,7 +114,7 @@ fn main() -> RhemaResult<()> {
     match &cli.command {
         Some(Commands::Init { scope_type, scope_name, auto_config }) => {
             println!("Initializing new Rhema repository...");
-            crate::core::init::run(
+            rhema_api::init::run(
                 &rhema,
                 scope_type.as_deref(),
                 scope_name.as_deref(),
@@ -213,6 +221,23 @@ fn main() -> RhemaResult<()> {
             println!("Statistics feature not yet implemented");
             Ok(())
         }
+        
+        // Some(Commands::Coordination { subcommand }) => {
+        //     println!("Executing coordination command...");
+        //     let manager = CoordinationManager::new();
+        //     
+        //     match subcommand {
+        //         CoordinationSubcommands::Agent { subcommand } => {
+        //             manager.execute_agent_command(subcommand).await
+        //         }
+        //         CoordinationSubcommands::Session { subcommand } => {
+        //             manager.execute_session_command(subcommand).await
+        //         }
+        //         CoordinationSubcommands::System { subcommand } => {
+        //             manager.execute_system_command(subcommand).await
+        //         }
+        //     }
+        // }
         
         None => {
             println!("Welcome to Rhema CLI!");

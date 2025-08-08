@@ -88,7 +88,7 @@ pub struct TrendAnalysis {
 }
 
 /// Trend direction
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TrendDirection {
     /// Increasing trend
     Increasing,

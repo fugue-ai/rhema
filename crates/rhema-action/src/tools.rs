@@ -287,13 +287,13 @@ mod tests {
     async fn test_tool_execution() {
         let registry = ToolRegistry::new().await.unwrap();
         
-        let intent = ActionIntent {
-            id: "test-tool".to_string(),
-            action_type: ActionType::Refactor,
-            description: "Test tool execution".to_string(),
-            scope: vec!["src/".to_string()],
-            safety_level: SafetyLevel::Low,
-        };
+        let intent = ActionIntent::new(
+            "test-tool",
+            ActionType::Refactor,
+            "Test tool execution",
+            vec!["src/".to_string()],
+            SafetyLevel::Low,
+        );
         
         let result = registry.execute_tool("jscodeshift", &intent).await;
         assert!(result.is_ok());

@@ -27,6 +27,7 @@ rhema-config = { path = "../rhema-config" }
 rhema-monitoring = { path = "../rhema-monitoring" }
 rhema-integrations = { path = "../rhema-integrations" }
 
+
 # Core dependencies for remaining modules
 serde = { workspace = true, features = ["derive"] }
 serde_yaml = { workspace = true }

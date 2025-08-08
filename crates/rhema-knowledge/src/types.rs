@@ -304,6 +304,18 @@ pub struct AgentPreferences {
     pub proactive_caching_enabled: bool,
 }
 
+impl Default for AgentPreferences {
+    fn default() -> Self {
+        Self {
+            preferred_content_types: vec![ContentType::Code, ContentType::Documentation],
+            semantic_relevance_threshold: 0.7,
+            cache_retention_hours: 24,
+            compression_preference: CompressionPreference::Balanced,
+            proactive_caching_enabled: true,
+        }
+    }
+}
+
 /// Compression preferences
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CompressionPreference {

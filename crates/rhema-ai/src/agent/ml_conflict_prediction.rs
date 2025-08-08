@@ -15,21 +15,20 @@
  */
 
 use chrono::{DateTime, Utc};
-use rhema_core::{RhemaResult, RhemaError};
+use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use thiserror::Error;
 use uuid::Uuid;
-use tracing::{info, warn, error, debug};
+use tracing::{info, warn, error};
 
 use super::conflict_prevention::{
     ConflictType, ConflictSeverity, Conflict, ConflictStatus,
-    FileModificationConflict, DependencyConflict, ResourceConflict,
 };
 use super::real_time_coordination::{
-    AgentMessage, MessagePriority, MessageType,
+    MessagePriority,
     RealTimeCoordinationSystem,
 };
 

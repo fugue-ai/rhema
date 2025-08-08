@@ -48,7 +48,7 @@ pub struct DatabaseConfig {
 }
 
 /// Database type
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum DatabaseType {
     Sqlite,
     Postgres,

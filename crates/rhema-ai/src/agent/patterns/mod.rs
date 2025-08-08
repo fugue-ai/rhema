@@ -113,6 +113,7 @@ pub enum AgentStatus {
     Blocked,
     Collaborating,
     Offline,
+    Failed,
 }
 
 /// Agent performance metrics
@@ -1161,6 +1162,7 @@ impl std::fmt::Display for AgentStatus {
             AgentStatus::Blocked => write!(f, "blocked"),
             AgentStatus::Collaborating => write!(f, "collaborating"),
             AgentStatus::Offline => write!(f, "offline"),
+            AgentStatus::Failed => write!(f, "failed"),
         }
     }
 }

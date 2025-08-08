@@ -2,13 +2,74 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use chrono::{DateTime, Utc};
+// Mock Agent trait for testing
+trait Agent {
+    fn id(&self) -> &str;
+    fn name(&self) -> &str;
+    fn status(&self) -> &str;
+    fn to_agent_info(&self) -> AgentInfo;
+    fn assign_task(&mut self, task: String);
+}
+
+#[derive(Debug, Clone)]
+struct MockAgent {
+    pub id: String,
+    pub name: String,
+    pub status: String,
+}
+
+impl MockAgent {
+    pub fn new(id: String, name: String) -> Self {
+        Self {
+            id,
+            name,
+            status: "active".to_string(),
+        }
+    }
+}
+
+impl Agent for MockAgent {
+    fn id(&self) -> &str {
+        &self.id
+    }
+    
+    fn name(&self) -> &str {
+        &self.name
+    }
+    
+    fn status(&self) -> &str {
+        &self.status
+    }
+    
+    fn to_agent_info(&self) -> AgentInfo {
+        AgentInfo {
+            id: self.id.clone(),
+            name: self.name.clone(),
+            capabilities: vec![],
+            status: AgentStatus::Idle,
+            performance_metrics: AgentPerformanceMetrics::default(),
+            current_workload: 0.0,
+            assigned_tasks: vec![],
+        }
+    }
+    
+    fn assign_task(&mut self, _task: String) {
+        // Mock agent doesn't handle tasks
+    }
+}
+use rhema_core::RhemaResult;
+use tempfile::TempDir;
+use std::time::Duration;
+use tokio::time::sleep;
+use tracing::{info, warn, error};
+use futures;
 
 use rhema_ai::agent::patterns::{
     CoordinationPattern, PatternContext, PatternResult, PatternError, ValidationResult,
     PatternMetadata, PatternCategory, PatternState, PatternPhase, PatternStatus, PatternConfig,
     PatternRegistry, PatternExecutor, AgentInfo, AgentStatus, AgentPerformanceMetrics,
     ResourcePool, MemoryPool, CpuAllocator, NetworkResources, Constraint, ConstraintType,
-    PatternPerformanceMetrics, PatternStatistics
+    PatternPerformanceMetrics
 };
 
 /// Real agent implementation for integration testing
@@ -42,7 +103,7 @@ impl TestAgent {
     fn complete_task(&mut self, task: &str) {
         if let Some(pos) = self.tasks.iter().position(|t| t == task) {
             self.tasks.remove(pos);
-            self.workload = self.workload.saturating_sub(0.1);
+            self.workload = (self.workload - 0.1).max(0.0);
             if self.workload == 0.0 {
                 self.status = AgentStatus::Idle;
             }
@@ -60,6 +121,50 @@ impl TestAgent {
             assigned_tasks: self.tasks.clone(),
         }
     }
+    
+    fn to_boxed_agent(self) -> Box<dyn Agent> {
+        Box::new(self)
+    }
+}
+
+impl Agent for TestAgent {
+    fn id(&self) -> &str {
+        &self.id
+    }
+    
+    fn name(&self) -> &str {
+        &self.name
+    }
+    
+    fn status(&self) -> &str {
+        match self.status {
+            AgentStatus::Idle => "idle",
+            AgentStatus::Busy => "busy",
+            AgentStatus::Working => "working",
+            AgentStatus::Blocked => "blocked",
+            AgentStatus::Collaborating => "collaborating",
+            AgentStatus::Offline => "offline",
+            AgentStatus::Failed => "failed",
+        }
+    }
+    
+    fn to_agent_info(&self) -> AgentInfo {
+        AgentInfo {
+            id: self.id.clone(),
+            name: self.name.clone(),
+            capabilities: self.capabilities.clone(),
+            status: self.status.clone(),
+            performance_metrics: AgentPerformanceMetrics::default(),
+            current_workload: self.workload,
+            assigned_tasks: self.tasks.clone(),
+        }
+    }
+    
+    fn assign_task(&mut self, task: String) {
+        self.tasks.push(task);
+        self.workload += 0.1;
+        self.status = AgentStatus::Working;
+    }
 }
 
 /// Real pattern implementation for integration testing
@@ -71,7 +176,7 @@ struct IntegrationTestPattern {
     required_resources: Vec<String>,
     complexity: u8,
     execution_steps: Vec<String>,
-    current_step: usize,
+    current_step: std::sync::atomic::AtomicUsize,
 }
 
 impl IntegrationTestPattern {
@@ -91,7 +196,7 @@ impl IntegrationTestPattern {
                 "coordinate_results".to_string(),
                 "finalize".to_string(),
             ],
-            current_step: 0,
+            current_step: std::sync::atomic::AtomicUsize::new(0),
         }
     }
 
@@ -111,13 +216,14 @@ impl IntegrationTestPattern {
     }
 }
 
+
 #[async_trait::async_trait]
 impl CoordinationPattern for IntegrationTestPattern {
     async fn execute(&self, context: &PatternContext) -> Result<PatternResult, PatternError> {
         let start_time = Utc::now();
         
         // Simulate real pattern execution with multiple steps
-        for (step_index, step) in self.execution_steps.iter().enumerate() {
+        for (_step_index, step) in self.execution_steps.iter().enumerate() {
             // Simulate step execution time
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
             
@@ -178,6 +284,11 @@ impl CoordinationPattern for IntegrationTestPattern {
             },
             error_message: None,
             completed_at: end_time,
+            metadata: HashMap::from([
+                ("pattern_type".to_string(), serde_json::Value::String("integration_test".to_string())),
+                ("version".to_string(), serde_json::Value::String("1.0.0".to_string())),
+            ]),
+            execution_time_ms: (execution_duration * 1000.0) as u64,
         })
     }
 
@@ -256,7 +367,7 @@ impl CoordinationPattern for IntegrationTestPattern {
         })
     }
 
-    async fn rollback(&self, context: &PatternContext) -> Result<(), PatternError> {
+    async fn rollback(&self, _context: &PatternContext) -> Result<(), PatternError> {
         // Simulate rollback process
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         
@@ -270,12 +381,19 @@ impl CoordinationPattern for IntegrationTestPattern {
 
     fn metadata(&self) -> PatternMetadata {
         PatternMetadata {
+            id: self.id.clone(),
             name: self.name.clone(),
             description: format!("Integration test pattern: {}", self.name),
             version: "1.0.0".to_string(),
             category: self.category.clone(),
+            author: "test".to_string(),
+            created_at: chrono::Utc::now(),
+            modified_at: chrono::Utc::now(),
+            tags: vec!["test".to_string(), "integration".to_string()],
             required_capabilities: self.required_capabilities.clone(),
             required_resources: self.required_resources.clone(),
+            constraints: vec![],
+            dependencies: vec![],
             complexity: self.complexity,
             estimated_execution_time_seconds: 1, // 1 second estimated
         }
@@ -286,24 +404,37 @@ impl CoordinationPattern for IntegrationTestPattern {
 struct IntegrationTestFixture {
     registry: PatternRegistry,
     executor: PatternExecutor,
-    agents: Vec<TestAgent>,
+    agents: Vec<Box<dyn Agent>>,
     context: PatternContext,
 }
 
 impl IntegrationTestFixture {
     fn new() -> Self {
         let mut registry = PatternRegistry::new();
-        let executor = PatternExecutor::new(registry.clone());
+        let executor = PatternExecutor::new(registry);
+        
+        // Create a new registry for the test
+        let mut test_registry = PatternRegistry::new();
         
         // Create test agents
         let mut agents = vec![
-            TestAgent::new("agent1", "Integration Agent 1", vec!["integration_test".to_string(), "task_execution".to_string()]),
-            TestAgent::new("agent2", "Integration Agent 2", vec!["integration_test".to_string(), "coordination".to_string()]),
-            TestAgent::new("agent3", "Integration Agent 3", vec!["integration_test".to_string(), "validation".to_string()]),
+            TestAgent::new("agent1", "Integration Agent 1", vec!["integration_test".to_string(), "task_execution".to_string()]).to_boxed_agent(),
+            TestAgent::new("agent2", "Integration Agent 2", vec!["integration_test".to_string(), "coordination".to_string()]).to_boxed_agent(),
+            TestAgent::new("agent3", "Integration Agent 3", vec!["integration_test".to_string(), "validation".to_string()]).to_boxed_agent(),
         ];
 
-        // Convert agents to AgentInfo
-        let agent_infos: Vec<AgentInfo> = agents.iter().map(|agent| agent.to_agent_info()).collect();
+        // Convert agents to AgentInfo - we need to create AgentInfo from the trait methods
+        let agent_infos: Vec<AgentInfo> = agents.iter().map(|agent| {
+            AgentInfo {
+                id: agent.id().to_string(),
+                name: agent.name().to_string(),
+                status: AgentStatus::Idle, // Default status
+                capabilities: vec!["integration_test".to_string()], // Default capabilities
+                performance_metrics: AgentPerformanceMetrics::default(),
+                current_workload: 0.0,
+                assigned_tasks: vec![],
+            }
+        }).collect();
         
         let context = PatternContext {
             agents: agent_infos,
@@ -369,14 +500,14 @@ impl IntegrationTestFixture {
         };
 
         Self {
-            registry,
-            executor,
-            agents,
             context,
+            executor,
+            registry: test_registry,
+            agents,
         }
     }
 
-    fn register_pattern(&mut self, pattern: IntegrationTestPattern) {
+    fn register_pattern<P: CoordinationPattern + 'static>(&mut self, pattern: P) {
         self.registry.register_pattern(Box::new(pattern));
     }
 
@@ -389,8 +520,8 @@ impl IntegrationTestFixture {
         self.context.agents = self.agents.iter().map(|agent| agent.to_agent_info()).collect();
     }
 
-    fn get_agent(&mut self, agent_id: &str) -> Option<&mut TestAgent> {
-        self.agents.iter_mut().find(|agent| agent.id == agent_id)
+    fn get_agent(&mut self, agent_id: &str) -> Option<&mut Box<dyn Agent>> {
+        self.agents.iter_mut().find(|agent| agent.id() == agent_id)
     }
 }
 
@@ -772,7 +903,7 @@ impl EnhancedTestAgent {
     fn complete_task(&mut self, task: &str) -> Result<(), String> {
         if let Some(pos) = self.tasks.iter().position(|t| t == task) {
             self.tasks.remove(pos);
-            self.workload = self.workload.saturating_sub(0.1);
+            self.workload = (self.workload - 0.1).max(0.0);
             
             // Update performance metrics
             let performance = AgentPerformanceMetrics {
@@ -797,7 +928,7 @@ impl EnhancedTestAgent {
     fn fail_task(&mut self, task: &str) -> Result<(), String> {
         if let Some(pos) = self.tasks.iter().position(|t| t == task) {
             self.tasks.remove(pos);
-            self.workload = self.workload.saturating_sub(0.1);
+            self.workload = (self.workload - 0.1).max(0.0);
             
             // Update performance metrics with failure
             let performance = AgentPerformanceMetrics {
@@ -867,6 +998,62 @@ impl EnhancedTestAgent {
     }
 }
 
+impl Agent for EnhancedTestAgent {
+    fn id(&self) -> &str {
+        &self.id
+    }
+    
+    fn name(&self) -> &str {
+        &self.name
+    }
+    
+    fn status(&self) -> &str {
+        match self.status {
+            AgentStatus::Idle => "idle",
+            AgentStatus::Busy => "busy",
+            AgentStatus::Working => "working",
+            AgentStatus::Blocked => "blocked",
+            AgentStatus::Collaborating => "collaborating",
+            AgentStatus::Offline => "offline",
+            AgentStatus::Failed => "failed",
+        }
+    }
+    
+    fn to_agent_info(&self) -> AgentInfo {
+        let avg_performance = if self.performance_history.is_empty() {
+            AgentPerformanceMetrics::default()
+        } else {
+            let total_completed: usize = self.performance_history.iter().map(|p| p.tasks_completed).sum();
+            let total_failed: usize = self.performance_history.iter().map(|p| p.tasks_failed).sum();
+            let total_tasks = total_completed + total_failed;
+            let success_rate = if total_tasks > 0 { total_completed as f64 / total_tasks as f64 } else { 0.0 };
+            
+            AgentPerformanceMetrics {
+                tasks_completed: total_completed,
+                tasks_failed: total_failed,
+                avg_completion_time_seconds: 0.5,
+                success_rate,
+                collaboration_score: 0.8,
+                avg_response_time_ms: 100.0,
+            }
+        };
+
+        AgentInfo {
+            id: self.id.clone(),
+            name: self.name.clone(),
+            capabilities: self.capabilities.clone(),
+            status: self.status.clone(),
+            performance_metrics: avg_performance,
+            current_workload: self.workload,
+            assigned_tasks: self.tasks.clone(),
+        }
+    }
+    
+    fn assign_task(&mut self, task: String) {
+        let _ = self.assign_task(task);
+    }
+}
+
 /// Enhanced integration test pattern with real agent coordination
 struct EnhancedIntegrationTestPattern {
     id: String,
@@ -876,7 +1063,7 @@ struct EnhancedIntegrationTestPattern {
     required_resources: Vec<String>,
     complexity: u8,
     execution_steps: Vec<String>,
-    current_step: usize,
+    current_step: std::sync::atomic::AtomicUsize,
     coordination_strategy: CoordinationStrategy,
     validation_rules: Vec<ValidationRule>,
     recovery_config: RecoveryConfig,
@@ -925,7 +1112,7 @@ impl EnhancedIntegrationTestPattern {
                 "collect_results".to_string(),
                 "finalize".to_string(),
             ],
-            current_step: 0,
+            current_step: std::sync::atomic::AtomicUsize::new(0),
             coordination_strategy: CoordinationStrategy::Sequential,
             validation_rules: vec![
                 ValidationRule::AgentAvailability,
@@ -962,6 +1149,7 @@ impl EnhancedIntegrationTestPattern {
     }
 }
 
+
 #[async_trait::async_trait]
 impl CoordinationPattern for EnhancedIntegrationTestPattern {
     async fn execute(&self, context: &PatternContext) -> Result<PatternResult, PatternError> {
@@ -971,12 +1159,12 @@ impl CoordinationPattern for EnhancedIntegrationTestPattern {
         let mut communication_overhead = 0;
 
         // Step 1: Initialize
-        self.current_step = 0;
+        self.current_step.store(0, std::sync::atomic::Ordering::Relaxed);
         execution_data.insert("step_initialize".to_string(), serde_json::Value::Bool(true));
         tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
 
         // Step 2: Validate agents
-        self.current_step = 1;
+        self.current_step.store(1, std::sync::atomic::Ordering::Relaxed);
         let validation_result = self.validate_agents(context).await?;
         execution_data.insert("step_validate_agents".to_string(), serde_json::Value::Bool(validation_result.is_valid));
         if !validation_result.is_valid {
@@ -984,13 +1172,13 @@ impl CoordinationPattern for EnhancedIntegrationTestPattern {
         }
 
         // Step 3: Allocate resources
-        self.current_step = 2;
+        self.current_step.store(2, std::sync::atomic::Ordering::Relaxed);
         let resource_allocation = self.allocate_resources(context).await?;
         execution_data.insert("step_allocate_resources".to_string(), serde_json::Value::Bool(resource_allocation));
         coordination_overhead += 0.01;
 
         // Step 4: Coordinate tasks based on strategy
-        self.current_step = 3;
+        self.current_step.store(3, std::sync::atomic::Ordering::Relaxed);
         let coordination_result = match self.coordination_strategy {
             CoordinationStrategy::Sequential => self.coordinate_sequential(context).await?,
             CoordinationStrategy::Parallel => self.coordinate_parallel(context).await?,
@@ -1002,19 +1190,19 @@ impl CoordinationPattern for EnhancedIntegrationTestPattern {
         communication_overhead += 5;
 
         // Step 5: Execute workflow
-        self.current_step = 4;
+        self.current_step.store(4, std::sync::atomic::Ordering::Relaxed);
         let workflow_result = self.execute_workflow(context).await?;
         execution_data.insert("step_execute_workflow".to_string(), serde_json::Value::Bool(workflow_result));
         coordination_overhead += 0.03;
 
         // Step 6: Collect results
-        self.current_step = 5;
+        self.current_step.store(5, std::sync::atomic::Ordering::Relaxed);
         let results = self.collect_results(context).await?;
         execution_data.insert("step_collect_results".to_string(), serde_json::Value::Array(results));
         communication_overhead += 3;
 
         // Step 7: Finalize
-        self.current_step = 6;
+        self.current_step.store(6, std::sync::atomic::Ordering::Relaxed);
         execution_data.insert("step_finalize".to_string(), serde_json::Value::Bool(true));
 
         let end_time = Utc::now();
@@ -1033,6 +1221,11 @@ impl CoordinationPattern for EnhancedIntegrationTestPattern {
             },
             error_message: None,
             completed_at: end_time,
+            metadata: HashMap::from([
+                ("pattern_type".to_string(), serde_json::Value::String("enhanced_integration_test".to_string())),
+                ("version".to_string(), serde_json::Value::String("1.0.0".to_string())),
+            ]),
+            execution_time_ms: (total_execution_time * 1000.0) as u64,
         })
     }
 
@@ -1144,12 +1337,12 @@ impl CoordinationPattern for EnhancedIntegrationTestPattern {
         })
     }
 
-    async fn rollback(&self, context: &PatternContext) -> Result<(), PatternError> {
+    async fn rollback(&self, _context: &PatternContext) -> Result<(), PatternError> {
         // Simulate rollback process
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         
         // Reset agent states
-        for agent in &context.agents {
+        for _agent in &_context.agents {
             // In a real implementation, this would reset agent states
         }
         
@@ -1161,12 +1354,19 @@ impl CoordinationPattern for EnhancedIntegrationTestPattern {
 
     fn metadata(&self) -> PatternMetadata {
         PatternMetadata {
+            id: self.id.clone(),
             name: self.name.clone(),
             description: format!("Enhanced integration test pattern: {}", self.name),
             version: "1.0.0".to_string(),
             category: self.category.clone(),
+            author: "test".to_string(),
+            created_at: chrono::Utc::now(),
+            modified_at: chrono::Utc::now(),
+            tags: vec!["test".to_string(), "enhanced".to_string()],
             required_capabilities: self.required_capabilities.clone(),
             required_resources: self.required_resources.clone(),
+            constraints: vec![],
+            dependencies: vec![],
             complexity: self.complexity,
             estimated_execution_time_seconds: 5,
         }
@@ -1207,31 +1407,31 @@ impl EnhancedIntegrationTestPattern {
         Ok(memory_available && cpu_available)
     }
 
-    async fn coordinate_sequential(&self, context: &PatternContext) -> Result<String, PatternError> {
+    async fn coordinate_sequential(&self, _context: &PatternContext) -> Result<String, PatternError> {
         // Simulate sequential coordination
         tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
         Ok("sequential".to_string())
     }
 
-    async fn coordinate_parallel(&self, context: &PatternContext) -> Result<String, PatternError> {
+    async fn coordinate_parallel(&self, _context: &PatternContext) -> Result<String, PatternError> {
         // Simulate parallel coordination
         tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
         Ok("parallel".to_string())
     }
 
-    async fn coordinate_hierarchical(&self, context: &PatternContext) -> Result<String, PatternError> {
+    async fn coordinate_hierarchical(&self, _context: &PatternContext) -> Result<String, PatternError> {
         // Simulate hierarchical coordination
         tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
         Ok("hierarchical".to_string())
     }
 
-    async fn coordinate_peer_to_peer(&self, context: &PatternContext) -> Result<String, PatternError> {
+    async fn coordinate_peer_to_peer(&self, _context: &PatternContext) -> Result<String, PatternError> {
         // Simulate peer-to-peer coordination
         tokio::time::sleep(tokio::time::Duration::from_millis(15)).await;
         Ok("peer_to_peer".to_string())
     }
 
-    async fn execute_workflow(&self, context: &PatternContext) -> Result<bool, PatternError> {
+    async fn execute_workflow(&self, _context: &PatternContext) -> Result<bool, PatternError> {
         // Simulate workflow execution
         tokio::time::sleep(tokio::time::Duration::from_millis(40)).await;
         Ok(true)
@@ -1266,7 +1466,7 @@ async fn test_enhanced_integration_pattern_execution() {
 
     // Add agents to fixture
     for agent in agents {
-        fixture.agents.push(agent);
+        fixture.agents.push(Box::new(agent));
     }
 
     // Create enhanced pattern
@@ -1319,7 +1519,7 @@ async fn test_enhanced_integration_pattern_with_parallel_coordination() {
     ];
 
     for agent in agents {
-        fixture.agents.push(agent);
+        fixture.agents.push(Box::new(agent));
     }
 
     // Create pattern with parallel coordination
@@ -1355,7 +1555,7 @@ async fn test_enhanced_integration_pattern_with_hierarchical_coordination() {
     ];
 
     for agent in agents {
-        fixture.agents.push(agent);
+        fixture.agents.push(Box::new(agent));
     }
 
     // Create pattern with hierarchical coordination
@@ -1394,8 +1594,8 @@ async fn test_enhanced_integration_pattern_with_agent_failures() {
     failing_agent.fail_task("task_1").unwrap();
     failing_agent.fail_task("task_2").unwrap();
     
-    fixture.agents.push(healthy_agent);
-    fixture.agents.push(failing_agent);
+    fixture.agents.push(Box::new(healthy_agent));
+    fixture.agents.push(Box::new(failing_agent));
 
     // Create pattern with health check validation
     let pattern = EnhancedIntegrationTestPattern::new("health_check_integration", "Health Check Integration Test", PatternCategory::Custom("integration".to_string()))
@@ -1433,7 +1633,7 @@ async fn test_enhanced_integration_pattern_with_resource_constraints() {
     ];
 
     for agent in agents {
-        fixture.agents.push(agent);
+        fixture.agents.push(Box::new(agent));
     }
 
     // Create limited resources
@@ -1471,8 +1671,8 @@ async fn test_enhanced_integration_pattern_with_agent_recovery() {
     agent_1.fail_task("task_1").unwrap();
     agent_2.fail_task("task_2").unwrap();
     
-    fixture.agents.push(agent_1);
-    fixture.agents.push(agent_2);
+    fixture.agents.push(Box::new(agent_1));
+    fixture.agents.push(Box::new(agent_2));
 
     // Create pattern with recovery configuration
     let pattern = EnhancedIntegrationTestPattern::new("recovery_integration", "Recovery Integration Test", PatternCategory::Custom("integration".to_string()))
@@ -1507,7 +1707,7 @@ async fn test_enhanced_integration_pattern_concurrent_execution() {
     ];
 
     for agent in agents {
-        fixture.agents.push(agent);
+        fixture.agents.push(Box::new(agent));
     }
 
     // Create pattern for concurrent execution
@@ -1523,7 +1723,9 @@ async fn test_enhanced_integration_pattern_concurrent_execution() {
         "concurrent_integration",
         "concurrent_integration"
     ].into_iter().map(|pattern_id| {
-        let mut executor = fixture.executor.clone();
+        // Create a new executor for concurrent testing
+        let mut new_registry = PatternRegistry::new();
+        let mut executor = PatternExecutor::new(new_registry);
         let context = fixture.context.clone();
         tokio::spawn(async move {
             executor.execute_pattern(pattern_id, context).await
@@ -1554,7 +1756,7 @@ async fn test_enhanced_integration_pattern_performance_metrics() {
     ];
 
     for agent in agents {
-        fixture.agents.push(agent);
+        fixture.agents.push(Box::new(agent));
     }
 
     // Create pattern

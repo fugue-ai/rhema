@@ -1,529 +1,164 @@
-//! Helper utilities for testing
+//! Test helper utilities for common testing operations
 
-use rhema::RhemaResult;
-use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
-use rand::Rng;
-use rand::thread_rng;
+use rhema_core::RhemaResult;
+use rhema_api::Rhema;
+use git2::Repository;
 
-/// Helper functions for test setup and teardown
-#[allow(dead_code)]
+/// Test helper utilities for common operations
 pub struct TestHelpers;
 
-#[allow(dead_code)]
 impl TestHelpers {
-    /// Create a temporary directory with git repository initialized
-    pub fn create_temp_git_repo() -> RhemaResult<(TempDir, PathBuf)> {
-        let temp_dir = TempDir::new()?;
+    /// Create a temporary directory for testing
+    pub fn create_temp_dir() -> RhemaResult<TempDir> {
+        Ok(TempDir::new()?)
+    }
+    
+    /// Create a git repository in a temporary directory
+    pub fn create_test_repo() -> RhemaResult<(TempDir, Repository)> {
+        let temp_dir = Self::create_temp_dir()?;
         let repo_path = temp_dir.path().to_path_buf();
-
-        // Initialize git repository
-        let _repo = git2::Repository::init(&repo_path)?;
-
-        Ok((temp_dir, repo_path))
+        let repo = Repository::init(&repo_path)?;
+        Ok((temp_dir, repo))
     }
-
-    /// Create a basic Rhema scope structure
-    pub fn create_basic_scope(repo_path: &PathBuf) -> RhemaResult<()> {
-        let rhema_dir = repo_path.join(".rhema");
-        fs::create_dir_all(&rhema_dir)?;
-
-        // Create rhema.yaml
-        let rhema_yaml = r#"
-name: simple
-scope_type: service
-description: Test scope for unit testing
-version: "1.0.0"
-schema_version: "1.0.0"
-dependencies: null
-"#;
-        fs::write(rhema_dir.join("rhema.yaml"), rhema_yaml)?;
-
-        // Create simple.yaml
-        let simple_yaml = r#"
-items:
-  - id: "item-001"
-    name: "Test Item 1"
-    active: true
-    created_at: "2024-01-15T10:00:00Z"
-  - id: "item-002"
-    name: "Test Item 2"
-    active: false
-    created_at: "2024-01-16T10:00:00Z"
-"#;
-        fs::write(rhema_dir.join("simple.yaml"), simple_yaml)?;
-
-        Ok(())
+    
+    /// Create a Rhema instance in a temporary directory
+    pub fn create_test_rhema() -> RhemaResult<(TempDir, Rhema)> {
+        let (temp_dir, _repo) = Self::create_test_repo()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        let rhema = Rhema::new_from_path(repo_path)?;
+        Ok((temp_dir, rhema))
     }
-
-    /// Create a complex Rhema scope structure with multiple files
-    pub fn create_complex_scope(repo_path: &PathBuf) -> RhemaResult<()> {
-        let rhema_dir = repo_path.join(".rhema");
-        fs::create_dir_all(&rhema_dir)?;
-
-        // Create rhema.yaml
-        let rhema_yaml = r#"
-name: complex-scope
-scope_type: service
-description: Complex test scope with multiple data files
-version: "2.0.0"
-schema_version: "1.0.0"
-dependencies:
-  - name: dependency-1
-    version: "1.0.0"
-    type: service
-"#;
-        fs::write(rhema_dir.join("rhema.yaml"), rhema_yaml)?;
-
-        // Create todos.yaml
-        let todos_yaml = r#"
-todos:
-  - id: "todo-001"
-    title: "Test todo 1"
-    status: pending
-    priority: high
-    created_at: "2024-01-15T10:00:00Z"
-  - id: "todo-002"
-    title: "Test todo 2"
-    status: completed
-    priority: medium
-    created_at: "2024-01-16T10:00:00Z"
-"#;
-        fs::write(rhema_dir.join("todos.yaml"), todos_yaml)?;
-
-        // Create insights.yaml
-        let insights_yaml = r#"
-insights:
-  - id: "insight-001"
-    title: "Test insight"
-    content: "This is a test insight"
-    confidence: 8
-    category: "testing"
-    created_at: "2024-01-15T10:00:00Z"
-"#;
-        fs::write(rhema_dir.join("insights.yaml"), insights_yaml)?;
-
-        Ok(())
-    }
-
-    /// Create a nested Rhema scope structure
-    pub fn create_nested_scope(repo_path: &PathBuf) -> RhemaResult<()> {
-        let rhema_dir = repo_path.join(".rhema");
-        fs::create_dir_all(&rhema_dir)?;
-
-        // Create subdirectories
-        let data_dir = rhema_dir.join("data");
-        let schemas_dir = rhema_dir.join("schemas");
-        fs::create_dir_all(&data_dir)?;
-        fs::create_dir_all(&schemas_dir)?;
-
-        // Create rhema.yaml
-        let rhema_yaml = r#"
-name: nested-scope
-scope_type: service
-description: Nested test scope structure
-version: "1.0.0"
-schema_version: "1.0.0"
-dependencies: null
-"#;
-        fs::write(rhema_dir.join("rhema.yaml"), rhema_yaml)?;
-
-        // Create data files in subdirectories
-        let todos_yaml = r#"
-todos:
-  - id: "todo-001"
-    title: "Nested todo"
-    status: pending
-    priority: high
-    created_at: "2024-01-15T10:00:00Z"
-"#;
-        fs::write(data_dir.join("todos.yaml"), todos_yaml)?;
-
-        // Create schema files
-        let todo_schema = r#"
-type: object
-properties:
-  id:
-    type: string
-  title:
-    type: string
-  status:
-    type: string
-    enum: [pending, completed]
-required: [id, title, status]
-"#;
-        fs::write(schemas_dir.join("todo.yaml"), todo_schema)?;
-
-        Ok(())
-    }
-
-    /// Create a large dataset for performance testing
-    pub fn create_large_dataset(repo_path: &PathBuf, size: usize) -> RhemaResult<()> {
-        let rhema_dir = repo_path.join(".rhema");
-        fs::create_dir_all(&rhema_dir)?;
-
-        // Create rhema.yaml
-        let rhema_yaml = r#"
-name: large-scope
-scope_type: service
-description: Large dataset for performance testing
-version: "1.0.0"
-schema_version: "1.0.0"
-dependencies: null
-"#;
-        fs::write(rhema_dir.join("rhema.yaml"), rhema_yaml)?;
-
-        // Generate large todos dataset
-        let mut todos = Vec::new();
-        for i in 0..size {
-            let todo = format!(
-                r#"  - id: "todo-{:06}"
-    title: "Large dataset todo {}"
-    status: {}
-    priority: {}
-    created_at: "2024-01-{:02}T10:00:00Z""#,
-                i,
-                i,
-                if i % 3 == 0 {
-                    "pending"
-                } else if i % 3 == 1 {
-                    "in_progress"
-                } else {
-                    "completed"
-                },
-                if i % 4 == 0 {
-                    "low"
-                } else if i % 4 == 1 {
-                    "medium"
-                } else if i % 4 == 2 {
-                    "high"
-                } else {
-                    "critical"
-                },
-                (i % 30) + 1
-            );
-            todos.push(todo);
+    
+    /// Create test files in a directory
+    pub fn create_test_files(dir: &PathBuf, files: &[(&str, &str)]) -> RhemaResult<()> {
+        for (filename, content) in files {
+            let file_path = dir.join(filename);
+            std::fs::write(file_path, content)?;
         }
-
-        let todos_yaml = format!("todos:\n{}", todos.join("\n"));
-        fs::write(rhema_dir.join("todos.yaml"), todos_yaml)?;
-
         Ok(())
     }
-
-    /// Create a git repository with commit history
-    pub fn create_git_history(repo_path: &PathBuf, commits: &[(&str, &str)]) -> RhemaResult<()> {
-        let repo = git2::Repository::open(repo_path)?;
-
-        for (message, content) in commits {
-            // Create a test file
-            let file_path = repo_path.join("test.txt");
-            fs::write(&file_path, content)?;
-
-            // Stage and commit
-            let mut index = repo.index()?;
-            index.add_path(&std::path::Path::new("test.txt"))?;
-            let tree_id = index.write_tree()?;
-            let tree = repo.find_tree(tree_id)?;
-
-            let signature = git2::Signature::now("Test User", "test@example.com")?;
-            let parent_commit = repo.head().ok().and_then(|head| head.peel_to_commit().ok());
-
-            let _commit_id = if let Some(parent) = parent_commit {
-                repo.commit(
-                    Some(&repo.head()?.name().unwrap()),
-                    &signature,
-                    &signature,
-                    message,
-                    &tree,
-                    &[&parent],
-                )?
-            } else {
-                repo.commit(
-                    Some("refs/heads/main"),
-                    &signature,
-                    &signature,
-                    message,
-                    &tree,
-                    &[],
-                )?
-            };
-
-            // Update HEAD
-            repo.set_head(&format!("refs/heads/main"))?;
+    
+    /// Clean up test files
+    pub fn cleanup_test_files(dir: &PathBuf, files: &[&str]) -> RhemaResult<()> {
+        for filename in files {
+            let file_path = dir.join(filename);
+            if file_path.exists() {
+                std::fs::remove_file(file_path)?;
+            }
         }
-
         Ok(())
     }
-
-    /// Create a file with specific permissions
-    pub fn create_file_with_permissions(
-        path: &PathBuf,
-        content: &str,
-        permissions: u32,
-    ) -> RhemaResult<()> {
-        fs::write(path, content)?;
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(path)?.permissions();
-            perms.set_mode(permissions);
-            fs::set_permissions(path, perms)?;
+    
+    /// Wait for a condition to be true with timeout
+    pub async fn wait_for_condition<F>(condition: F, timeout_ms: u64) -> bool
+    where
+        F: Fn() -> bool,
+    {
+        use tokio::time::{sleep, Duration};
+        use std::time::Instant;
+        
+        let start = Instant::now();
+        let timeout = Duration::from_millis(timeout_ms);
+        
+        while start.elapsed() < timeout {
+            if condition() {
+                return true;
+            }
+            sleep(Duration::from_millis(10)).await;
         }
-
-        Ok(())
+        
+        false
     }
-
-    /// Create a directory with specific permissions
-    pub fn create_dir_with_permissions(path: &PathBuf, permissions: u32) -> RhemaResult<()> {
-        fs::create_dir_all(path)?;
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(path)?.permissions();
-            perms.set_mode(permissions);
-            fs::set_permissions(path, perms)?;
-        }
-
-        Ok(())
-    }
-
+    
     /// Generate random test data
-    pub fn generate_random_data(size: usize) -> String {
+    pub fn generate_test_data(size: usize) -> String {
+        use rand::Rng;
         let mut rng = rand::thread_rng();
-
-        let mut data = Vec::new();
-        for i in 0..size {
-            let id = rng.gen_range(1000..9999);
-            let status = if rng.gen_bool(0.5) {
-                "pending"
-            } else {
-                "completed"
-            };
-            let priority = match rng.gen_range(0..4) {
-                0 => "low",
-                1 => "medium",
-                2 => "high",
-                _ => "critical",
-            };
-
-            data.push(format!(
-                r#"  - id: "todo-{}"
-    title: "Random todo {}"
-    status: {}
-    priority: {}
-    created_at: "2024-01-{:02}T10:00:00Z""#,
-                id,
-                i,
-                status,
-                priority,
-                (i % 30) + 1
-            ));
-        }
-
-        format!("todos:\n{}", data.join("\n"))
+        let chars: Vec<char> = "abcdefghijklmnopqrstuvwxyz0123456789".chars().collect();
+        (0..size)
+            .map(|_| chars[rng.gen_range(0..chars.len())])
+            .collect()
     }
-
-    /// Create a corrupted YAML file
-    pub fn create_corrupted_yaml(path: &PathBuf) -> RhemaResult<()> {
-        let corrupted_content = r#"
-todos:
-  - id: "todo-001"
-    title: "Test todo"
-    status: pending
-    priority: high
-    created_at: "2024-01-15T10:00:00Z"
-  - id: "todo-002"
-    title: "Corrupted todo
-    status: pending
-    priority: high
-    created_at: "2024-01-16T10:00:00Z"
+    
+    /// Create a mock configuration for testing
+    pub fn create_mock_config() -> String {
+        r#"
+name: test-config
+version: "1.0.0"
+description: "Test configuration for unit testing"
+settings:
+  debug: true
+  timeout: 30
+  retries: 3
+"#.to_string()
+    }
+    
+    /// Validate file contents
+    pub fn validate_file_contents(path: &PathBuf, expected_content: &str) -> RhemaResult<bool> {
+        if !path.exists() {
+            return Ok(false);
+        }
+        
+        let content = std::fs::read_to_string(path)?;
+        Ok(content.contains(expected_content))
+    }
+    
+    /// Create a test environment with specific setup
+    pub fn create_test_env_with_setup<F>(setup_fn: F) -> RhemaResult<(TempDir, Rhema)>
+    where
+        F: FnOnce(&PathBuf) -> RhemaResult<()>,
+    {
+        let (temp_dir, rhema) = Self::create_test_rhema()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        setup_fn(&repo_path)?;
+        Ok((temp_dir, rhema))
+    }
+    
+    /// Create a basic scope for testing
+    pub fn create_basic_scope(path: &PathBuf) -> RhemaResult<()> {
+        let scope_dir = path.join("basic-scope");
+        std::fs::create_dir_all(&scope_dir)?;
+        
+        let scope_config = r#"
+name: "Basic Test Scope"
+version: "1.0.0"
+scope_type: "service"
+description: "A basic test scope"
 "#;
-        fs::write(path, corrupted_content)?;
+        
+        std::fs::write(scope_dir.join("rhema.yaml"), scope_config)?;
         Ok(())
     }
-
-    /// Create a malicious YAML file for security testing
-    pub fn create_malicious_yaml(path: &PathBuf) -> RhemaResult<()> {
-        let malicious_content = r#"
-!!python/object/apply:os.system ['echo "malicious code executed"']
-todos:
-  - id: "todo-001"
-    title: "Malicious todo"
-    status: pending
-    priority: high
+    
+    /// Create a complex scope for testing
+    pub fn create_complex_scope(path: &PathBuf) -> RhemaResult<()> {
+        let scope_dir = path.join("complex-scope");
+        std::fs::create_dir_all(&scope_dir)?;
+        
+        let scope_config = r#"
+name: "Complex Test Scope"
+version: "2.0.0"
+scope_type: "library"
+description: "A complex test scope with dependencies"
+dependencies:
+  - name: "dep1"
+    version: "1.0.0"
+  - name: "dep2"
+    version: "2.0.0"
+settings:
+  debug: true
+  timeout: 60
 "#;
-        fs::write(path, malicious_content)?;
-        Ok(())
-    }
-
-    /// Create a file with path traversal attempt
-    pub fn create_path_traversal_file(path: &PathBuf) -> RhemaResult<()> {
-        let traversal_content = r#"
-todos:
-  - id: "../../../etc/passwd"
-    title: "Path traversal attempt"
-    status: pending
-    priority: high
-"#;
-        fs::write(path, traversal_content)?;
-        Ok(())
-    }
-
-    /// Create a large file for performance testing
-    pub fn create_large_file(path: &PathBuf, size_mb: usize) -> RhemaResult<()> {
-        let mut content = String::new();
-        let chunk = "This is a test chunk for large file generation. ".repeat(100);
-
-        for i in 0..(size_mb * 1024 * 1024 / chunk.len()) {
-            content.push_str(&format!("Chunk {}: {}", i, chunk));
-        }
-
-        fs::write(path, content)?;
-        Ok(())
-    }
-
-    /// Create a symbolic link
-    pub fn create_symlink(target: &PathBuf, link: &PathBuf) -> RhemaResult<()> {
-        #[cfg(unix)]
-        {
-            std::os::unix::fs::symlink(target, link)?;
-        }
-
-        #[cfg(windows)]
-        {
-            std::os::windows::fs::symlink_file(target, link)?;
-        }
-
-        Ok(())
-    }
-
-    /// Create a hard link
-    pub fn create_hardlink(target: &PathBuf, link: &PathBuf) -> RhemaResult<()> {
-        fs::hard_link(target, link)?;
-        Ok(())
-    }
-
-    /// Create a file with specific encoding
-    pub fn create_file_with_encoding(
-        path: &PathBuf,
-        content: &str,
-        encoding: &str,
-    ) -> RhemaResult<()> {
-        match encoding {
-            "utf8" => fs::write(path, content)?,
-            "utf16" => {
-                let utf16_bytes: Vec<u8> = content
-                    .encode_utf16()
-                    .flat_map(|c| c.to_le_bytes())
-                    .collect();
-                fs::write(path, utf16_bytes)?;
-            }
-            "ascii" => {
-                let ascii_bytes: Vec<u8> = content.bytes().filter(|&b| b < 128).collect();
-                fs::write(path, ascii_bytes)?;
-            }
-            _ => {
-                return Err(rhema::RhemaError::ConfigError(format!(
-                    "Unsupported encoding: {}",
-                    encoding
-                )))
-            }
-        }
-        Ok(())
-    }
-
-    /// Create a file with specific line endings
-    pub fn create_file_with_line_endings(
-        path: &PathBuf,
-        content: &str,
-        line_ending: &str,
-    ) -> RhemaResult<()> {
-        let processed_content = content.replace("\n", line_ending);
-        fs::write(path, processed_content)?;
-        Ok(())
-    }
-
-    /// Create a file with specific ownership (Unix only)
-    #[cfg(unix)]
-    pub fn create_file_with_ownership(path: &PathBuf, uid: u32, gid: u32) -> RhemaResult<()> {
-        use std::os::unix::fs::chown;
-        fs::write(path, "test content")?;
-        chown(path, Some(uid), Some(gid))?;
-        Ok(())
-    }
-
-    /// Create a file with specific ownership (Windows only)
-    #[cfg(windows)]
-    pub fn create_file_with_ownership(path: &PathBuf, _uid: u32, _gid: u32) -> RhemaResult<()> {
-        fs::write(path, "test content")?;
-        Ok(())
-    }
-
-    /// Create a file with specific timestamps
-    pub fn create_file_with_timestamps(
-        path: &PathBuf,
-        _access_time: std::time::SystemTime,
-        _modify_time: std::time::SystemTime,
-    ) -> RhemaResult<()> {
-        fs::write(path, "test content")?;
-
-        #[cfg(unix)]
-        {
-            // Note: FileTimesExt is not available in all Rust versions
-            // This is a simplified version that just creates the file
-            // In a real implementation, you would handle timestamps differently
-        }
-
-        Ok(())
-    }
-
-    /// Create a file with specific attributes
-    pub fn create_file_with_attributes(path: &PathBuf, attributes: &[&str]) -> RhemaResult<()> {
-        fs::write(path, "test content")?;
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(path)?.permissions();
-
-            for attr in attributes {
-                match *attr {
-                    "readonly" => perms.set_readonly(true),
-                    "executable" => perms.set_mode(0o755),
-                    "hidden" => {
-                        // Unix doesn't have hidden attribute, but we can set it to 0o600
-                        perms.set_mode(0o600);
-                    }
-                    _ => {}
-                }
-            }
-
-            fs::set_permissions(path, perms)?;
-        }
-
-        #[cfg(windows)]
-        {
-            use std::os::windows::fs::MetadataExt;
-            let metadata = fs::metadata(path)?;
-            let mut attrs = metadata.file_attributes();
-
-            for attr in attributes {
-                match *attr {
-                    "readonly" => attrs |= 0x1, // FILE_ATTRIBUTE_READONLY
-                    "hidden" => attrs |= 0x2,   // FILE_ATTRIBUTE_HIDDEN
-                    "system" => attrs |= 0x4,   // FILE_ATTRIBUTE_SYSTEM
-                    _ => {}
-                }
-            }
-
-            // Note: Setting file attributes on Windows requires additional work
-            // This is a simplified version
-        }
-
+        
+        std::fs::write(scope_dir.join("rhema.yaml"), scope_config)?;
+        
+        // Create subdirectories
+        let sub_dir = scope_dir.join("src");
+        std::fs::create_dir_all(&sub_dir)?;
+        std::fs::write(sub_dir.join("main.rs"), "fn main() { println!(\"Hello, world!\"); }")?;
+        
         Ok(())
     }
 }

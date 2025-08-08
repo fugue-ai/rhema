@@ -143,13 +143,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("==============================\n");
     
     let health_statuses = manager.get_all_health_statuses().await;
-    for (dependency_id, status) in health_statuses {
+    for (dependency_id, status) in &health_statuses {
         println!("🔍 {}", dependency_id);
         println!("  Status: {:?}", status.status);
         println!("  Health Score: {:.2}", status.health_score);
         println!("  Last Updated: {}", status.last_updated);
         
-        if let Some(metrics) = status.metrics {
+        if let Some(metrics) = &status.metrics {
             println!("  Metrics:");
             println!("    Response Time: {:.2}ms", metrics.response_time_ms);
             println!("    Availability: {:.1}%", metrics.availability * 100.0);
@@ -159,7 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("    Memory Usage: {:.1}%", metrics.memory_usage * 100.0);
         }
         
-        if let Some(check) = status.last_check {
+        if let Some(check) = &status.last_check {
             println!("  Last Health Check:");
             println!("    Success: {}", check.success);
             println!("    Duration: {:?}", check.duration);

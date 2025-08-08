@@ -20,6 +20,9 @@ use std::path::Path;
 use std::collections::HashMap;
 use tempfile::TempDir;
 use std::fs;
+use rhema_core::schema::ConceptDefinition;
+use std::path::PathBuf;
+use rhema_core::schema::RhemaScope;
 
 /// Integration test environment for search functionality
 pub struct SearchIntegrationTest {
@@ -75,16 +78,17 @@ impl SearchIntegrationTest {
         }
 
         let scope = Scope {
-            definition: rhema_core::schema::ScopeDefinition {
+            path: PathBuf::from(name),
+            definition: RhemaScope {
                 name: name.to_string(),
-                version: "1.0.0".to_string(),
+                scope_type: "test".to_string(),
                 description: Some(format!("Test scope {}", name)),
-                keywords: vec!["test".to_string(), "search".to_string()],
-                maintainers: Vec::new(),
-                repository: None,
-                license: None,
+                version: "1.0.0".to_string(),
+                schema_version: Some("1.0.0".to_string()),
+                dependencies: None,
+                protocol_info: None,
+                custom: HashMap::new(),
             },
-            path: name.to_string(),
             files: scope_files,
         };
 

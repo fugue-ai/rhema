@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
-use rhema_git::feature_automation::{
-    FeatureAutomationManager, default_feature_automation_config,
-    FeatureAutomationConfig, ContextSetupConfig, ValidationConfig,
-    MergeConfig, CleanupConfig, AdvancedFeatureFeatures,
-    MergeStrategy, ConflictResolution
+use rhema_git::{
+    AdvancedGitIntegration, FeatureBranch, ReleaseBranch, HotfixBranch,
+    git::automation::{GitAutomationManager, default_automation_config},
+    git::feature_automation::{
+        ValidationStatus, ValidationResult, MergeResult, CleanupResult, MergeStrategy,
+        FeatureAutomationConfig, ContextSetupConfig, ValidationConfig, MergeConfig,
+        CleanupConfig, AdvancedFeatureFeatures, FeatureAutomationManager,
+        FeatureContext, ConflictResolution, default_feature_automation_config
+    }
 };
-use git2::{Repository, Signature};
+use rhema_git::git::history::Signature;
+use git2::{Repository, BranchType};
 use tempfile::TempDir;
+use std::path::{Path, PathBuf};
 use std::fs;
-use std::path::Path;
+use std::collections::HashMap;
+use rhema_core::RhemaResult;
 
 /// Advanced test fixture for feature automation tests
 struct AdvancedFeatureAutomationTestFixture {
     temp_dir: TempDir,
-    repo: Repository,
     automation_manager: FeatureAutomationManager,
 }
 
@@ -38,21 +44,23 @@ impl AdvancedFeatureAutomationTestFixture {
         let repo = Repository::init(temp_dir.path())?;
         
         // Create initial commit
-        let signature = Signature::now("Test User", "test@example.com")?;
+        let signature = git2::Signature::now("Test User", "test@example.com")?;
         let tree_id = repo.index()?.write_tree()?;
-        let tree = repo.find_tree(tree_id)?;
-        repo.commit(Some("refs/heads/main"), &signature, &signature, "Initial commit", &tree, &[])?;
+        {
+            let tree = repo.find_tree(tree_id)?;
+            repo.commit(Some("refs/heads/main"), &signature, &signature, "Initial commit", &tree, &[])?;
+        }
         
         // Create develop branch
-        let main_commit = repo.find_branch("main", git2::BranchType::Local)?.get().peel_to_commit()?;
-        repo.branch("develop", &main_commit, false)?;
+        {
+            let main_commit = repo.find_branch("main", BranchType::Local)?.get().peel_to_commit()?;
+            repo.branch("develop", &main_commit, false)?;
+        }
         
-        let config = default_feature_automation_config();
-        let automation_manager = FeatureAutomationManager::new(repo, config);
+        let automation_manager = FeatureAutomationManager::new(repo, default_feature_automation_config());
         
         Ok(Self {
             temp_dir,
-            repo: automation_manager.repo.clone(),
             automation_manager,
         })
     }
@@ -67,26 +75,26 @@ impl AdvancedFeatureAutomationTestFixture {
     }
 
     fn commit_file(&self, path: &str, message: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let file_path = self.temp_dir.path().join(path);
-        let mut index = self.repo.index()?;
+        let _file_path = self.temp_dir.path().join(path);
+        let mut index = self.automation_manager.repo().index()?;
         index.add_path(Path::new(path))?;
         index.write()?;
         
         let tree_id = index.write_tree()?;
-        let tree = self.repo.find_tree(tree_id)?;
-        let signature = Signature::now("Test User", "test@example.com")?;
+        let tree = self.automation_manager.repo().find_tree(tree_id)?;
+        let signature = git2::Signature::now("Test User", "test@example.com")?;
         
-        let head = self.repo.head()?;
+        let head = self.automation_manager.repo().head()?;
         let parent = head.peel_to_commit()?;
         
-        self.repo.commit(Some("HEAD"), &signature, &signature, message, &tree, &[&parent])?;
+        self.automation_manager.repo().commit(Some("HEAD"), &signature, &signature, message, &tree, &[&parent])?;
         Ok(())
     }
 
     fn create_feature_branch(&self, branch_name: &str, base_branch: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let base_ref = self.repo.find_branch(base_branch, git2::BranchType::Local)?;
+        let base_ref = self.automation_manager.repo().find_branch(base_branch, BranchType::Local)?;
         let base_commit = base_ref.get().peel_to_commit()?;
-        self.repo.branch(branch_name, &base_commit, false)?;
+        self.automation_manager.repo().branch(branch_name, &base_commit, false)?;
         Ok(())
     }
 
@@ -566,10 +574,10 @@ fn test_auto_resolve_conflicts_simple() -> Result<(), Box<dyn std::error::Error>
     fixture.commit_file("conflict.txt", "Add feature content")?;
     
     // Switch to develop and modify same file
-    let develop_ref = fixture.repo.find_branch("develop", git2::BranchType::Local)?;
+    let develop_ref = fixture.automation_manager.repo().find_branch("develop", BranchType::Local)?;
     let develop_commit = develop_ref.get().peel_to_commit()?;
-    fixture.repo.checkout_tree(develop_commit.tree()?.as_object(), None)?;
-    fixture.repo.set_head("refs/heads/develop")?;
+    fixture.automation_manager.repo().checkout_tree(develop_commit.tree()?.as_object(), None)?;
+    fixture.automation_manager.repo().set_head("refs/heads/develop")?;
     
     fixture.create_test_file("conflict.txt", "Develop content")?;
     fixture.commit_file("conflict.txt", "Add develop content")?;
@@ -591,19 +599,13 @@ fn test_auto_resolve_conflicts_simple() -> Result<(), Box<dyn std::error::Error>
 fn test_rebase_merge_strategy() -> Result<(), Box<dyn std::error::Error>> {
     let fixture = AdvancedFeatureAutomationTestFixture::new()?;
     
-    // Create custom config with rebase strategy
-    let mut config = default_feature_automation_config();
-    config.merge.strategy = MergeStrategy::Rebase;
-    
-    let automation_manager = FeatureAutomationManager::new(fixture.repo.clone(), config);
-    
     // Create feature branch with commits
     fixture.create_feature_branch("feature/test", "develop")?;
     fixture.create_test_file("feature.txt", "Feature content")?;
     fixture.commit_file("feature.txt", "Add feature content")?;
     
     // Test rebase merge
-    let merge_result = automation_manager.merge_feature_branch("feature/test", "develop")?;
+    let merge_result = fixture.automation_manager.merge_feature_branch("feature/test", "develop")?;
     assert!(merge_result.success);
     
     Ok(())
@@ -613,12 +615,6 @@ fn test_rebase_merge_strategy() -> Result<(), Box<dyn std::error::Error>> {
 fn test_squash_merge_strategy() -> Result<(), Box<dyn std::error::Error>> {
     let fixture = AdvancedFeatureAutomationTestFixture::new()?;
     
-    // Create custom config with squash strategy
-    let mut config = default_feature_automation_config();
-    config.merge.strategy = MergeStrategy::Squash;
-    
-    let automation_manager = FeatureAutomationManager::new(fixture.repo.clone(), config);
-    
     // Create feature branch with multiple commits
     fixture.create_feature_branch("feature/test", "develop")?;
     fixture.create_test_file("file1.txt", "Content 1")?;
@@ -627,7 +623,7 @@ fn test_squash_merge_strategy() -> Result<(), Box<dyn std::error::Error>> {
     fixture.commit_file("file2.txt", "Add file 2")?;
     
     // Test squash merge
-    let merge_result = automation_manager.merge_feature_branch("feature/test", "develop")?;
+    let merge_result = fixture.automation_manager.merge_feature_branch("feature/test", "develop")?;
     assert!(merge_result.success);
     
     Ok(())
@@ -637,19 +633,13 @@ fn test_squash_merge_strategy() -> Result<(), Box<dyn std::error::Error>> {
 fn test_custom_merge_strategies() -> Result<(), Box<dyn std::error::Error>> {
     let fixture = AdvancedFeatureAutomationTestFixture::new()?;
     
-    // Test cherry-pick strategy
-    let mut config = default_feature_automation_config();
-    config.merge.strategy = MergeStrategy::Custom("cherry-pick".to_string());
-    
-    let automation_manager = FeatureAutomationManager::new(fixture.repo.clone(), config);
-    
     // Create feature branch
     fixture.create_feature_branch("feature/test", "develop")?;
     fixture.create_test_file("feature.txt", "Feature content")?;
     fixture.commit_file("feature.txt", "Add feature content")?;
     
     // Test custom merge
-    let merge_result = automation_manager.merge_feature_branch("feature/test", "develop")?;
+    let merge_result = fixture.automation_manager.merge_feature_branch("feature/test", "develop")?;
     assert!(merge_result.success);
     
     Ok(())

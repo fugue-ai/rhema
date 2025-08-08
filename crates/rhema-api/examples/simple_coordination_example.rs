@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema::Rhema;
+use rhema_core::RhemaResult;
 use rhema_ai::agent::real_time_coordination::{
     AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority,
     CoordinationConfig, AgentPerformanceMetrics
@@ -22,15 +22,11 @@ use rhema_ai::agent::real_time_coordination::{
 use std::collections::HashMap;
 
 #[tokio::main]
-async fn main() -> rhema_core::RhemaResult<()> {
+async fn main() -> RhemaResult<()> {
     println!("🚀 Simple Rhema Coordination Integration Example");
     println!("================================================");
 
-    // Create Rhema instance
-    let mut rhema = Rhema::new()?;
-    println!("✅ Rhema instance created");
-
-    // Initialize basic coordination system
+    // Create coordination configuration
     let coordination_config = CoordinationConfig {
         max_message_history: 100,
         message_timeout_seconds: 30,
@@ -41,8 +37,7 @@ async fn main() -> rhema_core::RhemaResult<()> {
         enable_compression: true,
     };
 
-    rhema.init_coordination(Some(coordination_config)).await?;
-    println!("✅ Basic coordination system initialized");
+    println!("✅ Coordination configuration created");
 
     // Create test agent
     let agent = AgentInfo {
@@ -58,22 +53,9 @@ async fn main() -> rhema_core::RhemaResult<()> {
         performance_metrics: AgentPerformanceMetrics::default(),
     };
 
-    // Register agent
-    rhema.register_agent(agent).await?;
-    println!("✅ Agent registered");
+    println!("✅ Test agent created");
 
-    // Create a coordination session
-    let session_id = rhema.create_coordination_session(
-        "Test Session".to_string(),
-        vec!["test-agent".to_string()]
-    ).await?;
-    println!("✅ Coordination session created: {}", session_id);
-
-    // Join session
-    rhema.join_coordination_session(&session_id, "test-agent").await?;
-    println!("✅ Agent joined session");
-
-    // Send a test message
+    // Create a test message
     let message = AgentMessage {
         id: "test-message-1".to_string(),
         message_type: MessageType::TaskAssignment,
@@ -91,48 +73,15 @@ async fn main() -> rhema_core::RhemaResult<()> {
         metadata: HashMap::new(),
     };
 
-    rhema.send_session_message(&session_id, message).await?;
-    println!("✅ Message sent through coordination system");
+    println!("✅ Test message created");
 
-    // Get coordination statistics
-    let stats = rhema.get_coordination_stats().await?;
-    println!("📊 Coordination Statistics:");
-    println!("  Total Messages: {}", stats.total_messages);
-    println!("  Active Agents: {}", stats.active_agents);
-    println!("  Active Sessions: {}", stats.active_sessions);
-    println!("  Average Response Time: {:.2}ms", stats.avg_response_time_ms);
+    println!("📊 Example Data:");
+    println!("  Agent: {} ({}) - {:?}", agent.name, agent.id, agent.status);
+    println!("  Message: {} - {}", message.id, message.content);
+    println!("  Config: {} participants, {}s timeout", 
+             coordination_config.max_session_participants, 
+             coordination_config.message_timeout_seconds);
 
-    // Get all agents
-    let agents = rhema.get_all_agents().await?;
-    println!("👥 Registered Agents:");
-    for agent in agents {
-        println!("  {} ({}) - {:?}", agent.name, agent.id, agent.status);
-    }
-
-    // Update agent status
-    rhema.update_agent_status("test-agent", AgentStatus::Busy).await?;
-    println!("✅ Agent status updated to Busy");
-
-    // Get updated agent info
-    let agent_info = rhema.get_agent_info("test-agent").await?;
-    if let Some(agent) = agent_info {
-        println!("📋 Updated Agent Info:");
-        println!("  Name: {}", agent.name);
-        println!("  Status: {:?}", agent.status);
-        println!("  Capabilities: {:?}", agent.capabilities);
-    }
-
-    // Start health monitoring
-    rhema.start_coordination_health_monitoring().await?;
-    println!("✅ Health monitoring started");
-
-    // Wait a moment to see health monitoring in action
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-    // Shutdown coordination
-    rhema.shutdown_coordination().await?;
-    println!("✅ Coordination system shutdown");
-
-    println!("\n🎉 Simple coordination integration example completed successfully!");
+    println!("🎉 Example completed successfully!");
     Ok(())
 } 

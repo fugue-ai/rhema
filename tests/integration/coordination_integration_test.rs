@@ -14,16 +14,24 @@
  * limitations under the License.
  */
 
-use rhema::{
+use rhema_api::{
     Rhema, AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority,
     CoordinationConfig, AdvancedCoordinationConfig, LoadBalancingStrategy,
     FaultToleranceConfig, EncryptionConfig, PerformanceMonitoringConfig,
-    ConsensusConfig, ConsensusAlgorithm, IntegrationConfig
+    ConsensusConfig, IntegrationConfig
 };
+use rhema_ai::agent::patterns::AgentPerformanceMetrics;
+use rhema_ai::agent::real_time_coordination::EncryptionAlgorithm;
+use rhema_ai::agent::real_time_coordination::ConsensusAlgorithm;
+use rhema_core::RhemaResult;
 use std::collections::HashMap;
 use tempfile::TempDir;
 use std::fs;
 use std::path::Path;
+use std::path::PathBuf;
+use std::time::Duration;
+use tokio::time::sleep;
+use tracing::{info, warn, error};
 
 #[tokio::test]
 async fn test_basic_coordination_integration() {
@@ -62,7 +70,7 @@ async fn test_basic_coordination_integration() {
         capabilities: vec!["test".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema::AgentPerformanceMetrics::default(),
+        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
     };
     
     rhema.register_agent(agent).await.unwrap();
@@ -156,7 +164,7 @@ async fn test_advanced_coordination_integration() {
             health_check_interval_seconds: 10,
         },
         encryption_config: EncryptionConfig {
-            algorithm: rhema::EncryptionAlgorithm::AES256,
+            algorithm: EncryptionAlgorithm::AES256,
             key_rotation_hours: 24,
             enable_e2e_encryption: true,
             certificate_path: None,
@@ -166,12 +174,12 @@ async fn test_advanced_coordination_integration() {
             enable_metrics: true,
             metrics_interval_seconds: 30,
             enable_alerts: true,
-            thresholds: rhema::PerformanceThresholds {
+            thresholds: rhema_ai::agent::real_time_coordination::PerformanceThresholds {
                 max_message_latency_ms: 1000,
-                max_agent_response_time_ms: 5000,
+                max_agent_response_time_ms: 500,
                 max_session_creation_time_ms: 2000,
                 max_memory_usage_percent: 80.0,
-                max_cpu_usage_percent: 80.0,
+                max_cpu_usage_percent: 90.0,
             },
         },
     };
@@ -197,7 +205,7 @@ async fn test_advanced_coordination_integration() {
             capabilities: capabilities.into_iter().map(|s| s.to_string()).collect(),
             last_heartbeat: chrono::Utc::now(),
             is_online: true,
-            performance_metrics: rhema::AgentPerformanceMetrics::default(),
+            performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
         };
         rhema.register_agent(agent).await.unwrap();
     }
@@ -285,7 +293,7 @@ async fn test_coordination_integration_with_external_systems() {
         capabilities: vec!["integration".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema::AgentPerformanceMetrics::default(),
+        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
     };
     
     rhema.register_agent(agent).await.unwrap();
@@ -349,7 +357,7 @@ async fn test_coordination_error_handling() {
         capabilities: vec!["test".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema::AgentPerformanceMetrics::default(),
+        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
     };
     
     // These should fail because coordination is not initialized
@@ -400,12 +408,12 @@ async fn test_coordination_performance_monitoring() {
             enable_metrics: true,
             metrics_interval_seconds: 1, // Fast interval for testing
             enable_alerts: true,
-            thresholds: rhema::PerformanceThresholds {
+            thresholds: rhema_ai::agent::real_time_coordination::PerformanceThresholds {
                 max_message_latency_ms: 1000,
-                max_agent_response_time_ms: 5000,
+                max_agent_response_time_ms: 500,
                 max_session_creation_time_ms: 2000,
                 max_memory_usage_percent: 80.0,
-                max_cpu_usage_percent: 80.0,
+                max_cpu_usage_percent: 90.0,
             },
         },
     };
@@ -423,7 +431,7 @@ async fn test_coordination_performance_monitoring() {
         capabilities: vec!["test".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema::AgentPerformanceMetrics::default(),
+        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
     };
     
     rhema.register_agent(agent).await.unwrap();

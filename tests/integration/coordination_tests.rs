@@ -15,7 +15,7 @@
  */
 
 use rhema_ai::{
-    AIService, AIServiceConfig, CoordinationConfig,
+    ai_service::{AIService, AIServiceConfig}, CoordinationConfig,
     agent::real_time_coordination::{AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority},
 };
 use rhema_ai::grpc::coordination_client::SyneidesisConfig;
@@ -49,6 +49,8 @@ async fn test_coordination_integration_creation() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(CoordinationConfig::default()),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -90,6 +92,8 @@ async fn test_syneidesis_integration_creation() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(coordination_config),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -129,6 +133,8 @@ async fn test_agent_registration_with_coordination() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(CoordinationConfig::default()),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -179,6 +185,8 @@ async fn test_message_sending_with_coordination() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(CoordinationConfig::default()),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -232,6 +240,8 @@ async fn test_session_creation_with_coordination() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(CoordinationConfig::default()),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -273,6 +283,8 @@ async fn test_session_join_and_message() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(CoordinationConfig::default()),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -338,6 +350,8 @@ async fn test_coordination_statistics() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(CoordinationConfig::default()),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -413,6 +427,8 @@ async fn test_coordination_health_monitoring() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(CoordinationConfig::default()),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -454,6 +470,8 @@ async fn test_coordination_shutdown() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: true,
         coordination_config: Some(CoordinationConfig::default()),
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;
@@ -492,6 +510,8 @@ async fn test_coordination_disabled() -> RhemaResult<()> {
         agent_persistence_config: None,
         enable_coordination_integration: false,
         coordination_config: None,
+        enable_advanced_conflict_prevention: false,
+        advanced_conflict_prevention_config: None,
     };
 
     let service = AIService::new(config).await?;

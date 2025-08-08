@@ -2,7 +2,7 @@
 
 use std::process::Command;
 use tempfile::TempDir;
-use tests::common::{TestEnv, TestFixtures, helpers::TestHelpers};
+use crate::common::{TestEnv, fixtures::TestFixtures, helpers::TestHelpers};
 
 /// Test CLI command execution for coordination commands
 fn run_coordination_command(args: &[&str]) -> Result<String, Box<dyn std::error::Error>> {

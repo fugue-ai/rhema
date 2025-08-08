@@ -1,4 +1,4 @@
-use rhema::scope::Scope;
+use rhema_core::Scope;
 use std::fs;
 use tempfile::TempDir;
 

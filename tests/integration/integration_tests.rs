@@ -1,16 +1,18 @@
 // Integration tests for Rhema CLI
 // This file contains end-to-end tests that verify the complete functionality
 
-use rhema::{Rhema, RhemaResult};
+use rhema_core::{RhemaResult, Scope};
+use rhema_query::query::CqlQuery;
+use rhema_config::ConflictResolutionStrategy;
+use rhema_cli::Rhema;
+use git2::Repository;
+use tempfile::TempDir;
+use std::path::PathBuf;
+use std::fs;
+use std::collections::HashMap;
 
 // Import test utilities
-mod common {
-    pub mod assertions;
-    pub mod fixtures;
-    pub mod helpers;
-}
-
-use common::helpers::TestHelpers;
+use crate::common::helpers::TestHelpers;
 
 /// Test basic Rhema initialization
 #[test]
@@ -19,7 +21,7 @@ fn test_rhema_initialization() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -37,7 +39,7 @@ fn test_scope_discovery_integration() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a Rhema instance
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -61,7 +63,7 @@ fn test_query_execution_integration() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a Rhema instance with test data
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
@@ -83,7 +85,7 @@ fn test_search_integration() -> RhemaResult<()> {
     let temp_path = temp_dir.path();
 
     // Initialize git repository in the temp directory
-    let _repo = git2::Repository::init(temp_path)?;
+    let _repo = Repository::init(temp_path)?;
 
     // Create a Rhema instance with test data
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;

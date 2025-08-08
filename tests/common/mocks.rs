@@ -1,8 +1,11 @@
 //! Mock implementations for external dependencies
 
 use mockall::automock;
-use rhema::{RhemaResult, Scope};
+use std::collections::HashMap;
 use std::path::PathBuf;
+use tempfile::TempDir;
+use rhema_core::RhemaResult;
+use rhema_query::query::CqlQuery;
 
 /// Mock trait for file system operations
 #[automock]
@@ -54,7 +57,7 @@ pub trait QueryOperations {
         data: &serde_yaml::Value,
     ) -> RhemaResult<serde_yaml::Value>;
     fn validate_query(&self, query: &str) -> RhemaResult<bool>;
-    fn parse_query(&self, query: &str) -> RhemaResult<rhema::query::CqlQuery>;
+    fn parse_query(&self, query: &str) -> RhemaResult<CqlQuery>;
     fn optimize_query(&self, query: &str) -> RhemaResult<String>;
 }
 
@@ -62,10 +65,10 @@ pub trait QueryOperations {
 #[automock]
 #[allow(dead_code)]
 pub trait ScopeOperations {
-    fn discover_scopes(&self, path: &PathBuf) -> RhemaResult<Vec<Scope>>;
-    fn load_scope(&self, path: &PathBuf) -> RhemaResult<Scope>;
-    fn validate_scope(&self, scope: &Scope) -> RhemaResult<bool>;
-    fn get_scope_dependencies(&self, scope: &Scope) -> RhemaResult<Vec<Scope>>;
+    fn discover_scopes(&self, path: &PathBuf) -> RhemaResult<Vec<rhema_core::Scope>>;
+    fn load_scope(&self, path: &PathBuf) -> RhemaResult<rhema_core::Scope>;
+    fn validate_scope(&self, scope: &rhema_core::Scope) -> RhemaResult<bool>;
+    fn get_scope_dependencies(&self, scope: &rhema_core::Scope) -> RhemaResult<Vec<rhema_core::Scope>>;
 }
 
 /// Mock trait for schema operations
@@ -139,7 +142,7 @@ pub trait ValidationOperations {
     fn validate_yaml_syntax(&self, content: &str) -> RhemaResult<bool>;
     fn validate_file_permissions(&self, path: &PathBuf) -> RhemaResult<bool>;
     fn validate_git_integrity(&self, path: &PathBuf) -> RhemaResult<bool>;
-    fn validate_scope_integrity(&self, scope: &Scope) -> RhemaResult<bool>;
+    fn validate_scope_integrity(&self, scope: &rhema_core::Scope) -> RhemaResult<bool>;
 }
 
 /// Mock trait for cache operations
@@ -205,7 +208,7 @@ pub trait SearchOperations {
 #[allow(dead_code)]
 pub trait StatisticsOperations {
     fn collect_file_stats(&self, path: &PathBuf) -> RhemaResult<serde_yaml::Value>;
-    fn collect_scope_stats(&self, scope: &Scope) -> RhemaResult<serde_yaml::Value>;
+    fn collect_scope_stats(&self, scope: &rhema_core::Scope) -> RhemaResult<serde_yaml::Value>;
     fn collect_query_stats(&self, query: &str) -> RhemaResult<serde_yaml::Value>;
     fn collect_performance_stats(&self) -> RhemaResult<serde_yaml::Value>;
 }
@@ -216,7 +219,7 @@ pub trait StatisticsOperations {
 pub trait HealthCheckOperations {
     fn check_file_system_health(&self, path: &PathBuf) -> RhemaResult<bool>;
     fn check_git_health(&self, path: &PathBuf) -> RhemaResult<bool>;
-    fn check_scope_health(&self, scope: &Scope) -> RhemaResult<bool>;
+    fn check_scope_health(&self, scope: &rhema_core::Scope) -> RhemaResult<bool>;
     fn check_overall_health(&self, path: &PathBuf) -> RhemaResult<serde_yaml::Value>;
 }
 
@@ -225,7 +228,7 @@ pub trait HealthCheckOperations {
 #[allow(dead_code)]
 pub trait ImpactAnalysisOperations {
     fn analyze_change_impact(&self, changed_files: &[PathBuf]) -> RhemaResult<serde_yaml::Value>;
-    fn analyze_dependency_impact(&self, scope: &Scope) -> RhemaResult<serde_yaml::Value>;
+    fn analyze_dependency_impact(&self, scope: &rhema_core::Scope) -> RhemaResult<serde_yaml::Value>;
     fn analyze_query_impact(&self, query: &str) -> RhemaResult<serde_yaml::Value>;
     fn generate_impact_report(&self, analysis: &serde_yaml::Value) -> RhemaResult<String>;
 }
@@ -235,7 +238,7 @@ pub trait ImpactAnalysisOperations {
 #[allow(dead_code)]
 pub trait SyncOperations {
     fn sync_scopes(&self, source_path: &PathBuf, target_path: &PathBuf) -> RhemaResult<()>;
-    fn sync_data(&self, source_scope: &Scope, target_scope: &Scope) -> RhemaResult<()>;
+    fn sync_data(&self, source_scope: &rhema_core::Scope, target_scope: &rhema_core::Scope) -> RhemaResult<()>;
     fn detect_sync_conflicts(
         &self,
         source: &serde_yaml::Value,
@@ -248,10 +251,10 @@ pub trait SyncOperations {
 #[automock]
 #[allow(dead_code)]
 pub trait DependencyOperations {
-    fn resolve_dependencies(&self, scope: &Scope) -> RhemaResult<Vec<Scope>>;
-    fn check_dependency_conflicts(&self, dependencies: &[Scope]) -> RhemaResult<Vec<String>>;
-    fn update_dependencies(&self, scope: &Scope) -> RhemaResult<()>;
-    fn validate_dependency_graph(&self, dependencies: &[Scope]) -> RhemaResult<bool>;
+    fn resolve_dependencies(&self, scope: &rhema_core::Scope) -> RhemaResult<Vec<rhema_core::Scope>>;
+    fn check_dependency_conflicts(&self, dependencies: &[rhema_core::Scope]) -> RhemaResult<Vec<String>>;
+    fn update_dependencies(&self, scope: &rhema_core::Scope) -> RhemaResult<()>;
+    fn validate_dependency_graph(&self, dependencies: &[rhema_core::Scope]) -> RhemaResult<bool>;
 }
 
 /// Mock trait for pattern operations

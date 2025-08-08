@@ -15,9 +15,8 @@
  */
 
 use rhema_agent::{
-    RhemaAgentFramework, CodeReviewAgent, TestRunnerAgent,
-    CodeReviewRequest, TestGenerationRequest, TestExecutionRequest,
-    AgentRequest, AgentMessage
+    RhemaAgentFramework, Agent, BaseAgent, AgentConfig, AgentType, AgentCapability,
+    AgentRequest, AgentMessage, AgentId
 };
 use std::collections::HashMap;
 use tempfile::tempdir;
@@ -65,33 +64,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Register and start CodeReviewAgent
     println!("🔍 Registering CodeReviewAgent...");
-    let code_review_agent = Box::new(CodeReviewAgent::new("code-review-1".to_string()));
+    let code_review_config = AgentConfig {
+        name: "code-review-1".to_string(),
+        description: Some("Code review agent".to_string()),
+        agent_type: AgentType::Security,
+        capabilities: vec![AgentCapability::Analysis, AgentCapability::Security],
+        max_concurrent_tasks: 1,
+        task_timeout: 300,
+        memory_limit: Some(512),
+        cpu_limit: Some(50.0),
+        retry_attempts: 3,
+        retry_delay: 5,
+        parameters: HashMap::new(),
+        tags: vec!["code-review".to_string(), "security".to_string()],
+    };
+    let code_review_agent = Box::new(BaseAgent::new("code-review-1".to_string(), code_review_config));
     let code_review_id = framework.register_agent(code_review_agent).await?;
     framework.start_agent(&code_review_id).await?;
     println!("✅ CodeReviewAgent started with ID: {}", code_review_id);
 
     // Register and start TestRunnerAgent
     println!("🧪 Registering TestRunnerAgent...");
-    let test_runner_agent = Box::new(TestRunnerAgent::new("test-runner-1".to_string()));
+    let test_runner_config = AgentConfig {
+        name: "test-runner-1".to_string(),
+        description: Some("Test runner agent".to_string()),
+        agent_type: AgentType::Testing,
+        capabilities: vec![AgentCapability::Testing, AgentCapability::CodeExecution],
+        max_concurrent_tasks: 2,
+        task_timeout: 600,
+        memory_limit: Some(1024),
+        cpu_limit: Some(75.0),
+        retry_attempts: 2,
+        retry_delay: 10,
+        parameters: HashMap::new(),
+        tags: vec!["testing".to_string(), "automation".to_string()],
+    };
+    let test_runner_agent = Box::new(BaseAgent::new("test-runner-1".to_string(), test_runner_config));
     let test_runner_id = framework.register_agent(test_runner_agent).await?;
     framework.start_agent(&test_runner_id).await?;
     println!("✅ TestRunnerAgent started with ID: {}", test_runner_id);
 
     // Perform code review
     println!("\n🔍 Performing code review...");
-    let review_request = CodeReviewRequest {
-        code_path: source_dir.to_string_lossy().to_string(),
-        file_extensions: vec!["rs".to_string()],
-        security_analysis: true,
-        quality_analysis: true,
-        performance_analysis: true,
-        custom_rules: vec![],
-        ignore_patterns: vec![],
-    };
+    let review_request = serde_json::json!({
+        "code_path": source_dir.to_string_lossy().to_string(),
+        "file_extensions": vec!["rs".to_string()],
+        "security_analysis": true,
+        "quality_analysis": true,
+        "performance_analysis": true,
+        "custom_rules": Vec::<String>::new(),
+        "ignore_patterns": Vec::<String>::new(),
+    });
 
     let review_message = AgentMessage::TaskRequest(AgentRequest::new(
         "code_review".to_string(),
-        serde_json::to_value(review_request).unwrap()
+        review_request
     ));
 
     framework.send_message(&code_review_id, review_message).await?;
@@ -101,18 +128,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Generate tests
     println!("\n🧪 Generating tests...");
-    let generation_request = TestGenerationRequest {
-        source_path: source_dir.to_string_lossy().to_string(),
-        file_extensions: vec!["rs".to_string()],
-        test_types: vec![rhema_agent::TestType::Unit],
-        test_framework: "rust".to_string(),
-        output_directory: test_dir.to_string_lossy().to_string(),
-        options: HashMap::new(),
-    };
+    let generation_request = serde_json::json!({
+        "source_path": source_dir.to_string_lossy().to_string(),
+        "file_extensions": Vec::<String>::new(),
+        "test_types": Vec::<String>::new(),
+        "test_framework": "rust",
+        "output_directory": test_dir.to_string_lossy().to_string(),
+        "options": HashMap::<String, String>::new(),
+    });
 
     let generation_message = AgentMessage::TaskRequest(AgentRequest::new(
         "generate_tests".to_string(),
-        serde_json::to_value(generation_request).unwrap()
+        generation_request
     ));
 
     framework.send_message(&test_runner_id, generation_message).await?;
@@ -122,19 +149,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Execute tests
     println!("\n🏃 Executing tests...");
-    let execution_request = TestExecutionRequest {
-        test_path: test_dir.to_string_lossy().to_string(),
-        test_types: vec![rhema_agent::TestType::Unit],
-        test_framework: "rust".to_string(),
-        filters: vec![],
-        options: HashMap::new(),
-        timeout: Some(30),
-        parallel_count: Some(4),
-    };
+    let execution_request = serde_json::json!({
+        "test_path": test_dir.to_string_lossy().to_string(),
+        "test_types": Vec::<String>::new(),
+        "test_framework": "rust",
+        "filters": Vec::<String>::new(),
+        "options": HashMap::<String, String>::new(),
+        "timeout": 30,
+        "parallel_count": 4,
+    });
 
     let execution_message = AgentMessage::TaskRequest(AgentRequest::new(
         "execute_tests".to_string(),
-        serde_json::to_value(execution_request).unwrap()
+        execution_request
     ));
 
     framework.send_message(&test_runner_id, execution_message).await?;
@@ -158,20 +185,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let test_runner_metrics = framework.get_agent_metrics(&test_runner_id).await?;
 
     println!("CodeReviewAgent Metrics:");
-    println!("  Tasks Completed: {}", code_review_metrics.task_count);
+    println!("  Tasks Completed: {}", code_review_metrics.tasks.total_tasks);
     println!("  Success Rate: {:.1}%", 
-        if code_review_metrics.task_count > 0 {
-            (code_review_metrics.success_count as f64 / code_review_metrics.task_count as f64) * 100.0
+        if code_review_metrics.tasks.total_tasks > 0 {
+            (code_review_metrics.tasks.successful_tasks as f64 / code_review_metrics.tasks.total_tasks as f64) * 100.0
         } else {
             0.0
         }
     );
 
     println!("TestRunnerAgent Metrics:");
-    println!("  Tasks Completed: {}", test_runner_metrics.task_count);
+    println!("  Tasks Completed: {}", test_runner_metrics.tasks.total_tasks);
     println!("  Success Rate: {:.1}%", 
-        if test_runner_metrics.task_count > 0 {
-            (test_runner_metrics.success_count as f64 / test_runner_metrics.task_count as f64) * 100.0
+        if test_runner_metrics.tasks.total_tasks > 0 {
+            (test_runner_metrics.tasks.successful_tasks as f64 / test_runner_metrics.tasks.total_tasks as f64) * 100.0
         } else {
             0.0
         }
@@ -206,10 +233,38 @@ mod tests {
         let mut framework = RhemaAgentFramework::new();
         framework.initialize().await.unwrap();
 
-        let code_review_agent = Box::new(CodeReviewAgent::new("test-code-review".to_string()));
+        let code_review_config = AgentConfig {
+            name: "test-code-review".to_string(),
+            description: Some("Test code review agent".to_string()),
+            agent_type: AgentType::Security,
+            capabilities: vec![AgentCapability::Analysis, AgentCapability::Security],
+            max_concurrent_tasks: 1,
+            task_timeout: 300,
+            memory_limit: Some(512),
+            cpu_limit: Some(50.0),
+            retry_attempts: 3,
+            retry_delay: 5,
+            parameters: HashMap::new(),
+            tags: vec!["test".to_string()],
+        };
+        let code_review_agent = Box::new(BaseAgent::new("test-code-review".to_string(), code_review_config));
         let code_review_id = framework.register_agent(code_review_agent).await.unwrap();
         
-        let test_runner_agent = Box::new(TestRunnerAgent::new("test-test-runner".to_string()));
+        let test_runner_config = AgentConfig {
+            name: "test-test-runner".to_string(),
+            description: Some("Test test runner agent".to_string()),
+            agent_type: AgentType::Testing,
+            capabilities: vec![AgentCapability::Testing, AgentCapability::CodeExecution],
+            max_concurrent_tasks: 2,
+            task_timeout: 600,
+            memory_limit: Some(1024),
+            cpu_limit: Some(75.0),
+            retry_attempts: 2,
+            retry_delay: 10,
+            parameters: HashMap::new(),
+            tags: vec!["test".to_string()],
+        };
+        let test_runner_agent = Box::new(BaseAgent::new("test-test-runner".to_string(), test_runner_config));
         let test_runner_id = framework.register_agent(test_runner_agent).await.unwrap();
 
         let stats = framework.get_framework_stats().await.unwrap();

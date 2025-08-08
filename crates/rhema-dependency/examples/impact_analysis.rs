@@ -1,5 +1,5 @@
 use rhema_dependency::{
-    DependencyManager, DependencyType, ImpactAnalysis, BusinessImpactMetrics, RiskFactors
+    DependencyManager, DependencyType, ImpactAnalysis, BusinessImpactMetrics, RiskFactors, RiskLevel
 };
 
 #[tokio::main]
@@ -195,10 +195,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for dep in dependencies {
         let impact = manager.analyze_impact(&dep.id).await?;
         match impact.risk_level {
-            crate::error::RiskLevel::Critical | crate::error::RiskLevel::High => {
+            RiskLevel::Critical | RiskLevel::High => {
                 high_risk_dependencies.push((dep.name, impact.business_impact_score));
             }
-            crate::error::RiskLevel::Medium => {
+            RiskLevel::Medium => {
                 medium_risk_dependencies.push((dep.name, impact.business_impact_score));
             }
             _ => {}

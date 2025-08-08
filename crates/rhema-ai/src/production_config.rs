@@ -255,6 +255,19 @@ pub struct SecurityConfig {
     pub audit_log_retention_days: u64,
 }
 
+impl Default for SecurityConfig {
+    fn default() -> Self {
+        Self {
+            enable_authentication: false,
+            authentication_method: AuthenticationMethod::ApiKey,
+            enable_authorization: false,
+            authorization_rules: Vec::new(),
+            enable_audit_logging: false,
+            audit_log_retention_days: 30,
+        }
+    }
+}
+
 /// Authentication methods
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuthenticationMethod {

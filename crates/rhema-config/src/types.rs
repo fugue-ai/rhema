@@ -87,6 +87,12 @@ impl ConfigStats {
     }
 }
 
+impl Default for ConfigStats {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Configuration error types
 #[derive(Debug, thiserror::Error, Clone)]
 pub enum ConfigError {

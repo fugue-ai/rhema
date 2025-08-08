@@ -1,4 +1,4 @@
-use rhema::repo_analysis::RepoAnalysis;
+use rhema_query::RepoAnalysis;
 use std::path::Path;
 
 #[test]

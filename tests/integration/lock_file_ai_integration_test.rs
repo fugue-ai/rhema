@@ -62,7 +62,8 @@ async fn test_lock_file_context_provider() -> RhemaResult<()> {
 
 #[tokio::test]
 async fn test_context_injection_rules() -> RhemaResult<()> {
-    use rhema_ai::context_injection::{TaskType, ContextInjectionRule, LockFileContextRequirement, PromptInjectionMethod};
+    use rhema_ai::context_injection::{TaskType, ContextInjectionRule, LockFileContextRequirement};
+    use rhema_core::schema::PromptInjectionMethod;
     
     // Test creating injection rules
     let rule = ContextInjectionRule {
@@ -234,7 +235,7 @@ async fn test_dependency_analysis() -> RhemaResult<()> {
     let analysis = DependencyAnalysis {
         direct_dependencies: 5,
         transitive_dependencies: 15,
-        dependency_types: std::collections::HashMap::new(),
+        dependency_types: vec![],
         version_distribution: std::collections::HashMap::new(),
         outdated_dependencies: vec![outdated_dep],
         security_concerns: vec![security_concern],
@@ -350,7 +351,7 @@ async fn test_utils_formatting() -> RhemaResult<()> {
         dependency_analysis: DependencyAnalysis {
             direct_dependencies: 5,
             transitive_dependencies: 5,
-            dependency_types: std::collections::HashMap::new(),
+            dependency_types: vec![],
             version_distribution: std::collections::HashMap::new(),
             outdated_dependencies: Vec::new(),
             security_concerns: Vec::new(),

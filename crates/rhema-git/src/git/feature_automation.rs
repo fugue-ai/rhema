@@ -263,7 +263,7 @@ pub struct FeatureContextConfig {
 }
 
 /// Validation status
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ValidationStatus {
     Pending,
     InProgress,
@@ -292,6 +292,16 @@ impl FeatureAutomationManager {
     /// Create a new feature automation manager
     pub fn new(repo: Repository, config: FeatureAutomationConfig) -> Self {
         Self { repo, config }
+    }
+
+    /// Get the repository path
+    pub fn repo_path(&self) -> &std::path::Path {
+        self.repo.path()
+    }
+
+    /// Get a reference to the repository
+    pub fn repo(&self) -> &Repository {
+        &self.repo
     }
 
     /// Set up feature context for a branch

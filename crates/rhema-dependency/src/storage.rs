@@ -990,6 +990,7 @@ impl StorageManager {
             metadata,
             created_at: record.created_at,
             updated_at: record.updated_at,
+            health_status: HealthStatus::Unknown,
         })
     }
 

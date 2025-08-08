@@ -471,7 +471,7 @@ impl DependencyReportGenerator {
             id: "overview".to_string(),
             name: "Overview Report".to_string(),
             description: "Comprehensive overview of all dependencies".to_string(),
-            content: include_str!("templates/overview.html"),
+            content: include_str!("templates/overview.html").to_string(),
             variables: vec!["dependencies".to_string(), "summary".to_string()],
         });
         
@@ -479,7 +479,7 @@ impl DependencyReportGenerator {
             id: "health".to_string(),
             name: "Health Report".to_string(),
             description: "Detailed health analysis of dependencies".to_string(),
-            content: include_str!("templates/health.html"),
+            content: include_str!("templates/health.html").to_string(),
             variables: vec!["health_data".to_string(), "issues".to_string()],
         });
         

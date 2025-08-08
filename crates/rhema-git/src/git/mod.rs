@@ -20,4 +20,10 @@ pub use feature_automation::{
 pub use version_management::{
     VersionManager, VersionManagementConfig, VersionManagementResult,
     BumpType, CommitType, CommitInfo, default_version_management_config,
+};
+
+// Export automation types
+pub use automation::{
+    GitAutomationManager, AutomationConfig, TaskType, TaskStatus, TaskResult,
+    default_automation_config
 }; 

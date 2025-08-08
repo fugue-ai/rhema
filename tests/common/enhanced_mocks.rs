@@ -2,12 +2,18 @@
 //! Provides comprehensive mocking capabilities for external dependencies
 
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
+use tempfile::TempDir;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use mockall::{automock, predicate::*};
 use serde_yaml::Value;
-use rhema::{Rhema, RhemaResult};
+use rhema_core::{RhemaResult, RhemaError};
+use rhema_config::{
+    GlobalConfig, RepositoryConfig, ScopeConfig, Config,
+    SecurityManager, ValidationManager, GlobalConfigManager
+};
 
 /// Mock for file system operations
 #[automock]
@@ -362,7 +368,7 @@ impl MockFactory {
             .expect_parse_yaml()
             .returning(|content| {
                 serde_yaml::from_str(content).map_err(|e| {
-                    rhema::RhemaError::ParseError(format!("YAML parse error: {}", e))
+                    RhemaError::ParseError(format!("YAML parse error: {}", e))
                 })
             });
 
@@ -393,7 +399,7 @@ impl MockFactory {
                 self.yaml
                     .expect_parse_yaml()
                     .returning(|_| {
-                        Err(rhema::RhemaError::ParseError("Invalid YAML".to_string()))
+                        Err(RhemaError::ParseError("Invalid YAML".to_string()))
                     });
             }
             "security_violation" => {

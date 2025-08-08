@@ -15,7 +15,7 @@
  */
 
 use rhema_core::lock::LockFileOps;
-use rhema_core::schema::{RhemaLock, LockedScope, LockedDependency, DependencyType};
+use rhema_core::schema::{RhemaLock, LockedScope, LockedDependency, DependencyType, LockMetadata};
 use rhema_core::schema::RhemaScope;
 use std::collections::HashMap;
 use std::fs;
@@ -58,9 +58,15 @@ description: "A dependency scope"
     dependencies.insert(
         "dep-scope".to_string(),
         LockedDependency {
-            dependency_type: DependencyType::Library,
+            version: "2.0.0".to_string(),
+            path: "test/path".to_string(),
+            resolved_at: chrono::Utc::now(),
             checksum: "test_checksum".to_string(),
-            version_constraint: Some("2.0.0".to_string()),
+            dependency_type: DependencyType::Required,
+            original_constraint: Some("2.0.0".to_string()),
+            is_transitive: false,
+            dependencies: None,
+            custom: HashMap::new(),
         },
     );
     
@@ -68,26 +74,34 @@ description: "A dependency scope"
     scopes.insert(
         "test-scope".to_string(),
         LockedScope {
-            checksum: "test_checksum".to_string(),
+            version: "1.0.0".to_string(),
+            path: "test-scope".to_string(),
             dependencies,
+            source_checksum: Some("test_checksum".to_string()),
+            resolved_at: chrono::Utc::now(),
+            has_circular_dependencies: false,
+            custom: HashMap::new(),
         },
     );
     
     let lock_file = RhemaLock {
-        version: "1.0.0".to_string(),
+        lockfile_version: "1.0.0".to_string(),
+        generated_by: "test".to_string(),
+        checksum: "lock_checksum".to_string(),
+        metadata: LockMetadata::new(),
         scopes,
         generated_at: chrono::Utc::now(),
     };
     
     // Write lock file
     let lock_content = serde_yaml::to_string(&lock_file).unwrap();
-    fs::write(repo_path.join("rhema.lock"), lock_content).unwrap();
+    fs::write(repo_path.join("rhema.lock"), &lock_content).unwrap();
     
     // Test that the lock file exists and can be parsed
     assert!(repo_path.join("rhema.lock").exists());
     
     let parsed_lock: RhemaLock = serde_yaml::from_str(&lock_content).unwrap();
-    assert_eq!(parsed_lock.version, "1.0.0");
+    assert_eq!(parsed_lock.lockfile_version, "1.0.0");
     assert!(parsed_lock.scopes.contains_key("test-scope"));
     
     // Test scope existence validation
@@ -110,12 +124,12 @@ description: "A dependency scope"
     assert_eq!(dep_scope.scope_type, "library");
     
     // Test dependency type consistency
-    assert_eq!(format!("{:?}", DependencyType::Library), "library");
+    assert_eq!(format!("{:?}", DependencyType::Required), "Required");
     assert_eq!(dep_scope.scope_type, "library");
     
     // Test version constraint satisfaction
-    assert_eq!(dep_scope.version, Some("2.0.0".to_string()));
-    assert_eq!(lock_file.scopes["test-scope"].dependencies["dep-scope"].version_constraint, Some("2.0.0".to_string()));
+    assert_eq!(dep_scope.version, "2.0.0".to_string());
+    assert_eq!(lock_file.scopes["test-scope"].dependencies["dep-scope"].original_constraint, Some("2.0.0".to_string()));
 }
 
 #[test]
@@ -123,30 +137,55 @@ fn test_circular_dependency_detection() {
     // Create a lock file with circular dependencies
     let mut dependencies1 = HashMap::new();
     dependencies1.insert("scope2".to_string(), LockedDependency {
-        dependency_type: DependencyType::Service,
+        version: "1.0.0".to_string(),
+        path: "scope2/path".to_string(),
+        resolved_at: chrono::Utc::now(),
         checksum: "checksum2".to_string(),
-        version_constraint: None,
+        dependency_type: DependencyType::Required,
+        original_constraint: None,
+        is_transitive: false,
+        dependencies: None,
+        custom: HashMap::new(),
     });
     
     let mut dependencies2 = HashMap::new();
     dependencies2.insert("scope1".to_string(), LockedDependency {
-        dependency_type: DependencyType::Service,
+        version: "1.0.0".to_string(),
+        path: "scope1/path".to_string(),
+        resolved_at: chrono::Utc::now(),
         checksum: "checksum1".to_string(),
-        version_constraint: None,
+        dependency_type: DependencyType::Required,
+        original_constraint: None,
+        is_transitive: false,
+        dependencies: None,
+        custom: HashMap::new(),
     });
     
     let mut scopes = HashMap::new();
     scopes.insert("scope1".to_string(), LockedScope {
-        checksum: "checksum1".to_string(),
+        version: "1.0.0".to_string(),
+        path: "scope1".to_string(),
         dependencies: dependencies1,
+        source_checksum: Some("checksum1".to_string()),
+        resolved_at: chrono::Utc::now(),
+        has_circular_dependencies: false,
+        custom: HashMap::new(),
     });
     scopes.insert("scope2".to_string(), LockedScope {
-        checksum: "checksum2".to_string(),
+        version: "1.0.0".to_string(),
+        path: "scope2".to_string(),
         dependencies: dependencies2,
+        source_checksum: Some("checksum2".to_string()),
+        resolved_at: chrono::Utc::now(),
+        has_circular_dependencies: false,
+        custom: HashMap::new(),
     });
     
     let lock_file = RhemaLock {
-        version: "1.0.0".to_string(),
+        lockfile_version: "1.0.0".to_string(),
+        generated_by: "test".to_string(),
+        checksum: "lock_checksum".to_string(),
+        metadata: LockMetadata::new(),
         scopes,
         generated_at: chrono::Utc::now(),
     };
@@ -205,28 +244,42 @@ fn test_lock_file_structure_validation() {
     // Test lock file structure validation
     let mut dependencies = HashMap::new();
     dependencies.insert("dep1".to_string(), LockedDependency {
-        dependency_type: DependencyType::Library,
+        version: "1.0.0".to_string(),
+        path: "dep1/path".to_string(),
+        resolved_at: chrono::Utc::now(),
         checksum: "checksum1".to_string(),
-        version_constraint: Some("1.0.0".to_string()),
+        dependency_type: DependencyType::Required,
+        original_constraint: Some("1.0.0".to_string()),
+        is_transitive: false,
+        dependencies: None,
+        custom: HashMap::new(),
     });
     
     let mut scopes = HashMap::new();
     scopes.insert("scope1".to_string(), LockedScope {
-        checksum: "scope_checksum".to_string(),
+        version: "1.0.0".to_string(),
+        path: "scope1".to_string(),
         dependencies,
+        source_checksum: Some("scope_checksum".to_string()),
+        resolved_at: chrono::Utc::now(),
+        has_circular_dependencies: false,
+        custom: HashMap::new(),
     });
     
     let lock_file = RhemaLock {
-        version: "1.0.0".to_string(),
+        lockfile_version: "1.0.0".to_string(),
+        generated_by: "test".to_string(),
+        checksum: "lock_checksum".to_string(),
+        metadata: LockMetadata::new(),
         scopes,
         generated_at: chrono::Utc::now(),
     };
     
     // Validate structure
-    assert_eq!(lock_file.version, "1.0.0");
+    assert_eq!(lock_file.lockfile_version, "1.0.0");
     assert!(lock_file.scopes.contains_key("scope1"));
     assert!(lock_file.scopes["scope1"].dependencies.contains_key("dep1"));
-    assert_eq!(lock_file.scopes["scope1"].checksum, "scope_checksum");
+    assert_eq!(lock_file.scopes["scope1"].source_checksum, Some("scope_checksum".to_string()));
     assert_eq!(lock_file.scopes["scope1"].dependencies["dep1"].checksum, "checksum1");
-    assert_eq!(lock_file.scopes["scope1"].dependencies["dep1"].version_constraint, Some("1.0.0".to_string()));
+    assert_eq!(lock_file.scopes["scope1"].dependencies["dep1"].original_constraint, Some("1.0.0".to_string()));
 } 

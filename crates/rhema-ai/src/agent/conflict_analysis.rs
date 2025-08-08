@@ -22,19 +22,16 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use thiserror::Error;
 use uuid::Uuid;
-use tracing::{info, warn, error, debug};
+use tracing::error;
 
 use super::conflict_prevention::{
     ConflictType, ConflictSeverity, Conflict, ConflictStatus, ResolutionStrategy,
-    ConflictResolution, ResolutionMetrics,
+    ConflictResolution,
 };
 use super::ml_conflict_prediction::{
     ConflictPredictionResult, MLConflictPredictionStats, LearningMetrics,
 };
-use super::real_time_coordination::{
-    AgentMessage, MessagePriority, MessageType,
-    RealTimeCoordinationSystem,
-};
+use super::real_time_coordination::RealTimeCoordinationSystem;
 
 /// Conflict analysis report
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -877,8 +874,8 @@ impl ConflictAnalysisSystem {
         let resolutions = self.get_resolutions_in_period(period).await?;
         
         let mut resolutions_by_strategy = HashMap::new();
-        let mut resolution_time_by_type = HashMap::new();
-        let mut resolution_success_by_strategy = HashMap::new();
+        let resolution_time_by_type = HashMap::new();
+        let resolution_success_by_strategy = HashMap::new();
 
         let mut total_resolution_time = 0.0;
         let mut successful_resolutions = 0;

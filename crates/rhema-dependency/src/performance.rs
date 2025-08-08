@@ -26,6 +26,7 @@ pub struct CacheEntry<T> {
 }
 
 /// Performance-optimized cache for dependency analysis
+#[derive(Clone)]
 pub struct DependencyCache {
     /// Cache storage
     cache: Arc<RwLock<HashMap<String, CacheEntry<serde_json::Value>>>>,
@@ -110,16 +111,16 @@ impl DependencyCache {
             if Utc::now() < entry.expires_at {
                 // Cache hit
                 stats.hits += 1;
-                // Note: last_accessed is not part of CacheStatistics, removing this line
                 
-                // Update access count and last accessed time
+                // Deserialize the data first
+                let data: T = serde_json::from_value(entry.data.clone())?;
+                
+                // Then update access count and last accessed time
                 if let Some(entry_mut) = cache.get_mut(key) {
                     entry_mut.access_count += 1;
                     entry_mut.last_accessed = Utc::now();
                 }
-
-                // Deserialize the data
-                let data: T = serde_json::from_value(entry.data.clone())?;
+                
                 Ok(Some(data))
             } else {
                 // Expired entry
@@ -308,14 +309,23 @@ impl ParallelProcessor {
         // Wait for remaining tasks
         for handle in handles {
             match handle.await {
-                Ok(Ok(Ok(value))) => results.push(value),
-                Ok(Ok(Err(e))) => return Err(e),
-                Ok(Err(e)) => return Err(Error::Internal(format!("Task timeout: {}", e))),
-                Err(e) => return Err(Error::Internal(format!("Task join error: {}", e))),
+                Ok(Ok(Ok(value))) => results.push(Ok(value)),
+                Ok(Ok(Err(e))) => results.push(Err(e)),
+                Ok(Err(e)) => results.push(Err(Error::Internal(format!("Task timeout: {}", e)))),
+                Err(e) => results.push(Err(Error::Internal(format!("Task join error: {}", e)))),
             }
         }
 
-        Ok(results)
+        // Collect results, returning first error if any
+        let mut final_results = Vec::new();
+        for result in results {
+            match result {
+                Ok(value) => final_results.push(value),
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(final_results)
     }
 
     /// Process health checks in parallel

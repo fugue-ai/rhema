@@ -17,7 +17,7 @@
 use crate::ai_service::{AIService, AIRequest, AIResponse};
 use crate::coordination_integration::CoordinationIntegration;
 use crate::agent::real_time_coordination::{
-    AgentInfo, AgentMessage, RealTimeCoordinationSystem
+    AgentInfo, AgentMessage
 };
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};

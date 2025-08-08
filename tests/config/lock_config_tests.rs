@@ -15,15 +15,17 @@
  */
 
 use rhema_config::{
+    lock::{LockConfig, CustomValidationRule, ValidationLevel as LockValidationLevel},
+    Config,
     AlertThresholds, CacheConfig, CacheEvictionPolicy, CacheType, ConflictResolutionConfig,
-    ConflictResolutionStrategy, ConstraintType, EnvironmentLockConfig, LockConfig, MemoryConfig,
+    ConflictResolutionStrategy, ConstraintType, EnvironmentLockConfig, MemoryConfig,
     MetricsFormat, MonitoringConfig, NetworkConfig, NotificationChannel, OptimizationConfig,
     OptimizationLevel, ParallelConfig, PerformanceConfig, ResolutionConfig, ResolutionStrategy,
     UpdateFrequency, UpdateNotificationConfig, UpdatePoliciesConfig, UpdateRollbackConfig,
-    UpdateSchedulingConfig, ValidationConfig, ValidationLevel, ValidationRulesConfig,
+    UpdateSchedulingConfig, ValidationConfig, ValidationRulesConfig,
     ValidationSeverity, VersionConstraintConfig, ConfigEnvironment, CURRENT_CONFIG_VERSION,
 };
-use rhema_config::lock::CustomValidationRule;
+use rhema_core::RhemaResult;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tempfile::TempDir;
@@ -60,7 +62,7 @@ fn test_lock_config_creation_and_defaults() {
     assert!(config.update_policies.require_approval_major_updates);
     
     // Test validation defaults
-    assert_eq!(config.validation.validation_level, ValidationLevel::Standard);
+    assert_eq!(config.validation.validation_level, LockValidationLevel::Standard);
     assert!(config.validation.validate_on_generation);
     assert!(config.validation.validate_on_loading);
     assert_eq!(config.validation.timeout_seconds, 60);
@@ -164,7 +166,7 @@ fn test_validation_config() {
     
     // Test default values
     assert!(config.validation_enabled);
-    assert_eq!(config.validation_level, ValidationLevel::Standard);
+    assert_eq!(config.validation_level, LockValidationLevel::Standard);
     assert!(config.validate_on_generation);
     assert!(config.validate_on_loading);
     assert!(config.validate_on_updates);
@@ -328,7 +330,7 @@ fn test_config_merge() {
     config2.resolution.default_strategy = ResolutionStrategy::Conservative;
     config2.conflict_resolution.compatibility_threshold = 0.9;
     config2.update_policies.auto_update_enabled = true;
-    config2.validation.validation_level = ValidationLevel::Strict;
+    config2.validation.validation_level = LockValidationLevel::Strict;
     config2.performance.cache.size_limit_mb = 200;
     
     // Merge config2 into config1
@@ -338,7 +340,7 @@ fn test_config_merge() {
     assert_eq!(config1.resolution.default_strategy, ResolutionStrategy::Conservative);
     assert_eq!(config1.conflict_resolution.compatibility_threshold, 0.9);
     assert!(config1.update_policies.auto_update_enabled);
-    assert_eq!(config1.validation.validation_level, ValidationLevel::Strict);
+    assert_eq!(config1.validation.validation_level, LockValidationLevel::Strict);
     assert_eq!(config1.performance.cache.size_limit_mb, 200);
     
     // Verify original values that weren't changed
@@ -443,7 +445,7 @@ fn test_config_value_setting() {
     assert!(!config.validation.validation_enabled);
     
     config.set_value("validation.validation_level", serde_json::json!("Strict")).unwrap();
-    assert_eq!(config.validation.validation_level, ValidationLevel::Strict);
+    assert_eq!(config.validation.validation_level, LockValidationLevel::Strict);
     
     // Test setting performance values
     config.set_value("performance.cache.enabled", serde_json::json!(false)).unwrap();
@@ -685,10 +687,10 @@ fn test_optimization_levels() {
 #[test]
 fn test_validation_levels() {
     let validation_levels = vec![
-        ValidationLevel::Minimal,
-        ValidationLevel::Standard,
-        ValidationLevel::Strict,
-        ValidationLevel::Custom("custom_level".to_string()),
+        LockValidationLevel::Minimal,
+        LockValidationLevel::Standard,
+        LockValidationLevel::Strict,
+        LockValidationLevel::Custom("custom_level".to_string()),
     ];
     
     for level in validation_levels {

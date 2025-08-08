@@ -1,16 +1,18 @@
 //! Common testing utilities and infrastructure for Rhema CLI tests
 
-pub mod fixtures;
-pub mod mocks;
-pub mod helpers;
-pub mod generators;
-pub mod enhanced_fixtures;
-pub mod enhanced_mocks;
-pub mod coordination_fixtures;
-
+use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
-use rhema::{Rhema, RhemaResult};
+use rhema_core::RhemaResult;
+use rhema_api::Rhema;
+use git2::Repository;
+
+// Re-export helpers module
+pub mod helpers;
+pub mod fixtures;
+pub mod enhanced_fixtures;
+pub mod coordination_fixtures;
 
 /// Test environment setup and teardown utilities
 pub struct TestEnv {
@@ -26,7 +28,7 @@ impl TestEnv {
         let repo_path = temp_dir.path().to_path_buf();
         
         // Initialize git repository
-        let _repo = git2::Repository::init(&repo_path)?;
+        let _repo = Repository::init(&repo_path)?;
         
         // Create Rhema instance
         let rhema = Rhema::new_from_path(repo_path.clone())?;

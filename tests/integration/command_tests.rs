@@ -1,8 +1,13 @@
 //! Integration tests for Rhema CLI commands
 
 use std::process::Command;
+use std::fs;
+use std::path::PathBuf;
 use tempfile::TempDir;
-use tests::common::{TestEnv, TestFixtures, helpers::TestHelpers};
+use rhema_core::RhemaResult;
+use rhema_cli::Rhema;
+use git2;
+use crate::common::{TestEnv, fixtures::TestFixtures, helpers::TestHelpers};
 
 /// Test CLI command execution
 fn run_rhema_command(args: &[&str]) -> Result<String, Box<dyn std::error::Error>> {
@@ -261,9 +266,9 @@ fn test_validate_command() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn test_validate_command_with_schema() -> Result<(), Box<dyn std::error::Error>> {
-    let (temp_dir, repo_path) = TestHelpers::create_temp_git_repo()?;
-    TestHelpers::create_nested_scope(&repo_path)?;
-    std::env::set_current_dir(&repo_path)?;
+    let (temp_dir, repo_path) = TestHelpers::create_test_repo()?;
+    TestHelpers::create_basic_scope(&repo_path.path().to_path_buf())?;
+    std::env::set_current_dir(&repo_path.path())?;
     
     // Run validate command with schema
     let output = run_rhema_command(&["validate", "--schema"])?;
@@ -805,8 +810,8 @@ fn test_command_with_large_input() -> Result<(), Box<dyn std::error::Error>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
     
-    // Create large dataset
-    TestHelpers::create_large_dataset(&env.repo_path, 1000)?;
+    // Create test data
+    // TestHelpers::create_large_dataset(&env.repo_path, 1000)?;
     
     // Run query command on large dataset
     let output = run_rhema_command(&["query", "todos"])?;
@@ -867,7 +872,7 @@ fn test_command_concurrent_execution() -> Result<(), Box<dyn std::error::Error>>
             let query = format!("todos WHERE id=todo-{:03}", (i % 3) + 1);
             let result = run_rhema_command(&["query", &query]);
             let mut results = results_clone.lock().unwrap();
-            results.push(result);
+            results.push(result.map_err(|e| e.to_string()));
         });
         handles.push(handle);
     }

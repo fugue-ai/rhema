@@ -1338,61 +1338,27 @@ impl AuthManager {
 
     /// Validate session with enhanced security checks
     pub async fn validate_session_enhanced(&self, session_id: &str, client_info: Option<ClientInfo>) -> RhemaResult<AuthResult> {
-        let sessions = self.active_sessions.read().await;
-        
-        if let Some(session) = sessions.get(session_id) {
+        if let Some(session) = self.get_session(session_id).await {
             // Check if session is expired
-            if session.expires_at < chrono::Utc::now() {
+            if session.expires_at < Utc::now() {
+                self.revoke_session(session_id).await?;
                 return Ok(AuthResult {
                     authenticated: false,
                     user_id: None,
                     permissions: vec![],
                     token_id: None,
-                    error: Some("Session has expired".to_string()),
+                    error: Some("Session expired".to_string()),
                     session_id: None,
                 });
             }
 
-            // Check for suspicious activity (IP change, etc.)
-            if let Some(client_info) = client_info {
-                if let Some(stored_ip) = &session.client_info.ip_address {
-                    if let Some(current_ip) = &client_info.ip_address {
-                        if stored_ip != current_ip {
-                            // Log suspicious activity
-                            self.security_monitor.record_security_event(
-                                crate::auth::SecurityEventType::SuspiciousActivity,
-                                client_info.ip_address.clone(),
-                                Some(session.user_id.clone()),
-                                format!("IP address changed from {} to {}", stored_ip, current_ip),
-                                crate::auth::SecuritySeverity::Medium,
-                            ).await;
-
-                            // Optionally invalidate session for security
-                            if self.config.security.invalidate_session_on_ip_change {
-                                return Ok(AuthResult {
-                                    authenticated: false,
-                                    user_id: None,
-                                    permissions: vec![],
-                                    token_id: None,
-                                    error: Some("Session invalidated due to IP change".to_string()),
-                                    session_id: None,
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Update last activity
-            let user_id = session.user_id.clone();
-            let permissions = session.permissions.clone();
-            drop(sessions);
+            // Update session activity
             self.update_session_activity(session_id).await?;
 
             Ok(AuthResult {
                 authenticated: true,
-                user_id: Some(user_id),
-                permissions,
+                user_id: Some(session.user_id),
+                permissions: session.permissions,
                 token_id: None,
                 error: None,
                 session_id: Some(session_id.to_string()),
@@ -1407,6 +1373,16 @@ impl AuthManager {
                 session_id: None,
             })
         }
+    }
+
+    /// Get a reference to the security monitor (for testing)
+    pub fn security_monitor(&self) -> &SecurityMonitor {
+        &self.security_monitor
+    }
+
+    /// Get a reference to the audit logger (for testing)
+    pub fn audit_logger(&self) -> &AuditLogger {
+        &self.audit_logger
     }
 }
 
@@ -1493,8 +1469,7 @@ impl SecurityMonitor {
     }
 
     pub async fn get_security_events(&self) -> Vec<SecurityEvent> {
-        let events = self.security_events.read().await;
-        events.clone()
+        self.security_events.read().await.clone()
     }
 }
 

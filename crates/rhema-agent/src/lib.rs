@@ -28,7 +28,7 @@ pub mod error;
 // Re-export main components for easy access
 pub use agent::{
     Agent, AgentId, AgentType, AgentCapability, AgentState, AgentConfig,
-    AgentContext, AgentMessage, AgentResponse, AgentRequest
+    AgentContext, AgentMessage, AgentResponse, AgentRequest, BaseAgent
 };
 pub use executor::{AgentExecutor, ExecutionContext, ExecutionResult, ExecutionPolicy};
 pub use coordinator::{AgentCoordinator, CoordinationPolicy, CoordinationResult};

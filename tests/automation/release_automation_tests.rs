@@ -14,36 +14,36 @@
  * limitations under the License.
  */
 
-use rhema_git::workflow::{WorkflowManager, default_git_flow_config};
+use rhema_git::git::workflow::{WorkflowManager, default_git_flow_config};
 use git2::Repository;
 use tempfile::TempDir;
 
-fn setup_test_repo() -> (TempDir, Repository, WorkflowManager) {
+fn setup_test_repo() -> (TempDir, WorkflowManager) {
     let temp_dir = TempDir::new().unwrap();
     let repo = Repository::init(temp_dir.path()).unwrap();
     let config = default_git_flow_config();
-    let manager = WorkflowManager::new(repo.clone(), config);
-    (temp_dir, repo, manager)
+    let manager = WorkflowManager::new(repo, config);
+    (temp_dir, manager)
 }
 
 #[test]
 fn test_prepare_and_validate_release_context() {
-    let (_temp_dir, _repo, manager) = setup_test_repo();
+    let (_temp_dir, manager) = setup_test_repo();
     let version = "0.1.0-test";
     let release_branch = format!("release/{}", version);
     // Prepare context
-    assert!(manager.prepare_release_context(&release_branch, version).is_ok());
+    assert!(manager.prepare_release_context(&release_branch).is_ok());
     // Validate
     assert!(manager.validate_release(&release_branch).is_ok());
 }
 
 #[test]
 fn test_merge_and_cleanup_release_branch() {
-    let (_temp_dir, _repo, manager) = setup_test_repo();
+    let (_temp_dir, manager) = setup_test_repo();
     let version = "0.2.0-test";
     let release_branch = format!("release/{}", version);
     // Prepare context
-    assert!(manager.prepare_release_context(&release_branch, version).is_ok());
+    assert!(manager.prepare_release_context(&release_branch).is_ok());
     // Merge to main
     let _ = manager.merge_to_main(&release_branch);
     // Merge to develop

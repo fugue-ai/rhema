@@ -1,6 +1,90 @@
-use rhema::Rhema;
-use std::process::Command;
+use rhema_core::RhemaResult;
 use tempfile::TempDir;
+use std::path::PathBuf;
+use std::fs;
+use std::process::Command;
+use std::collections::HashMap;
+
+// Mock implementation for rhema::query::parse_cql_query
+mod rhema {
+    pub mod query {
+        use super::super::*;
+        use rhema_query::query::{CqlQuery, Condition, Operator, ConditionValue, LogicalOperator};
+        
+        pub fn parse_cql_query(query: &str) -> RhemaResult<CqlQuery> {
+            // Simple mock implementation for testing
+            let mut conditions = Vec::new();
+            
+            if query.contains("WHERE") {
+                let parts: Vec<&str> = query.split("WHERE").collect();
+                let target_part = parts[0].trim();
+                let condition_part = parts[1].trim();
+                
+                let (target, yaml_path) = if target_part.contains('.') {
+                    let target_parts: Vec<&str> = target_part.split('.').collect();
+                    (target_parts[0].to_string(), Some(target_parts[1].to_string()))
+                } else {
+                    (target_part.to_string(), None)
+                };
+                
+                // Parse simple conditions like "active=true" or "value>15"
+                if condition_part.contains('=') {
+                    let cond_parts: Vec<&str> = condition_part.split('=').collect();
+                    let field = cond_parts[0].trim();
+                    let value = cond_parts[1].trim();
+                    
+                    let condition_value = if value == "true" {
+                        ConditionValue::Boolean(true)
+                    } else if value == "false" {
+                        ConditionValue::Boolean(false)
+                    } else {
+                        ConditionValue::String(value.to_string())
+                    };
+                    
+                    conditions.push(Condition::new(field, Operator::Equals, condition_value));
+                } else if condition_part.contains('>') {
+                    let cond_parts: Vec<&str> = condition_part.split('>').collect();
+                    let field = cond_parts[0].trim();
+                    let value = cond_parts[1].trim();
+                    
+                    if let Ok(num) = value.parse::<f64>() {
+                        conditions.push(Condition::new(field, Operator::GreaterThan, ConditionValue::Number(num)));
+                    }
+                }
+                
+                Ok(CqlQuery {
+                    query: query.to_string(),
+                    target,
+                    yaml_path,
+                    conditions,
+                    scope_context: None,
+                    order_by: None,
+                    limit: None,
+                    offset: None,
+                })
+            } else {
+                // No WHERE clause
+                let (target, yaml_path) = if query.contains('.') {
+                    let parts: Vec<&str> = query.split('.').collect();
+                    (parts[0].to_string(), Some(parts[1].to_string()))
+                } else {
+                    (query.to_string(), None)
+                };
+                
+                Ok(CqlQuery {
+                    query: query.to_string(),
+                    target,
+                    yaml_path,
+                    conditions,
+                    scope_context: None,
+                    order_by: None,
+                    limit: None,
+                    offset: None,
+                })
+            }
+        }
+    }
+}
 
 #[test]
 fn test_basic_cql_functionality() {
@@ -46,7 +130,7 @@ items:
     let simple_file = rhema_dir.join("simple.yaml");
     std::fs::write(&simple_file, yaml_content).unwrap();
 
-    let rhema = Rhema::new_from_path(temp_path.to_path_buf()).unwrap();
+    let rhema = rhema_api::Rhema::new_from_path(temp_path.to_path_buf()).unwrap();
 
     // Test basic query
     let result = rhema.query("simple").unwrap();

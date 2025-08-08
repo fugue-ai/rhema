@@ -299,7 +299,7 @@ impl DependencyConfig {
 
     /// Validate the configuration
     pub fn validate(&self) -> Result<()> {
-        self.validate()
+        Validate::validate(self)
             .map_err(|e| Error::Validation(format!("Configuration validation failed: {}", e)))?;
         Ok(())
     }

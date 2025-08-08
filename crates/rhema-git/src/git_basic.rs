@@ -1266,6 +1266,63 @@ impl AdvancedGitIntegration {
         Ok(())
     }
 
+    /// Trigger workflow automation based on events or schedules
+    pub fn trigger_workflow_automation(&self, trigger_type: &str, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+        // TODO: Implement workflow automation
+        if trigger_type.trim().is_empty() {
+            return Err(RhemaError::ValidationError("Trigger type cannot be empty".to_string()));
+        }
+        Ok(())
+    }
+
+    /// Trigger feature branch automation
+    pub fn trigger_feature_automation(&self, feature_name: &str, action: &str) -> RhemaResult<()> {
+        // TODO: Implement feature automation
+        if feature_name.trim().is_empty() {
+            return Err(RhemaError::ValidationError("Feature name cannot be empty".to_string()));
+        }
+        if action.trim().is_empty() {
+            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+        }
+        Ok(())
+    }
+
+    /// Trigger release automation
+    pub fn trigger_release_automation(&self, version: &str, action: &str) -> RhemaResult<()> {
+        // TODO: Implement release automation
+        if version.trim().is_empty() {
+            return Err(RhemaError::ValidationError("Version cannot be empty".to_string()));
+        }
+        if action.trim().is_empty() {
+            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+        }
+        Ok(())
+    }
+
+    /// Trigger hotfix automation
+    pub fn trigger_hotfix_automation(&self, version: &str, action: &str) -> RhemaResult<()> {
+        // TODO: Implement hotfix automation
+        if version.trim().is_empty() {
+            return Err(RhemaError::ValidationError("Version cannot be empty".to_string()));
+        }
+        if action.trim().is_empty() {
+            return Err(RhemaError::ValidationError("Action cannot be empty".to_string()));
+        }
+        Ok(())
+    }
+
+    /// Get automation status
+    pub fn get_status(&self) -> RhemaResult<AutomationStatus> {
+        // TODO: Implement status retrieval
+        Ok(AutomationStatus {
+            running: false,
+            total_tasks: 0,
+            completed_tasks: 0,
+            failed_tasks: 0,
+            pending_tasks: 0,
+        })
+    }
+
     pub fn security(&self) -> RhemaResult<String> {
         Ok("security_disabled".to_string())
     }

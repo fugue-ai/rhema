@@ -37,6 +37,7 @@ pub enum AgentStatus {
     Blocked,
     Collaborating,
     Offline,
+    Failed,
 }
 
 /// Message types for agent communication

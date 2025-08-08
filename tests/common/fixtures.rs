@@ -1,312 +1,248 @@
-//! Test fixtures and sample data
+//! Test fixtures for common testing scenarios
 
-use std::collections::HashMap;
+use std::path::PathBuf;
+use tempfile::TempDir;
+use rhema_core::RhemaResult;
+use rhema_api::Rhema;
+use git2::Repository;
 
-/// Test fixtures for Rhema testing
-#[allow(dead_code)]
+/// Test fixtures for different testing scenarios
 pub struct TestFixtures;
 
-#[allow(dead_code)]
 impl TestFixtures {
-    /// Get a basic scope definition
-    pub fn basic_scope() -> &'static str {
-        r#"
-name: simple
+    /// Create a basic test fixture with minimal setup
+    pub fn basic() -> RhemaResult<(TempDir, Rhema)> {
+        let temp_dir = TempDir::new()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        
+        // Initialize git repository
+        let _repo = Repository::init(&repo_path)?;
+        
+        // Create Rhema instance
+        let rhema = Rhema::new_from_path(repo_path)?;
+        
+        Ok((temp_dir, rhema))
+    }
+    
+    /// Create a test fixture with a basic scope setup
+    pub fn with_scope() -> RhemaResult<(TempDir, Rhema)> {
+        let (temp_dir, rhema) = Self::basic()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        
+        // Create .rhema directory
+        let rhema_dir = repo_path.join(".rhema");
+        std::fs::create_dir_all(&rhema_dir)?;
+        
+        // Create basic rhema.yaml
+        let rhema_yaml = r#"
+name: test-scope
 scope_type: service
-description: Basic test scope
+description: Test scope for unit testing
 version: "1.0.0"
 schema_version: "1.0.0"
 dependencies: null
-"#
+"#;
+        std::fs::write(rhema_dir.join("rhema.yaml"), rhema_yaml)?;
+        
+        Ok((temp_dir, rhema))
     }
-
-    /// Get a complex scope definition
-    pub fn complex_scope() -> &'static str {
-        r#"
-name: complex
-scope_type: application
-description: Complex test scope with dependencies
-version: "2.0.0"
-schema_version: "1.0.0"
-dependencies:
-  - path: "../dependency-1"
-    dependency_type: required
-    version: "1.0.0"
-  - path: "../dependency-2"
-    dependency_type: optional
-    version: "2.0.0"
-"#
-    }
-
-    /// Get sample todos data
-    pub fn todos_data() -> &'static str {
-        r#"
+    
+    /// Create a test fixture with sample data files
+    pub fn with_sample_data() -> RhemaResult<(TempDir, Rhema)> {
+        let (temp_dir, rhema) = Self::with_scope()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        let rhema_dir = repo_path.join(".rhema");
+        
+        // Create todos.yaml
+        let todos_yaml = r#"
 todos:
   - id: "todo-001"
-    title: "Implement feature A"
-    description: "Add new functionality to the system"
+    title: "Test todo 1"
     status: pending
     priority: high
-    assigned_to: "developer1"
-    due_date: "2024-02-15T10:00:00Z"
     created_at: "2024-01-15T10:00:00Z"
   - id: "todo-002"
-    title: "Fix bug in module B"
-    description: "Critical bug affecting production"
-    status: in_progress
-    priority: critical
-    assigned_to: "developer2"
-    created_at: "2024-01-16T10:00:00Z"
-  - id: "todo-003"
-    title: "Update documentation"
-    description: "Keep docs up to date"
+    title: "Test todo 2"
     status: completed
     priority: medium
-    assigned_to: "tech-writer"
-    created_at: "2024-01-17T10:00:00Z"
-    completed_at: "2024-01-20T10:00:00Z"
-    outcome: "Documentation updated successfully"
-"#
-    }
-
-    /// Get sample insights data
-    pub fn insights_data() -> &'static str {
-        r#"
+    created_at: "2024-01-16T10:00:00Z"
+"#;
+        std::fs::write(rhema_dir.join("todos.yaml"), todos_yaml)?;
+        
+        // Create insights.yaml
+        let insights_yaml = r#"
 insights:
   - id: "insight-001"
-    title: "Performance bottleneck identified"
-    content: "The database query in module X is causing performance issues"
-    confidence: 9
-    category: "performance"
-    tags: ["database", "optimization"]
-    created_at: "2024-01-15T10:00:00Z"
-  - id: "insight-002"
-    title: "Security vulnerability found"
-    content: "Input validation is missing in the authentication module"
+    title: "Test insight"
+    content: "This is a test insight"
     confidence: 8
-    category: "security"
-    tags: ["security", "authentication", "validation"]
-    created_at: "2024-01-16T10:00:00Z"
-"#
-    }
-
-    /// Get sample patterns data
-    pub fn patterns_data() -> &'static str {
-        r#"
-patterns:
-  - id: "pattern-001"
-    name: "Repository Pattern"
-    description: "Use repository pattern for data access"
-    pattern_type: "architectural"
-    usage: recommended
-    effectiveness: 9
-    examples:
-      - "Data access layer abstraction"
-      - "Unit testing with mocks"
-    anti_patterns:
-      - "Direct database access in controllers"
-      - "Mixing business logic with data access"
+    category: "testing"
     created_at: "2024-01-15T10:00:00Z"
-  - id: "pattern-002"
-    name: "Factory Pattern"
-    description: "Use factory pattern for object creation"
-    pattern_type: "creational"
-    usage: required
-    effectiveness: 8
-    examples:
-      - "Creating different types of connections"
-      - "Object instantiation based on configuration"
-    created_at: "2024-01-16T10:00:00Z"
-"#
+"#;
+        std::fs::write(rhema_dir.join("insights.yaml"), insights_yaml)?;
+        
+        Ok((temp_dir, rhema))
     }
-
-    /// Get sample decisions data
-    pub fn decisions_data() -> &'static str {
-        r#"
-decisions:
-  - id: "decision-001"
-    title: "Choose React for frontend"
-    description: "Decision to use React as the primary frontend framework"
-    status: approved
-    context: "Need to modernize the frontend architecture"
-    alternatives:
-      - "Vue.js"
-      - "Angular"
-      - "Vanilla JavaScript"
-    rationale: "React has the largest ecosystem and community support"
-    consequences:
-      - "Need to train team on React"
-      - "Larger bundle size"
-      - "Better developer experience"
-    decided_at: "2024-01-15T10:00:00Z"
-    decision_makers: ["tech-lead", "architect"]
-  - id: "decision-002"
-    title: "Use PostgreSQL for database"
-    description: "Decision to use PostgreSQL as the primary database"
-    status: implemented
-    context: "Need to replace legacy database system"
-    alternatives:
-      - "MySQL"
-      - "MongoDB"
-      - "SQLite"
-    rationale: "PostgreSQL provides better ACID compliance and advanced features"
-    consequences:
-      - "Better data integrity"
-      - "More complex setup"
-      - "Higher resource usage"
-    decided_at: "2024-01-16T10:00:00Z"
-    decision_makers: ["dba", "architect"]
-"#
-    }
-
-    /// Get schema definitions
-    pub fn schema_definitions() -> &'static str {
-        r#"
-# Rhema Schema Definitions
-schemas:
-  scope:
+    
+    /// Create a test fixture with complex data structure
+    pub fn with_complex_data() -> RhemaResult<(TempDir, Rhema)> {
+        let (temp_dir, rhema) = Self::with_scope()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        let rhema_dir = repo_path.join(".rhema");
+        
+        // Create subdirectories
+        let data_dir = rhema_dir.join("data");
+        let schemas_dir = rhema_dir.join("schemas");
+        std::fs::create_dir_all(&data_dir)?;
+        std::fs::create_dir_all(&schemas_dir)?;
+        
+        // Create complex data files
+        let complex_data = r#"
+items:
+  - id: "item-001"
+    name: "Complex Item 1"
+    type: "service"
+    metadata:
+      version: "1.0.0"
+      tags: ["test", "complex"]
+    dependencies:
+      - name: "dep-1"
+        version: "1.0.0"
+  - id: "item-002"
+    name: "Complex Item 2"
+    type: "library"
+    metadata:
+      version: "2.0.0"
+      tags: ["production", "stable"]
+"#;
+        std::fs::write(data_dir.join("complex.yaml"), complex_data)?;
+        
+        // Create schema files
+        let item_schema = r#"
+type: object
+properties:
+  id:
+    type: string
+  name:
+    type: string
+  type:
+    type: string
+    enum: [service, library, tool]
+  metadata:
     type: object
-    required: [name, scope_type, version]
     properties:
-      name:
-        type: string
-        description: "Scope name and identifier"
-      scope_type:
-        type: string
-        enum: [service, application, library, infrastructure]
-        description: "Type of scope"
       version:
         type: string
-        pattern: "^\\d+\\.\\d+\\.\\d+$"
-        description: "Semantic version"
-      description:
-        type: string
-        description: "Human-readable description"
-      dependencies:
+      tags:
         type: array
         items:
-          type: object
-          required: [path, dependency_type]
-          properties:
-            path:
-              type: string
-              description: "Path to dependent scope"
-            dependency_type:
-              type: string
-              enum: [required, optional, peer]
-              description: "Type of dependency"
-            version:
-              type: string
-              description: "Version constraint"
-  
-  todo:
-    type: object
-    required: [id, title, status, priority, created_at]
-    properties:
-      id:
-        type: string
-        pattern: "^[a-zA-Z0-9-_]+$"
-        description: "Unique identifier"
-      title:
-        type: string
-        minLength: 1
-        maxLength: 200
-        description: "Todo title"
-      description:
-        type: string
-        description: "Detailed description"
-      status:
-        type: string
-        enum: [pending, in_progress, blocked, completed, cancelled]
-        description: "Current status"
-      priority:
-        type: string
-        enum: [low, medium, high, critical]
-        description: "Priority level"
-      assigned_to:
-        type: string
-        description: "Assigned person"
-      due_date:
-        type: string
-        format: date-time
-        description: "Due date"
-      created_at:
-        type: string
-        format: date-time
-        description: "Creation timestamp"
-      completed_at:
-        type: string
-        format: date-time
-        description: "Completion timestamp"
-      outcome:
-        type: string
-        description: "Completion outcome"
-"#
+          type: string
+required: [id, name, type]
+"#;
+        std::fs::write(schemas_dir.join("item.yaml"), item_schema)?;
+        
+        Ok((temp_dir, rhema))
     }
-
-    /// Get test queries
-    pub fn test_queries() -> HashMap<&'static str, &'static str> {
-        let mut queries = HashMap::new();
-        queries.insert("simple", "simple");
-        queries.insert("filtered", "simple.items WHERE active=true");
-        queries.insert("ordered", "simple.items ORDER BY created_at DESC");
-        queries.insert("limited", "simple.items LIMIT 5");
-        queries.insert(
-            "complex",
-            "complex.todos WHERE priority=high AND status=pending ORDER BY due_date ASC LIMIT 10",
-        );
-        queries
+    
+    /// Create a test fixture for performance testing
+    pub fn for_performance_testing(size: usize) -> RhemaResult<(TempDir, Rhema)> {
+        let (temp_dir, rhema) = Self::with_scope()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        let rhema_dir = repo_path.join(".rhema");
+        
+        // Generate large dataset
+        let mut items = Vec::new();
+        for i in 0..size {
+            let item = format!(
+                r#"  - id: "item-{:06}"
+    name: "Performance Item {}"
+    type: "service"
+    metadata:
+      version: "1.0.0"
+      created_at: "2024-01-{:02}T10:00:00Z"
+    status: "{}"
+    priority: "{}""#,
+                i,
+                i,
+                (i % 30) + 1,
+                if i % 3 == 0 { "active" } else if i % 3 == 1 { "inactive" } else { "pending" },
+                if i % 4 == 0 { "low" } else if i % 4 == 1 { "medium" } else if i % 4 == 2 { "high" } else { "critical" }
+            );
+            items.push(item);
+        }
+        
+        let large_data = format!("items:\n{}", items.join("\n"));
+        std::fs::write(rhema_dir.join("performance.yaml"), large_data)?;
+        
+        Ok((temp_dir, rhema))
     }
-
-    /// Get file structures
-    pub fn file_structures() -> HashMap<&'static str, Vec<&'static str>> {
-        let mut structures = HashMap::new();
-        structures.insert("basic", vec!["rhema.yaml", "simple.yaml"]);
-        structures.insert(
-            "complex",
-            vec![
-                "rhema.yaml",
-                "todos.yaml",
-                "insights.yaml",
-                "patterns.yaml",
-                "decisions.yaml",
-            ],
-        );
-        structures.insert("nested", vec!["rhema.yaml", "data/", "schemas/", "docs/"]);
-        structures
+    
+    /// Create a test fixture for security testing
+    pub fn for_security_testing() -> RhemaResult<(TempDir, Rhema)> {
+        let (temp_dir, rhema) = Self::with_scope()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        let rhema_dir = repo_path.join(".rhema");
+        
+        // Create files with potential security issues
+        let malicious_content = r#"
+items:
+  - id: "../../../etc/passwd"
+    name: "Path traversal attempt"
+    type: "malicious"
+  - id: "normal-item"
+    name: "Normal Item"
+    type: "service"
+    content: "!!python/object/apply:os.system ['echo malicious']"
+"#;
+        std::fs::write(rhema_dir.join("security_test.yaml"), malicious_content)?;
+        
+        Ok((temp_dir, rhema))
     }
-
-    /// Get git commits
-    pub fn git_commits() -> Vec<(&'static str, &'static str)> {
-        vec![
-            ("Initial commit", "Add basic Rhema structure"),
-            ("Add todos", "Add todo management functionality"),
-            ("Add insights", "Add insight tracking"),
-            ("Add patterns", "Add pattern documentation"),
-            ("Add decisions", "Add decision tracking"),
-        ]
-    }
-
-    /// Get error scenarios
-    pub fn error_scenarios() -> HashMap<&'static str, &'static str> {
-        let mut scenarios = HashMap::new();
-        scenarios.insert("invalid_yaml", "name: scope\n  invalid: yaml: structure");
-        scenarios.insert("missing_required", "scope_type: service\nversion: 1.0.0");
-        scenarios.insert(
-            "invalid_version",
-            "name: scope\nscope_type: service\nversion: invalid",
-        );
-        scenarios.insert("circular_dependency", "name: scope1\ndependencies:\n  - path: ../scope2\nname: scope2\ndependencies:\n  - path: ../scope1");
-        scenarios
-    }
-
-    /// Get performance data
-    pub fn performance_data() -> HashMap<&'static str, usize> {
-        let mut data = HashMap::new();
-        data.insert("small_dataset", 100);
-        data.insert("medium_dataset", 1000);
-        data.insert("large_dataset", 10000);
-        data.insert("huge_dataset", 100000);
-        data
+    
+    /// Create a test fixture with git history
+    pub fn with_git_history(commits: &[(&str, &str)]) -> RhemaResult<(TempDir, Rhema)> {
+        let (temp_dir, rhema) = Self::basic()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        let repo = Repository::open(&repo_path)?;
+        
+        for (message, content) in commits {
+            // Create a test file
+            let file_path = repo_path.join("test.txt");
+            std::fs::write(&file_path, content)?;
+            
+            // Stage and commit
+            let mut index = repo.index()?;
+            index.add_path(&std::path::Path::new("test.txt"))?;
+            let tree_id = index.write_tree()?;
+            let tree = repo.find_tree(tree_id)?;
+            
+            let signature = git2::Signature::now("Test User", "test@example.com")?;
+            let parent_commit = repo.head().ok().and_then(|head| head.peel_to_commit().ok());
+            
+            let _commit_id = if let Some(parent) = parent_commit {
+                repo.commit(
+                    Some(&repo.head()?.name().unwrap()),
+                    &signature,
+                    &signature,
+                    message,
+                    &tree,
+                    &[&parent],
+                )?
+            } else {
+                repo.commit(
+                    Some("refs/heads/main"),
+                    &signature,
+                    &signature,
+                    message,
+                    &tree,
+                    &[],
+                )?
+            };
+            
+            // Update HEAD
+            repo.set_head("refs/heads/main")?;
+        }
+        
+        Ok((temp_dir, rhema))
     }
 }
