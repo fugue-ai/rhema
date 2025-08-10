@@ -1,7 +1,7 @@
 {
   "name": "rhema-app",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-      "sourceRoot": "apps/rhema/src",
+      "sourceRoot": "runtime/rhema-agent/src",
   "projectType": "application",
   "targets": {
     "build": {

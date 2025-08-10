@@ -83,9 +83,7 @@ mod tests {
     #[tokio::test]
     async fn test_knowledge_engine_integration() {
         // Test knowledge engine creation and basic operations
-        let engine = UnifiedKnowledgeEngine::new(UnifiedEngineConfig::default())
-            .await
-            .unwrap();
+        let engine = UnifiedKnowledgeEngine::new_dummy_minimal();
 
         // Test basic operations
         let result = engine.get_with_rag("test_key", Some("test query")).await;

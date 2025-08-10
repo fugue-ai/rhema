@@ -949,12 +949,28 @@ impl ContextHistoryManager {
 
         for delta in diff.deltas() {
             if let Some(new_file) = delta.new_file().path() {
-                if new_file.to_string_lossy().contains(scope_path) {
+                let file_path = new_file.to_string_lossy();
+                
+                // Check if file affects the scope
+                if file_path.contains(scope_path) {
+                    return Ok(true);
+                }
+                
+                // Special case for root scope (".") - include context files
+                if scope_path == "." && (file_path.contains("context/") || file_path.ends_with(".yaml") || file_path.ends_with(".yml")) {
                     return Ok(true);
                 }
             }
             if let Some(old_file) = delta.old_file().path() {
-                if old_file.to_string_lossy().contains(scope_path) {
+                let file_path = old_file.to_string_lossy();
+                
+                // Check if file affects the scope
+                if file_path.contains(scope_path) {
+                    return Ok(true);
+                }
+                
+                // Special case for root scope (".") - include context files
+                if scope_path == "." && (file_path.contains("context/") || file_path.ends_with(".yaml") || file_path.ends_with(".yml")) {
                     return Ok(true);
                 }
             }

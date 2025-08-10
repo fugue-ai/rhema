@@ -1,14 +1,14 @@
 {
   "name": "language-server",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-      "sourceRoot": "apps/editor-plugins/language-server/src",
+      "sourceRoot": "runtime/language-server/src",
   "projectType": "library",
   "targets": {
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "command": "pnpm build",
-        "cwd": "apps/editor-plugins/language-server"
+        "cwd": "runtime/language-server"
       }
     },
     "test": {

@@ -168,7 +168,7 @@ jobs:
       run: npx nx run rhema-app:build:release
       
     - name: Install Rhema CLI
-      run: cargo install --path crates/rhema
+      run: cargo install --path apps/rhemad
       
     - name: Validate Rhema files
       run: rhema validate --recursive

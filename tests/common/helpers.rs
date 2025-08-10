@@ -119,27 +119,43 @@ settings:
 
     /// Create a basic scope for testing
     pub fn create_basic_scope(path: &PathBuf) -> RhemaResult<()> {
-        let scope_dir = path.join("basic-scope");
+        let scope_dir = path.join(".rhema");
         std::fs::create_dir_all(&scope_dir)?;
 
         let scope_config = r#"
-name: "Basic Test Scope"
+name: "simple"
 version: "1.0.0"
 scope_type: "service"
 description: "A basic test scope"
 "#;
 
         std::fs::write(scope_dir.join("rhema.yaml"), scope_config)?;
+        
+        // Create a simple.yaml file for testing
+        let simple_yaml = r#"
+items:
+  - name: item1
+    value: 10
+    active: true
+  - name: item2
+    value: 20
+    active: false
+  - name: item3
+    value: 15
+    active: true
+"#;
+        std::fs::write(scope_dir.join("simple.yaml"), simple_yaml)?;
+        
         Ok(())
     }
 
     /// Create a complex scope for testing
     pub fn create_complex_scope(path: &PathBuf) -> RhemaResult<()> {
-        let scope_dir = path.join("complex-scope");
+        let scope_dir = path.join(".rhema");
         std::fs::create_dir_all(&scope_dir)?;
 
         let scope_config = r#"
-name: "Complex Test Scope"
+name: "complex"
 version: "2.0.0"
 scope_type: "library"
 description: "A complex test scope with dependencies"

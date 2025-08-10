@@ -16,7 +16,7 @@ path = "crates/rhema-api/src/lib.rs"
 
 [[bin]]
 name = "rhema"
-path = "crates/rhema/main.rs"
+path = "runtime/rhema-cli/main.rs"
 
 [workspace]
 resolver = "2"
@@ -30,8 +30,9 @@ members = [
     "crates/rhema-monitoring",
     "crates/rhema-integrations",
     "crates/rhema-api",
-    "crates/rhema",
-    "apps/rhema",
+    "runtime/rhema-cli",
+    "runtime/rhema-agent",
+    "runtime/rhema-mcp",
     "crates/rhema-action",
     "crates/rhema-dependency",
     "crates/rhema-locomo",
@@ -210,7 +211,7 @@ rhema-config = { path = "crates/rhema-config" }
 rhema-monitoring = { path = "crates/rhema-monitoring" }
 rhema-integrations = { path = "crates/rhema-integrations" }
 rhema-api = { path = "crates/rhema-api" }
-rhema-cli = { path = "apps/rhema" }
+rhema-cli = { path = "runtime/rhema-agent" }
 rhema-action = { path = "crates/rhema-action" }
 rhema-locomo = { path = "crates/rhema-locomo" }
 rhema-knowledge = { path = "crates/rhema-knowledge" }

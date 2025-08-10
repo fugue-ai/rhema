@@ -47,7 +47,7 @@ The Rhema CLI is part of the larger Rhema Protocol workspace. To build and insta
 cargo build --release -p rhema
 
 # Install globally
-cargo install --path crates/rhema
+cargo install --path apps/rhemad
 ```
 
 ## Usage

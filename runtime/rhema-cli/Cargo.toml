@@ -17,15 +17,15 @@ name = "rhema"
 path = "main.rs"
 
 [dependencies]
-rhema-api = { path = "../rhema-api" }
-rhema-core = { path = "../rhema-core" }
-rhema-query = { path = "../rhema-query" }
-rhema-git = { path = "../rhema-git" }
-rhema-ai = { path = "../rhema-ai" }
-rhema-mcp = { path = "../rhema-mcp" }
-rhema-config = { path = "../rhema-config" }
-rhema-monitoring = { path = "../rhema-monitoring" }
-rhema-integrations = { path = "../rhema-integrations" }
+rhema-api = { path = "../../crates/rhema-api" }
+rhema-core = { path = "../../crates/rhema-core" }
+rhema-query = { path = "../../crates/rhema-query" }
+rhema-git = { path = "../../crates/rhema-git" }
+rhema-ai = { path = "../../crates/rhema-ai" }
+rhema-mcp = { path = "../../crates/rhema-mcp" }
+rhema-config = { path = "../../crates/rhema-config" }
+rhema-monitoring = { path = "../../crates/rhema-monitoring" }
+rhema-integrations = { path = "../../crates/rhema-integrations" }
 clap = { workspace = true, features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde_yaml = { workspace = true }

@@ -1,9 +1,7 @@
 packages:
-  - crates/*
   - docs
-  - apps/*
-  - examples/*
-  - kitdocs-docs
+  - runtime/editor-plugins/vscode
+  - runtime/language-server
 
 onlyBuiltDependencies:
   - unrs-resolver

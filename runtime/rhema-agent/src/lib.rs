@@ -78,8 +78,27 @@ impl Rhema {
 
     /// Get current scope path
     pub fn get_current_scope_path(&self) -> RhemaResult<PathBuf> {
-        // For now, return the repo root as the current scope
-        // This can be enhanced later to track the current working scope
+        // Discover all scopes in the repository
+        let scopes = self.discover_scopes()?;
+        
+        // If there's only one scope, return it
+        if scopes.len() == 1 {
+            return Ok(scopes[0].path.clone());
+        }
+        
+        // If there are multiple scopes, try to find the one at the repo root
+        for scope in &scopes {
+            if scope.path.parent().unwrap() == &self.repo_root {
+                return Ok(scope.path.clone());
+            }
+        }
+        
+        // If no scope found at repo root, return the first scope
+        if let Some(first_scope) = scopes.first() {
+            return Ok(first_scope.path.clone());
+        }
+        
+        // If no scopes found, return the repo root
         Ok(self.repo_root.clone())
     }
 
