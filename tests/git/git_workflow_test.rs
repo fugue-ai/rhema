@@ -1,6 +1,5 @@
 use git2::Repository;
-use rhema_git::git::workflow::{default_git_flow_config, GitWorkflow, WorkflowConfig};
-use std::path::Path;
+use rhema_git::git::workflow::{default_git_flow_config, GitWorkflow};
 
 #[test]
 fn test_git_workflow_creation() {

@@ -7,14 +7,10 @@
 //! - Security features (encryption, access control, audit logging)
 //! - Tools functionality (editor, validator, migrator, backup, documentation)
 
-use rhema_config::{
-    comprehensive_validator::ValidationLevel as ComprehensiveValidationLevel,
-    lock::ValidationLevel as LockValidationLevel,
-    tools::{
+use rhema_config::tools::{
         BackupFormat, BackupReport as ToolsBackupReport, ValidationLevel as ToolsValidationLevel,
         ValidationRule, ValidationSeverity,
-    },
-};
+    };
 use rhema_config::{
     // Additional config imports
     global::{
@@ -30,9 +26,6 @@ use rhema_config::{
         ScopeSettings,
     },
     validation::ValidationSummary,
-    // Validation rules module imports
-    validation_rules::{ActionType, ConditionOperator, RuleAction, RuleCondition, RuleType},
-    AccessDecision,
     AgentValidator,
     BackupFrequency,
     BackupManager,
@@ -45,16 +38,12 @@ use rhema_config::{
     ConfigBackupTool,
     ConfigDocumentationTool,
     ConfigEditor,
-    ConfigError,
-    ConfigIssue,
-    ConfigIssueSeverity,
     ConfigMigrator,
     ConfigValidator,
     // Invariants module imports
     ContextValidator,
     DependencyType,
     DependencyValidator,
-    DetailedBackupStats,
     DocumentationFormat,
     DocumentationReport,
     DocumentationSettings,
@@ -68,14 +57,11 @@ use rhema_config::{
     IDEIntegration,
     LockValidator,
     MigrationManager,
-    MigrationRecord,
-    MigrationReport as ToolsMigrationReport,
     MigrationSettings,
     MigrationStatus,
     MigrationStrategy,
     RepositoryConfig,
     RetentionPolicy,
-    RhemaResult,
     ScopeConfig,
     ScopeDependency,
     SecurityConfig,
@@ -88,23 +74,18 @@ use rhema_config::{
     ValidationCache,
     ValidationManager,
     ValidationReport,
-    ValidationReport as ToolsValidationReport,
-    ValidationResult,
     ValidationSettings,
-    ValidationStatus,
     CURRENT_CONFIG_VERSION,
 };
 use serde_json::json;
 use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
-use tempfile::TempDir;
 use tokio;
 
 /// Test fixtures for configuration management tests
 mod fixtures {
     use super::*;
-    use serde_json::Value;
+    
 
     /// Create a test global configuration
     pub fn create_test_global_config() -> GlobalConfig {
@@ -1633,7 +1614,7 @@ mod integration_tests {
         let tools_manager = ToolsManager::new(&global_config).unwrap();
 
         // Test multiple concurrent operations
-        let mut handles: Vec<tokio::task::JoinHandle<()>> = vec![];
+        let handles: Vec<tokio::task::JoinHandle<()>> = vec![];
 
         // Concurrent validation
         for i in 0..10 {
@@ -1686,7 +1667,7 @@ mod edge_case_tests {
 
     #[tokio::test]
     async fn test_empty_configuration() {
-        let mut global_config = fixtures::create_test_global_config();
+        let global_config = fixtures::create_test_global_config();
         // Note: FeatureFlags doesn't have clear and insert methods
         // global_config.application.features.clear();
         // Note: IntegrationConfig doesn't have a clear method
@@ -1703,7 +1684,7 @@ mod edge_case_tests {
 
     #[tokio::test]
     async fn test_large_configuration() {
-        let mut global_config = fixtures::create_test_global_config();
+        let global_config = fixtures::create_test_global_config();
 
         // Note: FeatureFlags doesn't have clear and insert methods
         // Add many features to create a large configuration

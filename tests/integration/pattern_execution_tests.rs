@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -390,7 +390,7 @@ impl CoordinationPattern for ValidationTestPattern {
         }
 
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
         let mut details = HashMap::new();
 
         // Check required capabilities

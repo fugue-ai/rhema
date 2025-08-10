@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-use rhema_core::RhemaResult;
 use rhema_dependency::{
-    Config, DependencyConfig, DependencyManager, DependencyType, HealthMetrics, HealthStatus,
-    ImpactScore,
+    DependencyConfig, DependencyType,
 };
 use std::collections::HashMap;
 use std::fs;

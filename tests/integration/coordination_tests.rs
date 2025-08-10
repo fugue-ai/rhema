@@ -23,8 +23,7 @@ use rhema_ai::{
     CoordinationConfig,
 };
 use rhema_core::RhemaResult;
-use std::path::PathBuf;
-use tracing::{error, info, warn};
+use tracing::info;
 
 #[tokio::test]
 async fn test_coordination_integration_creation() -> RhemaResult<()> {

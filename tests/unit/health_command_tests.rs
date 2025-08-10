@@ -24,7 +24,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::tempdir;
-use tempfile::TempDir;
 
 // Mock implementations for health module functions
 mod health {

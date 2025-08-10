@@ -79,9 +79,6 @@ impl InteractiveCommandParser {
 }
 use rhema_core::RhemaResult;
 use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
-use tempfile::TempDir;
 
 // Mock implementation for interactive_builder
 mod interactive_builder {
@@ -207,7 +204,7 @@ fn test_reset() {
 #[test]
 fn test_interactive_builder_integration() {
     use interactive_builder::InteractiveBuilder;
-    use rhema_cli::{Rhema, RhemaResult};
+    
 
     // Test that we can create a builder instance
     let builder = InteractiveBuilder::new();

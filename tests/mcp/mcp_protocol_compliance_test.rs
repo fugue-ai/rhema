@@ -16,7 +16,6 @@
 
 use rhema_core::RhemaResult;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 #[tokio::test]

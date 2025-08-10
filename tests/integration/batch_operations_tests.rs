@@ -52,7 +52,6 @@ enum BatchSubcommands {
         include_all: bool,
     },
 }
-use std::collections::HashMap;
 use std::path::Path;
 use tempfile::TempDir;
 

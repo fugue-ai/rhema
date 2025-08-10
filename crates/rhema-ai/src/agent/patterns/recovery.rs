@@ -497,7 +497,7 @@ impl PatternRecoveryManager {
         circuit_breaker_threshold: u32,
         circuit_breaker_timeout_ms: u64,
         context: &mut PatternContext,
-        error: &PatternError,
+        _error: &PatternError,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let mut current_backoff = initial_backoff_ms;
         let mut consecutive_failures = 0;
@@ -901,7 +901,7 @@ impl PatternRecoveryManager {
         // Validate reconstructed state if requested
         let validation_time = if validate_reconstructed_state {
             let validation_start = std::time::Instant::now();
-            let validation_result = self.validate_recovery_context(context).await;
+            let _validation_result = self.validate_recovery_context(context).await;
             validation_start.elapsed().as_secs_f64()
         } else {
             0.0
@@ -1002,7 +1002,7 @@ impl PatternRecoveryManager {
         recovery_priority: &RecoveryPriority,
         adaptive_timeout: bool,
         context: &mut PatternContext,
-        error: &PatternError,
+        _error: &PatternError,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let start_time = std::time::Instant::now();
 
@@ -1024,7 +1024,7 @@ impl PatternRecoveryManager {
             RecoveryPriority::Low => 1000,
         };
 
-        let adjusted_timeout = if adaptive_timeout {
+        let _adjusted_timeout = if adaptive_timeout {
             // Adjust timeout based on current resource utilization
             let utilization = context.resources.memory_pool.allocated_memory as f64
                 / context.resources.memory_pool.total_memory as f64;
@@ -1123,7 +1123,7 @@ impl PatternRecoveryManager {
         coordination_timeout_ms: u64,
         fallback_agents: &[String],
         context: &mut PatternContext,
-        error: &PatternError,
+        _error: &PatternError,
     ) -> Result<EnhancedRecoveryResult, RecoveryError> {
         let start_time = std::time::Instant::now();
 
@@ -1205,7 +1205,7 @@ impl PatternRecoveryManager {
     async fn recover_agent(
         &self,
         agent_id: &str,
-        strategy: &RecoveryStrategy,
+        _strategy: &RecoveryStrategy,
         context: &mut PatternContext,
     ) -> Result<f64, RecoveryError> {
         // Simulate agent recovery

@@ -1,18 +1,15 @@
 use git2::{BranchType, Repository};
 use rhema_core::RhemaResult;
-use rhema_git::git::history::Signature;
 use rhema_git::git::workflow::{
-    default_git_flow_config, AdvancedWorkflowFeatures, AutomationSettings, BranchConventions,
+    AdvancedWorkflowFeatures, AutomationSettings, BranchConventions,
     BranchPreparation, ConflictResolutionType, ContextAwareFeatureBranching,
     ContextAwareHotfixManagement, ContextAwareMergeStrategies, ContextAwarePrAnalysis,
     ContextAwareReleaseManagement, ContextAwareWorkflowSettings, ContextConflictResolution,
-    ContextMergeStrategy, ContextMergeStrategyType, ContextRules, GitWorkflow, IsolationRules,
+    ContextMergeStrategy, ContextMergeStrategyType, ContextRules, IsolationRules,
     PullRequestSettings, ReleaseAutomation, ReleaseManagement, ReleaseValidation,
     VersioningStrategy, WorkflowConfig, WorkflowIntegrationSettings, WorkflowManager, WorkflowType,
 };
 use std::collections::HashMap;
-use std::path::Path;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 #[tokio::test]

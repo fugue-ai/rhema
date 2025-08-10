@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -58,11 +58,6 @@ impl Agent for MockAgent {
     }
 }
 use futures;
-use rhema_core::RhemaResult;
-use std::time::Duration;
-use tempfile::TempDir;
-use tokio::time::sleep;
-use tracing::{error, info, warn};
 
 use rhema_ai::agent::patterns::{
     AgentInfo, AgentPerformanceMetrics, AgentStatus, Constraint, ConstraintType,
@@ -440,14 +435,14 @@ struct IntegrationTestFixture {
 
 impl IntegrationTestFixture {
     fn new() -> Self {
-        let mut registry = PatternRegistry::new();
+        let registry = PatternRegistry::new();
         let executor = PatternExecutor::new(registry);
 
         // Create a new registry for the test
-        let mut test_registry = PatternRegistry::new();
+        let test_registry = PatternRegistry::new();
 
         // Create test agents
-        let mut agents = vec![
+        let agents = vec![
             TestAgent::new(
                 "agent1",
                 "Integration Agent 1",
@@ -1893,7 +1888,7 @@ async fn test_enhanced_integration_pattern_with_agent_failures() {
     let mut fixture = IntegrationTestFixture::new();
 
     // Create agents with different health states
-    let mut healthy_agent = EnhancedTestAgent::new(
+    let healthy_agent = EnhancedTestAgent::new(
         "healthy",
         "Healthy Agent",
         vec!["integration_test".to_string()],
@@ -2090,7 +2085,7 @@ async fn test_enhanced_integration_pattern_concurrent_execution() {
     .into_iter()
     .map(|pattern_id| {
         // Create a new executor for concurrent testing
-        let mut new_registry = PatternRegistry::new();
+        let new_registry = PatternRegistry::new();
         let mut executor = PatternExecutor::new(new_registry);
         let context = fixture.context.clone();
         tokio::spawn(async move { executor.execute_pattern(pattern_id, context).await })

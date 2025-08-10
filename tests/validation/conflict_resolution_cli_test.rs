@@ -18,7 +18,6 @@ use rhema_config::ConflictResolutionStrategy;
 use rhema_core::RhemaResult;
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 #[test]

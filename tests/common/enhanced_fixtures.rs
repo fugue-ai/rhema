@@ -3,7 +3,6 @@
 use git2::Repository;
 use rhema_api::Rhema;
 use rhema_core::RhemaResult;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 /// Enhanced test fixtures for complex testing scenarios

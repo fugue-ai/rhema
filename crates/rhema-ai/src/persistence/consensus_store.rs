@@ -105,7 +105,7 @@ impl ConsensusStore {
 
         let mut states = self.consensus_states.write().await;
 
-        let stored_state = if let Some(existing) = states.get_mut(&node_id) {
+        let _stored_state = if let Some(existing) = states.get_mut(&node_id) {
             existing.state = state;
             existing.updated_at = now;
             existing.size_bytes = size_bytes;

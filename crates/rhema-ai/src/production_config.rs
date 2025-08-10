@@ -546,7 +546,7 @@ impl ProductionAIService {
         }
 
         // Stop coordination system if available
-        if let Some(coordination_system) = &self.coordination_system {
+        if let Some(_coordination_system) = &self.coordination_system {
             // Stop heartbeat monitoring
             // TODO: Implement stop method for coordination system
         }

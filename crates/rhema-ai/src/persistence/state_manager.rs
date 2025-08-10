@@ -126,7 +126,7 @@ impl StateManager {
 
         let mut states = self.agent_states.write().await;
 
-        let stored_state = if let Some(existing) = states.get_mut(&agent_info.id) {
+        let _stored_state = if let Some(existing) = states.get_mut(&agent_info.id) {
             // Record state transition if status changed
             if existing.agent_info.status != agent_info.status {
                 let transition = StateTransition {

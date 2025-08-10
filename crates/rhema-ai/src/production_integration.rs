@@ -369,7 +369,7 @@ impl ProductionIntegration {
         }
 
         // Load balancing (if enabled)
-        let target_node = if self.config.load_balancing.enabled {
+        let _target_node = if self.config.load_balancing.enabled {
             self.select_node().await?
         } else {
             None
@@ -470,7 +470,7 @@ impl ProductionIntegration {
         let interval = self.config.health_check_interval;
         let health_monitor = self.health_monitor.clone();
         let ai_service = self.ai_service.clone();
-        let coordination = self.coordination.clone();
+        let _coordination = self.coordination.clone();
 
         tokio::spawn(async move {
             let mut interval_timer =

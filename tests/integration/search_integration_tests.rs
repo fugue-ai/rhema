@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-use rhema_core::schema::ConceptDefinition;
 use rhema_core::schema::RhemaScope;
 use rhema_core::{scope::Scope, RhemaResult};
 use rhema_query::search::{SearchEngine, SearchFilter, SearchOptions, SearchType};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 use std::path::PathBuf;
 use tempfile::TempDir;
 

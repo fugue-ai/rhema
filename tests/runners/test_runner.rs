@@ -3,13 +3,9 @@
 
 use colored::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::common::{fixtures::TestFixtures, TestEnv};
 use crate::config::test_config::TestConfig;
 
 /// Test result status

@@ -187,10 +187,6 @@ impl RhemaMcpServer {
         Ok(())
     }
 }
-use rhema_core::RhemaResult;
-use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tempfile::TempDir;
 
@@ -198,7 +194,7 @@ use tempfile::TempDir;
 mod rhema {
     pub mod mcp {
         pub mod sdk {
-            use super::super::super::*;
+            
 
             #[derive(Debug, Clone)]
             pub struct PromptSegment {

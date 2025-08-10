@@ -1,11 +1,8 @@
 //! Performance benchmarks for Rhema Coordination CLI
 
-use crate::common::{fixtures::TestFixtures, helpers::TestHelpers, TestEnv};
-use rand::thread_rng;
-use rand::Rng;
+use crate::common::TestEnv;
 use std::process::Command;
 use std::time::{Duration, Instant};
-use tempfile::TempDir;
 
 /// Benchmark coordination command execution
 fn benchmark_coordination_command(

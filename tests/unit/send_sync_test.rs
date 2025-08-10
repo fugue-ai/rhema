@@ -1,6 +1,4 @@
 use git2;
-use rhema_core::RhemaResult;
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tokio;
 
@@ -53,8 +51,8 @@ async fn test_workflow_manager_send_sync() {
     // For now, we'll just verify the basic structure works
 
     use git2::Repository;
-    use rhema_git::git::workflow::{default_git_flow_config, WorkflowConfig, WorkflowManager};
-    use std::sync::{Arc, Mutex};
+    use rhema_git::git::workflow::{default_git_flow_config, WorkflowManager};
+    
 
     // Create a temporary directory for the test repository
     let temp_dir = tempfile::tempdir().unwrap();
@@ -87,7 +85,7 @@ async fn test_automation_manager_send_sync() {
     // This test would verify that GitAutomationManager can be used in async contexts
     use git2::Repository;
     use rhema_git::git::automation::{default_automation_config, GitAutomationManager};
-    use std::sync::{Arc, Mutex};
+    
 
     // Create a temporary directory for the test repository
     let temp_dir = tempfile::tempdir().unwrap();

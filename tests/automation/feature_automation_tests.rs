@@ -15,21 +15,13 @@
  */
 
 use git2::{BranchType, Repository};
-use rhema_core::RhemaResult;
-use rhema_git::git::history::Signature;
 use rhema_git::{
-    git::automation::{default_automation_config, GitAutomationManager},
     git::feature_automation::{
-        default_feature_automation_config, AdvancedFeatureFeatures, CleanupConfig, CleanupResult,
-        ConflictResolution, ContextSetupConfig, FeatureAutomationConfig, FeatureAutomationManager,
-        FeatureContext, MergeConfig, MergeResult, MergeStrategy, ValidationConfig,
-        ValidationResult, ValidationStatus,
-    },
-    AdvancedGitIntegration, FeatureBranch, HotfixBranch, ReleaseBranch,
+        default_feature_automation_config, FeatureAutomationManager,
+    }, FeatureBranch,
 };
-use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tempfile::TempDir;
 
 /// Test fixture for feature automation tests

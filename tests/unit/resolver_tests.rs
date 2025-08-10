@@ -289,7 +289,7 @@ fn test_version_filtering_edge_cases() {
     ];
 
     // Test with prereleases disabled
-    let mut resolver = DependencyResolver::with_config(ResolutionConfig {
+    let resolver = DependencyResolver::with_config(ResolutionConfig {
         strategy: ResolutionStrategy::Latest,
         timeout: 30,
         fallback_strategy: None,
@@ -305,7 +305,7 @@ fn test_version_filtering_edge_cases() {
     assert!(filtered.contains(&Version::parse("1.0.0").unwrap()));
 
     // Test with prereleases enabled
-    let mut resolver = DependencyResolver::with_config(ResolutionConfig {
+    let resolver = DependencyResolver::with_config(ResolutionConfig {
         strategy: ResolutionStrategy::Latest,
         timeout: 30,
         fallback_strategy: None,
@@ -468,7 +468,7 @@ fn test_error_handling_edge_cases() {
 
 #[test]
 fn test_resolution_statistics() {
-    let mut resolver = DependencyResolver::new(ResolutionStrategy::Latest);
+    let resolver = DependencyResolver::new(ResolutionStrategy::Latest);
 
     let stats = resolver.get_stats();
     // Mock implementation returns empty HashMap

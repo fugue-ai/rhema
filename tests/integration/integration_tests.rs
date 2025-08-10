@@ -3,13 +3,7 @@
 
 use git2::Repository;
 use rhema_cli::Rhema;
-use rhema_config::ConflictResolutionStrategy;
-use rhema_core::{RhemaResult, Scope};
-use rhema_query::query::CqlQuery;
-use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
-use tempfile::TempDir;
+use rhema_core::RhemaResult;
 
 // Import test utilities
 use crate::common::helpers::TestHelpers;

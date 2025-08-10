@@ -74,7 +74,7 @@ pub async fn create_example_setup() -> Result<(), Box<dyn std::error::Error>> {
     let server_config = GrpcServerConfig::default();
 
     // Create server
-    let server = GrpcCoordinationServer::new(coordination_system, server_config);
+    let _server = GrpcCoordinationServer::new(coordination_system, server_config);
 
     // Start server (for now, just log)
     println!("Would start gRPC coordination server");
@@ -83,7 +83,7 @@ pub async fn create_example_setup() -> Result<(), Box<dyn std::error::Error>> {
     let client_config = GrpcClientConfig::default();
 
     // Create client
-    let client = GrpcCoordinationClient::new(client_config).await?;
+    let _client = GrpcCoordinationClient::new(client_config).await?;
 
     println!("✅ Example gRPC coordination setup created successfully");
 

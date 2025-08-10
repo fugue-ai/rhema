@@ -115,7 +115,7 @@ syneidesis-config = { path = "crates/syneidesis/config" }
 
 # gRPC and networking dependencies
 tokio-stream = "0.1"
-prost-types = "0.14"
+prost-types = "0.12"
 tonic = { version = "0.10", features = ["tls"] }
 
 # Interactive mode dependencies

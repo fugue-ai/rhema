@@ -15,18 +15,13 @@
  */
 
 use rhema_config::{
-    lock::{CustomValidationRule, LockConfig, ValidationLevel as LockValidationLevel},
-    AlertThresholds, CacheConfig, CacheEvictionPolicy, CacheType, Config, ConfigEnvironment,
-    ConflictResolutionConfig, ConflictResolutionStrategy, ConstraintType, EnvironmentLockConfig,
-    MemoryConfig, MetricsFormat, MonitoringConfig, NetworkConfig, NotificationChannel,
-    OptimizationConfig, OptimizationLevel, ParallelConfig, PerformanceConfig, ResolutionConfig,
-    ResolutionStrategy, UpdateFrequency, UpdateNotificationConfig, UpdatePoliciesConfig,
-    UpdateRollbackConfig, UpdateSchedulingConfig, ValidationConfig, ValidationRulesConfig,
+    lock::{LockConfig, ValidationLevel as LockValidationLevel}, CacheConfig, CacheEvictionPolicy, CacheType, Config, ConfigEnvironment,
+    ConflictResolutionConfig, ConflictResolutionStrategy, ConstraintType, EnvironmentLockConfig, MetricsFormat, MonitoringConfig, NotificationChannel,
+    OptimizationConfig, OptimizationLevel, PerformanceConfig, ResolutionConfig,
+    ResolutionStrategy, UpdateFrequency, UpdateNotificationConfig, UpdatePoliciesConfig, ValidationConfig,
     ValidationSeverity, VersionConstraintConfig, CURRENT_CONFIG_VERSION,
 };
-use rhema_core::RhemaResult;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 #[test]

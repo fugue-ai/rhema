@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-use rhema_core::lock::LockFileOps;
 use rhema_core::schema::RhemaScope;
 use rhema_core::schema::{DependencyType, LockMetadata, LockedDependency, LockedScope, RhemaLock};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 use tempfile::TempDir;
 
 #[test]

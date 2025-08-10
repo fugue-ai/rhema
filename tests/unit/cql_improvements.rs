@@ -1,7 +1,4 @@
 use rhema_core::RhemaResult;
-use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
@@ -9,7 +6,7 @@ use tempfile::TempDir;
 mod rhema {
     pub mod query {
         use super::super::*;
-        use rhema_query::query::{Condition, ConditionValue, CqlQuery, LogicalOperator, Operator};
+        use rhema_query::query::{Condition, ConditionValue, CqlQuery, Operator};
 
         pub fn parse_cql_query(query: &str) -> RhemaResult<CqlQuery> {
             // Simple mock implementation for testing

@@ -41,7 +41,7 @@ impl DistributedLoadBalancer {
     }
 
     /// Select node for service
-    pub async fn select_node(&self, service_name: &str) -> RhemaResult<Option<NodeInfo>> {
+    pub async fn select_node(&self, _service_name: &str) -> RhemaResult<Option<NodeInfo>> {
         // TODO: Implement node selection
         Ok(None)
     }

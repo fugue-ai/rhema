@@ -15,15 +15,13 @@
  */
 
 use git2::Repository;
-use rhema_core::{RhemaError, RhemaResult};
+use rhema_core::RhemaError;
 use rhema_git::git::automation::default_automation_config;
 use rhema_git::{
     git::GitAutomationManager, AdvancedGitIntegration, FeatureBranch, HotfixBranch, ReleaseBranch,
 };
 use std::collections::HashMap;
-use std::time::Duration;
 use tempfile::TempDir;
-use tokio::time::sleep;
 
 fn setup_test_automation() -> (TempDir, AdvancedGitIntegration) {
     let temp_dir = TempDir::new().unwrap();
@@ -133,7 +131,7 @@ fn test_automation_with_enabled_workflow() {
         .hotfix_rules
         .auto_setup_context = true;
 
-    let mut manager = GitAutomationManager::new(repo, config);
+    let manager = GitAutomationManager::new(repo, config);
 
     // Test that automation works when enabled
     let result = manager.start_automation();
@@ -147,7 +145,7 @@ fn test_automation_with_enabled_workflow() {
 #[test]
 fn test_automation_task_creation() {
     let config = default_automation_config();
-    let (_temp_dir, mut manager) = setup_test_automation_with_config(config);
+    let (_temp_dir, manager) = setup_test_automation_with_config(config);
 
     // Start automation to create tasks
     manager.start_automation().unwrap();
@@ -166,7 +164,7 @@ fn test_automation_task_creation() {
 #[test]
 fn test_automation_disabled_behavior() {
     let config = default_automation_config();
-    let (_temp_dir, mut manager) = setup_test_automation_with_config(config);
+    let (_temp_dir, manager) = setup_test_automation_with_config(config);
 
     // Test that automation is disabled by default
     let status = manager.get_status().unwrap();
@@ -612,7 +610,7 @@ fn test_custom_configuration() {
         .auto_cleanup = true;
 
     // Create manager with custom config
-    let (_temp_dir, mut manager) = setup_test_automation_with_config(config);
+    let (_temp_dir, manager) = setup_test_automation_with_config(config);
 
     // Test that custom configuration is applied by starting automation
     let result = manager.start_automation();

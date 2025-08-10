@@ -3,8 +3,6 @@
 use git2::Repository;
 use rhema_api::Rhema;
 use rhema_core::RhemaResult;
-use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
@@ -42,7 +40,7 @@ impl TestEnv {
 
     /// Create a test environment with a basic scope setup
     pub fn with_scope() -> RhemaResult<Self> {
-        let mut env = Self::new()?;
+        let env = Self::new()?;
 
         // Create .rhema directory
         let rhema_dir = env.repo_path.join(".rhema");
@@ -64,7 +62,7 @@ dependencies: null
 
     /// Create a test environment with sample data files
     pub fn with_sample_data() -> RhemaResult<Self> {
-        let mut env = Self::with_scope()?;
+        let env = Self::with_scope()?;
 
         let rhema_dir = env.repo_path.join(".rhema");
 

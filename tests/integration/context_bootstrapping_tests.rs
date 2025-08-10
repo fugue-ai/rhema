@@ -23,10 +23,8 @@ use rhema_core::{
     RhemaResult, Validatable,
 };
 use std::fs;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
-use std::collections::HashMap;
 
 // Mock implementations for commands module
 mod commands {

@@ -41,19 +41,19 @@ impl ServiceRegistry {
     }
 
     /// Register service
-    pub async fn register_service(&self, service_info: ServiceInfo) -> RhemaResult<()> {
+    pub async fn register_service(&self, _service_info: ServiceInfo) -> RhemaResult<()> {
         // TODO: Implement service registration
         Ok(())
     }
 
     /// Deregister service
-    pub async fn deregister_service(&self, service_id: &str) -> RhemaResult<()> {
+    pub async fn deregister_service(&self, _service_id: &str) -> RhemaResult<()> {
         // TODO: Implement service deregistration
         Ok(())
     }
 
     /// Get service information
-    pub async fn get_service_info(&self, service_id: &str) -> RhemaResult<Option<ServiceInfo>> {
+    pub async fn get_service_info(&self, _service_id: &str) -> RhemaResult<Option<ServiceInfo>> {
         // TODO: Implement service info retrieval
         Ok(None)
     }

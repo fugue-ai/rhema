@@ -1,11 +1,8 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use rhema_ai::agent::patterns::{
-    AgentInfo, AgentPerformanceMetrics, AgentStatus, Constraint, ConstraintType, CpuAllocator,
-    ErrorSeverity, MemoryPool, MonitoringConfig, NetworkResources, PatternCategory, PatternConfig,
+    AgentInfo, AgentStatus, Constraint, ConstraintType, CpuAllocator, MemoryPool, MonitoringConfig, NetworkResources, PatternCategory, PatternConfig,
     PatternMetadata, PatternPerformanceMetrics, PatternPhase, PatternState, PatternStatus,
     RecoveryStrategy, ResourcePool, ValidationResult,
 };
@@ -218,7 +215,7 @@ struct EnhancedTestFixture {
 
 impl EnhancedTestFixture {
     fn new() -> Self {
-        let mut registry = PatternRegistry::new();
+        let registry = PatternRegistry::new();
         let executor = PatternExecutor::new(registry);
 
         let context = PatternContext {
@@ -789,7 +786,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
         let pattern_id = format!("config_test_{}", i);
 
         // Create executor with specific config
-        let mut registry = PatternRegistry::new();
+        let registry = PatternRegistry::new();
         let _monitor = rhema_ai::agent::patterns::PatternMonitor::new(config.clone());
         let mut executor = PatternExecutor::new(registry);
 

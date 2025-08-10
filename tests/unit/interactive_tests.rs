@@ -17,7 +17,6 @@
 use rhema_api::Rhema;
 use rhema_core::RhemaResult;
 use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
 

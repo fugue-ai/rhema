@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-use rhema_ai::agent::patterns::AgentPerformanceMetrics;
 use rhema_ai::agent::real_time_coordination::ConsensusAlgorithm;
 use rhema_ai::agent::real_time_coordination::EncryptionAlgorithm;
 use rhema_api::{
@@ -22,15 +21,10 @@ use rhema_api::{
     CoordinationConfig, EncryptionConfig, FaultToleranceConfig, IntegrationConfig,
     LoadBalancingStrategy, MessagePriority, MessageType, PerformanceMonitoringConfig, Rhema,
 };
-use rhema_core::RhemaResult;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::path::PathBuf;
-use std::time::Duration;
 use tempfile::TempDir;
-use tokio::time::sleep;
-use tracing::{error, info, warn};
 
 #[tokio::test]
 async fn test_basic_coordination_integration() {

@@ -407,7 +407,7 @@ impl CoordinationIntegration {
         rhema_coordination.send_message(message.clone()).await?;
 
         // Bridge to Syneidesis if available
-        if let Some(client) = &self.syneidesis_client {
+        if let Some(_client) = &self.syneidesis_client {
             if let Err(e) = self.bridge_rhema_message(&message).await {
                 warn!("Failed to bridge message to Syneidesis: {}", e);
             }

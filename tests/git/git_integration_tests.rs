@@ -14,21 +14,15 @@
  * limitations under the License.
  */
 
-use git2::{BranchType, Repository, Signature};
+use git2::{Repository, Signature};
 use rhema_cli::Rhema;
 use rhema_core::RhemaResult;
-use rhema_core::ValidationResult;
 use rhema_git::{
     git::security::Operation,
-    git_basic::{
-        AdvancedGitIntegration, AutomationTask, BranchContext, BranchManager, ContextBlame,
-        ContextEvolution, MergeResult, PullRequestAnalysis, WorkflowType,
-    },
+    git_basic::AdvancedGitIntegration,
     git_hooks::HookType,
 };
-use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 /// Test fixture for Git integration tests
@@ -128,7 +122,7 @@ fn test_advanced_git_integration_initialization() -> RhemaResult<()> {
 
 #[test]
 fn test_advanced_hooks_installation() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Test hook installation
     let hook_result = fixture.git_integration.execute_hook(HookType::PreCommit)?;
@@ -143,14 +137,14 @@ fn test_advanced_hooks_installation() -> RhemaResult<()> {
 
 #[test]
 fn test_branch_context_management() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Create test context files
     fixture.create_context_file("main", "Main branch context")?;
     fixture.create_context_file("feature", "Feature branch context")?;
 
     // Test branch context initialization
-    let mut branch_manager = fixture.git_integration.branches();
+    let branch_manager = fixture.git_integration.branches();
     let context = branch_manager?.initialize_branch_context(Some("main".to_string()))?;
     assert_eq!(context.name, "main");
 
@@ -194,7 +188,7 @@ fn test_workflow_integration() -> RhemaResult<()> {
 
 #[test]
 fn test_context_history_tracking() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Create test context files
     fixture.create_context_file("test", "Initial context")?;
@@ -262,7 +256,7 @@ fn test_automation_features() -> RhemaResult<()> {
 
 #[test]
 fn test_security_features() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Test security scan
     let scan_result = fixture
@@ -361,7 +355,7 @@ fn test_context_conflict_detection() -> RhemaResult<()> {
 
 #[test]
 fn test_context_merge_strategies() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Create source and target context files
     fixture.create_context_file("source", "Source branch context")?;
@@ -379,7 +373,7 @@ fn test_context_merge_strategies() -> RhemaResult<()> {
 
 #[test]
 fn test_pull_request_analysis() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Create test context for PR analysis
     fixture.create_context_file("pr-test", "PR test context")?;
@@ -393,7 +387,7 @@ fn test_pull_request_analysis() -> RhemaResult<()> {
 
 #[test]
 fn test_context_versioning() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Create test context
     fixture.create_context_file("version-test", "Version test context")?;
@@ -420,7 +414,7 @@ fn test_context_versioning() -> RhemaResult<()> {
 
 #[test]
 fn test_advanced_hook_configuration() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Test advanced hook execution
     let hook_result = fixture
@@ -470,7 +464,7 @@ fn test_integration_error_handling() -> RhemaResult<()> {
     assert!(result.is_err());
 
     // Test with valid repository
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
     let mut integration = fixture.git_integration;
 
     // Test that integration doesn't fail
@@ -513,7 +507,7 @@ fn test_performance_monitoring() -> RhemaResult<()> {
 
 #[test]
 fn test_context_evolution_analytics() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Create multiple context changes
     for i in 1..=5 {
@@ -560,7 +554,7 @@ fn test_context_evolution_analytics() -> RhemaResult<()> {
 
 #[test]
 fn test_security_validation() -> RhemaResult<()> {
-    let mut fixture = GitIntegrationTestFixture::new()?;
+    let fixture = GitIntegrationTestFixture::new()?;
 
     // Create test files with different security characteristics
     fixture.create_test_file("secure.yaml", "secure: true\nencrypted: true")?;

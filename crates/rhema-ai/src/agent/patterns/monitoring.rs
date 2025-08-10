@@ -639,7 +639,7 @@ impl PatternMonitor {
         let config = self.config.clone();
 
         // Clone necessary data from context to avoid lifetime issues
-        let agent_count = context.agents.len();
+        let _agent_count = context.agents.len();
         let active_agents_count = context
             .agents
             .iter()

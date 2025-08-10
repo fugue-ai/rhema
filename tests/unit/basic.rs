@@ -1,11 +1,7 @@
 use git2::Repository;
 use rhema_cli::Rhema;
-use rhema_config::ConflictResolutionStrategy;
-use rhema_core::{RhemaResult, Scope};
-use rhema_query::query::CqlQuery;
-use std::collections::HashMap;
+use rhema_core::RhemaResult;
 use std::fs;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 #[test]

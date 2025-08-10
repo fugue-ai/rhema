@@ -504,7 +504,7 @@ impl WorkflowOrchestrationPattern {
     async fn execute_hybrid(
         &self,
         workflow_state: &mut WorkflowState,
-        context: &PatternContext,
+        _context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Executing workflow with hybrid strategy");
 
@@ -1027,7 +1027,7 @@ impl StateSynchronizationPattern {
     ) -> Result<(), PatternError> {
         info!("Resolving {} state conflicts", sync_state.conflicts.len());
 
-        for conflict in &sync_state.conflicts {
+        for _conflict in &sync_state.conflicts {
             // Implement conflict resolution logic
             // This would typically involve:
             // - Analyzing conflict type

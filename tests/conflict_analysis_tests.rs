@@ -1,7 +1,7 @@
 use chrono::{Duration, Utc};
 use rhema_ai::agent::conflict_analysis::{
     AnalysisPeriod, ConflictAnalysisConfig, ConflictAnalysisSystem, EffortLevel, PriorityLevel,
-    ReportType, TrendDirection,
+    ReportType,
 };
 use rhema_ai::agent::conflict_prevention::{
     Conflict, ConflictDetails, ConflictResolution, ConflictSeverity, ConflictStatus, ConflictType,

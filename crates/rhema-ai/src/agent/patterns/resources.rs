@@ -453,7 +453,7 @@ impl ResourceManagementPattern {
         }
 
         // Create file lock
-        let file_lock = FileLock {
+        let _file_lock = FileLock {
             lock_id: Uuid::new_v4().to_string(),
             path: file_path.clone(),
             owner: request.agent_id.clone(),
@@ -564,7 +564,7 @@ impl ResourceManagementPattern {
 
     async fn allocate_custom_resource(
         &self,
-        request: &ResourceRequest,
+        _request: &ResourceRequest,
         _context: &PatternContext,
     ) -> Result<Option<ResourceAllocation>, PatternError> {
         // Custom resource allocation would be implemented here
@@ -574,7 +574,7 @@ impl ResourceManagementPattern {
 
     async fn monitor_resources(
         &self,
-        resource_state: &mut ResourceManagementState,
+        _resource_state: &mut ResourceManagementState,
         _context: &PatternContext,
     ) -> Result<(), PatternError> {
         info!("Monitoring resource usage");

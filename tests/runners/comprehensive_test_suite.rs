@@ -2,12 +2,11 @@
 //! Orchestrates all testing infrastructure components
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::time::Duration;
 
 use crate::common::enhanced_fixtures::EnhancedFixtures;
 use crate::config::test_config::TestConfig;
-use crate::runners::test_runner::{TestRunner, TestRunnerReport};
+use crate::runners::test_runner::TestRunner;
 use rhema_core::RhemaResult;
 
 /// Comprehensive test suite configuration

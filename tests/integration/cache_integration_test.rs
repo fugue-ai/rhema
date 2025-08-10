@@ -15,11 +15,8 @@
  */
 
 use rhema_core::lock::LockFileOps;
-use rhema_core::{RhemaError, RhemaResult};
-use std::collections::HashMap;
+use rhema_core::RhemaResult;
 use std::fs;
-use std::path::PathBuf;
-use tempfile::TempDir;
 
 #[test]
 fn test_lock_file_initialization() -> RhemaResult<()> {

@@ -1,5 +1,4 @@
 use rhema_query::RepoAnalysis;
-use std::path::Path;
 
 #[test]
 fn test_auto_config_analysis() {
