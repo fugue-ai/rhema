@@ -59,7 +59,7 @@ impl Agent for MockAgent {
 }
 use futures;
 
-use rhema_ai::agent::patterns::{
+use rhema_coordination::agent::patterns::{
     AgentInfo, AgentPerformanceMetrics, AgentStatus, Constraint, ConstraintType,
     CoordinationPattern, CpuAllocator, MemoryPool, NetworkResources, PatternCategory,
     PatternConfig, PatternContext, PatternError, PatternExecutor, PatternMetadata,

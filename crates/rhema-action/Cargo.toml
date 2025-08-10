@@ -16,7 +16,7 @@ categories = ["development-tools", "command-line-utilities"]
 rhema-core = { path = "../rhema-core" }
 rhema-query = { path = "../rhema-query" }
 rhema-git = { path = "../rhema-git" }
-rhema-ai = { path = "../rhema-ai" }
+rhema-coordination = { path = "../rhema-coordination" }
 rhema-config = { path = "../rhema-config" }
 rhema-monitoring = { path = "../rhema-monitoring" }
 

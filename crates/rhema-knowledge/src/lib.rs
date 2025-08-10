@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-pub mod ai_integration;
 pub mod cache;
 pub mod embedding;
 pub mod engine;
 pub mod indexing;
+pub mod integration;
 pub mod proactive;
 pub mod search;
 pub mod storage;
@@ -83,7 +83,7 @@ pub use storage::{
 };
 
 // AI Integration module exports
-pub use ai_integration::{
+pub use integration::{
     AIEnhancement, AIEnhancementType, AIInsight, AIInsightType, AIIntegration, AIIntegrationConfig,
     AIIntegrationMetrics, AIKnowledgeRequest, AIKnowledgeResponse, AIKnowledgeResult,
     KnowledgeSuggestion, KnowledgeSuggestionType, SuggestionPriority,

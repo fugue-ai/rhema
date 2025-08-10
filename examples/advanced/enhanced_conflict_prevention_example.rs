@@ -21,7 +21,7 @@ use uuid::Uuid;
 use chrono::Utc;
 use serde_json::json;
 
-use rhema_ai::agent::{
+use rhema_coordination::agent::{
     advanced_conflict_prevention::{
         AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig, AdvancedResolutionStrategy,
         ConflictPredictionModel, ConsensusConfig, CoordinationSession, AdvancedConflictStats,
@@ -40,11 +40,11 @@ use rhema_ai::agent::{
     real_time_coordination::RealTimeCoordinationSystem,
     conflict_prevention::{ConflictType, ConflictSeverity, Conflict, ConflictStatus, ResolutionStrategy},
 };
-use rhema_ai::AgentInfo;
-use rhema_ai::AgentStatus;
-use rhema_ai::AgentMessage;
-use rhema_ai::MessageType;
-use rhema_ai::MessagePriority;
+use rhema_coordination::AgentInfo;
+use rhema_coordination::AgentStatus;
+use rhema_coordination::AgentMessage;
+use rhema_coordination::MessageType;
+use rhema_coordination::MessagePriority;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -153,7 +153,7 @@ fn create_enhanced_consensus_config() -> ConsensusConfig {
     ConsensusConfig {
         min_consensus_percentage: 0.75,
         consensus_timeout_seconds: 120,
-        voting_mechanism: rhema_ai::agent::advanced_conflict_prevention::VotingMechanism::WeightedVoting,
+        voting_mechanism: rhema_coordination::agent::advanced_conflict_prevention::VotingMechanism::WeightedVoting,
         participants: vec![
             "code-reviewer".to_string(),
             "test-runner".to_string(),
@@ -161,7 +161,7 @@ fn create_enhanced_consensus_config() -> ConsensusConfig {
             "security-validator".to_string(),
         ],
         rules: vec![
-            rhema_ai::agent::advanced_conflict_prevention::ConsensusRule {
+            rhema_coordination::agent::advanced_conflict_prevention::ConsensusRule {
                 id: "file-access-coordination".to_string(),
                 name: "File Access Coordination".to_string(),
                 description: "Coordinate file access to prevent conflicts".to_string(),
@@ -169,7 +169,7 @@ fn create_enhanced_consensus_config() -> ConsensusConfig {
                 actions: vec![],
                 priority: 1,
             },
-            rhema_ai::agent::advanced_conflict_prevention::ConsensusRule {
+            rhema_coordination::agent::advanced_conflict_prevention::ConsensusRule {
                 id: "dependency-version-resolution".to_string(),
                 name: "Dependency Version Resolution".to_string(),
                 description: "Resolve dependency version conflicts through consensus".to_string(),
@@ -631,8 +631,8 @@ fn create_sample_conflict() -> Conflict {
         resolved_at: Some(Utc::now()),
         resolution_strategy: Some(ResolutionStrategy::Collaborative),
         resolution_notes: Some("Agents coordinated through consensus to resolve conflict".to_string()),
-        details: rhema_ai::agent::conflict_prevention::ConflictDetails {
-            file_modification: Some(rhema_ai::agent::conflict_prevention::FileModificationConflict {
+        details: rhema_coordination::agent::conflict_prevention::ConflictDetails {
+            file_modification: Some(rhema_coordination::agent::conflict_prevention::FileModificationConflict {
                 file_path: std::path::PathBuf::from("src/main.rs"),
                 modifying_agent: "code-reviewer".to_string(),
                 modification_time: Utc::now(),
@@ -655,21 +655,21 @@ fn create_sample_conflict() -> Conflict {
 }
 
 /// Create sample resolution for demonstration
-fn create_sample_resolution(conflict_id: &str) -> rhema_ai::agent::conflict_prevention::ConflictResolution {
-    rhema_ai::agent::conflict_prevention::ConflictResolution {
+fn create_sample_resolution(conflict_id: &str) -> rhema_coordination::agent::conflict_prevention::ConflictResolution {
+    rhema_coordination::agent::conflict_prevention::ConflictResolution {
         conflict_id: conflict_id.to_string(),
         strategy: ResolutionStrategy::Collaborative,
         timestamp: Utc::now(),
         description: "Successfully resolved through agent coordination and consensus".to_string(),
         actions: vec![
-            rhema_ai::agent::conflict_prevention::ResolutionAction {
+            rhema_coordination::agent::conflict_prevention::ResolutionAction {
                 action_type: "coordination".to_string(),
                 description: "Agents coordinated through real-time messaging".to_string(),
                 timestamp: Utc::now() - chrono::Duration::minutes(2),
                 performed_by: "conflict-prevention-system".to_string(),
                 result: "Agents agreed on resolution approach".to_string(),
             },
-            rhema_ai::agent::conflict_prevention::ResolutionAction {
+            rhema_coordination::agent::conflict_prevention::ResolutionAction {
                 action_type: "consensus".to_string(),
                 description: "Consensus reached through weighted voting".to_string(),
                 timestamp: Utc::now() - chrono::Duration::minutes(1),
@@ -678,7 +678,7 @@ fn create_sample_resolution(conflict_id: &str) -> rhema_ai::agent::conflict_prev
             },
         ],
         successful: true,
-        metrics: rhema_ai::agent::conflict_prevention::ResolutionMetrics {
+        metrics: rhema_coordination::agent::conflict_prevention::ResolutionMetrics {
             time_to_resolution_seconds: 180,
             agents_involved: 4,
             complexity_score: 0.6,
@@ -690,7 +690,7 @@ fn create_sample_resolution(conflict_id: &str) -> rhema_ai::agent::conflict_prev
 /// Generate system recommendations
 async fn generate_system_recommendations(
     advanced_stats: &AdvancedConflictStats,
-    ml_stats: &rhema_ai::agent::ml_conflict_prediction::MLConflictPredictionStats,
+    ml_stats: &rhema_coordination::agent::ml_conflict_prediction::MLConflictPredictionStats,
 ) -> Result<Vec<Recommendation>, Box<dyn std::error::Error>> {
     let mut recommendations = Vec::new();
 

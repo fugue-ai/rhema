@@ -1,5 +1,5 @@
 use crate::{Rhema, RhemaResult};
-use rhema_ai::context_injection::{EnhancedContextInjector, TaskType};
+use rhema_coordination::context_injection::{EnhancedContextInjector, TaskType};
 use rhema_core::Priority;
 
 // ContextRulesSubcommands will be defined in this module

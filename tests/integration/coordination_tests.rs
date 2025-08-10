@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use rhema_ai::grpc::coordination_client::SyneidesisConfig;
-use rhema_ai::{
+use rhema_coordination::grpc::coordination_client::SyneidesisConfig;
+use rhema_coordination::{
     agent::real_time_coordination::{
         AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType,
     },
@@ -152,7 +152,7 @@ async fn test_agent_registration_with_coordination() -> RhemaResult<()> {
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
         performance_metrics:
-            rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
     };
 
     let result = service.register_agent_with_coordination(agent_info).await;
@@ -375,7 +375,7 @@ async fn test_coordination_statistics() -> RhemaResult<()> {
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
         performance_metrics:
-            rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
     };
 
     service.register_agent_with_coordination(agent_info).await?;
@@ -539,7 +539,7 @@ async fn test_coordination_disabled() -> RhemaResult<()> {
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
         performance_metrics:
-            rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
     };
 
     let register_result = service.register_agent_with_coordination(agent_info).await;

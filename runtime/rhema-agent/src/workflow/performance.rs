@@ -16,7 +16,7 @@
 
 use crate::{Rhema, RhemaResult};
 use colored::*;
-use rhema_ai::advanced_features::{PerformanceMonitor, PerformanceMonitoringConfig, PerformanceThresholds};
+use rhema_coordination::advanced_features::{PerformanceMonitor, PerformanceMonitoringConfig, PerformanceThresholds};
 use std::sync::Arc;
 use std::collections::HashMap;
 // use tokio::sync::RwLock;

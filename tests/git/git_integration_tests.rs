@@ -19,8 +19,8 @@ use rhema_cli::Rhema;
 use rhema_core::RhemaResult;
 use rhema_git::{
     git::security::Operation,
-    git_basic::AdvancedGitIntegration,
     git_hooks::HookType,
+    utils::AdvancedGitIntegration,
 };
 use std::fs;
 use tempfile::TempDir;

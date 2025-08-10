@@ -24,16 +24,16 @@ use tracing::{error, info, instrument, warn};
 pub use rhema_core::{schema::*, scope, RhemaError, RhemaResult, Scope};
 
 // Re-export types from other crates
-pub use rhema_ai::ai_service;
+pub use rhema_coordination::ai_service;
 pub use rhema_config::config;
-pub use rhema_git::git_basic;
+pub use rhema_git::utils;
 pub use rhema_integrations::integrations;
 pub use rhema_mcp::mcp;
 pub use rhema_monitoring::monitoring;
 pub use rhema_query::{QueryProvenance, QueryResult};
 
 // Re-export coordination types
-pub use rhema_ai::agent::real_time_coordination::{
+pub use rhema_coordination::agent::real_time_coordination::{
     AdvancedCoordinationConfig, AdvancedSession, AgentInfo, AgentMessage, AgentPerformanceMetrics,
     AgentStatus, ConsensusConfig, ConsensusEntry, ConsensusMessage, ConsensusState,
     CoordinationConfig, CoordinationError, CoordinationSession, CoordinationStats,
@@ -42,7 +42,7 @@ pub use rhema_ai::agent::real_time_coordination::{
     RealTimeCoordinationSystem, ResourceInfo, SessionDecision, SessionRule, SessionRuleType,
     SessionStatus,
 };
-pub use rhema_ai::coordination_integration::{
+pub use rhema_coordination::coordination_integration::{
     CoordinationConfig as IntegrationConfig, CoordinationIntegration, IntegrationStats,
 };
 
@@ -147,7 +147,7 @@ impl Rhema {
     /// Create a new Rhema instance for the current repository
     #[instrument(skip_all)]
     pub fn new() -> RhemaResult<Self> {
-        let repo_root = git_basic::find_repo_root()?;
+        let repo_root = utils::find_repo_root()?;
         info!("Initializing Rhema for repository: {}", repo_root.display());
 
         Ok(Self {

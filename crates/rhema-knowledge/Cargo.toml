@@ -16,7 +16,7 @@ categories = ["development-tools"]
 # Internal crates
 rhema-core = { path = "../rhema-core" }
 rhema-query = { path = "../rhema-query" }
-rhema-ai = { path = "../rhema-ai" }
+rhema-coordination = { path = "../rhema-coordination" }
 rhema-mcp = { path = "../rhema-mcp" }
 rhema-config = { path = "../rhema-config" }
 

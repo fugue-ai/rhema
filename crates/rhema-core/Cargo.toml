@@ -12,9 +12,7 @@ description = "Core data structures and fundamental operations for the Rhema Pro
 keywords = ["core", "schema", "scope", "protocol"]
 categories = ["development-tools"]
 
-[[bin]]
-name = "test_scope_loader"
-path = "src/bin/test_scope_loader.rs"
+
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }

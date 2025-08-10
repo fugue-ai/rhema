@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema_ai::agent::task_scoring::*;
+use rhema_coordination::agent::task_scoring::*;
 use chrono::Utc;
 use std::collections::HashMap;
 

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-use rhema_ai::{
+use rhema_coordination::{
     ai_service::{AIService, AIServiceConfig},
     coordination_integration::CoordinationConfig,
     agent::real_time_coordination::{AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority, AgentPerformanceMetrics},
 };
-use rhema_ai::grpc::coordination_client::SyneidesisConfig;
+use rhema_coordination::grpc::coordination_client::SyneidesisConfig;
 use rhema_core::RhemaResult;
 
 #[tokio::main]

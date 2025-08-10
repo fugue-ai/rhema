@@ -1,16 +1,16 @@
 use chrono::{Duration, Utc};
-use rhema_ai::agent::conflict_analysis::{
+use rhema_coordination::agent::conflict_analysis::{
     AnalysisPeriod, ConflictAnalysisConfig, ConflictAnalysisSystem, EffortLevel, PriorityLevel,
     ReportType,
 };
-use rhema_ai::agent::conflict_prevention::{
+use rhema_coordination::agent::conflict_prevention::{
     Conflict, ConflictDetails, ConflictResolution, ConflictSeverity, ConflictStatus, ConflictType,
     ResolutionAction, ResolutionMetrics, ResolutionStrategy,
 };
-use rhema_ai::agent::ml_conflict_prediction::{
+use rhema_coordination::agent::ml_conflict_prediction::{
     ConflictPredictionResult, LearningMetrics, MLConflictPredictionStats,
 };
-use rhema_ai::agent::real_time_coordination::RealTimeCoordinationSystem;
+use rhema_coordination::agent::real_time_coordination::RealTimeCoordinationSystem;
 use std::collections::HashMap;
 use std::sync::Arc;
 

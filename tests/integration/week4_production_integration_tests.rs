@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema_ai::{
+use rhema_coordination::{
     AIService, AIServiceConfig, AIRequest, AIResponse,
     CoordinationIntegration, CoordinationConfig,
     ProductionIntegration, ProductionConfig,
@@ -146,10 +146,10 @@ async fn test_production_health_monitoring() {
     
     // Health status should be one of the valid states
     assert!(matches!(health_status, 
-        rhema_ai::production_integration::HealthStatus::Healthy |
-        rhema_ai::production_integration::HealthStatus::Degraded |
-        rhema_ai::production_integration::HealthStatus::Unhealthy |
-        rhema_ai::production_integration::HealthStatus::Unknown
+        rhema_coordination::production_integration::HealthStatus::Healthy |
+        rhema_coordination::production_integration::HealthStatus::Degraded |
+        rhema_coordination::production_integration::HealthStatus::Unhealthy |
+        rhema_coordination::production_integration::HealthStatus::Unknown
     ));
     
     // Metrics should be initialized
@@ -166,12 +166,12 @@ async fn test_circuit_breaker_functionality() {
     
     // Initially circuit breaker should be closed
     let initial_status = production_integration.get_circuit_breaker_status().await;
-    assert!(matches!(initial_status, rhema_ai::production_integration::CircuitBreakerState::Closed));
+    assert!(matches!(initial_status, rhema_coordination::production_integration::CircuitBreakerState::Closed));
     
     // Reset circuit breaker
     production_integration.reset_circuit_breaker().await;
     let reset_status = production_integration.get_circuit_breaker_status().await;
-    assert!(matches!(reset_status, rhema_ai::production_integration::CircuitBreakerState::Closed));
+    assert!(matches!(reset_status, rhema_coordination::production_integration::CircuitBreakerState::Closed));
     
     info!("✅ Circuit breaker functionality test passed");
 }
@@ -183,7 +183,7 @@ async fn test_load_balancer_functionality() {
     let production_integration = create_test_production_integration().await.unwrap();
     
     // Add test nodes
-    let node1 = rhema_ai::production_integration::NodeInfo {
+    let node1 = rhema_coordination::production_integration::NodeInfo {
         id: "node-1".to_string(),
         address: "localhost:8081".to_string(),
         weight: 1.0,
@@ -191,7 +191,7 @@ async fn test_load_balancer_functionality() {
         max_capacity: 100,
     };
     
-    let node2 = rhema_ai::production_integration::NodeInfo {
+    let node2 = rhema_coordination::production_integration::NodeInfo {
         id: "node-2".to_string(),
         address: "localhost:8082".to_string(),
         weight: 1.0,
@@ -339,16 +339,16 @@ async fn test_composition_rules() {
         description: "A test composition rule".to_string(),
         priority: 1,
         conditions: vec![
-            rhema_ai::agent::patterns::composition::CompositionCondition {
-                condition_type: rhema_ai::agent::patterns::composition::ConditionType::PatternExists,
+            rhema_coordination::agent::patterns::composition::CompositionCondition {
+                condition_type: rhema_coordination::agent::patterns::composition::ConditionType::PatternExists,
                 parameters: HashMap::from([
                     ("pattern_id".to_string(), json!("test_pattern")),
                 ]),
             },
         ],
         actions: vec![
-            rhema_ai::agent::patterns::composition::CompositionAction {
-                action_type: rhema_ai::agent::patterns::composition::ActionType::AddPattern,
+            rhema_coordination::agent::patterns::composition::CompositionAction {
+                action_type: rhema_coordination::agent::patterns::composition::ActionType::AddPattern,
                 parameters: HashMap::from([
                     ("pattern_id".to_string(), json!("additional_pattern")),
                 ]),
@@ -552,7 +552,7 @@ async fn create_test_ai_service() -> RhemaResult<AIService> {
 async fn create_test_coordination() -> RhemaResult<CoordinationIntegration> {
     let config = CoordinationConfig::default();
     CoordinationIntegration::new(
-        rhema_ai::agent::real_time_coordination::RealTimeCoordinationSystem::new(),
+        rhema_coordination::agent::real_time_coordination::RealTimeCoordinationSystem::new(),
         Some(config)
     ).await
 }
@@ -561,31 +561,31 @@ fn create_test_production_config() -> ProductionConfig {
     ProductionConfig {
         production_mode: true,
         health_check_interval: 30,
-        circuit_breaker: rhema_ai::production_integration::CircuitBreakerConfig {
+        circuit_breaker: rhema_coordination::production_integration::CircuitBreakerConfig {
             failure_threshold: 5,
             timeout_seconds: 60,
             success_threshold: 2,
             enabled: true,
         },
-        load_balancing: rhema_ai::production_integration::LoadBalancingConfig {
-            strategy: rhema_ai::production_integration::LoadBalancingStrategy::RoundRobin,
+        load_balancing: rhema_coordination::production_integration::LoadBalancingConfig {
+            strategy: rhema_coordination::production_integration::LoadBalancingStrategy::RoundRobin,
             max_concurrent_per_node: 100,
             health_check_enabled: true,
             enabled: false,
         },
-        monitoring: rhema_ai::production_integration::MonitoringConfig {
+        monitoring: rhema_coordination::production_integration::MonitoringConfig {
             enable_metrics: true,
             enable_tracing: true,
             enable_logging: true,
             metrics_export_interval: 60,
-            alert_thresholds: rhema_ai::production_integration::AlertThresholds {
+            alert_thresholds: rhema_coordination::production_integration::AlertThresholds {
                 error_rate_threshold: 0.1,
                 latency_threshold_ms: 1000,
                 memory_usage_threshold: 0.8,
                 cpu_usage_threshold: 0.8,
             },
         },
-        scaling: rhema_ai::production_integration::ScalingConfig {
+        scaling: rhema_coordination::production_integration::ScalingConfig {
             auto_scaling_enabled: false,
             min_instances: 1,
             max_instances: 10,
@@ -593,7 +593,7 @@ fn create_test_production_config() -> ProductionConfig {
             scale_down_threshold: 0.3,
             cooldown_seconds: 300,
         },
-        security: rhema_ai::production_integration::SecurityConfig {
+        security: rhema_coordination::production_integration::SecurityConfig {
             enable_auth: false,
             enable_authorization: false,
             rate_limiting_enabled: true,
@@ -658,11 +658,11 @@ fn create_test_pattern_context() -> PatternContext {
         constraints: vec![],
         state: PatternState {
             pattern_id: "test-pattern".to_string(),
-            phase: rhema_ai::agent::patterns::PatternPhase::Initializing,
+            phase: rhema_coordination::agent::patterns::PatternPhase::Initializing,
             started_at: Utc::now(),
             ended_at: None,
             progress: 0.0,
-            status: rhema_ai::agent::patterns::PatternStatus::Pending,
+            status: rhema_coordination::agent::patterns::PatternStatus::Pending,
             data: HashMap::new(),
         },
         config: Default::default(),
@@ -689,7 +689,7 @@ impl MockPattern {
 }
 
 #[async_trait::async_trait]
-impl rhema_ai::agent::patterns::CoordinationPattern for MockPattern {
+impl rhema_coordination::agent::patterns::CoordinationPattern for MockPattern {
     fn get_metadata(&self) -> PatternMetadata {
         PatternMetadata {
             id: self.id.clone(),

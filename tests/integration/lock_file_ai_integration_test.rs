@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use rhema_ai::agent::lock_context::*;
-use rhema_ai::agent::lock_context_integration::LockFileAIIntegration;
+use rhema_coordination::agent::lock_context::*;
+use rhema_coordination::agent::lock_context_integration::LockFileAIIntegration;
 use rhema_core::RhemaResult;
 use std::path::PathBuf;
 
@@ -62,7 +62,7 @@ async fn test_lock_file_context_provider() -> RhemaResult<()> {
 
 #[tokio::test]
 async fn test_context_injection_rules() -> RhemaResult<()> {
-    use rhema_ai::context_injection::{ContextInjectionRule, LockFileContextRequirement, TaskType};
+    use rhema_coordination::context_injection::{ContextInjectionRule, LockFileContextRequirement, TaskType};
     use rhema_core::schema::PromptInjectionMethod;
 
     // Test creating injection rules
@@ -352,7 +352,7 @@ async fn test_scope_lock_context() -> RhemaResult<()> {
 
 #[tokio::test]
 async fn test_utils_formatting() -> RhemaResult<()> {
-    use rhema_ai::agent::lock_context_integration::utils;
+    use rhema_coordination::agent::lock_context_integration::utils;
 
     // Create a mock context for testing
     let context = LockFileAIContext {

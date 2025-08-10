@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema_ai::agent::real_time_coordination::{
+use rhema_coordination::agent::real_time_coordination::{
     AgentInfo, AgentMessage, AgentPerformanceMetrics, AgentStatus, CoordinationConfig,
     MessagePriority, MessageType,
 };

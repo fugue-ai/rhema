@@ -15,14 +15,14 @@
  */
 
 use rhema::Rhema;
-use rhema_ai::agent::real_time_coordination::{
+use rhema_coordination::agent::real_time_coordination::{
     AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority,
     CoordinationConfig, AdvancedCoordinationConfig, LoadBalancingStrategy,
     FaultToleranceConfig, EncryptionConfig, PerformanceMonitoringConfig,
     ConsensusConfig, ConsensusAlgorithm, AgentPerformanceMetrics, PerformanceThresholds,
     EncryptionAlgorithm
 };
-use rhema_ai::coordination_integration::{CoordinationIntegration, CoordinationConfig as IntegrationConfig};
+use rhema_coordination::coordination_integration::{CoordinationIntegration, CoordinationConfig as IntegrationConfig};
 use std::collections::HashMap;
 use tracing::{info, warn, error};
 

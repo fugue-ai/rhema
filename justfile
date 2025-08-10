@@ -3,7 +3,22 @@
 
 # Default recipe - show available tasks
 default:
-    @just --list
+    @echo "=== Rhema Project Tasks ==="
+    @echo ""
+    @echo "🔧 BUILD TASKS:"
+    @echo "  build          - Build Rust workspace"
+    @echo "  build-ts       - Build TypeScript components"
+    @echo "  build-all      - Build everything (Rust + TypeScript)"
+    @echo ""
+    @echo "🧪 TEST TASKS:"
+    @echo "  test           - Run all tests (Rust + TypeScript)"
+    @echo "  test-rust      - Run Rust tests only"
+    @echo "  test-ts        - Run TypeScript tests only"
+    @echo ""
+    @echo "📋 OTHER TASKS:"
+    @echo "  help           - Show all available tasks"
+    @echo "  status         - Show project status"
+    @echo ""
 
 # =============================================================================
 # RUST TASKS
@@ -37,32 +52,32 @@ fmt:
 fmt-check:
     cargo fmt -- --check
 
-# Run all tests
-test:
+# Run Rust tests only
+test-rust:
     cargo test
 
-# Run tests with output
-test-verbose:
+# Run Rust tests with output
+test-rust-verbose:
     cargo test -- --nocapture
 
-# Run tests in release mode
-test-release:
+# Run Rust tests in release mode
+test-rust-release:
     cargo test --release
 
-# Run specific test file
-test-file file:
+# Run specific Rust test file
+test-rust-file file:
     cargo test --test {{file}}
 
-# Run integration tests
-test-integration:
+# Run Rust integration tests
+test-rust-integration:
     cargo test --test integration
 
-# Run unit tests only
-test-unit:
+# Run Rust unit tests only
+test-rust-unit:
     cargo test --lib
 
-# Run tests with coverage
-test-coverage:
+# Run Rust tests with coverage
+test-rust-coverage:
     cargo test --coverage
 
 # Generate documentation
@@ -113,7 +128,7 @@ build-docs:
 clean-ts:
     pnpm run clean:typescript
 
-# Test TypeScript components
+# Test TypeScript components only
 test-ts:
     pnpm run test:typescript
 
@@ -141,9 +156,14 @@ build-all:
 clean-all:
     pnpm run clean:all
 
-# Test everything
-test-all:
-    pnpm run test:typescript && cargo test
+# Test everything (Rust + TypeScript) - DEFAULT TEST TARGET
+test:
+    @echo "🧪 Running all tests..."
+    @echo "📦 Testing TypeScript components..."
+    pnpm run test:typescript
+    @echo "🦀 Testing Rust components..."
+    cargo test
+    @echo "✅ All tests completed!"
 
 # Format all code (Rust + TypeScript)
 fmt-all:

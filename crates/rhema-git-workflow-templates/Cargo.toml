@@ -1,5 +1,5 @@
 [package]
-name = "rhema-ai"
+name = "rhema-git-workflow-templates"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -8,34 +8,21 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme.workspace = true
-description = "AI service integration and context injection for Rhema"
-keywords = ["ai", "context", "injection", "service"]
+description = "Git workflow templates for Rhema"
+keywords = ["git", "workflow", "templates", "version-control"]
 categories = ["development-tools"]
 
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 thiserror = { workspace = true }
-tracing = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
-reqwest = { workspace = true }
-async-trait = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
-cached = { workspace = true }
-sha2 = "0.10"
-clap = { workspace = true }
-dashmap = "5.5"
-
-# gRPC dependencies
-tonic = "0.10"
-prost = "0.12"
-
-[build-dependencies]
-tonic-build = "0.10"
+tracing = "0.1"
 
 [dev-dependencies]
 tempfile = { workspace = true }
 assert_fs = { workspace = true }
-predicates = { workspace = true } 
+predicates = { workspace = true }

@@ -20,18 +20,18 @@ use tokio::time::sleep;
 use uuid::Uuid;
 use chrono::Utc;
 
-use rhema_ai::agent::advanced_conflict_prevention::{
+use rhema_coordination::agent::advanced_conflict_prevention::{
     AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig, AdvancedResolutionStrategy,
     ConflictPredictionModel, ConsensusConfig, CoordinationSession, AdvancedConflictStats,
     ConflictPrediction, PreventiveAction, TrainingMetrics,
 };
-use rhema_ai::agent::real_time_coordination::RealTimeCoordinationSystem;
-use rhema_ai::agent::conflict_prevention::ConflictType;
-use rhema_ai::AgentInfo;
-use rhema_ai::AgentStatus;
-use rhema_ai::AgentMessage;
-use rhema_ai::MessageType;
-use rhema_ai::MessagePriority;
+use rhema_coordination::agent::real_time_coordination::RealTimeCoordinationSystem;
+use rhema_coordination::agent::conflict_prevention::ConflictType;
+use rhema_coordination::AgentInfo;
+use rhema_coordination::AgentStatus;
+use rhema_coordination::AgentMessage;
+use rhema_coordination::MessageType;
+use rhema_coordination::MessagePriority;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -104,14 +104,14 @@ fn create_default_consensus_config() -> ConsensusConfig {
     ConsensusConfig {
         min_consensus_percentage: 0.75,
         consensus_timeout_seconds: 60,
-        voting_mechanism: rhema_ai::agent::advanced_conflict_prevention::VotingMechanism::WeightedVoting,
+        voting_mechanism: rhema_coordination::agent::advanced_conflict_prevention::VotingMechanism::WeightedVoting,
         participants: vec![
             "code-reviewer".to_string(),
             "test-runner".to_string(),
             "deployment-manager".to_string(),
         ],
         rules: vec![
-            rhema_ai::agent::advanced_conflict_prevention::ConsensusRule {
+            rhema_coordination::agent::advanced_conflict_prevention::ConsensusRule {
                 id: "rule-1".to_string(),
                 name: "File Access Coordination".to_string(),
                 description: "Coordinate file access to prevent conflicts".to_string(),
@@ -138,7 +138,7 @@ async fn register_agents(
             capabilities: vec!["code_review".to_string(), "security_analysis".to_string()],
             last_heartbeat: Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
         },
         AgentInfo {
             id: "test-runner".to_string(),
@@ -150,7 +150,7 @@ async fn register_agents(
             capabilities: vec!["unit_testing".to_string(), "integration_testing".to_string()],
             last_heartbeat: Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
         },
         AgentInfo {
             id: "deployment-manager".to_string(),
@@ -162,7 +162,7 @@ async fn register_agents(
             capabilities: vec!["deployment".to_string(), "rollback".to_string()],
             last_heartbeat: Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
         },
     ];
 

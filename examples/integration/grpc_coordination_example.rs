@@ -20,7 +20,7 @@ use tokio::time::sleep;
 use tracing::{info, warn, error};
 use uuid::Uuid;
 
-use rhema_ai::{
+use rhema_coordination::{
     agent::real_time_coordination::{AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType},
     grpc::{GrpcCoordinationClient, GrpcCoordinationServer, GrpcClientConfig, GrpcServerConfig},
     RealTimeCoordinationSystem,

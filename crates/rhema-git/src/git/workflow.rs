@@ -15,13 +15,13 @@
  */
 
 use crate::git::feature_automation::{default_feature_automation_config, FeatureAutomationManager};
-use crate::git::history::ValidationSeverity;
+
 use crate::git::security::SecurityManager;
 use crate::git::version_management::{
     default_version_management_config, BumpType, VersionManagementConfig, VersionManagementResult,
     VersionManager,
 };
-use crate::workflow_templates::{WorkflowTemplateManager, WorkflowTemplateType};
+
 use chrono::{DateTime, Utc};
 use git2::Repository;
 use rhema_core::{RhemaError, RhemaResult};
@@ -222,6 +222,17 @@ pub enum ContextValidationType {
     Security,
     Performance,
     Custom(String),
+}
+
+/// Validation severity levels
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ValidationSeverity {
+    Error,
+    Warning,
+    Info,
+    High,
+    Medium,
+    Critical,
 }
 
 /// Context-aware release management
@@ -1290,35 +1301,37 @@ impl WorkflowManager {
 
     /// Initialize workflow from template
     pub async fn initialize_from_template(
-        template_type: &WorkflowTemplateType,
+        template_type: &rhema_git_workflow_templates::WorkflowTemplateType,
         customizations: Option<std::collections::HashMap<String, serde_json::Value>>,
     ) -> RhemaResult<WorkflowConfig> {
-        let template = WorkflowTemplateManager::get_template(template_type)?;
+        let template = Self::get_template(template_type)?;
 
         if let Some(customizations) = customizations {
-            WorkflowTemplateManager::apply_customization(&template, &customizations)
+            // Convert the template config to our local WorkflowConfig
+            let template_config = rhema_git_workflow_templates::WorkflowTemplateManager::apply_customization(&template, &customizations)?;
+            Ok(Self::convert_template_config(template_config))
         } else {
-            Ok(template.config)
+            Ok(Self::convert_template_config(template.config))
         }
     }
 
     /// List available workflow templates
-    pub fn list_available_templates() -> Vec<crate::workflow_templates::WorkflowTemplate> {
-        WorkflowTemplateManager::get_available_templates()
+    pub fn list_available_templates() -> Vec<rhema_git_workflow_templates::WorkflowTemplate> {
+        rhema_git_workflow_templates::WorkflowTemplateManager::get_available_templates()
     }
 
     /// Get template by type
     pub fn get_template(
-        template_type: &WorkflowTemplateType,
-    ) -> RhemaResult<crate::workflow_templates::WorkflowTemplate> {
-        WorkflowTemplateManager::get_template(template_type)
+        template_type: &rhema_git_workflow_templates::WorkflowTemplateType,
+    ) -> RhemaResult<rhema_git_workflow_templates::WorkflowTemplate> {
+        rhema_git_workflow_templates::WorkflowTemplateManager::get_template(template_type)
     }
 
     /// Validate template configuration
     pub fn validate_template(
-        template: &crate::workflow_templates::WorkflowTemplate,
+        template: &rhema_git_workflow_templates::WorkflowTemplate,
     ) -> RhemaResult<Vec<String>> {
-        WorkflowTemplateManager::validate_template(template)
+        rhema_git_workflow_templates::WorkflowTemplateManager::validate_template(template)
     }
 
     /// Apply hotfix merge strategy
@@ -1489,6 +1502,207 @@ impl WorkflowManager {
     pub async fn generate_release_notes(&self, _version: &str) -> RhemaResult<()> {
         // Implementation for generating release notes
         Ok(())
+    }
+
+    /// Convert template WorkflowConfig to local WorkflowConfig
+    fn convert_template_config(template_config: rhema_git_workflow_templates::WorkflowConfig) -> WorkflowConfig {
+        // Convert workflow type
+        let workflow_type = match template_config.workflow_type {
+            rhema_git_workflow_templates::WorkflowType::GitFlow => WorkflowType::GitFlow,
+            rhema_git_workflow_templates::WorkflowType::GitHubFlow => WorkflowType::GitHubFlow,
+            rhema_git_workflow_templates::WorkflowType::GitLabFlow => WorkflowType::GitLabFlow,
+            rhema_git_workflow_templates::WorkflowType::TrunkBased => WorkflowType::TrunkBased,
+            rhema_git_workflow_templates::WorkflowType::Custom(s) => WorkflowType::Custom(s),
+        };
+
+        // Convert branch conventions
+        let branch_conventions = BranchConventions {
+            main_branch: template_config.branch_conventions.main_branch,
+            develop_branch: template_config.branch_conventions.develop_branch,
+            feature_prefix: template_config.branch_conventions.feature_prefix,
+            release_prefix: template_config.branch_conventions.release_prefix,
+            hotfix_prefix: template_config.branch_conventions.hotfix_prefix,
+            support_prefix: template_config.branch_conventions.support_prefix,
+        };
+
+        // Convert context rules
+        let context_rules = ContextRules {
+            require_feature_validation: template_config.context_rules.require_feature_validation,
+            require_release_validation: template_config.context_rules.require_release_validation,
+            require_hotfix_validation: template_config.context_rules.require_hotfix_validation,
+            merge_strategies: template_config.context_rules.merge_strategies.into_iter()
+                .map(|(k, v)| {
+                    let key = match k {
+                        rhema_git_workflow_templates::FlowBranchType::Main => FlowBranchType::Main,
+                        rhema_git_workflow_templates::FlowBranchType::Develop => FlowBranchType::Develop,
+                        rhema_git_workflow_templates::FlowBranchType::Feature => FlowBranchType::Feature,
+                        rhema_git_workflow_templates::FlowBranchType::Release => FlowBranchType::Release,
+                        rhema_git_workflow_templates::FlowBranchType::Hotfix => FlowBranchType::Hotfix,
+                        rhema_git_workflow_templates::FlowBranchType::Support => FlowBranchType::Support,
+                    };
+                    (key, v)
+                })
+                .collect(),
+            isolation_rules: IsolationRules {
+                isolate_feature: template_config.context_rules.isolation_rules.isolate_feature,
+                isolate_release: template_config.context_rules.isolation_rules.isolate_release,
+                isolate_hotfix: template_config.context_rules.isolation_rules.isolate_hotfix,
+                shared_files: template_config.context_rules.isolation_rules.shared_files,
+            },
+        };
+
+        // Convert release management
+        let release_management = ReleaseManagement {
+            versioning: match template_config.release_management.versioning {
+                rhema_git_workflow_templates::VersioningStrategy::Semantic => VersioningStrategy::Semantic,
+                rhema_git_workflow_templates::VersioningStrategy::Calendar => VersioningStrategy::Calendar,
+                rhema_git_workflow_templates::VersioningStrategy::Custom(s) => VersioningStrategy::Custom(s),
+            },
+            branch_preparation: BranchPreparation {
+                prepare_context: template_config.release_management.branch_preparation.prepare_context,
+                update_version: template_config.release_management.branch_preparation.update_version,
+                generate_notes: template_config.release_management.branch_preparation.generate_notes,
+                validate_readiness: template_config.release_management.branch_preparation.validate_readiness,
+            },
+            validation: ReleaseValidation {
+                validate_context: template_config.release_management.validation.validate_context,
+                validate_dependencies: template_config.release_management.validation.validate_dependencies,
+                validate_breaking_changes: template_config.release_management.validation.validate_breaking_changes,
+                run_tests: template_config.release_management.validation.run_tests,
+            },
+            automation: ReleaseAutomation {
+                auto_create_branch: template_config.release_management.automation.auto_create_branch,
+                auto_version_bump: template_config.release_management.automation.auto_version_bump,
+                auto_release_notes: template_config.release_management.automation.auto_release_notes,
+                auto_deploy: template_config.release_management.automation.auto_deploy,
+            },
+        };
+
+        // Convert pull request settings
+        let pull_request_settings = PullRequestSettings {
+            require_context_analysis: template_config.pull_request_settings.require_context_analysis,
+            require_impact_analysis: template_config.pull_request_settings.require_impact_analysis,
+            require_dependency_review: template_config.pull_request_settings.require_dependency_review,
+            require_health_checks: template_config.pull_request_settings.require_health_checks,
+            automated_checks: template_config.pull_request_settings.automated_checks,
+        };
+
+        // Convert automation settings
+        let automation = AutomationSettings {
+            auto_context_updates: template_config.automation.auto_context_updates,
+            auto_synchronization: template_config.automation.auto_synchronization,
+            auto_notifications: template_config.automation.auto_notifications,
+            auto_backups: template_config.automation.auto_backups,
+        };
+
+        // Convert advanced features
+        let advanced_features = AdvancedWorkflowFeatures {
+            context_aware_branching: template_config.advanced_features.context_aware_branching,
+            auto_context_sync: template_config.advanced_features.auto_context_sync,
+            context_conflict_resolution: template_config.advanced_features.context_conflict_resolution,
+            context_validation_workflows: template_config.advanced_features.context_validation_workflows,
+            context_evolution_tracking: template_config.advanced_features.context_evolution_tracking,
+            context_analytics: template_config.advanced_features.context_analytics,
+            context_optimization: template_config.advanced_features.context_optimization,
+            context_backup_workflows: template_config.advanced_features.context_backup_workflows,
+        };
+
+        // Convert context aware settings (simplified conversion)
+        let context_aware = ContextAwareWorkflowSettings {
+            context_aware_feature_branching: ContextAwareFeatureBranching {
+                auto_isolate_context: true,
+                auto_sync_parent: true,
+                auto_validate_before_merge: true,
+                auto_resolve_conflicts: true,
+                inheritance_rules: vec![],
+                boundary_rules: vec![],
+                validation_rules: vec![],
+            },
+            context_aware_release_management: ContextAwareReleaseManagement {
+                auto_prepare_context: true,
+                auto_validate_release_context: true,
+                auto_generate_release_notes: true,
+                auto_update_version: true,
+                validation_rules: vec![],
+                preparation_steps: vec![],
+                cleanup_steps: vec![],
+            },
+            context_aware_hotfix_management: ContextAwareHotfixManagement {
+                auto_isolate_context: true,
+                auto_validate_context: true,
+                auto_merge_context: true,
+                validation_rules: vec![],
+                merge_strategies: vec![],
+            },
+            context_aware_pr_analysis: ContextAwarePrAnalysis {
+                auto_analyze_context_changes: true,
+                auto_detect_conflicts: true,
+                auto_generate_impact_report: true,
+                auto_suggest_improvements: true,
+                analysis_rules: vec![],
+                validation_rules: vec![],
+                automation_rules: vec![],
+            },
+            context_aware_merge_strategies: ContextAwareMergeStrategies {
+                feature_merge_strategy: ContextMergeStrategy {
+                    name: "default".to_string(),
+                    description: "Default feature merge strategy".to_string(),
+                    strategy_type: ContextMergeStrategyType::Auto,
+                    conflict_resolution: ContextConflictResolution {
+                        resolution_type: ConflictResolutionType::Merge,
+                        auto_resolve_simple: true,
+                        manual_resolution_required: false,
+                        resolution_rules: vec![],
+                    },
+                    validation_rules: vec![],
+                },
+                release_merge_strategy: ContextMergeStrategy {
+                    name: "default".to_string(),
+                    description: "Default release merge strategy".to_string(),
+                    strategy_type: ContextMergeStrategyType::Auto,
+                    conflict_resolution: ContextConflictResolution {
+                        resolution_type: ConflictResolutionType::Merge,
+                        auto_resolve_simple: true,
+                        manual_resolution_required: false,
+                        resolution_rules: vec![],
+                    },
+                    validation_rules: vec![],
+                },
+                hotfix_merge_strategy: ContextMergeStrategy {
+                    name: "default".to_string(),
+                    description: "Default hotfix merge strategy".to_string(),
+                    strategy_type: ContextMergeStrategyType::Auto,
+                    conflict_resolution: ContextConflictResolution {
+                        resolution_type: ConflictResolutionType::Merge,
+                        auto_resolve_simple: true,
+                        manual_resolution_required: false,
+                        resolution_rules: vec![],
+                    },
+                    validation_rules: vec![],
+                },
+                custom_strategies: vec![],
+            },
+        };
+
+        // Convert integrations (simplified)
+        let integrations = WorkflowIntegrationSettings {
+            ci_cd: None,
+            issue_tracker: None,
+            chat: None,
+            monitoring: None,
+        };
+
+        WorkflowConfig {
+            workflow_type,
+            branch_conventions,
+            context_rules,
+            release_management,
+            pull_request_settings,
+            automation,
+            advanced_features,
+            context_aware,
+            integrations,
+        }
     }
 }
 
@@ -3082,7 +3296,7 @@ impl GitWorkflow {
             }
         }
 
-        if rule.required && rule.severity == crate::git::history::ValidationSeverity::Error {
+        if rule.required && rule.severity == ValidationSeverity::Error {
             // For required rules with error severity, we would fail here if validation failed
             // For now, we just log the validation
             println!("Required validation rule '{}' passed", rule.name);
@@ -3134,7 +3348,7 @@ impl GitWorkflow {
             }
         }
 
-        if rule.required && rule.severity == crate::git::history::ValidationSeverity::Error {
+        if rule.required && rule.severity == ValidationSeverity::Error {
             // For required rules with error severity, we would fail here if validation failed
             println!("Required hotfix validation rule '{}' passed", rule.name);
         }

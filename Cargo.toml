@@ -6,64 +6,10 @@ authors = ["Cory Parent <cory.parent@gmail.com>"]
 license = "Apache-2.0"
 repository = "https://github.com/fugue-ai/rhema"
 homepage = "https://github.com/fugue-ai/rhema"
-documentation = "https://docs.rs/rhema"
+documentation = "https://fugue-ai.github.io/rhema"
 readme = "README.md"
 keywords = ["git", "ai", "context", "yaml", "protocol", "agent", "cli"]
 categories = ["command-line-utilities", "development-tools", "configuration"]
-
-[lib]
-path = "crates/rhema-api/src/lib.rs"
-
-[[bin]]
-name = "rhema"
-path = "runtime/rhema-cli/main.rs"
-
-[workspace]
-resolver = "2"
-members = [
-    "crates/rhema-core",
-    "crates/rhema-query", 
-    "crates/rhema-git",
-    "crates/rhema-ai",
-    "crates/rhema-mcp",
-    "crates/rhema-config",
-    "crates/rhema-monitoring",
-    "crates/rhema-integrations",
-    "crates/rhema-api",
-    "runtime/rhema-cli",
-    "runtime/rhema-agent",
-    "runtime/rhema-mcp",
-    "crates/rhema-action",
-    "crates/rhema-dependency",
-    "crates/rhema-locomo",
-    "crates/rhema-knowledge",
-    "crates/rhema-agent",
-    "crates/rhema-action-tool",
-    "crates/action-agents/code-review-agent",
-    "crates/action-agents/test-runner-agent",
-    "crates/action-agents/deployment-agent",
-    "crates/action-agents/documentation-agent",
-    "crates/action-agents/monitoring-agent",
-    "crates/action-tools/jscodeshift-tool",
-    "crates/action-tools/comby-tool",
-    "crates/action-tools/ast-grep-tool",
-    "crates/action-tools/prettier-tool",
-    "crates/action-tools/eslint-tool",
-    "crates/action-tools/typescript-tool",
-    "crates/action-tools/jest-tool",
-    "crates/action-tools/mocha-tool",
-    "crates/action-tools/pytest-tool",
-    "crates/action-tools/cargo-tool",
-    "crates/action-tools/syntax-validation-tool",
-    "crates/action-tools/type-checking-tool",
-    "crates/action-tools/test-coverage-tool",
-    "crates/action-tools/security-scanning-tool",
-    "crates/syneidesis/coordination",
-    "crates/syneidesis/grpc",
-    "crates/syneidesis/config",
-    "crates/syneidesis/core",
-    "crates/syneidesis/agent"
-]
 
 [workspace.package]
 version = "0.1.0"
@@ -180,32 +126,12 @@ tokio-util = "0.7"
 tokio-tungstenite = "0.20"
 prost = "0.12"
 
-[dev-dependencies]
-tempfile = "3.8"
-assert_fs = "1.1"
-predicates = "3.0"
-mockall = "0.12"
-criterion = { version = "0.5", features = ["html_reports"] }
-proptest = "1.3"
-quickcheck = "1.0"
-test-case = "3.3"
-rstest = "0.18"
-insta = "1.34"
-snapbox = "0.5"
-trycmd = "0.15"
-env_logger = "0.10"
-rand = "0.8"
-git2 = "0.18"
-async-trait = "0.1"
-futures = "0.3"
-
-
 [dependencies]
 # Internal crates
 rhema-core = { path = "crates/rhema-core" }
 rhema-query = { path = "crates/rhema-query" }
 rhema-git = { path = "crates/rhema-git" }
-rhema-ai = { path = "crates/rhema-ai" }
+rhema-coordination = { path = "crates/rhema-coordination" }
 rhema-mcp = { path = "crates/rhema-mcp" }
 rhema-config = { path = "crates/rhema-config" }
 rhema-monitoring = { path = "crates/rhema-monitoring" }
@@ -243,6 +169,25 @@ syneidesis-coordination = { workspace = true }
 tracing = "0.1"
 hyper = "1"
 
+[dev-dependencies]
+tempfile = "3.8"
+assert_fs = "1.1"
+predicates = "3.0"
+mockall = "0.12"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.3"
+quickcheck = "1.0"
+test-case = "3.3"
+rstest = "0.18"
+insta = "1.34"
+snapbox = "0.5"
+trycmd = "0.15"
+env_logger = "0.10"
+rand = "0.8"
+git2 = "0.18"
+async-trait = "0.1"
+futures = "0.3"
+
 [profile.release]
 opt-level = 3
 lto = true
@@ -265,3 +210,10 @@ path = "examples/testing/core_unit_tests.rs"
 [[example]]
 name = "simple_coordination_example"
 path = "crates/rhema-api/examples/simple_coordination_example.rs" 
+[[bin]]
+name = "rhema"
+path = "runtime/rhema-cli/main.rs"
+
+[lib]
+path = "crates/rhema-api/src/lib.rs"
+

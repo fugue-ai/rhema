@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema_ai::{
+use rhema_coordination::{
     AgenticDevelopmentService, CoordinationConfig, AgentInfo, AgentStatus, AgentMessage,
     MessageType, MessagePriority
 };
@@ -69,7 +69,7 @@ async fn basic_integration_example() -> RhemaResult<()> {
         capabilities: vec!["code_review".to_string(), "testing".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+        performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
     };
     
     // Register agent with both Rhema and Coordination
@@ -150,7 +150,7 @@ async fn advanced_configuration_example() -> RhemaResult<()> {
             capabilities: vec!["code_review".to_string(), "security_analysis".to_string()],
             last_heartbeat: chrono::Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
         },
         AgentInfo {
             id: "test-runner".to_string(),
@@ -162,7 +162,7 @@ async fn advanced_configuration_example() -> RhemaResult<()> {
             capabilities: vec!["unit_testing".to_string(), "integration_testing".to_string()],
             last_heartbeat: chrono::Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
         },
         AgentInfo {
             id: "deployment-manager".to_string(),
@@ -174,7 +174,7 @@ async fn advanced_configuration_example() -> RhemaResult<()> {
             capabilities: vec!["deployment".to_string(), "rollback".to_string()],
             last_heartbeat: chrono::Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
         },
     ];
     
@@ -280,7 +280,7 @@ async fn multi_agent_coordination_example() -> RhemaResult<()> {
             capabilities,
             last_heartbeat: chrono::Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
         };
         
         service.register_agent_with_coordination(agent_info).await?;

@@ -4,33 +4,53 @@ dictionaryDefinitions: []
 dictionaries: []
 words:
   - actix
+  - appender
   - beforeunload
   - catthehacker
   - checkpointing
   - chrono
+  - codegen
   - cpus
   - dashmap
+  - dialoguer
+  - flate
   - hnsw
   - iconify
+  - indicatif
+  - insta
   - kitdocs
   - LOCOMO
   - mathjax
   - metadatas
   - minmax
+  - mockall
+  - nocapture
   - onclick
+  - proptest
+  - prost
   - Qdrant
+  - quickcheck
   - reqwest
+  - rstest
+  - rustyline
   - Segoe
   - serde
+  - shellexpand
   - shiki
+  - snapbox
   - svelteness
   - Syneidesis
+  - syntect
   - Tahoma
   - thiserror
+  - trycmd
+  - tungstenite
   - unplugin
   - unrs
   - Verdana
   - vite
   - vitest
+  - walkdir
+  - zstd
 ignoreWords: []
 import: []

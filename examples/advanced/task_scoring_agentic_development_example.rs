@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema_ai::{
+use rhema_coordination::{
     AgenticDevelopmentService, Task, TaskPriority, TaskStatus, TaskType, TaskScoringFactors,
     TaskComplexity, PrioritizationStrategy, ConstraintContext, AgentInfo, AgentStatus,
     AgentMessage, MessageType, MessagePriority, ConflictType, ResolutionStrategy,
@@ -79,8 +79,8 @@ async fn demo_constraint_system(service: &mut AgenticDevelopmentService) -> Resu
         active: true,
         created_at: Utc::now(),
         modified_at: Utc::now(),
-        parameters: rhema_ai::agent::constraint_system::ConstraintParameters {
-            resource: Some(rhema_ai::agent::constraint_system::ResourceConstraint {
+        parameters: rhema_coordination::agent::constraint_system::ConstraintParameters {
+            resource: Some(rhema_coordination::agent::constraint_system::ResourceConstraint {
                 max_cpu_percent: Some(80.0),
                 max_memory_mb: Some(2048),
                 max_disk_mb: Some(10240),
@@ -113,9 +113,9 @@ async fn demo_constraint_system(service: &mut AgenticDevelopmentService) -> Resu
         active: true,
         created_at: Utc::now(),
         modified_at: Utc::now(),
-        parameters: rhema_ai::agent::constraint_system::ConstraintParameters {
+        parameters: rhema_coordination::agent::constraint_system::ConstraintParameters {
             resource: None,
-            file_access: Some(rhema_ai::agent::constraint_system::FileAccessConstraint {
+            file_access: Some(rhema_coordination::agent::constraint_system::FileAccessConstraint {
                 allowed_patterns: vec!["src/**/*.rs".to_string(), "tests/**/*.rs".to_string()],
                 denied_patterns: vec!["**/secrets/**".to_string(), "**/config/prod/**".to_string()],
                 read_only_files: vec!["README.md".to_string()],
@@ -318,7 +318,7 @@ async fn demo_real_time_coordination(service: &mut AgenticDevelopmentService) ->
             capabilities: vec!["react".to_string(), "typescript".to_string(), "ui-design".to_string()],
             last_heartbeat: Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics {
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics {
                 tasks_completed: 15,
                 tasks_failed: 1,
                 avg_completion_time_seconds: 3600.0,
@@ -337,7 +337,7 @@ async fn demo_real_time_coordination(service: &mut AgenticDevelopmentService) ->
             capabilities: vec!["rust".to_string(), "postgresql".to_string(), "api-design".to_string()],
             last_heartbeat: Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics {
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics {
                 tasks_completed: 22,
                 tasks_failed: 2,
                 avg_completion_time_seconds: 4800.0,
@@ -356,7 +356,7 @@ async fn demo_real_time_coordination(service: &mut AgenticDevelopmentService) ->
             capabilities: vec!["security-audit".to_string(), "penetration-testing".to_string(), "compliance".to_string()],
             last_heartbeat: Utc::now(),
             is_online: true,
-            performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics {
+            performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics {
                 tasks_completed: 8,
                 tasks_failed: 0,
                 avg_completion_time_seconds: 2400.0,
@@ -442,13 +442,13 @@ async fn demo_conflict_prevention(service: &mut AgenticDevelopmentService) -> Re
     service.conflict_prevention_system.track_file_access(
         PathBuf::from("src/auth/mod.rs"),
         "agent-security".to_string(),
-        rhema_ai::agent::conflict_prevention::FileAccessType::Write,
+        rhema_coordination::agent::conflict_prevention::FileAccessType::Write,
     );
 
     service.conflict_prevention_system.track_file_access(
         PathBuf::from("src/auth/mod.rs"),
         "agent-backend".to_string(),
-        rhema_ai::agent::conflict_prevention::FileAccessType::Write,
+        rhema_coordination::agent::conflict_prevention::FileAccessType::Write,
     );
 
     // Track dependency usage conflicts
@@ -512,18 +512,18 @@ async fn demo_conflict_prevention(service: &mut AgenticDevelopmentService) -> Re
     }
 
     // Add prevention rules
-    let prevention_rule = rhema_ai::agent::conflict_prevention::PreventionRule {
+    let prevention_rule = rhema_coordination::agent::conflict_prevention::PreventionRule {
         id: "file-access-rule".to_string(),
         name: "File Access Prevention Rule".to_string(),
         description: "Prevent concurrent modifications to critical files".to_string(),
-        rule_type: rhema_ai::agent::conflict_prevention::PreventionRuleType::FileAccess,
-        conditions: vec![rhema_ai::agent::conflict_prevention::RuleCondition {
+        rule_type: rhema_coordination::agent::conflict_prevention::PreventionRuleType::FileAccess,
+        conditions: vec![rhema_coordination::agent::conflict_prevention::RuleCondition {
             condition_type: "concurrent_file_access".to_string(),
             parameters: HashMap::new(),
             operator: "greater_than".to_string(),
             value: serde_json::json!(1),
         }],
-        actions: vec![rhema_ai::agent::conflict_prevention::RuleAction {
+        actions: vec![rhema_coordination::agent::conflict_prevention::RuleAction {
             action_type: "notify_agents".to_string(),
             parameters: HashMap::new(),
             priority: 1,

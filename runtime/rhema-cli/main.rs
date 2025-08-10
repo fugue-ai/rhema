@@ -15,7 +15,7 @@
  */
 
 use clap::{Parser, Subcommand};
-use rhema_ai::agent::real_time_coordination::{
+use rhema_coordination::agent::real_time_coordination::{
     AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType, RealTimeCoordinationSystem,
 };
 use rhema_api::{Rhema, RhemaResult};
@@ -982,7 +982,7 @@ async fn register_agent(
         capabilities: capabilities_vec,
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema_ai::agent::real_time_coordination::AgentPerformanceMetrics {
+                    performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics {
             tasks_completed: 0,
             tasks_failed: 0,
             avg_completion_time_seconds: 0.0,

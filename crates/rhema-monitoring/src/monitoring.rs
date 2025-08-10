@@ -104,27 +104,27 @@ impl MonitoringService {
             .unwrap(),
 
             ai_requests_total: Counter::new(
-                "rhema_ai_requests_total",
+                "rhema_coordination_requests_total",
                 "Total number of AI service requests",
             )
             .unwrap(),
             ai_requests_duration: Histogram::with_opts(HistogramOpts::new(
-                "rhema_ai_requests_duration_seconds",
+                "rhema_coordination_requests_duration_seconds",
                 "AI request duration in seconds",
             ))
             .unwrap(),
             ai_cache_hits: Counter::new(
-                "rhema_ai_cache_hits_total",
+                "rhema_coordination_cache_hits_total",
                 "Total number of AI cache hits",
             )
             .unwrap(),
             ai_cache_misses: Counter::new(
-                "rhema_ai_cache_misses_total",
+                "rhema_coordination_cache_misses_total",
                 "Total number of AI cache misses",
             )
             .unwrap(),
             ai_model_memory_usage: Gauge::new(
-                "rhema_ai_model_memory_bytes",
+                "rhema_coordination_model_memory_bytes",
                 "AI model memory usage in bytes",
             )
             .unwrap(),

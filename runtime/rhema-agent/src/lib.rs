@@ -2,7 +2,7 @@
 // and re-exported through the main mod.rs file
 
 // Re-export types from other crates for convenience
-pub use rhema_ai::context_injection::{ContextInjectionRule, EnhancedContextInjector, TaskType};
+pub use rhema_coordination::context_injection::{ContextInjectionRule, EnhancedContextInjector, TaskType};
 pub use rhema_config::{Config, GlobalConfig, RepositoryConfig};
 pub use rhema_core::{
     file_ops, schema::*, scope, JsonSchema, RhemaError, RhemaResult, SchemaMigratable, Validatable,
@@ -29,7 +29,7 @@ pub struct Rhema {
 impl Rhema {
     /// Create a new Rhema instance for the current repository
     pub fn new() -> RhemaResult<Self> {
-        let repo_root = rhema_core::git_basic::find_repo_root()?;
+        let repo_root = rhema_core::utils::find_repo_root()?;
         Ok(Self { repo_root })
     }
 

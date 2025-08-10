@@ -1,7 +1,6 @@
 pub mod git;
-pub mod git_basic;
+pub mod utils;
 pub mod git_hooks;
-pub mod workflow_templates;
 
 // Re-export version management types
 pub use git::version_management::{
@@ -13,7 +12,7 @@ use rhema_core::RhemaResult;
 use std::path::Path;
 
 // Re-export the basic types that the CLI needs
-pub use git_basic::*;
+pub use utils::*;
 
 /// Create an advanced Git integration instance
 pub fn create_advanced_git_integration(repo_path: &Path) -> RhemaResult<AdvancedGitIntegration> {

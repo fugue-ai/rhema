@@ -1,6 +1,6 @@
 use crate::{load_prompts, save_prompts};
 use crate::{Rhema, RhemaError, RhemaResult};
-use rhema_ai::context_injection::{EnhancedContextInjector, TaskType};
+use rhema_coordination::context_injection::{EnhancedContextInjector, TaskType};
 
 // PromptSubcommands will be defined in this module
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema_ai::{
+use rhema_coordination::{
     ProductionAIService, ProductionConfig, PersistenceConfig, DistributedConfig,
     AdvancedFeaturesConfig, CoordinationConfig, MonitoringConfig, SecurityConfig, LoggingConfig,
     AIServiceConfig, ApiConfig, ModelConfig, RateLimitingConfig, CachingConfig, AgentManagementConfig,
@@ -194,7 +194,7 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
     let mut model_overrides = HashMap::new();
     model_overrides.insert(
         "gpt-4".to_string(),
-        rhema_ai::production_config::ModelOverride {
+        rhema_coordination::production_config::ModelOverride {
             version: "gpt-4-turbo-preview".to_string(),
             max_tokens: 4096,
             temperature: 0.7,
@@ -226,13 +226,13 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
                 rate_limit_per_hour: 1000,
                 rate_limit_per_day: 10000,
                 burst_limit: 10,
-                storage_backend: rhema_ai::production_config::RateLimitStorageBackend::Memory,
+                storage_backend: rhema_coordination::production_config::RateLimitStorageBackend::Memory,
             },
             caching: CachingConfig {
                 enabled: true,
                 ttl_seconds: 3600, // 1 hour
                 max_size_bytes: 100 * 1024 * 1024, // 100MB
-                storage_backend: rhema_ai::production_config::CacheStorageBackend::Memory,
+                storage_backend: rhema_coordination::production_config::CacheStorageBackend::Memory,
                 enable_warming: false,
                 warming_interval_seconds: 300,
             },
@@ -261,7 +261,7 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
             data_retention_days: 90,
         },
         distributed: Some(DistributedConfig {
-            node: rhema_ai::distributed::NodeConfig {
+            node: rhema_coordination::distributed::NodeConfig {
                 node_id: uuid::Uuid::new_v4().to_string(),
                 name: "rhema-node-1".to_string(),
                 address: "127.0.0.1:8080".parse().unwrap(),
@@ -269,7 +269,7 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
                 capabilities: vec!["coordination".to_string(), "ai_service".to_string()],
                 metadata: HashMap::new(),
             },
-            cluster: rhema_ai::distributed::ClusterConfig {
+            cluster: rhema_coordination::distributed::ClusterConfig {
                 name: "rhema-cluster".to_string(),
                 cluster_id: uuid::Uuid::new_v4().to_string(),
                 min_nodes: 1,
@@ -280,14 +280,14 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
                 enable_leader_election: true,
                 leader_election_timeout_seconds: 60,
             },
-            discovery: rhema_ai::distributed::DiscoveryConfig {
+            discovery: rhema_coordination::distributed::DiscoveryConfig {
                 method: DiscoveryMethod::Multicast,
                 multicast_address: Some("224.0.0.1:8081".parse().unwrap()),
                 static_nodes: Vec::new(),
                 discovery_interval_seconds: 30,
                 discovery_timeout_seconds: 10,
             },
-            load_balancing: rhema_ai::distributed::LoadBalancingConfig {
+            load_balancing: rhema_coordination::distributed::LoadBalancingConfig {
                 strategy: LoadBalancingStrategy::RoundRobin,
                 enable_health_aware_routing: true,
                 enable_sticky_sessions: false,
@@ -295,7 +295,7 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
                 max_retry_attempts: 3,
                 retry_delay_ms: 1000,
             },
-            health_checking: rhema_ai::distributed::HealthCheckingConfig {
+            health_checking: rhema_coordination::distributed::HealthCheckingConfig {
                 interval_seconds: 30,
                 timeout_seconds: 5,
                 failure_threshold: 3,
@@ -304,7 +304,7 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
                 enable_tcp_checks: true,
                 enable_http_checks: true,
             },
-            service_registry: rhema_ai::distributed::ServiceRegistryConfig {
+            service_registry: rhema_coordination::distributed::ServiceRegistryConfig {
                 backend: RegistryBackend::Consul,
                 address: "http://localhost:8500".to_string(),
                 credentials: None,
@@ -313,46 +313,46 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
             },
         }),
         advanced_features: AdvancedFeaturesConfig {
-            compression: rhema_ai::advanced_features::CompressionConfig {
+            compression: rhema_coordination::advanced_features::CompressionConfig {
                 algorithm: CompressionAlgorithm::Lz4,
                 level: 6,
                 threshold_bytes: 1024,
                 enable_adaptive: true,
                 enable_metrics: true,
             },
-            key_management: rhema_ai::advanced_features::KeyManagementConfig {
-                rotation_policy: rhema_ai::advanced_features::KeyRotationPolicy {
+            key_management: rhema_coordination::advanced_features::KeyManagementConfig {
+                rotation_policy: rhema_coordination::advanced_features::KeyRotationPolicy {
                     enabled: true,
                     interval_hours: 24 * 7, // 1 week
                     method: KeyRotationMethod::Automatic,
                     notification_enabled: true,
                 },
                 storage: KeyStorage::File(PathBuf::from("./keys")),
-                backup: rhema_ai::advanced_features::KeyBackupConfig {
+                backup: rhema_coordination::advanced_features::KeyBackupConfig {
                     enabled: true,
                     location: PathBuf::from("./backups/keys"),
                     encryption_enabled: true,
                     frequency_hours: 24,
                     retention_days: 30,
                 },
-                recovery: rhema_ai::advanced_features::KeyRecoveryConfig {
+                recovery: rhema_coordination::advanced_features::KeyRecoveryConfig {
                     enabled: true,
-                    method: rhema_ai::advanced_features::KeyRecoveryMethod::ShamirSecretSharing,
+                    method: rhema_coordination::advanced_features::KeyRecoveryMethod::ShamirSecretSharing,
                     verification_enabled: true,
                     timeout_seconds: 300,
                 },
             },
-            encryption: rhema_ai::advanced_features::EncryptionConfig {
+            encryption: rhema_coordination::advanced_features::EncryptionConfig {
                 algorithm: EncryptionAlgorithm::AES256,
                 key_rotation_hours: 24 * 7, // 1 week
                 enable_e2e_encryption: true,
                 certificate_path: None,
                 private_key_path: None,
             },
-            performance_monitoring: rhema_ai::advanced_features::PerformanceMonitoringConfig {
+            performance_monitoring: rhema_coordination::advanced_features::PerformanceMonitoringConfig {
                 enabled: true,
                 metrics_interval_seconds: 60,
-                thresholds: rhema_ai::advanced_features::PerformanceThresholds {
+                thresholds: rhema_coordination::advanced_features::PerformanceThresholds {
                     max_compression_ratio: 0.8,
                     max_encryption_overhead_percent: 10.0,
                     max_key_rotation_time_seconds: 60,
@@ -363,8 +363,8 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
         },
         coordination: CoordinationConfig {
             enabled: true,
-            system: rhema_ai::agent::real_time_coordination::CoordinationConfig::default(),
-            advanced: Some(rhema_ai::agent::real_time_coordination::AdvancedCoordinationConfig::default()),
+            system: rhema_coordination::agent::real_time_coordination::CoordinationConfig::default(),
+            advanced: Some(rhema_coordination::agent::real_time_coordination::AdvancedCoordinationConfig::default()),
             syneidesis: None,
         },
         monitoring: MonitoringConfig {
@@ -374,7 +374,7 @@ fn create_production_config() -> rhema_core::RhemaResult<ProductionConfig> {
             enable_health_checks: true,
             health_check_interval_seconds: 30,
             enable_alerting: true,
-            alert_thresholds: rhema_ai::production_config::AlertThresholds {
+            alert_thresholds: rhema_coordination::production_config::AlertThresholds {
                 max_response_time_ms: 5000,
                 max_error_rate_percent: 5.0,
                 max_memory_usage_percent: 80.0,

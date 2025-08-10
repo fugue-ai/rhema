@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use rhema_ai::{
+use rhema_coordination::{
     AIService, AIServiceConfig, AIRequest, AIResponse,
     CoordinationIntegration, CoordinationConfig,
     ProductionIntegration, ProductionConfig,
@@ -125,7 +125,7 @@ async fn setup_coordination_integration() -> RhemaResult<CoordinationIntegration
     };
 
     let coordination = CoordinationIntegration::new(
-        rhema_ai::agent::real_time_coordination::RealTimeCoordinationSystem::new(),
+        rhema_coordination::agent::real_time_coordination::RealTimeCoordinationSystem::new(),
         Some(config)
     ).await?;
     
@@ -143,31 +143,31 @@ async fn setup_production_integration(
     let config = ProductionConfig {
         production_mode: true,
         health_check_interval: 30,
-        circuit_breaker: rhema_ai::production_integration::CircuitBreakerConfig {
+        circuit_breaker: rhema_coordination::production_integration::CircuitBreakerConfig {
             failure_threshold: 5,
             timeout_seconds: 60,
             success_threshold: 2,
             enabled: true,
         },
-        load_balancing: rhema_ai::production_integration::LoadBalancingConfig {
-            strategy: rhema_ai::production_integration::LoadBalancingStrategy::RoundRobin,
+        load_balancing: rhema_coordination::production_integration::LoadBalancingConfig {
+            strategy: rhema_coordination::production_integration::LoadBalancingStrategy::RoundRobin,
             max_concurrent_per_node: 100,
             health_check_enabled: true,
             enabled: true,
         },
-        monitoring: rhema_ai::production_integration::MonitoringConfig {
+        monitoring: rhema_coordination::production_integration::MonitoringConfig {
             enable_metrics: true,
             enable_tracing: true,
             enable_logging: true,
             metrics_export_interval: 60,
-            alert_thresholds: rhema_ai::production_integration::AlertThresholds {
+            alert_thresholds: rhema_coordination::production_integration::AlertThresholds {
                 error_rate_threshold: 0.1,
                 latency_threshold_ms: 1000,
                 memory_usage_threshold: 0.8,
                 cpu_usage_threshold: 0.8,
             },
         },
-        scaling: rhema_ai::production_integration::ScalingConfig {
+        scaling: rhema_coordination::production_integration::ScalingConfig {
             auto_scaling_enabled: false,
             min_instances: 1,
             max_instances: 10,
@@ -175,7 +175,7 @@ async fn setup_production_integration(
             scale_down_threshold: 0.3,
             cooldown_seconds: 300,
         },
-        security: rhema_ai::production_integration::SecurityConfig {
+        security: rhema_coordination::production_integration::SecurityConfig {
             enable_auth: false,
             enable_authorization: false,
             rate_limiting_enabled: true,
@@ -224,18 +224,18 @@ async fn create_pattern_templates(engine: &PatternCompositionEngine) -> RhemaRes
         parameters: HashMap::from([
             ("reviewers_count".to_string(), TemplateParameter {
                 name: "reviewers_count".to_string(),
-                parameter_type: rhema_ai::agent::patterns::composition::ParameterType::Integer,
+                parameter_type: rhema_coordination::agent::patterns::composition::ParameterType::Integer,
                 default_value: Some(json!(2)),
                 required: true,
                 description: "Number of reviewers required".to_string(),
                 validation_rules: vec![
-                    rhema_ai::agent::patterns::composition::ValidationRule {
-                        rule_type: rhema_ai::agent::patterns::composition::ValidationRuleType::MinValue,
+                    rhema_coordination::agent::patterns::composition::ValidationRule {
+                        rule_type: rhema_coordination::agent::patterns::composition::ValidationRuleType::MinValue,
                         value: json!(1),
                         error_message: "At least 1 reviewer required".to_string(),
                     },
-                    rhema_ai::agent::patterns::composition::ValidationRule {
-                        rule_type: rhema_ai::agent::patterns::composition::ValidationRuleType::MaxValue,
+                    rhema_coordination::agent::patterns::composition::ValidationRule {
+                        rule_type: rhema_coordination::agent::patterns::composition::ValidationRuleType::MaxValue,
                         value: json!(5),
                         error_message: "Maximum 5 reviewers allowed".to_string(),
                     },
@@ -243,13 +243,13 @@ async fn create_pattern_templates(engine: &PatternCompositionEngine) -> RhemaRes
             }),
             ("review_timeout_hours".to_string(), TemplateParameter {
                 name: "review_timeout_hours".to_string(),
-                parameter_type: rhema_ai::agent::patterns::composition::ParameterType::Integer,
+                parameter_type: rhema_coordination::agent::patterns::composition::ParameterType::Integer,
                 default_value: Some(json!(24)),
                 required: false,
                 description: "Review timeout in hours".to_string(),
                 validation_rules: vec![
-                    rhema_ai::agent::patterns::composition::ValidationRule {
-                        rule_type: rhema_ai::agent::patterns::composition::ValidationRuleType::MinValue,
+                    rhema_coordination::agent::patterns::composition::ValidationRule {
+                        rule_type: rhema_coordination::agent::patterns::composition::ValidationRuleType::MinValue,
                         value: json!(1),
                         error_message: "Minimum 1 hour timeout".to_string(),
                     },
@@ -289,7 +289,7 @@ async fn create_pattern_templates(engine: &PatternCompositionEngine) -> RhemaRes
         parameters: HashMap::from([
             ("test_types".to_string(), TemplateParameter {
                 name: "test_types".to_string(),
-                parameter_type: rhema_ai::agent::patterns::composition::ParameterType::Array,
+                parameter_type: rhema_coordination::agent::patterns::composition::ParameterType::Array,
                 default_value: Some(json!(["unit", "integration"])),
                 required: true,
                 description: "Types of tests to run".to_string(),
@@ -334,16 +334,16 @@ async fn create_composition_rules(engine: &PatternCompositionEngine) -> RhemaRes
         description: "Automatically add testing pattern after code review".to_string(),
         priority: 1,
         conditions: vec![
-            rhema_ai::agent::patterns::composition::CompositionCondition {
-                condition_type: rhema_ai::agent::patterns::composition::ConditionType::PatternExists,
+            rhema_coordination::agent::patterns::composition::CompositionCondition {
+                condition_type: rhema_coordination::agent::patterns::composition::ConditionType::PatternExists,
                 parameters: HashMap::from([
                     ("pattern_id".to_string(), json!("code_review_template")),
                 ]),
             },
         ],
         actions: vec![
-            rhema_ai::agent::patterns::composition::CompositionAction {
-                action_type: rhema_ai::agent::patterns::composition::ActionType::AddPattern,
+            rhema_coordination::agent::patterns::composition::CompositionAction {
+                action_type: rhema_coordination::agent::patterns::composition::ActionType::AddPattern,
                 parameters: HashMap::from([
                     ("pattern_id".to_string(), json!("testing_template")),
                 ]),
@@ -361,16 +361,16 @@ async fn create_composition_rules(engine: &PatternCompositionEngine) -> RhemaRes
         description: "Add monitoring for patterns with high complexity".to_string(),
         priority: 2,
         conditions: vec![
-            rhema_ai::agent::patterns::composition::CompositionCondition {
-                condition_type: rhema_ai::agent::patterns::composition::ConditionType::Custom,
+            rhema_coordination::agent::patterns::composition::CompositionCondition {
+                condition_type: rhema_coordination::agent::patterns::composition::ConditionType::Custom,
                 parameters: HashMap::from([
                     ("complexity_threshold".to_string(), json!(7)),
                 ]),
             },
         ],
         actions: vec![
-            rhema_ai::agent::patterns::composition::CompositionAction {
-                action_type: rhema_ai::agent::patterns::composition::ActionType::AddConstraint,
+            rhema_coordination::agent::patterns::composition::CompositionAction {
+                action_type: rhema_coordination::agent::patterns::composition::ActionType::AddConstraint,
                 parameters: HashMap::from([
                     ("constraint_type".to_string(), json!("monitoring")),
                 ]),
@@ -501,11 +501,11 @@ async fn demonstrate_pattern_composition(
         constraints: vec![],
         state: PatternState {
             pattern_id: "composed-pattern".to_string(),
-            phase: rhema_ai::agent::patterns::PatternPhase::Initializing,
+            phase: rhema_coordination::agent::patterns::PatternPhase::Initializing,
             started_at: Utc::now(),
             ended_at: None,
             progress: 0.0,
-            status: rhema_ai::agent::patterns::PatternStatus::Pending,
+            status: rhema_coordination::agent::patterns::PatternStatus::Pending,
             data: HashMap::new(),
         },
         config: Default::default(),
@@ -563,9 +563,9 @@ async fn demonstrate_advanced_validation(
         ],
         resources: Default::default(),
         constraints: vec![
-            rhema_ai::agent::patterns::Constraint {
+            rhema_coordination::agent::patterns::Constraint {
                 id: "constraint-1".to_string(),
-                constraint_type: rhema_ai::agent::patterns::ConstraintType::AgentCapability,
+                constraint_type: rhema_coordination::agent::patterns::ConstraintType::AgentCapability,
                 parameters: HashMap::from([
                     ("capability".to_string(), json!("advanced-review")),
                 ]),
@@ -652,7 +652,7 @@ async fn demonstrate_fault_tolerance(
     info!("🎯 Demonstrating Fault Tolerance...");
     
     // 1. Add nodes to load balancer
-    let node1 = rhema_ai::production_integration::NodeInfo {
+    let node1 = rhema_coordination::production_integration::NodeInfo {
         id: "node-1".to_string(),
         address: "localhost:8081".to_string(),
         weight: 1.0,
@@ -660,7 +660,7 @@ async fn demonstrate_fault_tolerance(
         max_capacity: 100,
     };
     
-    let node2 = rhema_ai::production_integration::NodeInfo {
+    let node2 = rhema_coordination::production_integration::NodeInfo {
         id: "node-2".to_string(),
         address: "localhost:8082".to_string(),
         weight: 1.0,

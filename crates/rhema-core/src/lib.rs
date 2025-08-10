@@ -1,6 +1,6 @@
 pub mod error;
 pub mod file_ops;
-pub mod git_basic;
+pub mod utils;
 pub mod lock;
 pub mod schema;
 pub mod scope;

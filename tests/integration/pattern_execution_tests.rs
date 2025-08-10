@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use rhema_ai::agent::patterns::{
+use rhema_coordination::agent::patterns::{
     AgentInfo, AgentPerformanceMetrics, AgentStatus, Constraint, ConstraintType,
     CoordinationPattern, CpuAllocator, MemoryPool, NetworkResources, PatternCategory,
     PatternConfig, PatternContext, PatternError, PatternExecutor, PatternMetadata,

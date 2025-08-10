@@ -1,13 +1,13 @@
-# Rhema AI Crate
+# Rhema Coordination Crate
 
-[![Crates.io](https://img.shields.io/crates/v/rhema-ai)](https://crates.io/crates/rhema-ai)
-[![Documentation](https://docs.rs/rhema-ai/badge.svg)](https://docs.rs/rhema-ai)
+[![Crates.io](https://img.shields.io/crates/v/rhema-coordination)](https://crates.io/crates/rhema-coordination)
+[![Documentation](https://docs.rs/rhema-coordination/badge.svg)](https://docs.rs/rhema-coordination)
 
 Advanced AI agent coordination, conflict prevention, constraint systems, and intelligent context injection for Rhema.
 
 ## Overview
 
-The `rhema-ai` crate provides a comprehensive AI-powered development platform for Rhema, featuring intelligent agent coordination, advanced conflict prevention with ML-based prediction, constraint systems, and enhanced context injection capabilities. It enables sophisticated AI agent interactions and context-aware development assistance with production-ready features.
+The `rhema-coordination` crate provides a comprehensive AI-powered development platform for Rhema, featuring intelligent agent coordination, advanced conflict prevention with ML-based prediction, constraint systems, and enhanced context injection capabilities. It enables sophisticated AI agent interactions and context-aware development assistance with production-ready features.
 
 ## 🚀 Production-Ready Features
 
@@ -74,9 +74,9 @@ The `rhema-ai` crate provides a comprehensive AI-powered development platform fo
 ### Basic AI Service Setup
 
 ```rust
-use rhema_ai::ai_service::{AIService, AIServiceConfig};
-use rhema_ai::context_injection::{EnhancedContextInjector, TaskType};
-use rhema_ai::agent::real_time_coordination::{AgentInfo, AgentStatus};
+use rhema_coordination::ai_service::{AIService, AIServiceConfig};
+use rhema_coordination::context_injection::{EnhancedContextInjector, TaskType};
+use rhema_coordination::agent::real_time_coordination::{AgentInfo, AgentStatus};
 
 // Create AI service configuration
 let config = AIServiceConfig {
@@ -124,7 +124,7 @@ ai_service.register_agent_with_coordination(agent_info).await?;
 ### Advanced Context Injection
 
 ```rust
-use rhema_ai::context_injection::{EnhancedContextInjector, ContextOptimizationConfig, TaskType};
+use rhema_coordination::context_injection::{EnhancedContextInjector, ContextOptimizationConfig, TaskType};
 
 // Create enhanced context injector with custom configuration
 let config = ContextOptimizationConfig {
@@ -155,7 +155,7 @@ println!("Cache hit rate: {:.2}%", hit_rate * 100.0);
 ### Conflict Prevention with ML Prediction
 
 ```rust
-use rhema_ai::agent::advanced_conflict_prevention::{
+use rhema_coordination::agent::advanced_conflict_prevention::{
     AdvancedConflictPreventionSystem, AdvancedConflictPreventionConfig,
     ConflictPredictionModel, ConsensusConfig
 };
@@ -195,8 +195,8 @@ for prediction in predictions {
 ### Agentic Development Service
 
 ```rust
-use rhema_ai::AgenticDevelopmentService;
-use rhema_ai::agent::task_scoring::{Task, TaskPriority, TaskType, PrioritizationStrategy};
+use rhema_coordination::AgenticDevelopmentService;
+use rhema_coordination::agent::task_scoring::{Task, TaskPriority, TaskType, PrioritizationStrategy};
 
 // Create agentic development service
 let mut service = AgenticDevelopmentService::new(PathBuf::from("Cargo.lock"));

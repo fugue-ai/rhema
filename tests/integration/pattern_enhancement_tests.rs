@@ -1,12 +1,12 @@
 use chrono::Utc;
 use std::collections::HashMap;
 
-use rhema_ai::agent::patterns::{
+use rhema_coordination::agent::patterns::{
     AgentInfo, AgentStatus, Constraint, ConstraintType, CpuAllocator, MemoryPool, MonitoringConfig, NetworkResources, PatternCategory, PatternConfig,
     PatternMetadata, PatternPerformanceMetrics, PatternPhase, PatternState, PatternStatus,
     RecoveryStrategy, ResourcePool, ValidationResult,
 };
-use rhema_ai::agent::{
+use rhema_coordination::agent::{
     CoordinationPattern, PatternContext, PatternError, PatternExecutor, PatternRegistry,
     PatternResult,
 };
@@ -226,7 +226,7 @@ impl EnhancedTestFixture {
                     capabilities: vec!["enhanced_test".to_string(), "recovery".to_string()],
                     status: AgentStatus::Idle,
                     performance_metrics:
-                        rhema_ai::agent::patterns::AgentPerformanceMetrics::default(),
+                        rhema_coordination::agent::patterns::AgentPerformanceMetrics::default(),
                     current_workload: 0.0,
                     assigned_tasks: vec![],
                 },
@@ -236,7 +236,7 @@ impl EnhancedTestFixture {
                     capabilities: vec!["enhanced_test".to_string(), "monitoring".to_string()],
                     status: AgentStatus::Idle,
                     performance_metrics:
-                        rhema_ai::agent::patterns::AgentPerformanceMetrics::default(),
+                        rhema_coordination::agent::patterns::AgentPerformanceMetrics::default(),
                     current_workload: 0.0,
                     assigned_tasks: vec![],
                 },
@@ -446,7 +446,7 @@ async fn test_enhanced_pattern_monitoring_events() {
     let has_started = events.iter().any(|event| {
         matches!(
             event,
-            rhema_ai::agent::patterns::MonitoringEvent::PatternStarted { .. }
+            rhema_coordination::agent::patterns::MonitoringEvent::PatternStarted { .. }
         )
     });
     assert!(has_started);
@@ -454,7 +454,7 @@ async fn test_enhanced_pattern_monitoring_events() {
     let has_completed = events.iter().any(|event| {
         matches!(
             event,
-            rhema_ai::agent::patterns::MonitoringEvent::PatternCompleted { .. }
+            rhema_coordination::agent::patterns::MonitoringEvent::PatternCompleted { .. }
         )
     });
     assert!(has_completed);
@@ -754,7 +754,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
             enable_profiling: true,
             enable_resource_monitoring: true,
             enable_agent_monitoring: true,
-            alert_thresholds: rhema_ai::agent::patterns::AlertThresholds {
+            alert_thresholds: rhema_coordination::agent::patterns::AlertThresholds {
                 max_execution_time_seconds: 10.0,
                 max_memory_utilization: 0.8,
                 max_cpu_utilization: 0.7,
@@ -771,7 +771,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
             enable_profiling: false,
             enable_resource_monitoring: false,
             enable_agent_monitoring: false,
-            alert_thresholds: rhema_ai::agent::patterns::AlertThresholds {
+            alert_thresholds: rhema_coordination::agent::patterns::AlertThresholds {
                 max_execution_time_seconds: 300.0,
                 max_memory_utilization: 0.9,
                 max_cpu_utilization: 0.8,
@@ -787,7 +787,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
 
         // Create executor with specific config
         let registry = PatternRegistry::new();
-        let _monitor = rhema_ai::agent::patterns::PatternMonitor::new(config.clone());
+        let _monitor = rhema_coordination::agent::patterns::PatternMonitor::new(config.clone());
         let mut executor = PatternExecutor::new(registry);
 
         // Create a test context
@@ -797,7 +797,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
                 name: "Test Agent".to_string(),
                 capabilities: vec!["test".to_string()],
                 status: AgentStatus::Idle,
-                performance_metrics: rhema_ai::agent::patterns::AgentPerformanceMetrics::default(),
+                performance_metrics: rhema_coordination::agent::patterns::AgentPerformanceMetrics::default(),
                 current_workload: 0.0,
                 assigned_tasks: vec![],
             }],

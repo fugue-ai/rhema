@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-use rhema_ai::ai_service::{
+use rhema_coordination::ai_service::{
     AIService, AIServiceConfig, AIRequest, LockFileRequestContext, ConflictResolutionMode
 };
-use rhema_ai::agent::workflow_manager::{AIWorkflowManager, AIAgentTools, WorkflowConfig};
-use rhema_ai::context_injection::TaskType;
+use rhema_coordination::agent::workflow_manager::{AIWorkflowManager, AIAgentTools, WorkflowConfig};
+use rhema_coordination::context_injection::TaskType;
 use rhema_core::RhemaResult;
 use std::path::PathBuf;
 use std::sync::Arc;

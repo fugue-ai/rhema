@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use rhema_ai::agent::real_time_coordination::ConsensusAlgorithm;
-use rhema_ai::agent::real_time_coordination::EncryptionAlgorithm;
+use rhema_coordination::agent::real_time_coordination::ConsensusAlgorithm;
+use rhema_coordination::agent::real_time_coordination::EncryptionAlgorithm;
 use rhema_api::{
     AdvancedCoordinationConfig, AgentInfo, AgentMessage, AgentStatus, ConsensusConfig,
     CoordinationConfig, EncryptionConfig, FaultToleranceConfig, IntegrationConfig,
@@ -173,7 +173,7 @@ async fn test_advanced_coordination_integration() {
             enable_metrics: true,
             metrics_interval_seconds: 30,
             enable_alerts: true,
-            thresholds: rhema_ai::agent::real_time_coordination::PerformanceThresholds {
+            thresholds: rhema_coordination::agent::real_time_coordination::PerformanceThresholds {
                 max_message_latency_ms: 1000,
                 max_agent_response_time_ms: 500,
                 max_session_creation_time_ms: 2000,
@@ -423,7 +423,7 @@ async fn test_coordination_performance_monitoring() {
             enable_metrics: true,
             metrics_interval_seconds: 1, // Fast interval for testing
             enable_alerts: true,
-            thresholds: rhema_ai::agent::real_time_coordination::PerformanceThresholds {
+            thresholds: rhema_coordination::agent::real_time_coordination::PerformanceThresholds {
                 max_message_latency_ms: 1000,
                 max_agent_response_time_ms: 500,
                 max_session_creation_time_ms: 2000,

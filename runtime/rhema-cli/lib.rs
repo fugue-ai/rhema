@@ -21,7 +21,7 @@ pub use rhema_core::{error, file_ops, schema, scope, RhemaError, RhemaResult};
 pub use rhema_query::{query, repo_analysis};
 
 // Re-export AI service and context injection from the ai crate
-pub use rhema_ai::{ai_service, context_injection};
+pub use rhema_coordination::{ai_service, context_injection};
 
 // Re-export monitoring and performance from the monitoring crate
 pub use rhema_monitoring::{monitoring, performance};
@@ -68,7 +68,7 @@ pub struct Rhema {
 impl Rhema {
     /// Create a new Rhema instance for the current repository
     pub fn new() -> Result<Self> {
-        let repo_root = rhema_core::git_basic::find_repo_root()?;
+        let repo_root = rhema_core::utils::find_repo_root()?;
         Ok(Self { repo_root })
     }
 
