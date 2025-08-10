@@ -23,6 +23,7 @@ pub mod proactive;
 pub mod search;
 pub mod storage;
 pub mod synthesis;
+pub mod temporal;
 pub mod types;
 pub mod vector;
 
@@ -86,6 +87,18 @@ pub use ai_integration::{
     AIEnhancement, AIEnhancementType, AIInsight, AIInsightType, AIIntegration, AIIntegrationConfig,
     AIIntegrationMetrics, AIKnowledgeRequest, AIKnowledgeResponse, AIKnowledgeResult,
     KnowledgeSuggestion, KnowledgeSuggestionType, SuggestionPriority,
+};
+
+// Temporal module exports
+pub use temporal::{
+    TemporalContextManager, TemporalConfig, TemporalWeights, TemporalSearchQuery,
+    TemporalFilter, FreshnessPreference, SeasonalPreference, TimeRange, TimezoneContext,
+    TemporalEnhancedResult, TemporalContextRelationship, SeasonalPattern, DecayFunction,
+    AdaptiveDecayConfig, TemporalRelationshipType, CausalDirection, SeasonalPeriod,
+    ContentAccess, AccessType, TemporalRelevanceBreakdown, TemporalFactor, TemporalFactorType,
+    TemporalFilterBuilder, TemporalFilterUtils, TemporalFilterValidator,
+    TemporalRelevanceEngine, SeasonalPatternDetector, TimezoneAwareContextManager,
+    TemporalRelationshipDetector, TemporalSearchEnhancer,
 };
 
 // Error type conversions

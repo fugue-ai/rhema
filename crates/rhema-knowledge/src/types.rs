@@ -123,7 +123,7 @@ pub struct SemanticInfo {
 }
 
 /// Content type classification
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
 pub enum ContentType {
     Code,
     Documentation,
