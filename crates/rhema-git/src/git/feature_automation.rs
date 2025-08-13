@@ -313,6 +313,8 @@ impl FeatureAutomationManager {
         let context_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("context")
             .join(branch_name);
@@ -652,6 +654,8 @@ impl FeatureAutomationManager {
         let context_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("context")
             .join(branch_name);
@@ -660,6 +664,8 @@ impl FeatureAutomationManager {
         let base_context_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("context")
             .join(base_branch);
@@ -707,7 +713,7 @@ impl FeatureAutomationManager {
             .join(branch_name);
 
         // Load boundary rules from repository configuration
-        let boundary_rules_file = self.repo.path().join(".rhema").join("boundary_rules.json");
+        let boundary_rules_file = self.repo.path().parent().unwrap().join(".rhema").join("boundary_rules.json");
 
         if boundary_rules_file.exists() {
             let rules_content = std::fs::read_to_string(&boundary_rules_file)?;
@@ -724,7 +730,8 @@ impl FeatureAutomationManager {
                         if let Some(pattern) = rule_config.get("pattern") {
                             if let Some(pattern_str) = pattern.as_str() {
                                 // Check if branch name matches pattern
-                                if !self.matches_pattern(branch_name, pattern_str)? {
+                                let matches = self.matches_pattern(branch_name, pattern_str)?;
+                                if matches {
                                     if let Some(action) = rule_config.get("action") {
                                         if action.as_str() == Some("block") {
                                             return Err(RhemaError::ValidationError(format!(
@@ -752,6 +759,8 @@ impl FeatureAutomationManager {
             Ok(branch_name.starts_with("bugfix/"))
         } else if pattern.starts_with("hotfix/") {
             Ok(branch_name.starts_with("hotfix/"))
+        } else if pattern.starts_with("invalid/") {
+            Ok(branch_name.starts_with("invalid/"))
         } else if pattern == "*" {
             Ok(true)
         } else {
@@ -839,6 +848,8 @@ impl FeatureAutomationManager {
         let context_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("context")
             .join(branch_name);
@@ -878,6 +889,8 @@ impl FeatureAutomationManager {
         let context_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("context")
             .join(branch_name);
@@ -915,6 +928,8 @@ impl FeatureAutomationManager {
         let context_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("context")
             .join(branch_name);
@@ -1008,7 +1023,7 @@ impl FeatureAutomationManager {
     }
 
     fn check_filesystem_health(&self) -> RhemaResult<()> {
-        let repo_path = self.repo.path();
+        let repo_path = self.repo.path().parent().unwrap();
 
         // Check if repository directory is accessible
         if let Err(_) = std::fs::metadata(repo_path) {
@@ -1031,7 +1046,7 @@ impl FeatureAutomationManager {
     }
 
     fn validate_dependencies(&self, branch_name: &str) -> RhemaResult<()> {
-        let repo_path = self.repo.path();
+        let repo_path = self.repo.path().parent().unwrap();
 
         // Check Cargo.toml dependencies
         let cargo_toml = repo_path.join("Cargo.toml");
@@ -1140,7 +1155,7 @@ impl FeatureAutomationManager {
     }
 
     fn validate_security(&self, branch_name: &str) -> RhemaResult<()> {
-        let repo_path = self.repo.path();
+        let repo_path = self.repo.path().parent().unwrap();
 
         // Check for secrets in code
         self.check_for_secrets_in_code(repo_path)?;
@@ -1321,7 +1336,7 @@ impl FeatureAutomationManager {
     }
 
     fn validate_performance(&self, branch_name: &str) -> RhemaResult<()> {
-        let repo_path = self.repo.path();
+        let repo_path = self.repo.path().parent().unwrap();
 
         // Check for performance anti-patterns
         self.check_performance_anti_patterns(repo_path)?;
@@ -1479,7 +1494,7 @@ impl FeatureAutomationManager {
         // Run tests using cargo test
         let output = Command::new("cargo")
             .args(&["test"])
-            .current_dir(self.repo.path())
+            .current_dir(self.repo.path().parent().unwrap())
             .output()?;
 
         if !output.status.success() {
@@ -1495,7 +1510,7 @@ impl FeatureAutomationManager {
         let output = Command::new("sh")
             .arg("-c")
             .arg(command)
-            .current_dir(self.repo.path())
+            .current_dir(self.repo.path().parent().unwrap())
             .output()?;
 
         if !output.status.success() {
@@ -1805,6 +1820,8 @@ impl FeatureAutomationManager {
         let context_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("context")
             .join(branch_name);
@@ -1818,6 +1835,8 @@ impl FeatureAutomationManager {
         let temp_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("temp")
             .join(branch_name);
@@ -1828,7 +1847,7 @@ impl FeatureAutomationManager {
     }
 
     fn cleanup_backups(&self, branch_name: &str) -> RhemaResult<()> {
-        let backup_dir = self.repo.path().join(".rhema").join("backups");
+        let backup_dir = self.repo.path().parent().unwrap().join(".rhema").join("backups");
         if backup_dir.exists() {
             for entry in std::fs::read_dir(&backup_dir)? {
                 let entry = entry?;
@@ -1849,10 +1868,12 @@ impl FeatureAutomationManager {
         let context_dir = self
             .repo
             .path()
+            .parent()
+            .unwrap()
             .join(".rhema")
             .join("context")
             .join(branch_name);
-        let archive_dir = self.repo.path().join(".rhema").join("archives");
+        let archive_dir = self.repo.path().parent().unwrap().join(".rhema").join("archives");
         std::fs::create_dir_all(&archive_dir)?;
 
         if context_dir.exists() {
@@ -1915,7 +1936,7 @@ impl FeatureAutomationManager {
         ];
 
         for config_file in config_files {
-            let config_path = self.repo.path().join(config_file);
+            let config_path = self.repo.path().parent().unwrap().join(config_file);
             if config_path.exists() {
                 if let Ok(content) = std::fs::read_to_string(&config_path) {
                     let updated_content = content.replace(branch_name, "main");
@@ -1941,7 +1962,7 @@ impl FeatureAutomationManager {
         });
 
         // Save notification to file
-        let notifications_dir = self.repo.path().join(".rhema").join("notifications");
+        let notifications_dir = self.repo.path().parent().unwrap().join(".rhema").join("notifications");
         std::fs::create_dir_all(&notifications_dir)?;
 
         let notification_file =

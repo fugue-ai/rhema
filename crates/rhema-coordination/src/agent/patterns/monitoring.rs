@@ -260,15 +260,26 @@ impl PatternMonitor {
 
         self.record_event(event).await;
 
+        // Store final metrics before cleanup
+        {
+            let mut metrics = self.metrics.write().await;
+            if let Some(mut final_metrics) = metrics.get(pattern_id).cloned() {
+                final_metrics.execution_time_seconds = execution_time;
+                final_metrics.timestamp = Utc::now();
+                final_metrics.current_phase = if result.success {
+                    PatternPhase::Completed
+                } else {
+                    PatternPhase::Failed
+                };
+                final_metrics.progress_percentage = 1.0;
+                metrics.insert(pattern_id.to_string(), final_metrics);
+            }
+        }
+
         // Clean up monitoring data
         {
             let mut start_times = self.start_times.write().await;
             start_times.remove(pattern_id);
-        }
-
-        {
-            let mut metrics = self.metrics.write().await;
-            metrics.remove(pattern_id);
         }
 
         {

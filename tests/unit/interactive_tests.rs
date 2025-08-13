@@ -118,19 +118,31 @@ mod rhema {
                     Ok(())
                 }
 
-                pub fn handle_set(&mut self, _args: &[&str]) -> RhemaResult<()> {
+                pub fn handle_set(&mut self, args: &[&str]) -> RhemaResult<()> {
+                    if args.len() < 2 {
+                        return Err(rhema_core::RhemaError::InvalidInput("Missing value".to_string()));
+                    }
                     Ok(())
                 }
 
-                pub fn handle_get(&mut self, _args: &[&str]) -> RhemaResult<()> {
+                pub fn handle_get(&mut self, args: &[&str]) -> RhemaResult<()> {
+                    if args.is_empty() {
+                        return Err(rhema_core::RhemaError::InvalidInput("Missing key".to_string()));
+                    }
                     Ok(())
                 }
 
-                pub fn handle_workflow(&mut self, _args: &[&str]) -> RhemaResult<()> {
+                pub fn handle_workflow(&mut self, args: &[&str]) -> RhemaResult<()> {
+                    if args.is_empty() {
+                        return Err(rhema_core::RhemaError::InvalidInput("Missing workflow name".to_string()));
+                    }
                     Ok(())
                 }
 
-                pub fn handle_navigate(&mut self, _args: &[&str]) -> RhemaResult<()> {
+                pub fn handle_navigate(&mut self, args: &[&str]) -> RhemaResult<()> {
+                    if let Some(scope_name) = args.first() {
+                        self.current_scope = Some(scope_name.to_string());
+                    }
                     Ok(())
                 }
 
@@ -390,9 +402,21 @@ fn test_interactive_session_context_commands() {
         AdvancedInteractiveConfig, AdvancedInteractiveSession,
     };
 
-    let (_temp_dir, rhema) = create_test_repo();
+    let (temp_dir, rhema) = create_test_repo();
     let config = AdvancedInteractiveConfig::default();
     let mut session = AdvancedInteractiveSession::new(config);
+
+    // Create a test scope first
+    let rhema_dir = temp_dir.path().join(".rhema");
+    std::fs::create_dir_all(&rhema_dir).unwrap();
+    
+    let scope_config = r#"
+name: "test_scope"
+scope_type: "service"
+description: "Test scope for interactive tests"
+version: "1.0.0"
+"#;
+    std::fs::write(rhema_dir.join("rhema.yaml"), scope_config).unwrap();
 
     // Test context navigation
     let result = session.handle_navigate(&["test_scope"]);

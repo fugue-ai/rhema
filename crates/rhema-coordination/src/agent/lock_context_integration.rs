@@ -69,6 +69,18 @@ impl LockFileAIIntegration {
             usage_analytics: rhema_core::schema::UsageAnalytics::new(),
             version: rhema_core::schema::PromptVersion::new("1.0.0"),
             tags: None,
+            context_rules: None,
+            variables: None,
+            extends: None,
+            multi_file_context: None,
+            composition_blocks: None,
+            advanced_variables: None,
+            validation_rules: None,
+            performance_metrics: None,
+            context_cache: None,
+            context_optimization: None,
+            context_learning: None,
+            context_quality: None,
         };
 
         let lock_requirement = LockFileContextRequirement {
@@ -102,6 +114,18 @@ impl LockFileAIIntegration {
             usage_analytics: rhema_core::schema::UsageAnalytics::new(),
             version: rhema_core::schema::PromptVersion::new("1.0.0"),
             tags: None,
+            context_rules: None,
+            variables: None,
+            extends: None,
+            multi_file_context: None,
+            composition_blocks: None,
+            advanced_variables: None,
+            validation_rules: None,
+            performance_metrics: None,
+            context_cache: None,
+            context_optimization: None,
+            context_learning: None,
+            context_quality: None,
         };
 
         let lock_requirement = LockFileContextRequirement {
@@ -143,6 +167,18 @@ impl LockFileAIIntegration {
             usage_analytics: rhema_core::schema::UsageAnalytics::new(),
             version: rhema_core::schema::PromptVersion::new("1.0.0"),
             tags: None,
+            context_rules: None,
+            variables: None,
+            extends: None,
+            multi_file_context: None,
+            composition_blocks: None,
+            advanced_variables: None,
+            validation_rules: None,
+            performance_metrics: None,
+            context_cache: None,
+            context_optimization: None,
+            context_learning: None,
+            context_quality: None,
         };
 
         let lock_requirement = LockFileContextRequirement {
@@ -187,6 +223,18 @@ impl LockFileAIIntegration {
             usage_analytics: rhema_core::schema::UsageAnalytics::new(),
             version: rhema_core::schema::PromptVersion::new("1.0.0"),
             tags: None,
+            context_rules: None,
+            variables: None,
+            extends: None,
+            multi_file_context: None,
+            composition_blocks: None,
+            advanced_variables: None,
+            validation_rules: None,
+            performance_metrics: None,
+            context_cache: None,
+            context_optimization: None,
+            context_learning: None,
+            context_quality: None,
         };
 
         let lock_requirement = LockFileContextRequirement {
@@ -220,6 +268,18 @@ impl LockFileAIIntegration {
             usage_analytics: rhema_core::schema::UsageAnalytics::new(),
             version: rhema_core::schema::PromptVersion::new("1.0.0"),
             tags: None,
+            context_rules: None,
+            variables: None,
+            extends: None,
+            multi_file_context: None,
+            composition_blocks: None,
+            advanced_variables: None,
+            validation_rules: None,
+            performance_metrics: None,
+            context_cache: None,
+            context_optimization: None,
+            context_learning: None,
+            context_quality: None,
         };
 
         let lock_requirement = LockFileContextRequirement {

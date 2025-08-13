@@ -52,6 +52,10 @@ pub use rhema_integrations::{integrations, IntegrationManager};
 pub mod lock;
 pub use lock::{LockGenerator, LockSystem, DependencyResolver, LockValidator};
 
+// Error handling
+pub mod error_handler;
+pub use error_handler::{ErrorHandler, ErrorSeverity, display_error_and_exit, display_errors_and_exit};
+
 // Re-export commands from CLI crate
 pub use rhema_api::commands;
 
@@ -102,6 +106,18 @@ impl Rhema {
 
     /// Get a specific scope by path
     pub fn scope_path(&self, scope_name: &str) -> Result<PathBuf> {
+        println!("DEBUG: scope_path called with scope_name: '{}'", scope_name);
+        println!("DEBUG: repo_root: {:?}", self.repo_root);
+        
+        // Try to find by name first
+        println!("DEBUG: Trying to find scope by name...");
+        if let Ok(scope) = rhema_core::scope::get_scope_by_name(&self.repo_root, scope_name) {
+            println!("DEBUG: Found scope by name: {}", scope.definition.name);
+            return Ok(scope.path);
+        }
+        
+        println!("DEBUG: Not found by name, trying by path...");
+        // If not found by name, try by path
         Ok(self.repo_root.join(scope_name))
     }
 
@@ -169,7 +185,9 @@ impl Rhema {
 
     /// Load todos for a scope
     pub fn load_todos(&self, scope_name: &str) -> Result<rhema_core::schema::Todos> {
+        println!("DEBUG: load_todos called with scope_name: '{}'", scope_name);
         let scope_path = self.scope_path(scope_name)?;
+        println!("DEBUG: scope_path returned: {:?}", scope_path);
         let todos_file = rhema_core::file_ops::get_or_create_todos_file(&scope_path)?;
         let todos: rhema_core::schema::Todos = rhema_core::file_ops::read_yaml_file(&todos_file)?;
         Ok(todos)

@@ -63,8 +63,8 @@ fn test_query_execution_integration() -> RhemaResult<()> {
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
     TestHelpers::create_basic_scope(&temp_path.to_path_buf())?;
 
-    // Execute a simple query
-    let result = rhema.query("simple")?;
+    // Execute a query for the simple.yaml file that was created
+    let result = rhema.query(".rhema/simple.yaml")?;
 
     // Verify query result
     assert!(!result.is_null(), "Query should return results");

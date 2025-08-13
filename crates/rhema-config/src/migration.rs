@@ -16,7 +16,7 @@
 
 use crate::{
     Config, ConfigChange, ConfigChangeType, ConfigError, ConfigIssue, ConfigIssueSeverity,
-    ValidationResult,
+    ValidationResult, CURRENT_CONFIG_VERSION,
 };
 use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
@@ -169,6 +169,26 @@ impl MigrationManager {
             automatic: true,
         });
 
+        // Migration from 0.2.0 to 1.0.0
+        self.migrations.push(Migration {
+            from_version: "0.2.0".to_string(),
+            to_version: "1.0.0".to_string(),
+            name: "test_migration".to_string(),
+            description: "Test migration from 0.2.0 to 1.0.0".to_string(),
+            steps: vec![
+                MigrationStep {
+                    step_type: MigrationStepType::UpdateFieldValue,
+                    description: "Update version to 1.0.0".to_string(),
+                    parameters: HashMap::new(),
+                    condition: None,
+                    rollback: None,
+                },
+            ],
+            rollback_steps: vec![],
+            required: true,
+            automatic: true,
+        });
+
         // Migration from 1.0.0 to 1.1.0
         self.migrations.push(Migration {
             from_version: "1.0.0".to_string(),
@@ -258,7 +278,7 @@ impl MigrationManager {
                 found: e.to_string(),
             })?;
 
-        let target_version = Version::parse("0.1.0").map_err(|e| ConfigError::VersionMismatch {
+        let target_version = Version::parse(CURRENT_CONFIG_VERSION).map_err(|e| ConfigError::VersionMismatch {
             expected: "valid semver".to_string(),
             found: e.to_string(),
         })?;
@@ -286,8 +306,11 @@ impl MigrationManager {
         let migrations_skipped = Vec::new();
         let mut migrations_failed = Vec::new();
 
+        let mut config_value = serde_json::to_value(config)
+            .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
+
         for migration in applicable_migrations {
-            match self.apply_migration(config, &migration, context) {
+            match self.apply_migration_to_value(&mut config_value, &migration, context) {
                 Ok(record) => {
                     if record.success {
                         migrations_applied.push(record);
@@ -334,7 +357,7 @@ impl MigrationManager {
         &self,
         config: &T,
         target_version: &str,
-    ) -> RhemaResult<MigrationReport> {
+    ) -> RhemaResult<(MigrationReport, T)> {
         let start_time = std::time::Instant::now();
         let mut migrations_applied = Vec::new();
         let mut migrations_failed = Vec::new();
@@ -350,7 +373,7 @@ impl MigrationManager {
         let applicable_migrations = self.get_applicable_migrations(&from_version, &to_version);
 
         if applicable_migrations.is_empty() {
-            return Ok(MigrationReport {
+            return Ok((MigrationReport {
                 migrations_applied,
                 migrations_skipped: vec!["No migrations needed".to_string()],
                 migrations_failed,
@@ -363,7 +386,7 @@ impl MigrationManager {
                 },
                 timestamp: chrono::Utc::now(),
                 duration_ms: start_time.elapsed().as_millis() as u64,
-            });
+            }, config.clone()));
         }
 
         // Create backup if enabled
@@ -373,9 +396,12 @@ impl MigrationManager {
             tracing::info!("Backup would be created before migration");
         }
 
-        // Apply migrations in order
+        // Apply migrations in order and build updated configuration
+        let mut updated_config_value = serde_json::to_value(config)
+            .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
+
         for migration in &applicable_migrations {
-            match self.apply_migration(config, migration, "version_migration") {
+            match self.apply_migration_to_value(&mut updated_config_value, migration, "version_migration") {
                 Ok(record) => {
                     migrations_applied.push(record);
                 }
@@ -403,8 +429,17 @@ impl MigrationManager {
             }
         }
 
+        // Update version to target version
+        if let Some(version) = updated_config_value.get_mut("version") {
+            *version = serde_json::Value::String(target_version.to_string());
+        }
+
+        // Deserialize back to configuration type
+        let updated_config: T = serde_json::from_value(updated_config_value)
+            .map_err(|e| ConfigError::SerializationError(format!("Failed to deserialize migrated config: {}", e)))?;
+
         let duration = start_time.elapsed();
-        Ok(MigrationReport {
+        Ok((MigrationReport {
             migrations_applied: migrations_applied.clone(),
             migrations_skipped: migrations_skipped.clone(),
             migrations_failed: migrations_failed.clone(),
@@ -417,7 +452,7 @@ impl MigrationManager {
             },
             timestamp: chrono::Utc::now(),
             duration_ms: duration.as_millis() as u64,
-        })
+        }, updated_config))
     }
 
     /// Rollback a migration
@@ -552,7 +587,7 @@ impl MigrationManager {
             let migration_to =
                 Version::parse(&migration.to_version).unwrap_or_else(|_| Version::new(0, 0, 0));
 
-            if migration_from >= *from_version && migration_to <= *to_version {
+            if migration_from >= *from_version && migration_to <= *to_version && migration_from < migration_to {
                 applicable.push(migration);
             }
         }
@@ -567,25 +602,23 @@ impl MigrationManager {
         applicable
     }
 
-    /// Apply a migration to a configuration
-    fn apply_migration<T: Config>(
+    /// Apply a migration to a configuration value
+    fn apply_migration_to_value(
         &self,
-        config: &T,
+        config_value: &mut serde_json::Value,
         migration: &Migration,
         context: &str,
     ) -> RhemaResult<MigrationRecord> {
         let mut changes = Vec::new();
-        let mut config_value = serde_json::to_value(config)
-            .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
 
         for step in &migration.steps {
             if let Some(condition) = &step.condition {
-                if !self.evaluate_condition(condition, &config_value)? {
+                if !self.evaluate_condition(condition, config_value)? {
                     continue;
                 }
             }
 
-            match self.apply_migration_step(&mut config_value, step, context) {
+            match self.apply_migration_step(config_value, step, context) {
                 Ok(step_changes) => changes.extend(step_changes),
                 Err(e) => {
                     return Ok(MigrationRecord {
@@ -909,10 +942,23 @@ impl MigrationManager {
         let mut missing_fields = Vec::new();
 
         // Define required fields for different configuration types
-        let required_fields = vec!["version", "name"];
+        let required_fields = vec!["version", "user.name"];
 
         for field in required_fields {
-            if !config.get(field).is_some() {
+            let path_parts: Vec<&str> = field.split('.').collect();
+            let mut current = config;
+            let mut found = true;
+
+            for part in path_parts {
+                if let Some(next) = current.get(part) {
+                    current = next;
+                } else {
+                    found = false;
+                    break;
+                }
+            }
+
+            if !found {
                 missing_fields.push(field.to_string());
             }
         }

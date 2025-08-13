@@ -13,9 +13,49 @@ AI agents operating in development environments often produce inconsistent namin
 - **Maintenance Overhead**: Inconsistent naming requires manual cleanup and refactoring, increasing development time
 - **Scalability Problems**: As the number of agents and generated artifacts grows, inconsistent naming becomes a significant bottleneck
 
+## Current State Analysis
+
+### Existing Infrastructure
+
+The codebase already has significant validation infrastructure that can be leveraged:
+
+1. **Validation Engine** (`crates/rhema-dependency/src/validation.rs`):
+   - Comprehensive validation framework with rule-based system
+   - Support for different validation types including `NamingConvention`
+   - Configurable severity levels (Info, Warning, Error, Critical)
+   - Caching and performance optimization
+
+2. **Configuration Validation** (`crates/rhema-config/src/validation_rules.rs`):
+   - Rule-based validation system with conditions and actions
+   - Support for custom validators and rule sets
+   - Integration with existing configuration management
+
+3. **CLI Integration** (`runtime/rhema-cli/main.rs`):
+   - Basic validation command structure already exists
+   - Extensible command system with subcommands
+   - Integration with existing Rhema API
+
+4. **Agent Lifecycle Management** (`crates/rhema-agent/src/lifecycle.rs`):
+   - Comprehensive lifecycle state management
+   - Event-driven architecture for state transitions
+   - Integration points for validation hooks
+
+5. **MCP Context Validation** (`crates/rhema-mcp/src/context.rs`):
+   - Convention validation system
+   - Consistency checking across scopes
+   - Naming conflict detection
+
+### Gaps to Address
+
+1. **Lifecycle-Aware Naming Rules**: Current validation is generic, not stage-specific
+2. **Real-time Enforcement**: No integration with agent operations
+3. **Language-Specific Rules**: Limited language detection and rule application
+4. **Auto-correction**: No intelligent suggestion or correction system
+5. **Agent Coordination**: No cross-agent naming consistency enforcement
+
 ## Proposed Solution
 
-Implement a **multi-stage naming convention enforcement system** that operates throughout the agent lifecycle, from context creation to final code deployment. This system will provide:
+Extend the existing validation infrastructure to implement a **multi-stage naming convention enforcement system** that operates throughout the agent lifecycle. This system will provide:
 
 - **Lifecycle-Aware Validation**: Different naming rules for different stages (context, development, testing, deployment)
 - **Contextual Enforcement**: Rules that adapt based on the type of artifact being created
@@ -25,7 +65,7 @@ Implement a **multi-stage naming convention enforcement system** that operates t
 
 ## Core Components
 
-### A. Naming Convention Schema
+### A. Enhanced Naming Convention Schema
 
 ```yaml
 # .rhema/naming-conventions.yaml
@@ -131,11 +171,15 @@ naming_conventions:
       workspace_naming: "^[a-z][a-z0-9-]*$"
 ```
 
-### B. Lifecycle Stage Detection
+### B. Enhanced Lifecycle Stage Detection
 
 ```rust
-// Lifecycle stage detection system
-pub enum AgentLifecycleStage {
+// Extend existing lifecycle system in rhema-agent
+use crate::lifecycle::{LifecycleState, LifecycleEvent};
+
+/// Agent development lifecycle stages
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AgentDevelopmentStage {
     ContextCreation,
     Development,
     Testing,
@@ -143,25 +187,28 @@ pub enum AgentLifecycleStage {
     Maintenance,
 }
 
-pub struct LifecycleDetector {
+/// Enhanced lifecycle manager with development stage detection
+pub struct AgentLifecycleManager {
+    lifecycle: AgentLifecycle,
+    development_stage: AgentDevelopmentStage,
     context_analyzer: ContextAnalyzer,
     file_patterns: HashMap<String, Vec<Regex>>,
-    stage_indicators: HashMap<AgentLifecycleStage, Vec<String>>,
+    stage_indicators: HashMap<AgentDevelopmentStage, Vec<String>>,
 }
 
-impl LifecycleDetector {
-    pub fn detect_stage(&self, context: &AgentContext) -> AgentLifecycleStage {
-        // Analyze current context to determine lifecycle stage
+impl AgentLifecycleManager {
+    pub fn detect_development_stage(&self, context: &AgentContext) -> AgentDevelopmentStage {
+        // Analyze current context to determine development stage
         if self.is_context_creation(context) {
-            AgentLifecycleStage::ContextCreation
+            AgentDevelopmentStage::ContextCreation
         } else if self.is_development(context) {
-            AgentLifecycleStage::Development
+            AgentDevelopmentStage::Development
         } else if self.is_testing(context) {
-            AgentLifecycleStage::Testing
+            AgentDevelopmentStage::Testing
         } else if self.is_deployment(context) {
-            AgentLifecycleStage::Deployment
+            AgentDevelopmentStage::Deployment
         } else {
-            AgentLifecycleStage::Maintenance
+            AgentDevelopmentStage::Maintenance
         }
     }
     
@@ -194,19 +241,23 @@ impl LifecycleDetector {
 }
 ```
 
-### C. Naming Convention Validator
+### C. Enhanced Naming Convention Validator
 
 ```rust
-// Naming convention validation system
-pub struct NamingValidator {
-    conventions: NamingConventions,
-    lifecycle_detector: LifecycleDetector,
+// Extend existing validation engine in rhema-dependency
+use crate::validation::{ValidationEngine, ValidationRule, ValidationRuleType, ValidationSeverity};
+
+/// Enhanced naming convention validator
+pub struct NamingConventionValidator {
+    validation_engine: ValidationEngine,
+    lifecycle_manager: AgentLifecycleManager,
     language_detector: LanguageDetector,
+    naming_conventions: NamingConventions,
 }
 
-impl NamingValidator {
+impl NamingConventionValidator {
     pub fn validate_name(&self, name: &str, artifact_type: &str, context: &AgentContext) -> ValidationResult {
-        let stage = self.lifecycle_detector.detect_stage(context);
+        let stage = self.lifecycle_manager.detect_development_stage(context);
         let language = self.language_detector.detect_language(context);
         
         let rules = self.get_applicable_rules(stage, language, artifact_type);
@@ -264,9 +315,12 @@ impl NamingValidator {
 ### D. Real-time Enforcement Engine
 
 ```rust
-// Real-time enforcement system
+// Integrate with existing validation engine
+use crate::validation::{ValidationEngine, ValidationConfig};
+
+/// Real-time enforcement system
 pub struct NamingEnforcementEngine {
-    validator: NamingValidator,
+    validator: NamingConventionValidator,
     auto_correct: bool,
     enforcement_level: EnforcementLevel,
     notification_system: NotificationSystem,
@@ -324,10 +378,12 @@ impl NamingEnforcementEngine {
 }
 ```
 
-### E. CLI Integration
+### E. Enhanced CLI Integration
 
 ```rust
-// CLI commands for naming convention management
+// Extend existing CLI structure in rhema-cli
+use clap::{Parser, Subcommand};
+
 #[derive(Subcommand)]
 pub enum NamingCommands {
     /// Validate naming conventions in the current context
@@ -338,7 +394,7 @@ pub enum NamingCommands {
         
         /// Stage to validate against
         #[arg(short, long)]
-        stage: Option<AgentLifecycleStage>,
+        stage: Option<AgentDevelopmentStage>,
         
         /// Language-specific rules
         #[arg(short, long)]
@@ -372,67 +428,16 @@ pub enum NamingCommands {
     },
 }
 
-impl NamingCommands {
-    pub fn execute(self, config: &Config) -> Result<(), Box<dyn Error>> {
-        match self {
-            NamingCommands::Validate { path, stage, language, auto_correct } => {
-                self.validate_naming(path, stage, language, auto_correct, config)
-            },
-            NamingCommands::Generate { template, output } => {
-                self.generate_template(template, output, config)
-            },
-            NamingCommands::Compliance { report, export } => {
-                self.check_compliance(report, export, config)
-            },
-        }
-    }
+// Extend existing Commands enum
+#[derive(Subcommand)]
+enum Commands {
+    // ... existing commands ...
     
-    fn validate_naming(
-        &self,
-        path: Option<PathBuf>,
-        stage: Option<AgentLifecycleStage>,
-        language: Option<String>,
-        auto_correct: bool,
-        config: &Config,
-    ) -> Result<(), Box<dyn Error>> {
-        let path = path.unwrap_or_else(|| PathBuf::from("."));
-        let context = AgentContext::from_path(&path)?;
-        
-        let mut engine = NamingEnforcementEngine::new(config);
-        engine.auto_correct = auto_correct;
-        
-        if let Some(stage) = stage {
-            engine.set_stage(stage);
-        }
-        
-        if let Some(lang) = language {
-            engine.set_language(lang);
-        }
-        
-        let result = engine.enforce_naming(&mut context);
-        
-        // Display results
-        for action in result.actions {
-            match action {
-                EnforcementAction::Warning(validation) => {
-                    println!("⚠️  Warning: {}", validation.message);
-                    for suggestion in validation.suggestions {
-                        println!("   Suggestion: {}", suggestion);
-                    }
-                },
-                EnforcementAction::Blocked(validation) => {
-                    println!("❌ Blocked: {}", validation.message);
-                    return Err("Naming convention violation".into());
-                },
-                EnforcementAction::Corrected(corrected) => {
-                    println!("✅ Corrected: {} -> {}", 
-                        corrected.original.name, corrected.corrected_name);
-                },
-            }
-        }
-        
-        Ok(())
-    }
+    /// Manage naming conventions
+    Naming {
+        #[command(subcommand)]
+        subcommand: NamingCommands,
+    },
 }
 ```
 
@@ -440,14 +445,14 @@ impl NamingCommands {
 
 ### Phase 1: Foundation (Weeks 1-4)
 
-**Week 1-2: Core Schema and Validation**
+**Week 1-2: Schema and Core Validation**
+- Extend existing validation engine with naming convention support
 - Implement naming convention schema structure
-- Create basic validation engine
-- Add lifecycle stage detection
+- Add lifecycle stage detection to existing agent lifecycle system
 - Implement language detection
 
 **Week 3-4: CLI Integration**
-- Add naming validation commands to CLI
+- Extend existing CLI validation command with naming subcommands
 - Implement basic reporting and suggestions
 - Create template generation system
 - Add configuration management
@@ -455,7 +460,7 @@ impl NamingCommands {
 ### Phase 2: Enforcement Engine (Weeks 5-8)
 
 **Week 5-6: Real-time Enforcement**
-- Implement real-time validation during agent operations
+- Integrate with existing agent coordination system
 - Add auto-correction capabilities
 - Create notification system
 - Implement enforcement levels (warn/block/auto-correct)
@@ -469,21 +474,21 @@ impl NamingCommands {
 ### Phase 3: Integration and Optimization (Weeks 9-12)
 
 **Week 9-10: Agent Integration**
-- Integrate with existing agent coordination system
+- Integrate with existing agent lifecycle management
 - Add naming validation to context injection
 - Implement cross-agent naming consistency
 - Create agent-specific naming profiles
 
 **Week 11-12: Performance and Polish**
-- Optimize validation performance
-- Add caching for frequently used rules
-- Implement batch validation capabilities
+- Optimize validation performance using existing caching
+- Add batch validation capabilities
 - Create comprehensive documentation
+- Add integration tests
 
 ### Phase 4: Advanced Features (Weeks 13-16)
 
 **Week 13-14: Custom Rules Engine**
-- Implement custom rule definition
+- Extend existing validation rule system
 - Add rule inheritance and composition
 - Create rule testing framework
 - Add rule versioning and migration
@@ -494,28 +499,54 @@ impl NamingCommands {
 - Create naming convention effectiveness tracking
 - Add team collaboration features
 
+## Integration with Existing Features
+
+### Validation System Integration
+
+- **Leverage Existing Engine**: Build on `rhema-dependency` validation engine
+- **Extend Rule Types**: Add naming convention rules to existing `ValidationRuleType`
+- **Reuse Infrastructure**: Use existing caching, performance optimization, and error handling
+
+### Agent Coordination Integration
+
+- **Lifecycle Hooks**: Integrate with existing `AgentLifecycle` system
+- **Event System**: Use existing `LifecycleEvent` system for validation events
+- **State Management**: Leverage existing state transition validation
+
+### CLI Integration
+
+- **Extend Existing Commands**: Add naming subcommands to existing validation command
+- **Reuse Patterns**: Follow existing CLI patterns and error handling
+- **Configuration**: Integrate with existing configuration management
+
+### Context Management Integration
+
+- **MCP Integration**: Extend existing MCP context validation
+- **Scope Management**: Integrate with existing scope validation system
+- **Dependency Tracking**: Use existing dependency validation infrastructure
+
 ## Benefits
 
 ### Technical Benefits
 
+- **Leverages Existing Infrastructure**: Builds on proven validation and lifecycle systems
 - **Consistent Code Quality**: Enforced naming conventions improve code readability and maintainability
-- **Reduced Integration Friction**: Consistent naming patterns reduce integration issues between different components
-- **Automated Quality Assurance**: Real-time validation prevents naming violations from entering the codebase
-- **Intelligent Suggestions**: AI-powered suggestions help developers follow conventions more easily
+- **Reduced Integration Friction**: Consistent naming patterns reduce integration issues
+- **Automated Quality Assurance**: Real-time validation prevents naming violations
 
 ### User Experience Improvements
 
-- **Proactive Prevention**: Real-time feedback prevents naming issues before they become problems
-- **Contextual Guidance**: Stage-specific rules provide relevant guidance based on current development phase
-- **Automated Correction**: Auto-correction reduces manual cleanup and refactoring effort
-- **Clear Feedback**: Detailed error messages and suggestions help developers understand and fix issues
+- **Proactive Prevention**: Real-time feedback prevents naming issues
+- **Contextual Guidance**: Stage-specific rules provide relevant guidance
+- **Automated Correction**: Auto-correction reduces manual cleanup
+- **Clear Feedback**: Detailed error messages and suggestions
 
 ### Business Impact
 
-- **Reduced Maintenance Overhead**: Consistent naming reduces time spent on code cleanup and refactoring
-- **Improved Team Productivity**: Clear naming conventions reduce confusion and improve collaboration
-- **Enhanced Code Quality**: Consistent naming patterns improve overall code quality and reduce bugs
-- **Scalable Development**: Enforced conventions scale better as teams and codebases grow
+- **Reduced Maintenance Overhead**: Consistent naming reduces cleanup time
+- **Improved Team Productivity**: Clear naming conventions reduce confusion
+- **Enhanced Code Quality**: Consistent naming patterns improve overall quality
+- **Scalable Development**: Enforced conventions scale better as teams grow
 
 ## Success Metrics
 
@@ -540,38 +571,12 @@ impl NamingCommands {
 - **Team Productivity**: Measured improvement in development velocity
 - **Quality Metrics**: Reduction in naming-related bugs and issues
 
-## Integration with Existing Features
-
-### Context Management Integration
-
-- **Context Injection**: Validate naming during context injection and bootstrap operations
-- **Scope Management**: Apply naming conventions based on scope hierarchy
-- **Dependency Tracking**: Ensure consistent naming across dependent components
-
-### Agent Coordination Integration
-
-- **Multi-Agent Consistency**: Ensure naming consistency across multiple agents
-- **Task Scoring**: Include naming compliance in task scoring and prioritization
-- **Conflict Resolution**: Use naming conventions to resolve agent conflicts
-
-### Validation System Integration
-
-- **Schema Validation**: Integrate with existing schema validation system
-- **Health Checks**: Include naming convention compliance in health checks
-- **Reporting**: Integrate naming metrics into existing reporting systems
-
-### CLI Integration
-
-- **Command Integration**: Add naming commands to existing CLI structure
-- **Configuration Management**: Integrate with existing configuration system
-- **Output Formatting**: Use consistent output formatting with other CLI commands
-
 ## Risk Assessment and Mitigation
 
 ### Technical Risks
 
 **Risk**: Performance impact of real-time validation
-**Mitigation**: Implement efficient caching and batch processing, optimize regex patterns
+**Mitigation**: Leverage existing caching and optimization in validation engine
 
 **Risk**: False positives in validation
 **Mitigation**: Comprehensive testing, configurable rule sensitivity, override mechanisms
@@ -592,13 +597,13 @@ impl NamingCommands {
 
 ## Conclusion
 
-The Agent Naming Convention Enforcement System addresses a critical gap in AI agent development workflows by providing comprehensive, lifecycle-aware naming validation and enforcement. This system will significantly improve code quality, reduce maintenance overhead, and enhance team collaboration while maintaining the flexibility needed for different development contexts and team preferences.
+The Agent Naming Convention Enforcement System addresses a critical gap in AI agent development workflows by extending the existing validation infrastructure to provide comprehensive, lifecycle-aware naming validation and enforcement. This system will significantly improve code quality, reduce maintenance overhead, and enhance team collaboration while maintaining the flexibility needed for different development contexts and team preferences.
 
 The phased implementation approach ensures that core functionality is delivered quickly while advanced features are developed based on user feedback and real-world usage patterns. The integration with existing Rhema features ensures a seamless developer experience and maximizes the value of the overall system.
 
 ---
 
-**Status**: ❌ **Not Started**  
+**Status**: 🔄 **In Progress**  
 **Priority**: High  
-**Effort**: 16-20 weeks  
+**Effort**: 12-16 weeks  
 **Timeline**: Q2-Q3 2025 

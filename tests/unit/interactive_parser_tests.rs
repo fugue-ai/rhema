@@ -23,11 +23,69 @@ struct InteractiveCommandParser {
 
 impl InteractiveCommandParser {
     pub fn new(input: &str) -> Self {
-        // Simple parsing logic for testing
-        let parts: Vec<String> = input
-            .split_whitespace()
-            .map(|s| s.trim_matches('"').to_string())
-            .collect();
+        // Proper parsing logic that handles quoted strings
+        let mut parts = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+        let mut chars = input.chars().peekable();
+        
+        while let Some(ch) = chars.next() {
+            match ch {
+                '"' => {
+                    if in_quotes {
+                        // End of quoted string
+                        in_quotes = false;
+                        if !current.is_empty() {
+                            parts.push(current.clone());
+                            current.clear();
+                        }
+                    } else {
+                        // Start of quoted string
+                        in_quotes = true;
+                    }
+                }
+                ' ' | '\t' => {
+                    if !in_quotes {
+                        // Only split on whitespace if not in quotes
+                        if !current.is_empty() {
+                            parts.push(current.clone());
+                            current.clear();
+                        }
+                    } else {
+                        // Preserve whitespace inside quotes
+                        current.push(ch);
+                    }
+                }
+                '\\' => {
+                    // Handle escaped characters
+                    if let Some(next_ch) = chars.peek() {
+                        match next_ch {
+                            '"' => {
+                                chars.next(); // consume the quote
+                                current.push('"');
+                            }
+                            '\\' => {
+                                chars.next(); // consume the backslash
+                                current.push('\\');
+                            }
+                            _ => {
+                                current.push(ch);
+                            }
+                        }
+                    } else {
+                        current.push(ch);
+                    }
+                }
+                _ => {
+                    current.push(ch);
+                }
+            }
+        }
+        
+        // Don't forget the last part
+        if !current.is_empty() {
+            parts.push(current);
+        }
 
         Self {
             parts,

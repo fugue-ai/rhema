@@ -503,11 +503,364 @@ pub struct PromptPattern {
     pub version: PromptVersion,
     /// Optional tags for categorization
     pub tags: Option<Vec<String>>,
-    // TODO: Advanced features for future versions:
-    // - context_rules: Vec<ContextRule> - Conditional context injection based on task type
-    // - variables: HashMap<String, String> - Template variables beyond {{CONTEXT}}
-    // - multi_file_context: bool - Support loading multiple context files
-    // - context_priority: u8 - Priority for context injection when multiple rules match
+    /// Conditional context injection rules based on task type, file type, etc.
+    pub context_rules: Option<Vec<ContextRule>>,
+    /// Template variables beyond {{CONTEXT}}
+    pub variables: Option<HashMap<String, String>>,
+    /// Base template to extend from (for template inheritance)
+    pub extends: Option<String>,
+    /// Multi-file context support flag
+    pub multi_file_context: Option<bool>,
+    /// Template composition blocks for complex templates
+    pub composition_blocks: Option<Vec<CompositionBlock>>,
+    /// Advanced variable types and validation
+    pub advanced_variables: Option<Vec<AdvancedVariable>>,
+    /// Template validation rules
+    pub validation_rules: Option<Vec<TemplateValidationRule>>,
+    /// Template performance metrics
+    pub performance_metrics: Option<TemplatePerformanceMetrics>,
+    /// Context caching configuration
+    pub context_cache: Option<ContextCacheConfig>,
+    /// Context optimization settings
+    pub context_optimization: Option<ContextOptimizationConfig>,
+    /// Context learning configuration
+    pub context_learning: Option<ContextLearningConfig>,
+    /// Context quality metrics
+    pub context_quality: Option<ContextQualityMetrics>,
+}
+
+/// Conditional context injection rule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextRule {
+    /// Condition expression (e.g., "task_type == 'code_review'")
+    pub condition: String,
+    /// Context files to inject when condition matches
+    pub context_files: Vec<String>,
+    /// How to inject the context
+    pub injection_method: ContextInjectionMethod,
+    /// Priority when multiple rules match (higher number = higher priority)
+    pub priority: Option<u8>,
+    /// Additional variables for this context rule
+    pub variables: Option<HashMap<String, String>>,
+}
+
+/// Context injection method for conditional rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextInjectionMethod {
+    Prepend,
+    Append,
+    TemplateVariable,
+}
+
+/// Template composition block for complex templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompositionBlock {
+    /// Block identifier
+    pub id: String,
+    /// Block type: conditional, loop, or include
+    pub block_type: CompositionBlockType,
+    /// Condition expression for conditional blocks
+    pub condition: Option<String>,
+    /// Loop variable for loop blocks
+    pub loop_variable: Option<String>,
+    /// Loop items for loop blocks
+    pub loop_items: Option<Vec<String>>,
+    /// Block content template
+    pub content: String,
+    /// Block priority for ordering
+    pub priority: Option<u8>,
+    /// Block-specific variables
+    pub variables: Option<HashMap<String, String>>,
+}
+
+/// Composition block type
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum CompositionBlockType {
+    Conditional,
+    Loop,
+    Include,
+    Switch,
+    Fallback,
+}
+
+/// Advanced variable with type and validation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdvancedVariable {
+    /// Variable name
+    pub name: String,
+    /// Variable type
+    pub var_type: VariableType,
+    /// Default value
+    pub default_value: Option<String>,
+    /// Validation rules
+    pub validation: Option<VariableValidation>,
+    /// Variable description
+    pub description: Option<String>,
+    /// Whether variable is required
+    pub required: bool,
+    /// Variable constraints
+    pub constraints: Option<VariableConstraints>,
+}
+
+/// Variable type enumeration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VariableType {
+    String,
+    Number,
+    Boolean,
+    Array,
+    Object,
+    Enum(Vec<String>),
+    Date,
+    Email,
+    Url,
+    FilePath,
+    Json,
+}
+
+/// Variable validation rules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VariableValidation {
+    /// Minimum length for strings/arrays
+    pub min_length: Option<usize>,
+    /// Maximum length for strings/arrays
+    pub max_length: Option<usize>,
+    /// Minimum value for numbers
+    pub min_value: Option<f64>,
+    /// Maximum value for numbers
+    pub max_value: Option<f64>,
+    /// Regular expression pattern
+    pub pattern: Option<String>,
+    /// Custom validation function name
+    pub custom_validator: Option<String>,
+}
+
+/// Variable constraints
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VariableConstraints {
+    /// Allowed values for enum types
+    pub allowed_values: Option<Vec<String>>,
+    /// Forbidden values
+    pub forbidden_values: Option<Vec<String>>,
+    /// Dependency on other variables
+    pub depends_on: Option<String>,
+    /// Conditional visibility
+    pub visible_when: Option<String>,
+}
+
+/// Template validation rule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateValidationRule {
+    /// Rule identifier
+    pub id: String,
+    /// Rule type
+    pub rule_type: ValidationRuleType,
+    /// Rule condition expression
+    pub condition: String,
+    /// Error message for failed validation
+    pub error_message: String,
+    /// Rule severity
+    pub severity: ValidationSeverity,
+    /// Whether rule is enabled
+    pub enabled: bool,
+}
+
+/// Validation rule type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ValidationRuleType {
+    Required,
+    Format,
+    Length,
+    Range,
+    Custom,
+    Dependency,
+    Consistency,
+}
+
+/// Validation severity level
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ValidationSeverity {
+    Error,
+    Warning,
+    Info,
+}
+
+
+
+/// Context caching configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextCacheConfig {
+    /// Whether caching is enabled
+    pub enabled: bool,
+    /// Cache TTL in seconds
+    pub ttl_seconds: u64,
+    /// Maximum cache size in bytes
+    pub max_size_bytes: u64,
+    /// Cache invalidation strategy
+    pub invalidation_strategy: CacheInvalidationStrategy,
+    /// Cache compression enabled
+    pub compression_enabled: bool,
+    /// Cache persistence enabled
+    pub persistence_enabled: bool,
+}
+
+/// Cache invalidation strategy
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheInvalidationStrategy {
+    TimeBased,
+    EventBased,
+    Manual,
+    Adaptive,
+}
+
+/// Context optimization configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextOptimizationConfig {
+    /// Whether optimization is enabled
+    pub enabled: bool,
+    /// Maximum context size in tokens
+    pub max_tokens: usize,
+    /// Minimum relevance score
+    pub min_relevance_score: f64,
+    /// Semantic compression enabled
+    pub semantic_compression: bool,
+    /// Structure optimization enabled
+    pub structure_optimization: bool,
+    /// Relevance filtering enabled
+    pub relevance_filtering: bool,
+    /// Optimization algorithm
+    pub algorithm: OptimizationAlgorithm,
+}
+
+/// Optimization algorithm
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OptimizationAlgorithm {
+    Greedy,
+    DynamicProgramming,
+    MachineLearning,
+    Hybrid,
+}
+
+/// Context learning configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextLearningConfig {
+    /// Whether learning is enabled
+    pub enabled: bool,
+    /// Learning rate
+    pub learning_rate: f64,
+    /// Minimum sample size for learning
+    pub min_sample_size: usize,
+    /// Learning window size
+    pub window_size: usize,
+    /// Feedback weight
+    pub feedback_weight: f64,
+    /// Success threshold
+    pub success_threshold: f64,
+    /// Learning algorithm
+    pub algorithm: LearningAlgorithm,
+}
+
+/// Learning algorithm
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LearningAlgorithm {
+    Reinforcement,
+    Supervised,
+    Unsupervised,
+    Online,
+}
+
+/// Context quality metrics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextQualityMetrics {
+    /// Relevance score (0.0 to 1.0)
+    pub relevance_score: f64,
+    /// Completeness score (0.0 to 1.0)
+    pub completeness_score: f64,
+    /// Accuracy score (0.0 to 1.0)
+    pub accuracy_score: f64,
+    /// Timeliness score (0.0 to 1.0)
+    pub timeliness_score: f64,
+    /// Overall quality score (0.0 to 1.0)
+    pub overall_score: f64,
+    /// Quality assessment timestamp
+    pub assessed_at: chrono::DateTime<chrono::Utc>,
+    /// Quality improvement suggestions
+    pub improvement_suggestions: Vec<String>,
+}
+
+impl ContextRule {
+    /// Create a new context rule
+    pub fn new(
+        condition: &str,
+        context_files: Vec<String>,
+        injection_method: ContextInjectionMethod,
+    ) -> Self {
+        Self {
+            condition: condition.to_string(),
+            context_files,
+            injection_method,
+            priority: None,
+            variables: None,
+        }
+    }
+
+    /// Set priority for this rule
+    pub fn with_priority(mut self, priority: u8) -> Self {
+        self.priority = Some(priority);
+        self
+    }
+
+    /// Set variables for this rule
+    pub fn with_variables(mut self, variables: HashMap<String, String>) -> Self {
+        self.variables = Some(variables);
+        self
+    }
+
+    /// Check if this rule matches the given context
+    pub fn matches(&self, task_type: Option<&str>, file_type: Option<&str>, severity: Option<&str>) -> bool {
+        // Simple condition evaluation - in a real implementation, this would use a proper expression evaluator
+        let condition = self.condition.to_lowercase();
+        
+        if condition.contains("task_type") {
+            if let Some(task) = task_type {
+                if !condition.contains(&format!("task_type == '{}'", task)) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        
+        if condition.contains("file_type") {
+            if let Some(file) = file_type {
+                if !condition.contains(&format!("file_type == '{}'", file)) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        
+        if condition.contains("severity") {
+            if let Some(sev) = severity {
+                if !condition.contains(&format!("severity == '{}'", sev)) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        
+        true
+    }
 }
 
 /// Version information for prompt patterns
@@ -582,6 +935,44 @@ impl PromptVersion {
     pub fn get_latest(&self) -> Option<&VersionEntry> {
         self.history.last()
     }
+
+    /// Bump version (patch)
+    pub fn bump_patch(&mut self) {
+        // Simple implementation - in real code, use semver crate
+        let parts: Vec<&str> = self.current.split('.').collect();
+        if parts.len() >= 3 {
+            if let Ok(patch) = parts[2].parse::<u32>() {
+                self.current = format!("{}.{}.{}", parts[0], parts[1], patch + 1);
+            }
+        }
+    }
+
+    /// Bump minor version
+    pub fn bump_minor(&mut self) {
+        // Simple implementation - in real code, use semver crate
+        let parts: Vec<&str> = self.current.split('.').collect();
+        if parts.len() >= 2 {
+            if let Ok(minor) = parts[1].parse::<u32>() {
+                self.current = format!("{}.{}.0", parts[0], minor + 1);
+            }
+        }
+    }
+
+    /// Bump major version
+    pub fn bump_major(&mut self) {
+        // Simple implementation - in real code, use semver crate
+        let parts: Vec<&str> = self.current.split('.').collect();
+        if parts.len() >= 1 {
+            if let Ok(major) = parts[0].parse::<u32>() {
+                self.current = format!("{}.0.0", major + 1);
+            }
+        }
+    }
+
+    /// Set specific version
+    pub fn set_version(&mut self, version: &str) {
+        self.current = version.to_string();
+    }
 }
 
 /// Individual version entry
@@ -650,6 +1041,11 @@ impl UsageAnalytics {
             feedback_history: Vec::new(),
         }
     }
+
+    /// Get feedback history
+    pub fn get_feedback_history(&self) -> Vec<&FeedbackEntry> {
+        self.feedback_history.iter().collect()
+    }
 }
 
 /// Individual feedback entry
@@ -674,6 +1070,438 @@ pub enum PromptInjectionMethod {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Prompts {
     pub prompts: Vec<PromptPattern>,
+}
+
+impl PromptPattern {
+    /// Create a new prompt pattern
+    pub fn new(id: &str, name: &str, template: &str, injection: PromptInjectionMethod) -> Self {
+        Self {
+            id: id.to_string(),
+            name: name.to_string(),
+            description: None,
+            template: template.to_string(),
+            injection,
+            usage_analytics: UsageAnalytics::new(),
+            version: PromptVersion::new("1.0.0"),
+            tags: None,
+            context_rules: None,
+            variables: None,
+            extends: None,
+            multi_file_context: None,
+            composition_blocks: None,
+            advanced_variables: None,
+            validation_rules: None,
+            performance_metrics: None,
+            context_cache: None,
+            context_optimization: None,
+            context_learning: None,
+            context_quality: None,
+        }
+    }
+
+    /// Add a context rule to this prompt pattern
+    pub fn add_context_rule(&mut self, rule: ContextRule) {
+        if self.context_rules.is_none() {
+            self.context_rules = Some(Vec::new());
+        }
+        self.context_rules.as_mut().unwrap().push(rule);
+    }
+
+    /// Get matching context rules for the given context
+    pub fn get_matching_rules(&self, task_type: Option<&str>, file_type: Option<&str>, severity: Option<&str>) -> Vec<&ContextRule> {
+        let mut matching_rules = Vec::new();
+        
+        if let Some(rules) = &self.context_rules {
+            for rule in rules {
+                if rule.matches(task_type, file_type, severity) {
+                    matching_rules.push(rule);
+                }
+            }
+        }
+        
+        // Sort by priority (higher priority first)
+        matching_rules.sort_by(|a, b| {
+            let a_priority = a.priority.unwrap_or(0);
+            let b_priority = b.priority.unwrap_or(0);
+            b_priority.cmp(&a_priority)
+        });
+        
+        matching_rules
+    }
+
+    /// Set template variables
+    pub fn set_variables(&mut self, variables: HashMap<String, String>) {
+        self.variables = Some(variables);
+    }
+
+    /// Get a template variable value
+    pub fn get_variable(&self, key: &str) -> Option<&String> {
+        self.variables.as_ref()?.get(key)
+    }
+
+    /// Substitute variables in the template
+    pub fn substitute_variables(&self, context: &str) -> String {
+        let mut result = self.template.clone();
+        
+        // Substitute {{CONTEXT}} variable
+        result = result.replace("{{CONTEXT}}", context);
+        
+        // Substitute custom variables
+        if let Some(vars) = &self.variables {
+            for (key, value) in vars {
+                let placeholder = format!("{{{{{}}}}}", key.to_uppercase());
+                result = result.replace(&placeholder, value);
+            }
+        }
+        
+        result
+    }
+
+    /// Set the base template to extend from
+    pub fn set_extends(&mut self, base_template: &str) {
+        self.extends = Some(base_template.to_string());
+    }
+
+    /// Check if this pattern extends another template
+    pub fn has_extends(&self) -> bool {
+        self.extends.is_some()
+    }
+
+    /// Enable multi-file context support
+    pub fn enable_multi_file_context(&mut self) {
+        self.multi_file_context = Some(true);
+    }
+
+    /// Check if multi-file context is enabled
+    pub fn supports_multi_file_context(&self) -> bool {
+        self.multi_file_context.unwrap_or(false)
+    }
+
+    /// Get all context files that should be loaded for this pattern
+    pub fn get_context_files(&self, task_type: Option<&str>, file_type: Option<&str>, severity: Option<&str>) -> Vec<String> {
+        let mut context_files = Vec::new();
+        
+        // Get context files from matching rules
+        let matching_rules = self.get_matching_rules(task_type, file_type, severity);
+        for rule in matching_rules {
+            context_files.extend(rule.context_files.clone());
+        }
+        
+        // Remove duplicates while preserving order
+        let mut seen = std::collections::HashSet::new();
+        context_files.retain(|file| seen.insert(file.clone()));
+        
+        context_files
+    }
+
+    /// Record usage with feedback
+    pub fn record_usage(&mut self, successful: bool, feedback: Option<String>) {
+        self.usage_analytics.record_usage(successful, feedback);
+    }
+
+    /// Get current success rate
+    pub fn success_rate(&self) -> f64 {
+        self.usage_analytics.success_rate()
+    }
+
+    /// Get total usage count
+    pub fn total_uses(&self) -> u32 {
+        self.usage_analytics.total_uses
+    }
+
+    /// Get successful usage count
+    pub fn successful_uses(&self) -> u32 {
+        self.usage_analytics.successful_uses
+    }
+
+
+
+    // P2: Advanced Template Features
+
+    /// Add a composition block to the pattern
+    pub fn add_composition_block(&mut self, block: CompositionBlock) {
+        if self.composition_blocks.is_none() {
+            self.composition_blocks = Some(Vec::new());
+        }
+        self.composition_blocks.as_mut().unwrap().push(block);
+    }
+
+    /// Get composition blocks by type
+    pub fn get_composition_blocks(&self, block_type: Option<CompositionBlockType>) -> Vec<&CompositionBlock> {
+        if let Some(blocks) = &self.composition_blocks {
+            if let Some(filter_type) = block_type {
+                blocks.iter().filter(|b| b.block_type == filter_type).collect()
+            } else {
+                blocks.iter().collect()
+            }
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Add an advanced variable to the pattern
+    pub fn add_advanced_variable(&mut self, variable: AdvancedVariable) {
+        if self.advanced_variables.is_none() {
+            self.advanced_variables = Some(Vec::new());
+        }
+        self.advanced_variables.as_mut().unwrap().push(variable);
+    }
+
+    /// Get advanced variable by name
+    pub fn get_advanced_variable(&self, name: &str) -> Option<&AdvancedVariable> {
+        if let Some(variables) = &self.advanced_variables {
+            variables.iter().find(|v| v.name == name)
+        } else {
+            None
+        }
+    }
+
+    /// Validate advanced variables against their rules
+    pub fn validate_advanced_variables(&self, values: &HashMap<String, String>) -> Vec<String> {
+        let mut errors = Vec::new();
+        
+        if let Some(variables) = &self.advanced_variables {
+            for variable in variables {
+                if let Some(value) = values.get(&variable.name) {
+                    if let Some(validation) = &variable.validation {
+                        // Check required
+                        if variable.required && value.is_empty() {
+                            errors.push(format!("Variable '{}' is required", variable.name));
+                            continue;
+                        }
+
+                        // Check length constraints
+                        if let Some(min_len) = validation.min_length {
+                            if value.len() < min_len {
+                                errors.push(format!("Variable '{}' must be at least {} characters", variable.name, min_len));
+                            }
+                        }
+                        if let Some(max_len) = validation.max_length {
+                            if value.len() > max_len {
+                                errors.push(format!("Variable '{}' must be at most {} characters", variable.name, max_len));
+                            }
+                        }
+
+                        // Check numeric constraints
+                        if let Ok(num_value) = value.parse::<f64>() {
+                            if let Some(min_val) = validation.min_value {
+                                if num_value < min_val {
+                                    errors.push(format!("Variable '{}' must be at least {}", variable.name, min_val));
+                                }
+                            }
+                            if let Some(max_val) = validation.max_value {
+                                if num_value > max_val {
+                                    errors.push(format!("Variable '{}' must be at most {}", variable.name, max_val));
+                                }
+                            }
+                        }
+
+                        // Check pattern
+                        if let Some(pattern) = &validation.pattern {
+                            if let Ok(regex) = regex::Regex::new(pattern) {
+                                if !regex.is_match(value) {
+                                    errors.push(format!("Variable '{}' does not match pattern {}", variable.name, pattern));
+                                }
+                            }
+                        }
+                    }
+                } else if variable.required {
+                    errors.push(format!("Variable '{}' is required", variable.name));
+                }
+            }
+        }
+        
+        errors
+    }
+
+    /// Add a template validation rule
+    pub fn add_validation_rule(&mut self, rule: TemplateValidationRule) {
+        if self.validation_rules.is_none() {
+            self.validation_rules = Some(Vec::new());
+        }
+        self.validation_rules.as_mut().unwrap().push(rule);
+    }
+
+    /// Validate template against all rules
+    pub fn validate_template(&self, context: &str, variables: &HashMap<String, String>) -> Vec<String> {
+        let mut errors = Vec::new();
+        
+        if let Some(rules) = &self.validation_rules {
+            for rule in rules {
+                if rule.enabled {
+                    // Simple condition evaluation (in real implementation, use proper expression evaluator)
+                    let condition_met = self.evaluate_condition(&rule.condition, context, variables);
+                    if !condition_met {
+                        errors.push(rule.error_message.clone());
+                    }
+                }
+            }
+        }
+        
+        errors
+    }
+
+    /// Update performance metrics
+    pub fn update_performance_metrics(&mut self, rendering_time: f64, cache_hit: bool) {
+        if self.performance_metrics.is_none() {
+            self.performance_metrics = Some(TemplatePerformanceMetrics {
+                avg_rendering_time: rendering_time,
+                max_rendering_time: rendering_time,
+                min_rendering_time: rendering_time,
+                total_renders: 1,
+                cache_hit_rate: if cache_hit { 1.0 } else { 0.0 },
+                memory_usage: 0,
+                last_updated: chrono::Utc::now(),
+            });
+        } else {
+            let metrics = self.performance_metrics.as_mut().unwrap();
+            metrics.total_renders += 1;
+            metrics.avg_rendering_time = (metrics.avg_rendering_time * (metrics.total_renders - 1) as f64 + rendering_time) / metrics.total_renders as f64;
+            metrics.max_rendering_time = metrics.max_rendering_time.max(rendering_time);
+            metrics.min_rendering_time = metrics.min_rendering_time.min(rendering_time);
+            metrics.cache_hit_rate = (metrics.cache_hit_rate * (metrics.total_renders - 1) as f64 + if cache_hit { 1.0 } else { 0.0 }) / metrics.total_renders as f64;
+            metrics.last_updated = chrono::Utc::now();
+        }
+    }
+
+    // P3: Enhanced Context Management
+
+    /// Configure context caching
+    pub fn configure_context_cache(&mut self, config: ContextCacheConfig) {
+        self.context_cache = Some(config);
+    }
+
+    /// Check if context caching is enabled
+    pub fn is_context_caching_enabled(&self) -> bool {
+        self.context_cache.as_ref().map(|c| c.enabled).unwrap_or(false)
+    }
+
+    /// Configure context optimization
+    pub fn configure_context_optimization(&mut self, config: ContextOptimizationConfig) {
+        self.context_optimization = Some(config);
+    }
+
+    /// Check if context optimization is enabled
+    pub fn is_context_optimization_enabled(&self) -> bool {
+        self.context_optimization.as_ref().map(|c| c.enabled).unwrap_or(false)
+    }
+
+    /// Configure context learning
+    pub fn configure_context_learning(&mut self, config: ContextLearningConfig) {
+        self.context_learning = Some(config);
+    }
+
+    /// Check if context learning is enabled
+    pub fn is_context_learning_enabled(&self) -> bool {
+        self.context_learning.as_ref().map(|c| c.enabled).unwrap_or(false)
+    }
+
+    /// Update context quality metrics
+    pub fn update_context_quality(&mut self, metrics: ContextQualityMetrics) {
+        self.context_quality = Some(metrics);
+    }
+
+    /// Get context quality score
+    pub fn get_context_quality_score(&self) -> Option<f64> {
+        self.context_quality.as_ref().map(|q| q.overall_score)
+    }
+
+    /// Get feedback history
+    pub fn get_feedback_history(&self) -> Vec<&FeedbackEntry> {
+        self.usage_analytics.feedback_history.iter().collect()
+    }
+
+    /// Bump version (patch)
+    pub fn bump_version(&mut self) {
+        self.version.bump_patch();
+    }
+
+    /// Bump minor version
+    pub fn bump_minor_version(&mut self) {
+        self.version.bump_minor();
+    }
+
+    /// Bump major version
+    pub fn bump_major_version(&mut self) {
+        self.version.bump_major();
+    }
+
+    /// Set specific version
+    pub fn set_version(&mut self, version: &str) {
+        self.version = PromptVersion::new(version);
+    }
+
+    /// Render template with composition blocks
+    pub fn render_with_composition(&self, context: &str, variables: &HashMap<String, String>) -> String {
+        let mut result = self.substitute_variables(context);
+        
+        if let Some(blocks) = &self.composition_blocks {
+            for block in blocks {
+                match block.block_type {
+                    CompositionBlockType::Conditional => {
+                        if self.evaluate_condition(&block.condition.as_ref().unwrap_or(&String::new()), context, variables) {
+                            let block_content = self.substitute_variables_with_map(&block.content, variables);
+                            result.push_str(&block_content);
+                        }
+                    },
+                    CompositionBlockType::Loop => {
+                        if let (Some(var_name), Some(items)) = (&block.loop_variable, &block.loop_items) {
+                            for item in items {
+                                let mut loop_vars = variables.clone();
+                                loop_vars.insert(var_name.clone(), item.clone());
+                                let block_content = self.substitute_variables_with_map(&block.content, &loop_vars);
+                                result.push_str(&block_content);
+                            }
+                        }
+                    },
+                    CompositionBlockType::Include => {
+                        // Include block content directly
+                        let block_content = self.substitute_variables_with_map(&block.content, variables);
+                        result.push_str(&block_content);
+                    },
+                    CompositionBlockType::Switch => {
+                        // Simple switch implementation
+                        if let Some(condition) = &block.condition {
+                            let block_content = self.substitute_variables_with_map(&block.content, variables);
+                            result.push_str(&block_content);
+                        }
+                    },
+                    CompositionBlockType::Fallback => {
+                        // Fallback block - use if no other blocks rendered content
+                        if result == self.substitute_variables(context) {
+                            let block_content = self.substitute_variables_with_map(&block.content, variables);
+                            result.push_str(&block_content);
+                        }
+                    },
+                }
+            }
+        }
+        
+        result
+    }
+
+    // Helper methods
+
+    /// Evaluate a condition expression (simplified implementation)
+    fn evaluate_condition(&self, condition: &str, _context: &str, _variables: &HashMap<String, String>) -> bool {
+        // In a real implementation, this would use a proper expression evaluator
+        // For now, return true for non-empty conditions
+        !condition.is_empty()
+    }
+
+    /// Substitute variables with a specific variable map
+    fn substitute_variables_with_map(&self, template: &str, variables: &HashMap<String, String>) -> String {
+        let mut result = template.to_string();
+        
+        for (key, value) in variables {
+            let placeholder = format!("{{{{{}}}}}", key);
+            result = result.replace(&placeholder, value);
+        }
+        
+        result
+    }
+
+
 }
 
 /// Top-level structure for workflows.yaml
@@ -2615,6 +3443,232 @@ mod tests {
     #[test]
     fn test_empty_cache_hit_rate() {
         let metadata = LockMetadata::new();
-        assert!(metadata.cache_hit_rate().is_none());
+        assert_eq!(metadata.cache_hit_rate(), None);
     }
+
+    #[test]
+    fn test_prompt_pattern_creation() {
+        let pattern = PromptPattern::new(
+            "test-pattern",
+            "Test Pattern",
+            "Review this code: {{CONTEXT}}",
+            PromptInjectionMethod::TemplateVariable,
+        );
+
+        assert_eq!(pattern.id, "test-pattern");
+        assert_eq!(pattern.name, "Test Pattern");
+        assert_eq!(pattern.template, "Review this code: {{CONTEXT}}");
+        assert_eq!(pattern.total_uses(), 0);
+        assert_eq!(pattern.successful_uses(), 0);
+        assert_eq!(pattern.success_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_context_rule_creation() {
+        let rule = ContextRule::new(
+            "task_type == 'code_review'",
+            vec!["patterns.yaml".to_string(), "knowledge.yaml".to_string()],
+            ContextInjectionMethod::Prepend,
+        );
+
+        assert_eq!(rule.condition, "task_type == 'code_review'");
+        assert_eq!(rule.context_files.len(), 2);
+        assert_eq!(rule.priority, None);
+    }
+
+    #[test]
+    fn test_context_rule_with_priority() {
+        let rule = ContextRule::new(
+            "task_type == 'bug_fix'",
+            vec!["knowledge.yaml".to_string()],
+            ContextInjectionMethod::Append,
+        )
+        .with_priority(2);
+
+        assert_eq!(rule.priority, Some(2));
+    }
+
+    #[test]
+    fn test_context_rule_matching() {
+        let rule = ContextRule::new(
+            "task_type == 'code_review' && file_type == 'rust'",
+            vec!["patterns.yaml".to_string()],
+            ContextInjectionMethod::TemplateVariable,
+        );
+
+        // Should match
+        assert!(rule.matches(Some("code_review"), Some("rust"), None));
+        
+        // Should not match
+        assert!(!rule.matches(Some("bug_fix"), Some("rust"), None));
+        assert!(!rule.matches(Some("code_review"), Some("python"), None));
+        assert!(!rule.matches(None, Some("rust"), None));
+    }
+
+    #[test]
+    fn test_prompt_pattern_context_rules() {
+        let mut pattern = PromptPattern::new(
+            "advanced-pattern",
+            "Advanced Pattern",
+            "Review this {{LANGUAGE}} code: {{CONTEXT}}",
+            PromptInjectionMethod::TemplateVariable,
+        );
+
+        // Add context rules
+        let rule1 = ContextRule::new(
+            "task_type == 'code_review'",
+            vec!["patterns.yaml".to_string()],
+            ContextInjectionMethod::Prepend,
+        ).with_priority(1);
+
+        let rule2 = ContextRule::new(
+            "task_type == 'code_review' && severity == 'high'",
+            vec!["patterns.yaml".to_string(), "knowledge.yaml".to_string()],
+            ContextInjectionMethod::Prepend,
+        ).with_priority(2);
+
+        pattern.add_context_rule(rule1);
+        pattern.add_context_rule(rule2);
+
+        // Test matching rules
+        let matching_rules = pattern.get_matching_rules(Some("code_review"), None, Some("high"));
+        assert_eq!(matching_rules.len(), 2);
+        
+        // Higher priority rule should come first
+        assert_eq!(matching_rules[0].priority, Some(2));
+        assert_eq!(matching_rules[1].priority, Some(1));
+    }
+
+    #[test]
+    fn test_template_variable_substitution() {
+        let mut pattern = PromptPattern::new(
+            "variable-pattern",
+            "Variable Pattern",
+            "Review this {{LANGUAGE}} code: {{CONTEXT}}",
+            PromptInjectionMethod::TemplateVariable,
+        );
+
+        // Set variables
+        let mut variables = HashMap::new();
+        variables.insert("LANGUAGE".to_string(), "Rust".to_string());
+        pattern.set_variables(variables);
+
+        // Test variable substitution
+        let result = pattern.substitute_variables("fn main() { println!(\"Hello, world!\"); }");
+        assert_eq!(result, "Review this Rust code: fn main() { println!(\"Hello, world!\"); }");
+    }
+
+    #[test]
+    fn test_template_inheritance() {
+        let mut pattern = PromptPattern::new(
+            "inherited-pattern",
+            "Inherited Pattern",
+            "{{BASE_TEMPLATE}}\n\nAdditional security checks: {{SECURITY_CONTEXT}}",
+            PromptInjectionMethod::TemplateVariable,
+        );
+
+        pattern.set_extends("base-code-review");
+        assert!(pattern.has_extends());
+        assert_eq!(pattern.extends, Some("base-code-review".to_string()));
+    }
+
+    #[test]
+    fn test_multi_file_context_support() {
+        let mut pattern = PromptPattern::new(
+            "multi-file-pattern",
+            "Multi-file Pattern",
+            "Review this code: {{CONTEXT}}",
+            PromptInjectionMethod::TemplateVariable,
+        );
+
+        pattern.enable_multi_file_context();
+        assert!(pattern.supports_multi_file_context());
+    }
+
+    #[test]
+    fn test_context_files_collection() {
+        let mut pattern = PromptPattern::new(
+            "context-files-pattern",
+            "Context Files Pattern",
+            "Review this code: {{CONTEXT}}",
+            PromptInjectionMethod::TemplateVariable,
+        );
+
+        // Add context rules with different files
+        let rule1 = ContextRule::new(
+            "task_type == 'code_review'",
+            vec!["patterns.yaml".to_string()],
+            ContextInjectionMethod::Prepend,
+        );
+
+        let rule2 = ContextRule::new(
+            "task_type == 'code_review'",
+            vec!["knowledge.yaml".to_string(), "patterns.yaml".to_string()],
+            ContextInjectionMethod::Prepend,
+        );
+
+        pattern.add_context_rule(rule1);
+        pattern.add_context_rule(rule2);
+
+        // Get context files (should deduplicate)
+        let context_files = pattern.get_context_files(Some("code_review"), None, None);
+        assert_eq!(context_files.len(), 2);
+        assert!(context_files.contains(&"patterns.yaml".to_string()));
+        assert!(context_files.contains(&"knowledge.yaml".to_string()));
+    }
+
+    #[test]
+    fn test_usage_tracking() {
+        let mut pattern = PromptPattern::new(
+            "usage-pattern",
+            "Usage Pattern",
+            "Review this code: {{CONTEXT}}",
+            PromptInjectionMethod::TemplateVariable,
+        );
+
+        // Record some usage
+        pattern.record_usage(true, Some("Great for code reviews".to_string()));
+        pattern.record_usage(true, Some("Very helpful".to_string()));
+        pattern.record_usage(false, Some("Could be more specific".to_string()));
+
+        assert_eq!(pattern.total_uses(), 3);
+        assert_eq!(pattern.successful_uses(), 2);
+        assert!((pattern.success_rate() - 0.6666666666666666).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_variable_getter() {
+        let mut pattern = PromptPattern::new(
+            "variable-getter-pattern",
+            "Variable Getter Pattern",
+            "Review this {{LANGUAGE}} code: {{CONTEXT}}",
+            PromptInjectionMethod::TemplateVariable,
+        );
+
+        let mut variables = HashMap::new();
+        variables.insert("LANGUAGE".to_string(), "Rust".to_string());
+        pattern.set_variables(variables);
+
+        assert_eq!(pattern.get_variable("LANGUAGE"), Some(&"Rust".to_string()));
+        assert_eq!(pattern.get_variable("NONEXISTENT"), None);
+    }
+}
+
+/// Template performance metrics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplatePerformanceMetrics {
+    /// Average rendering time in milliseconds
+    pub avg_rendering_time: f64,
+    /// Maximum rendering time in milliseconds
+    pub max_rendering_time: f64,
+    /// Minimum rendering time in milliseconds
+    pub min_rendering_time: f64,
+    /// Total render count
+    pub total_renders: u64,
+    /// Cache hit rate
+    pub cache_hit_rate: f64,
+    /// Memory usage in bytes
+    pub memory_usage: u64,
+    /// Last performance update timestamp
+    pub last_updated: chrono::DateTime<chrono::Utc>,
 }

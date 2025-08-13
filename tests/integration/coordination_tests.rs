@@ -249,6 +249,37 @@ async fn test_session_creation_with_coordination() -> RhemaResult<()> {
 
     let service = AIService::new(config).await?;
 
+    // Register agents first
+    let agent1 = AgentInfo {
+        id: "agent-1".to_string(),
+        name: "Agent 1".to_string(),
+        agent_type: "test".to_string(),
+        status: AgentStatus::Idle,
+        current_task_id: None,
+        assigned_scope: "test".to_string(),
+        capabilities: vec!["test".to_string()],
+        last_heartbeat: chrono::Utc::now(),
+        is_online: true,
+        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
+    };
+
+    let agent2 = AgentInfo {
+        id: "agent-2".to_string(),
+        name: "Agent 2".to_string(),
+        agent_type: "test".to_string(),
+        status: AgentStatus::Idle,
+        current_task_id: None,
+        assigned_scope: "test".to_string(),
+        capabilities: vec!["test".to_string()],
+        last_heartbeat: chrono::Utc::now(),
+        is_online: true,
+        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
+    };
+
+    service.register_agent_with_coordination(agent1).await?;
+    service.register_agent_with_coordination(agent2).await?;
+
+    // Create session
     let session_id = service
         .create_session(
             "Test Session".to_string(),
@@ -293,6 +324,36 @@ async fn test_session_join_and_message() -> RhemaResult<()> {
     };
 
     let service = AIService::new(config).await?;
+
+    // Register agents first
+    let agent1 = AgentInfo {
+        id: "agent-1".to_string(),
+        name: "Agent 1".to_string(),
+        agent_type: "test".to_string(),
+        status: AgentStatus::Idle,
+        current_task_id: None,
+        assigned_scope: "test".to_string(),
+        capabilities: vec!["test".to_string()],
+        last_heartbeat: chrono::Utc::now(),
+        is_online: true,
+        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
+    };
+
+    let agent2 = AgentInfo {
+        id: "agent-2".to_string(),
+        name: "Agent 2".to_string(),
+        agent_type: "test".to_string(),
+        status: AgentStatus::Idle,
+        current_task_id: None,
+        assigned_scope: "test".to_string(),
+        capabilities: vec!["test".to_string()],
+        last_heartbeat: chrono::Utc::now(),
+        is_online: true,
+        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
+    };
+
+    service.register_agent_with_coordination(agent1).await?;
+    service.register_agent_with_coordination(agent2).await?;
 
     // Create session
     let session_id = service

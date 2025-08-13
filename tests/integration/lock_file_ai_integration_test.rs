@@ -36,25 +36,24 @@ async fn test_lock_file_context_provider() -> RhemaResult<()> {
     // Test loading (may fail if no lock file exists, which is expected)
     let load_result = provider.load_lock_file();
 
-    // Should either succeed or fail gracefully
-    match load_result {
-        Ok(_) => {
-            // Lock file exists and loaded successfully
-            assert!(provider.has_lock_file());
+    // The load operation should always succeed, but has_lock_file() depends on whether a lock file exists
+    assert!(load_result.is_ok());
+    
+    if provider.get_lock_file_path().exists() {
+        // Lock file exists and should be loaded
+        assert!(provider.has_lock_file());
 
-            // Test getting context (should succeed if lock file is loaded)
-            if let Ok(context) = provider.get_ai_context() {
-                // Verify context structure
-                assert!(context.summary.total_scopes >= 0);
-                assert!(context.summary.total_dependencies >= 0);
-                assert!(context.health_assessment.overall_score >= 0.0);
-                assert!(context.health_assessment.overall_score <= 100.0);
-            }
+        // Test getting context (should succeed if lock file is loaded)
+        if let Ok(context) = provider.get_ai_context() {
+            // Verify context structure
+            assert!(context.summary.total_scopes >= 0);
+            assert!(context.summary.total_dependencies >= 0);
+            assert!(context.health_assessment.overall_score >= 0.0);
+            assert!(context.health_assessment.overall_score <= 100.0);
         }
-        Err(_) => {
-            // No lock file exists, which is expected in test environment
-            assert!(!provider.has_lock_file());
-        }
+    } else {
+        // No lock file exists, which is expected in test environment
+        assert!(!provider.has_lock_file());
     }
 
     Ok(())

@@ -1333,6 +1333,12 @@ impl PatternRecoveryManager {
 
         initial_count - checkpoints.len()
     }
+
+    /// Record a recovery attempt
+    pub async fn record_recovery_attempt(&self, record: RecoveryRecord) {
+        let mut history = self.recovery_history.write().await;
+        history.push(record);
+    }
 }
 
 impl Default for PatternRecoveryManager {

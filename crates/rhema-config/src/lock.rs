@@ -910,6 +910,18 @@ impl Config for LockConfig {
             ));
         }
 
+        if self.validation.timeout_seconds == 0 {
+            return Err(RhemaError::ConfigError(
+                "Validation timeout must be greater than 0".to_string(),
+            ));
+        }
+
+        if self.validation.timeout_seconds > 3600 {
+            return Err(RhemaError::ConfigError(
+                "Validation timeout must be less than or equal to 3600 seconds".to_string(),
+            ));
+        }
+
         Ok(())
     }
 
@@ -1168,6 +1180,17 @@ impl LockConfig {
                     RhemaError::ConfigError(format!("Invalid boolean value: {}", e))
                 })?;
                 self.resolution.prefer_stable = prefer;
+            }
+            "max_depth" => {
+                let depth: u32 = serde_json::from_value(value).map_err(|e| {
+                    RhemaError::ConfigError(format!("Invalid max depth value: {}", e))
+                })?;
+                if depth == 0 {
+                    return Err(RhemaError::ConfigError(
+                        "Max depth must be greater than 0".to_string(),
+                    ));
+                }
+                self.resolution.max_depth = depth;
             }
             _ => {
                 return Err(RhemaError::ConfigError(format!(

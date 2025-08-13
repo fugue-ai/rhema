@@ -140,7 +140,10 @@ fn test_lock_file_error_handling() {
 
     // Try to validate a non-existent lock file
     let result = LockFileOps::validate_lock_file_integrity(&non_existent_path);
-    assert!(result.is_err());
+    assert!(result.is_ok());
+    let validation_result = result.unwrap();
+    assert!(!validation_result.is_valid);
+    assert!(!validation_result.messages.is_empty());
 }
 
 #[test]

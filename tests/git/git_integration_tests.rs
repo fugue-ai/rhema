@@ -40,9 +40,21 @@ impl GitIntegrationTestFixture {
         // Initialize Git repository
         let repo = Repository::init(repo_path)?;
 
+        // Create a basic Cargo.toml file for testing
+        let cargo_toml_content = r#"[package]
+name = "test-project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+"#;
+        fs::write(repo_path.join("Cargo.toml"), cargo_toml_content)?;
+
         // Create initial commit
         let signature = Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0))?;
-        let tree_id = repo.index()?.write_tree()?;
+        let mut index = repo.index()?;
+        index.add_path(std::path::Path::new("Cargo.toml"))?;
+        let tree_id = index.write_tree()?;
         {
             let tree = repo.find_tree(tree_id)?;
             repo.commit(

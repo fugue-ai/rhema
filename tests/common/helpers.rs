@@ -122,15 +122,16 @@ settings:
         let scope_dir = path.join(".rhema");
         std::fs::create_dir_all(&scope_dir)?;
 
-        let scope_config = r#"
-name: "simple"
+        let rhema_yaml = r#"
+name: test-scope
+scope_type: service
+description: Test scope for unit testing
 version: "1.0.0"
-scope_type: "service"
-description: "A basic test scope"
+schema_version: "1.0.0"
+dependencies: null
 "#;
+        std::fs::write(scope_dir.join("rhema.yaml"), rhema_yaml)?;
 
-        std::fs::write(scope_dir.join("rhema.yaml"), scope_config)?;
-        
         // Create a simple.yaml file for testing
         let simple_yaml = r#"
 items:
@@ -145,8 +146,54 @@ items:
     active: true
 "#;
         std::fs::write(scope_dir.join("simple.yaml"), simple_yaml)?;
-        
+
         Ok(())
+    }
+
+    /// Create a minimal valid Rust project structure
+    pub fn create_minimal_rust_project(path: &PathBuf) -> RhemaResult<()> {
+        // Create src directory
+        let src_dir = path.join("src");
+        std::fs::create_dir_all(&src_dir)?;
+
+        // Create Cargo.toml
+        let cargo_toml = r#"[package]
+name = "test-project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+"#;
+        std::fs::write(path.join("Cargo.toml"), cargo_toml)?;
+
+        // Create lib.rs
+        let lib_rs = r#"
+pub fn main() {
+    println!("Hello, World!");
+}
+"#;
+        std::fs::write(src_dir.join("lib.rs"), lib_rs)?;
+
+        // Create main.rs
+        let main_rs = r#"
+fn main() {
+    println!("Hello, World!");
+}
+"#;
+        std::fs::write(src_dir.join("main.rs"), main_rs)?;
+
+        Ok(())
+    }
+
+    /// Create a test environment with a minimal Rust project
+    pub fn create_test_env_with_rust_project() -> RhemaResult<(TempDir, Rhema)> {
+        let (temp_dir, rhema) = Self::create_test_rhema()?;
+        let repo_path = temp_dir.path().to_path_buf();
+        
+        // Create minimal Rust project
+        Self::create_minimal_rust_project(&repo_path)?;
+        
+        Ok((temp_dir, rhema))
     }
 
     /// Create a complex scope for testing

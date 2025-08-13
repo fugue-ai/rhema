@@ -499,7 +499,9 @@ fn parse_target(target: &str) -> Result<(String, Option<String>), RhemaError> {
             Ok((target.to_string(), None))
         }
     } else {
-        Ok((target.to_string(), None))
+        // For simple targets like "todos", automatically set the yaml_path to the same name
+        // This allows queries like "todos WHERE status=pending" to work correctly
+        Ok((target.to_string(), Some(target.to_string())))
     }
 }
 
@@ -1460,8 +1462,20 @@ pub fn get_query_stats(
     repo_root: &Path,
     query: &str,
 ) -> Result<HashMap<String, Value>, RhemaError> {
+    let start_time = std::time::Instant::now();
     let result = execute_query(repo_root, query)?;
+    let execution_time = start_time.elapsed();
     let mut stats = HashMap::new();
+
+    // Add execution time information
+    stats.insert(
+        "execution_time_ms".to_string(),
+        Value::Number(serde_yaml::Number::from(execution_time.as_millis() as u64)),
+    );
+    stats.insert(
+        "total_time_ms".to_string(),
+        Value::Number(serde_yaml::Number::from(execution_time.as_millis() as u64)),
+    );
 
     match result {
         Value::Sequence(seq) => {

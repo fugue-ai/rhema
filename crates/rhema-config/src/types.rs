@@ -163,7 +163,7 @@ pub struct ConfigIssue {
 }
 
 /// Configuration trait
-pub trait Config: serde::Serialize + for<'de> serde::Deserialize<'de> {
+pub trait Config: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone {
     fn version(&self) -> &str;
     fn validate_config(&self) -> rhema_core::RhemaResult<()>;
     fn load_from_file(path: &std::path::Path) -> rhema_core::RhemaResult<Self>
@@ -175,4 +175,4 @@ pub trait Config: serde::Serialize + for<'de> serde::Deserialize<'de> {
 }
 
 /// Current configuration version
-pub const CURRENT_CONFIG_VERSION: &str = "0.1.0";
+pub const CURRENT_CONFIG_VERSION: &str = "1.0.0";

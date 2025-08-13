@@ -220,6 +220,9 @@ fn test_checksum_calculation() {
     let test_dir = temp_dir.path().join("test-scope");
     fs::create_dir_all(&test_dir).unwrap();
 
+    // Create subdirectory
+    fs::create_dir_all(test_dir.join("subdir")).unwrap();
+
     // Create some test files
     fs::write(test_dir.join("file1.txt"), "content1").unwrap();
     fs::write(test_dir.join("file2.txt"), "content2").unwrap();

@@ -47,8 +47,8 @@ fn test_scope_discovery_basic() -> RhemaResult<()> {
     // Verify scopes were found
     assert!(!scopes.is_empty(), "Scopes should be discovered");
     assert!(
-        scopes.iter().any(|s| s.definition.name == "simple"),
-        "Simple scope should be found"
+        scopes.iter().any(|s| s.definition.name == "test-scope"),
+        "Test scope should be found"
     );
 
     Ok(())
@@ -68,11 +68,11 @@ fn test_query_execution_filtered() -> RhemaResult<()> {
     TestHelpers::create_basic_scope(&temp_path.to_path_buf())?;
 
     // Execute simple query
-    let result = rhema.query("simple")?;
+    let result = rhema.query("test-scope")?;
     assert!(!result.is_null(), "Query should return results");
 
     // Execute filtered query
-    let filtered_result = rhema.query("simple.items WHERE active=true")?;
+    let filtered_result = rhema.query("test-scope.items WHERE active=true")?;
     // Note: We can't easily compare lengths without knowing the structure
     assert!(
         !filtered_result.is_null(),
@@ -126,7 +126,7 @@ fn test_query_with_stats() -> RhemaResult<()> {
     TestHelpers::create_basic_scope(&temp_path.to_path_buf())?;
 
     // Execute query with statistics
-    let (result, stats) = rhema.query_with_stats("simple")?;
+    let (result, stats) = rhema.query_with_stats("test-scope")?;
 
     // Verify results
     assert!(!result.is_null(), "Query should return results");
@@ -235,8 +235,8 @@ fn test_concurrent_operations() -> RhemaResult<()> {
     TestHelpers::create_basic_scope(&temp_path.to_path_buf())?;
 
     // Simulate concurrent queries
-    let result1 = rhema.query("simple")?;
-    let result2 = rhema.query("simple")?;
+    let result1 = rhema.query("test-scope")?;
+    let result2 = rhema.query("test-scope")?;
 
     // Both queries should succeed
     assert!(
@@ -266,7 +266,7 @@ fn test_memory_usage() -> RhemaResult<()> {
 
     // Execute multiple queries to test memory usage
     for _ in 0..10 {
-        let result = rhema.query("simple")?;
+        let result = rhema.query("test-scope")?;
         assert!(!result.is_null(), "Query should return results");
     }
 

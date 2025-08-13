@@ -316,9 +316,12 @@ impl BackupManager {
         // Get file size
         let size_bytes = final_content.len() as u64;
 
+        // Determine configuration type from the type name
+        let config_type = self.get_config_type::<T>();
+
         let record = BackupRecord {
             backup_id: backup_id.clone(),
-            original_path: PathBuf::from(context),
+            original_path: PathBuf::from(config_type.clone()),
             backup_path: backup_path.clone(),
             timestamp,
             format: self.backup_format.clone(),
@@ -333,12 +336,12 @@ impl BackupManager {
         // Update backup history
         let history = self
             .backup_history
-            .entry(PathBuf::from(context))
+            .entry(PathBuf::from(config_type.clone()))
             .or_insert_with(Vec::new);
         history.push(record.clone());
 
         // Cleanup old backups
-        self.cleanup_old_backups(context)?;
+        self.cleanup_old_backups(&config_type)?;
 
         Ok(record)
     }
@@ -691,13 +694,13 @@ impl BackupManager {
     }
 
     /// Validate backup integrity before restoration
-    pub async fn validate_backup_integrity(&self, backup_path: &Path) -> RhemaResult<bool> {
-        if !backup_path.exists() {
+    pub async fn validate_backup_integrity(&self, backup_record: &BackupRecord) -> RhemaResult<bool> {
+        if !backup_record.backup_path.exists() {
             return Err(ConfigError::BackupFailed("Backup file does not exist".to_string()).into());
         }
 
         // Read backup file
-        let backup_content = std::fs::read(backup_path)
+        let backup_content = std::fs::read(&backup_record.backup_path)
             .map_err(|e| ConfigError::BackupFailed(format!("Failed to read backup file: {}", e)))?;
 
         // Validate file size
@@ -708,16 +711,14 @@ impl BackupManager {
         // Check if file is compressed
         let is_compressed = self.is_compressed_content(&backup_content);
 
-        // Validate checksum if available
-        if let Some(expected_checksum) = self.extract_checksum_from_filename(backup_path) {
-            let actual_checksum = self.calculate_checksum(&backup_content);
-            if actual_checksum != expected_checksum {
-                return Err(ConfigError::BackupFailed(format!(
-                    "Checksum mismatch: expected {}, got {}",
-                    expected_checksum, actual_checksum
-                ))
-                .into());
-            }
+        // Validate checksum using the one from the backup record
+        let actual_checksum = self.calculate_checksum(&backup_content);
+        if actual_checksum != backup_record.checksum {
+            return Err(ConfigError::BackupFailed(format!(
+                "Checksum mismatch: expected {}, got {}",
+                backup_record.checksum, actual_checksum
+            ))
+            .into());
         }
 
         // Try to decompress if compressed
@@ -811,7 +812,7 @@ impl BackupManager {
 
         // Validate backup integrity
         if !self
-            .validate_backup_integrity(&backup_record.backup_path)
+            .validate_backup_integrity(&backup_record)
             .await?
         {
             // Remove invalid backup
@@ -838,7 +839,7 @@ impl BackupManager {
 
         // Validate backup integrity before restoration
         if !self
-            .validate_backup_integrity(&backup_record.backup_path)
+            .validate_backup_integrity(backup_record)
             .await?
         {
             return Err(ConfigError::BackupFailed(
@@ -902,5 +903,23 @@ impl BackupManager {
             age_distribution,
             last_backup: self.list_backups(None).first().map(|b| b.timestamp),
         })
+    }
+
+    /// Get configuration type from the generic type
+    fn get_config_type<T: Config>(&self) -> String {
+        let type_name = std::any::type_name::<T>();
+        
+        // Extract the type name from the full path
+        // Type names are like "rhema_config::global::GlobalConfig"
+        if let Some(last_part) = type_name.split("::").last() {
+            // Convert CamelCase to lowercase (e.g., "GlobalConfig" -> "global")
+            if last_part.ends_with("Config") {
+                let base_name = &last_part[..last_part.len() - 6]; // Remove "Config" suffix
+                return base_name.to_lowercase();
+            }
+        }
+        
+        // Fallback to a generic name
+        "config".to_string()
     }
 }

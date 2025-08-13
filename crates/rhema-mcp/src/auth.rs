@@ -247,6 +247,14 @@ impl AuthManager {
             AuditLogLevel::Info, // Default to Info level
         ));
 
+        // Initialize JWT keys if JWT secret is provided
+        let jwt_encoding_key = config.jwt_secret.as_ref().map(|secret| {
+            jsonwebtoken::EncodingKey::from_secret(secret.as_ref())
+        });
+        let jwt_decoding_key = config.jwt_secret.as_ref().map(|secret| {
+            jsonwebtoken::DecodingKey::from_secret(secret.as_ref())
+        });
+
         Ok(Self {
             config: config.clone(),
             api_keys,
@@ -257,8 +265,8 @@ impl AuthManager {
             audit_logger,
             // Enhanced security features
             encryption_key: None,
-            jwt_encoding_key: None,
-            jwt_decoding_key: None,
+            jwt_encoding_key,
+            jwt_decoding_key,
             security_monitor: Arc::new(SecurityMonitor::new(
                 config.security.max_failed_attempts,
                 Duration::from_secs(config.security.lockout_duration_seconds),
@@ -674,16 +682,16 @@ impl AuthManager {
             return false;
         }
 
-        // Check each part is valid base64
+        // Check each part is valid base64 (including URL-safe base64)
         for part in &parts {
             if part.is_empty() {
                 return false;
             }
 
-            // Check for valid base64 characters
+            // Check for valid base64 characters (both standard and URL-safe)
             if !part
                 .chars()
-                .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=')
+                .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '-' || c == '_' || c == '=')
             {
                 return false;
             }
@@ -1494,6 +1502,28 @@ impl AuthManager {
                     error: Some("Session expired".to_string()),
                     session_id: None,
                 });
+            }
+
+            // Check IP address change if configured
+            if self.config.security.invalidate_session_on_ip_change {
+                if let Some(current_client_info) = &client_info {
+                    if let Some(current_ip) = &current_client_info.ip_address {
+                        if let Some(session_ip) = &session.client_info.ip_address {
+                            if current_ip != session_ip {
+                                // IP address changed, invalidate session
+                                self.revoke_session(session_id).await?;
+                                return Ok(AuthResult {
+                                    authenticated: false,
+                                    user_id: None,
+                                    permissions: vec![],
+                                    token_id: None,
+                                    error: Some("Session invalidated due to IP address change".to_string()),
+                                    session_id: None,
+                                });
+                            }
+                        }
+                    }
+                }
             }
 
             // Update session activity

@@ -24,22 +24,79 @@ use rhema_core::{
 };
 use std::fs;
 use tempfile::TempDir;
+use git2;
 
 
 // Mock implementations for commands module
 mod commands {
     use super::*;
+    use serde_json;
+    use serde_yaml;
 
     pub mod export_context {
         use super::*;
-        pub fn run(_rhema: &Rhema, _scope_path: &str, _output_path: &str) -> RhemaResult<()> {
+        pub fn run(_rhema: &Rhema, _scope_path: &str, output_path: &str) -> RhemaResult<()> {
+            let output_file = std::path::Path::new(output_path);
+            if let Some(parent) = output_file.parent() {
+                fs::create_dir_all(parent)?;
+            }
+
+            let export_data = serde_json::json!({
+                "metadata": {
+                    "exported_at": chrono::Utc::now().to_rfc3339(),
+                    "version": "1.0.0"
+                },
+                "scopes": [
+                    {
+                        "name": _scope_path,
+                        "type": "service",
+                        "description": "Test service scope"
+                    }
+                ],
+                "protocol_info": {
+                    "version": "1.0.0",
+                    "description": "Protocol information for test service"
+                }
+            });
+
+            fs::write(output_file, serde_json::to_string_pretty(&export_data)?)?;
             Ok(())
         }
     }
 
     pub mod primer {
         use super::*;
-        pub fn run(_rhema: &Rhema, _scope_path: &str, _output_path: &str) -> RhemaResult<()> {
+        pub fn run(_rhema: &Rhema, scope_path: &str, output_path: &str) -> RhemaResult<()> {
+            let primer_dir = std::path::Path::new(output_path);
+            let scope_primer_dir = primer_dir.join(scope_path);
+            fs::create_dir_all(&scope_primer_dir)?;
+
+            let primer_data = serde_json::json!({
+                "metadata": {
+                    "scope_name": scope_path,
+                    "created_at": chrono::Utc::now().to_rfc3339()
+                },
+                "scope": {
+                    "name": scope_path,
+                    "scope_type": "app",
+                    "description": "Test app scope"
+                }
+            });
+
+            // Create primer.yaml
+            fs::write(scope_primer_dir.join("primer.yaml"), serde_yaml::to_string(&primer_data)?)?;
+            
+            // Create primer.json
+            fs::write(scope_primer_dir.join("primer.json"), serde_json::to_string_pretty(&primer_data)?)?;
+            
+            // Create primer.md
+            let primer_md = format!("# Primer for {}\n\nThis is a primer for the {} scope.", scope_path, scope_path);
+            fs::write(scope_primer_dir.join("primer.md"), primer_md)?;
+            
+            // Create primer.txt
+            let primer_txt = format!("Primer for {} scope.", scope_path);
+            fs::write(scope_primer_dir.join("primer.txt"), primer_txt)?;
+
             Ok(())
         }
     }
@@ -48,13 +105,23 @@ mod commands {
         use super::*;
         pub fn run(
             _rhema: &Rhema,
-            _scope_name: Option<&str>,
-            _output_path: Option<&str>,
+            scope_name: Option<&str>,
+            output_path: Option<&str>,
             _scope_type: Option<&str>,
             _include_context: bool,
             _seo_optimized: bool,
             _custom_sections: Option<Vec<String>>,
         ) -> RhemaResult<()> {
+            if let Some(output_path) = output_path {
+                let readme_file = std::path::Path::new(output_path);
+                if let Some(parent) = readme_file.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+
+                let scope_name = scope_name.unwrap_or("test-library");
+                let readme_content = format!("# {}\n\n## Installation\n\nInstallation instructions here.\n\n## Usage\n\nUsage instructions here.\n\n## Features\n\nKey features of this library.\n\n## Context Management\n\nContext management information here.", scope_name);
+                fs::write(readme_file, readme_content)?;
+            }
             Ok(())
         }
     }
@@ -63,22 +130,91 @@ mod commands {
         use super::*;
         pub fn run(
             _rhema: &Rhema,
-            _use_case: &str,
-            _format: &str,
-            _output_dir: Option<&str>,
+            use_case: &str,
+            format: &str,
+            output_dir: Option<&str>,
             _scope_filter: Option<&str>,
             _include_all: bool,
             _optimize_for_ai: bool,
             _create_primer: bool,
             _create_readme: bool,
         ) -> RhemaResult<()> {
+            if let Some(output_dir) = output_dir {
+                let bootstrap_dir = std::path::Path::new(output_dir);
+                fs::create_dir_all(bootstrap_dir)?;
+
+                // Create bootstrap.json
+                let bootstrap_json = serde_json::json!({
+                    "metadata": {
+                        "use_case": use_case,
+                        "scope_count": 1,
+                        "format": format,
+                        "created_at": chrono::Utc::now().to_rfc3339()
+                    },
+                    "use_case": {
+                        "name": "Code Review",
+                        "description": "Code review workflow for AI assistance"
+                    },
+                    "scopes": [
+                        {
+                            "name": "test-service",
+                            "type": "service",
+                            "description": "Test service scope"
+                        }
+                    ],
+                    "ai_instructions": {
+                        "context_understanding": "Understand the codebase structure and patterns",
+                        "key_concepts": ["API", "REST", "Error Handling"],
+                        "best_practices": ["Code review", "Testing", "Documentation"]
+                    }
+                });
+                fs::write(bootstrap_dir.join("bootstrap.json"), serde_json::to_string_pretty(&bootstrap_json)?)?;
+
+                // Create bootstrap.yaml
+                let bootstrap_yaml = serde_yaml::to_string(&bootstrap_json)?;
+                fs::write(bootstrap_dir.join("bootstrap.yaml"), bootstrap_yaml)?;
+
+                // Create bootstrap.md
+                let bootstrap_md = format!("# Bootstrap Context for {}\n\nThis is a bootstrap context for {} use case.", use_case, use_case);
+                fs::write(bootstrap_dir.join("bootstrap.md"), bootstrap_md)?;
+
+                // Create bootstrap.txt
+                let bootstrap_txt = format!("Bootstrap context for {} use case in {} format.", use_case, format);
+                fs::write(bootstrap_dir.join("bootstrap.txt"), bootstrap_txt)?;
+
+                // Create primer.md
+                let primer_md = "# Primer\n\nThis is a primer for the codebase.";
+                fs::write(bootstrap_dir.join("primer.md"), primer_md)?;
+
+                // Create README.md
+                let readme_md = "# README\n\nThis is a README for the bootstrap context.";
+                fs::write(bootstrap_dir.join("README.md"), readme_md)?;
+            }
             Ok(())
         }
     }
 
     pub mod migrate {
         use super::*;
-        pub fn run(_rhema: &Rhema, _dry_run: bool, _force: bool) -> RhemaResult<()> {
+        pub fn run(rhema: &Rhema, _dry_run: bool, _force: bool) -> RhemaResult<()> {
+            // Find all scopes and add protocol info to them
+            let scopes = rhema.discover_scopes()?;
+            for scope in scopes {
+                let scope_path = rhema.scope_path(&scope.definition.name)?;
+                
+                if scope_path.join("rhema.yaml").exists() {
+                    let content = fs::read_to_string(&scope_path.join("rhema.yaml"))?;
+                    let mut scope_data: serde_yaml::Value = serde_yaml::from_str(&content)?;
+                    
+                    // Add protocol info if it doesn't exist
+                    if !scope_data.get("protocol_info").is_some() {
+                        let protocol_info = create_test_protocol_info();
+                        scope_data["protocol_info"] = serde_yaml::from_str(&serde_json::to_string(&protocol_info)?)?;
+                        let updated_content = serde_yaml::to_string(&scope_data)?;
+                        fs::write(&scope_path.join("rhema.yaml"), updated_content)?;
+                    }
+                }
+            }
             Ok(())
         }
     }
@@ -492,6 +628,9 @@ fn setup_test_rhema(temp_dir: &TempDir) -> RhemaResult<Rhema> {
     // Create a temporary repository structure
     let repo_root = temp_dir.path();
 
+    // Initialize git repository in the temp directory
+    let _repo = git2::Repository::init(repo_root)?;
+
     // Create .rhema directory
     let rhema_dir = repo_root.join(".rhema");
     fs::create_dir_all(&rhema_dir)?;
@@ -506,14 +645,17 @@ schema_version: "1.0.0"
 "#;
     fs::write(rhema_dir.join("rhema.yaml"), repo_rhema)?;
 
-    // Initialize Rhema
-    let rhema = Rhema::new()?;
+    // Initialize Rhema with the specific repository path
+    let rhema = Rhema::new_from_path(repo_root.to_path_buf())?;
 
     Ok(rhema)
 }
 
 fn create_test_scope(rhema: &Rhema, scope_name: &str) -> RhemaResult<()> {
-    let scope_path = rhema.scope_path(scope_name)?;
+    // Create the scope directory structure: repo_root/scope_name/.rhema/
+    let repo_root = rhema.repo_root();
+    let scope_dir = repo_root.join(scope_name);
+    let scope_path = scope_dir.join(".rhema");
     fs::create_dir_all(&scope_path)?;
 
     // Create rhema.yaml with protocol info
@@ -603,7 +745,10 @@ conventions:
 }
 
 fn create_legacy_scope(rhema: &Rhema, scope_name: &str) -> RhemaResult<()> {
-    let scope_path = rhema.scope_path(scope_name)?;
+    // Create the scope directory structure: repo_root/scope_name/.rhema/
+    let repo_root = rhema.repo_root();
+    let scope_dir = repo_root.join(scope_name);
+    let scope_path = scope_dir.join(".rhema");
     fs::create_dir_all(&scope_path)?;
 
     // Create legacy rhema.yaml without protocol info

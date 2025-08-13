@@ -839,7 +839,7 @@ impl Config for RepositoryConfig {
         serde_json::json!({
             "type": "object",
             "properties": {
-                "version": {"type": "string"},
+                "version": {"type": "string", "minLength": 1},
                 "repository_path": {"type": "string"},
                 "branch_conventions": {"type": "object"}
             },

@@ -176,33 +176,16 @@ usage_analytics:
 
 ## P4 (Future) - AI-Powered Features
 
+**Note**: AI-powered features have been moved to a separate proposal: [0028-ai-powered-prompt-optimization.md](0028-ai-powered-prompt-optimization.md)
 
-### Automatic Success Rate Optimization
+The AI-powered features include:
+- Automatic success rate optimization
+- Intelligent context selection  
+- Prompt pattern recommendations
+- Natural language prompt generation
+- Adaptive learning systems
 
-
-- **Feature**: Use AI to suggest improvements based on feedback
-
-- **Implementation**: AI analysis of feedback patterns and template optimization
-
-- **Example**: AI suggests adding security-focused context for code review prompts
-
-### Intelligent Context Selection
-
-
-- **Feature**: AI-powered selection of most relevant context
-
-- **Implementation**: Analyze task and automatically select appropriate context files
-
-- **Example**: AI determines that security patterns are most relevant for authentication code
-
-### Prompt Pattern Recommendations
-
-
-- **Feature**: Suggest prompt patterns based on current task and context
-
-- **Implementation**: AI analysis of current work context and prompt pattern effectiveness
-
-- **Example**: Suggest "security-review" pattern when working on authentication code
+See the dedicated AI proposal for detailed implementation plans, architecture, and timeline.
 
 ## Implementation Notes
 
@@ -266,7 +249,7 @@ usage_analytics:
 
 ---
 
-**Status**: 📋 **Planned**  
+**Status**: ✅ **ACCEPTED**  
 **Priority**: P1-P4 (Phased Implementation)  
 **Timeline**: Q2-Q4 2025  
 **Owner**: Rhema Enhancement Team 

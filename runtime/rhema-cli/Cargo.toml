@@ -33,4 +33,6 @@ serde_json = { workspace = true }
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 uuid = { workspace = true, features = ["v4", "serde"] }
-chrono = { workspace = true, features = ["serde"] } 
+chrono = { workspace = true, features = ["serde"] }
+colored = "2.0"
+atty = "0.2" 

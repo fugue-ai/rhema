@@ -1073,7 +1073,7 @@ impl Config for ScopeConfig {
         serde_json::json!({
             "type": "object",
             "properties": {
-                "version": {"type": "string"},
+                "version": {"type": "string", "minLength": 1},
                 "scope": {"type": "object"},
                 "settings": {"type": "object"},
                 "dependencies": {"type": "object"},

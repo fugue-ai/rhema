@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::scope_loader::*;
+use crate::scope_loader::service::ScopeLoaderConfig;
 
 /// Example function demonstrating how to use the scope loader plugin system
 pub async fn test_scope_loader() -> Result<(), Box<dyn std::error::Error>> {

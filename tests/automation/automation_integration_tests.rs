@@ -26,6 +26,17 @@ use tempfile::TempDir;
 fn setup_test_automation() -> (TempDir, AdvancedGitIntegration) {
     let temp_dir = TempDir::new().unwrap();
     let repo = Repository::init(temp_dir.path()).unwrap();
+    
+    // Create a basic Cargo.toml file for testing
+    let cargo_toml_content = r#"[package]
+name = "test-project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+"#;
+    std::fs::write(temp_dir.path().join("Cargo.toml"), cargo_toml_content).unwrap();
+    
     let integration = AdvancedGitIntegration::new(repo).unwrap();
     (temp_dir, integration)
 }
@@ -35,6 +46,17 @@ fn setup_test_automation_with_config(
 ) -> (TempDir, GitAutomationManager) {
     let temp_dir = TempDir::new().unwrap();
     let repo = Repository::init(temp_dir.path()).unwrap();
+    
+    // Create a basic Cargo.toml file for testing
+    let cargo_toml_content = r#"[package]
+name = "test-project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+"#;
+    std::fs::write(temp_dir.path().join("Cargo.toml"), cargo_toml_content).unwrap();
+    
     let manager = GitAutomationManager::new(repo, config);
     (temp_dir, manager)
 }
@@ -111,6 +133,17 @@ fn test_git_integration_initialization() {
 fn test_automation_with_enabled_workflow() {
     let temp_dir = TempDir::new().unwrap();
     let repo = Repository::init(temp_dir.path()).unwrap();
+    
+    // Create a basic Cargo.toml file for testing
+    let cargo_toml_content = r#"[package]
+name = "test-project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+"#;
+    std::fs::write(temp_dir.path().join("Cargo.toml"), cargo_toml_content).unwrap();
+    
     let mut config = default_automation_config();
 
     // Enable workflow automation

@@ -279,7 +279,8 @@ fn test_lock_file_with_dependencies() {
     // Create lock file with dependency
     let mut lock_data = RhemaLock::new("test");
     let mut locked_scope = LockedScope::new("1.0.0", "test-scope");
-    let dependency = LockedDependency::new("1.0.0", "../other-scope", DependencyType::Required);
+    let mut dependency = LockedDependency::new("1.0.0", "../other-scope", DependencyType::Required);
+    dependency.checksum = "test_checksum_123".to_string();
     locked_scope.add_dependency("../other-scope".to_string(), dependency);
     lock_data.add_scope("test-scope".to_string(), locked_scope);
 

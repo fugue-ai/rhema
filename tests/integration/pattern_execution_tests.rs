@@ -165,14 +165,13 @@ impl CoordinationPattern for MockPattern {
 
 /// Test utilities
 struct PatternTestFixture {
-    registry: PatternRegistry,
     executor: PatternExecutor,
     context: PatternContext,
 }
 
 impl PatternTestFixture {
     fn new() -> Self {
-        let registry = PatternRegistry::new();
+        let mut registry = PatternRegistry::new();
         let executor = PatternExecutor::new(registry);
 
         let context = PatternContext {
@@ -250,12 +249,11 @@ impl PatternTestFixture {
         Self {
             context,
             executor,
-            registry: PatternRegistry::new(),
         }
     }
 
     fn register_pattern<P: CoordinationPattern + 'static>(&mut self, pattern: P) {
-        self.registry.register_pattern(Box::new(pattern));
+        self.executor.register_pattern(Box::new(pattern));
     }
 
     async fn execute_pattern(&mut self, pattern_id: &str) -> Result<PatternResult, PatternError> {
@@ -695,6 +693,9 @@ async fn test_pattern_execution_success() {
     fixture.register_pattern(pattern);
 
     let result = fixture.execute_pattern("success_pattern").await;
+    if let Err(ref e) = result {
+        println!("Pattern execution failed: {:?}", e);
+    }
     assert!(result.is_ok());
 
     let pattern_result = result.unwrap();
@@ -745,7 +746,7 @@ async fn test_pattern_validation_success() {
     );
     fixture.register_pattern(pattern);
 
-    let retrieved_pattern = fixture.registry.get_pattern("valid_pattern").unwrap();
+    let retrieved_pattern = fixture.executor.get_pattern("valid_pattern").unwrap();
     let validation = retrieved_pattern.validate(&fixture.context).await;
 
     assert!(validation.is_ok());
@@ -765,7 +766,7 @@ async fn test_pattern_validation_failure() {
     .with_validation_failure(true);
     fixture.register_pattern(pattern);
 
-    let retrieved_pattern = fixture.registry.get_pattern("invalid_pattern").unwrap();
+    let retrieved_pattern = fixture.executor.get_pattern("invalid_pattern").unwrap();
     let validation = retrieved_pattern.validate(&fixture.context).await;
 
     assert!(validation.is_ok());
@@ -789,7 +790,7 @@ async fn test_pattern_validation_with_empty_agents() {
     empty_context.agents.clear();
 
     let retrieved_pattern = fixture
-        .registry
+        .executor
         .get_pattern("empty_agents_pattern")
         .unwrap();
     let validation = retrieved_pattern.validate(&empty_context).await;
@@ -813,7 +814,7 @@ async fn test_pattern_rollback_success() {
     );
     fixture.register_pattern(pattern);
 
-    let retrieved_pattern = fixture.registry.get_pattern("rollback_pattern").unwrap();
+    let retrieved_pattern = fixture.executor.get_pattern("rollback_pattern").unwrap();
     let rollback_result = retrieved_pattern.rollback(&fixture.context).await;
 
     assert!(rollback_result.is_ok());
@@ -831,7 +832,7 @@ async fn test_pattern_rollback_failure() {
     fixture.register_pattern(pattern);
 
     let retrieved_pattern = fixture
-        .registry
+        .executor
         .get_pattern("rollback_failure_pattern")
         .unwrap();
     let rollback_result = retrieved_pattern.rollback(&fixture.context).await;
@@ -999,7 +1000,7 @@ async fn test_pattern_constraint_validation() {
         is_hard: true,
     });
 
-    let retrieved_pattern = fixture.registry.get_pattern("constraint_pattern").unwrap();
+    let retrieved_pattern = fixture.executor.get_pattern("constraint_pattern").unwrap();
     let validation = retrieved_pattern.validate(&fixture.context).await;
 
     assert!(validation.is_ok());
@@ -1220,8 +1221,15 @@ async fn test_pattern_validation_with_configuration() {
         serde_json::Value::Bool(true),
     );
 
+    // Add required capabilities to agents
+    fixture.context.agents[0].capabilities.push("config_test".to_string());
+    fixture.context.agents[1].capabilities.push("config_test".to_string());
+
     // Test validation
     let result = fixture.execute_pattern("config_test").await;
+    if let Err(ref e) = result {
+        println!("Pattern execution failed: {:?}", e);
+    }
     assert!(result.is_ok());
 
     let pattern_result = result.unwrap();
@@ -1413,8 +1421,21 @@ async fn test_pattern_validation_engine_integration() {
         serde_json::Value::Bool(true),
     );
 
+    // Add required capabilities to agents
+    fixture.context.agents[0].capabilities.extend(vec![
+        "complex_test".to_string(),
+        "validation_test".to_string(),
+    ]);
+    fixture.context.agents[1].capabilities.extend(vec![
+        "complex_test".to_string(),
+        "validation_test".to_string(),
+    ]);
+
     // Test comprehensive validation
     let result = fixture.execute_pattern("complex_test").await;
+    if let Err(ref e) = result {
+        println!("Pattern execution failed: {:?}", e);
+    }
     assert!(result.is_ok());
 
     let pattern_result = result.unwrap();
@@ -1478,8 +1499,15 @@ async fn test_pattern_monitoring_integration() {
     // Enable monitoring
     fixture.context.config.enable_monitoring = true;
 
+    // Add required capabilities to agents
+    fixture.context.agents[0].capabilities.push("validation_test".to_string());
+    fixture.context.agents[1].capabilities.push("validation_test".to_string());
+
     // Test monitoring integration
     let result = fixture.execute_pattern("monitoring_test").await;
+    if let Err(ref e) = result {
+        println!("Pattern execution failed: {:?}", e);
+    }
     assert!(result.is_ok());
 
     // Verify monitoring data
@@ -1638,6 +1666,10 @@ async fn test_pattern_performance_under_load() {
     );
 
     fixture.register_pattern(pattern);
+
+    // Add required capabilities to agents
+    fixture.context.agents[0].capabilities.push("validation_test".to_string());
+    fixture.context.agents[1].capabilities.push("validation_test".to_string());
 
     // Execute pattern multiple times to test performance
     let start_time = std::time::Instant::now();

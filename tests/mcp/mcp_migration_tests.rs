@@ -175,12 +175,21 @@ impl RhemaMcpServer {
 
     pub async fn execute_tool(
         &self,
-        _tool_name: &str,
+        tool_name: &str,
         _args: serde_json::Value,
     ) -> Result<SdkToolResult, String> {
-        Ok(SdkToolResult::Text {
-            text: "Mock tool execution result".to_string(),
-        })
+        match tool_name {
+            "rhema_query" => Ok(SdkToolResult::Text {
+                text: "Query executed: SELECT * FROM scopes".to_string(),
+            }),
+            "rhema_search" => Ok(SdkToolResult::Text {
+                text: "Search executed with pattern: test".to_string(),
+            }),
+            "rhema_scope" => Ok(SdkToolResult::Text {
+                text: "Scope information for: example".to_string(),
+            }),
+            _ => Err("Unknown tool".to_string()),
+        }
     }
 
     pub async fn start(&self, _config: &McpConfig) -> Result<(), String> {

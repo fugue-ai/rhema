@@ -11,6 +11,7 @@ use rhema_config::tools::{
         BackupFormat, BackupReport as ToolsBackupReport, ValidationLevel as ToolsValidationLevel,
         ValidationRule, ValidationSeverity,
     };
+use rhema_config::BackupRecord;
 use rhema_config::{
     // Additional config imports
     global::{
@@ -101,7 +102,7 @@ mod fixtures {
             },
             application: ApplicationConfig {
                 name: "Test App".to_string(),
-                version: "1.0.0".to_string(),
+                version: CURRENT_CONFIG_VERSION.to_string(),
                 description: Some("Test application".to_string()),
                 settings: AppSettings::default(),
                 features: FeatureFlags::default(),
@@ -154,7 +155,7 @@ mod fixtures {
                 name: "test-scope".to_string(),
                 scope_type: "test".to_string(),
                 description: Some("Test scope".to_string()),
-                version: "1.0.0".to_string(),
+                version: CURRENT_CONFIG_VERSION.to_string(),
                 owner: "test-owner".to_string(),
                 maintainers: vec!["test-maintainer".to_string()],
                 tags: vec!["test".to_string()],
@@ -288,7 +289,7 @@ mod fixtures {
                 enabled: true,
                 auto_backup: true,
                 location: PathBuf::from("/tmp/test-backups"),
-                format: BackupFormat::Tar,
+                format: rhema_config::tools::BackupFormat::Tar,
                 compression: true,
                 encryption: false,
                 retention: BackupRetention {
@@ -424,24 +425,19 @@ mod validation_tests {
 
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
-        // Validate each config separately since they have different types
-        let global_result = validation_manager
-            .validate_schema(&global_config)
-            .await
-            .unwrap();
-        let repo_result = validation_manager
-            .validate_schema(&repo_config)
-            .await
-            .unwrap();
+        // Validate the scope configuration's dependencies
         let scope_result = validation_manager
-            .validate_schema(&scope_config)
+            .validate_dependencies(&scope_config)
             .await
             .unwrap();
 
-        // The scope config should have validation issues due to non-existent dependency
-        assert!(global_result.valid);
-        assert!(repo_result.valid);
-        assert!(!scope_result.valid || !scope_result.issues.is_empty());
+        // The dependency validation should fail because scope references non-existent-config
+        // but there's no configuration with that name
+        assert!(!scope_result.valid);
+        assert!(scope_result.issues.iter().any(|issue| 
+            issue.message.contains("Missing dependency") && 
+            issue.message.contains("non-existent-config")
+        ));
     }
 
     #[tokio::test]
@@ -466,7 +462,7 @@ mod validation_tests {
         let validation_manager = ValidationManager::new(&global_config).unwrap();
 
         let result = validation_manager
-            .validate_dependencies(&global_config)
+            .validate_dependencies(&scope_config)
             .await
             .unwrap();
 
@@ -507,6 +503,13 @@ mod validation_tests {
             .await
             .unwrap();
 
+        if !result.valid {
+            println!("Comprehensive validation failed with {} issues:", result.issues.len());
+            for issue in &result.issues {
+                println!("  - {:?}: {}", issue.severity, issue.message);
+            }
+        }
+
         assert!(result.valid);
         assert!(result.issues.is_empty());
         assert!(result.duration_ms < 200); // Should be reasonably fast
@@ -528,12 +531,12 @@ mod migration_tests {
     #[tokio::test]
     async fn test_version_migration_success() {
         let mut global_config = fixtures::create_test_global_config();
-        global_config.version = "0.1.0".to_string(); // Old version
+        global_config.version = "0.2.0".to_string(); // Old version
 
         let migration_manager = MigrationManager::new(&global_config).unwrap();
 
-        let result = migration_manager
-            .migrate_version(&global_config, "1.0.0")
+        let (result, _migrated_config) = migration_manager
+            .migrate_version(&global_config, CURRENT_CONFIG_VERSION)
             .await
             .unwrap();
 
@@ -548,7 +551,7 @@ mod migration_tests {
         let global_config = fixtures::create_test_global_config();
         let migration_manager = MigrationManager::new(&global_config).unwrap();
 
-        let result = migration_manager
+        let (result, _migrated_config) = migration_manager
             .migrate_version(&global_config, CURRENT_CONFIG_VERSION)
             .await
             .unwrap();
@@ -561,13 +564,13 @@ mod migration_tests {
     #[tokio::test]
     async fn test_migration_rollback() {
         let mut global_config = fixtures::create_test_global_config();
-        global_config.version = "0.1.0".to_string();
+        global_config.version = "0.2.0".to_string();
 
         let migration_manager = MigrationManager::new(&global_config).unwrap();
 
         // First, apply a migration
-        let migration_result = migration_manager
-            .migrate_version(&global_config, "1.0.0")
+        let (migration_result, _migrated_config) = migration_manager
+            .migrate_version(&global_config, CURRENT_CONFIG_VERSION)
             .await
             .unwrap();
 
@@ -586,18 +589,25 @@ mod migration_tests {
     #[tokio::test]
     async fn test_migration_validation() {
         let mut global_config = fixtures::create_test_global_config();
-        global_config.version = "0.1.0".to_string();
+        global_config.version = "0.2.0".to_string();
 
         let migration_manager = MigrationManager::new(&global_config).unwrap();
 
-        let migration_result = migration_manager
-            .migrate_version(&global_config, "1.0.0")
+        let (migration_result, migrated_config) = migration_manager
+            .migrate_version(&global_config, CURRENT_CONFIG_VERSION)
             .await
             .unwrap();
         let validation_result = migration_manager
-            .validate_migration_results(&global_config, &migration_result)
+            .validate_migration_results(&migrated_config, &migration_result)
             .await
             .unwrap();
+
+        if !validation_result.valid {
+            println!("Validation failed with {} issues:", validation_result.issues.len());
+            for issue in &validation_result.issues {
+                println!("  - {:?}: {}", issue.severity, issue.message);
+            }
+        }
 
         assert!(validation_result.valid);
     }
@@ -733,7 +743,7 @@ mod backup_tests {
             .unwrap();
 
         let is_valid = backup_manager
-            .validate_backup_integrity(&backup_record.backup_path)
+            .validate_backup_integrity(&backup_record)
             .await
             .unwrap();
 
@@ -1058,7 +1068,7 @@ mod tools_tests {
             enabled: true,
             auto_backup: true,
             location: PathBuf::from("/tmp/backups"),
-            format: BackupFormat::Tar,
+                            format: BackupFormat::Tar,
             compression: true,
             encryption: true,
             retention: BackupRetention {
@@ -1530,7 +1540,7 @@ mod integration_tests {
     #[tokio::test]
     async fn test_migration_with_backup_and_security() {
         let mut global_config = fixtures::create_test_global_config();
-        global_config.version = "0.1.0".to_string();
+        global_config.version = "0.2.0".to_string();
 
         // 1. Create backup before migration
         let mut backup_manager = BackupManager::new(&global_config).unwrap();
@@ -1540,15 +1550,15 @@ mod integration_tests {
 
         // 2. Perform migration
         let migration_manager = MigrationManager::new(&global_config).unwrap();
-        let migration_result = migration_manager
-            .migrate_version(&global_config, "1.0.0")
+        let (migration_result, migrated_config) = migration_manager
+            .migrate_version(&global_config, CURRENT_CONFIG_VERSION)
             .await
             .unwrap();
         assert!(migration_result.summary.successful_migrations > 0);
 
         // 3. Validate migration results
         let validation_result = migration_manager
-            .validate_migration_results(&global_config, &migration_result)
+            .validate_migration_results(&migrated_config, &migration_result)
             .await
             .unwrap();
         assert!(validation_result.valid);
@@ -1556,14 +1566,14 @@ mod integration_tests {
         // 4. Encrypt migrated configuration
         let security_manager = SecurityManager::new(&global_config).unwrap();
         let encrypted_data = security_manager
-            .encrypt_configuration(&global_config)
+            .encrypt_configuration(&migrated_config)
             .await
             .unwrap();
         assert!(!encrypted_data.is_empty());
 
         // 5. Verify integrity of migrated configuration
         let is_valid = security_manager
-            .verify_integrity(&global_config)
+            .verify_integrity(&migrated_config)
             .await
             .unwrap();
         assert!(is_valid);
@@ -1592,8 +1602,21 @@ mod integration_tests {
 
         // Test backup with invalid path
         let backup_manager = BackupManager::new(&global_config).unwrap();
+        let mock_backup_record = BackupRecord {
+            backup_id: "test".to_string(),
+            original_path: PathBuf::from("test"),
+            backup_path: PathBuf::from("/non/existent/path"),
+            timestamp: chrono::Utc::now(),
+            format: rhema_config::backup::BackupFormat::YAML,
+            size_bytes: 0,
+            checksum: "test".to_string(),
+            compression_enabled: false,
+            encryption_enabled: false,
+            description: None,
+            tags: Vec::new(),
+        };
         let integrity_result = backup_manager
-            .validate_backup_integrity(&PathBuf::from("/non/existent/path"))
+            .validate_backup_integrity(&mock_backup_record)
             .await;
         assert!(integrity_result.is_err());
 

@@ -1,0 +1,473 @@
+# Advanced Prompt Pattern Features
+
+This guide demonstrates the advanced P2/P3 features for prompt patterns in Rhema, including enhanced metrics, feedback systems, template variables, versioning, inheritance, composition blocks, validation rules, and context optimization.
+
+## P2 Features: Enhanced Metrics and Feedback
+
+### Recording Usage and Feedback
+
+Track how well your prompt patterns perform:
+
+```bash
+# Record a successful usage
+rhema prompt record "code-review" --successful --feedback "Great for security reviews"
+
+# Record an unsuccessful usage
+rhema prompt record "code-review" --successful=false --feedback "Too verbose for simple changes"
+
+# View analytics
+rhema prompt analytics "code-review" --detailed
+```
+
+### Usage Analytics Output
+
+```bash
+📊 Analytics for 'code-review':
+============================================================
+Total Uses: 42
+Successful Uses: 35
+Success Rate: 83.3%
+Last Used: 2025-01-15 10:30:00
+
+Recent Feedback:
+- 2025-01-15 10:30:00: Great for security reviews (successful)
+- 2025-01-15 09:15:00: Too verbose for simple changes (unsuccessful)
+- 2025-01-14 16:45:00: Perfect for complex refactoring (successful)
+```
+
+## P3 Features: Advanced Template Features
+
+### Template Variables
+
+Add dynamic variables to your prompts:
+
+```bash
+# Add a language variable
+rhema prompt add-variable "code-review" \
+  --name "language" \
+  --type "enum" \
+  --allowed-values "rust,typescript,python,java" \
+  --required \
+  --description "Programming language for the code review"
+
+# Add a complexity variable
+rhema prompt add-variable "code-review" \
+  --name "complexity" \
+  --type "enum" \
+  --allowed-values "simple,medium,complex" \
+  --default-value "medium" \
+  --description "Code complexity level"
+
+# List variables
+rhema prompt list-variables "code-review"
+```
+
+### Template Versioning
+
+Track the evolution of your prompt patterns:
+
+```bash
+# Create a new version
+rhema prompt version "code-review" \
+  --version "2.1.0" \
+  --template "Review this {{LANGUAGE}} code with {{COMPLEXITY}} complexity: {{CONTEXT}}" \
+  --description "Added complexity-based review instructions" \
+  --changes "Added complexity variable,Enhanced security checks" \
+  --author "team-lead"
+
+# View version history
+rhema prompt history "code-review"
+
+# View specific version
+rhema prompt history "code-review" --version "2.1.0"
+```
+
+### Template Inheritance
+
+Create base templates and extend them:
+
+```bash
+# Create a base template
+rhema prompt add "base-review" \
+  --content "Please review the following code: {{CONTEXT}}" \
+  --description "Base template for all code reviews"
+
+# Create a specialized template that extends the base
+rhema prompt add "security-review" \
+  --content "{{BASE_TEMPLATE}}\n\nFocus on security vulnerabilities and authentication issues." \
+  --extends "base-review" \
+  --description "Security-focused code review template"
+```
+
+### Composition Blocks
+
+Create complex templates with conditional logic:
+
+```bash
+# Add a conditional block for security reviews
+rhema prompt add-composition-block "code-review" \
+  --block-id "security-checks" \
+  --block-type "conditional" \
+  --condition "security_focus == true" \
+  --content "Additional security checks:\n- Input validation\n- Authentication\n- Authorization\n- Data encryption" \
+  --priority 1
+
+# Add a loop block for multiple files
+rhema prompt add-composition-block "code-review" \
+  --block-id "file-review" \
+  --block-type "loop" \
+  --loop-variable "file" \
+  --loop-items "main.rs,lib.rs,tests.rs" \
+  --content "Reviewing {{file}}:\n{{CONTEXT}}" \
+  --priority 2
+
+# List composition blocks
+rhema prompt list-composition-blocks "code-review"
+```
+
+### Validation Rules
+
+Add validation to ensure proper template usage:
+
+```bash
+# Add a required variable validation rule
+rhema prompt add-validation-rule "code-review" \
+  --rule-id "require-language" \
+  --rule-type "required" \
+  --condition "language IS NULL" \
+  --error-message "Language variable is required for code reviews" \
+  --severity "error" \
+  --enabled
+
+# Add a format validation rule
+rhema prompt add-validation-rule "code-review" \
+  --rule-id "validate-complexity" \
+  --rule-type "format" \
+  --condition "complexity NOT IN ('simple', 'medium', 'complex')" \
+  --error-message "Complexity must be one of: simple, medium, complex" \
+  --severity "warning" \
+  --enabled
+
+# List validation rules
+rhema prompt list-validation-rules "code-review"
+```
+
+### Context Caching and Optimization
+
+Optimize context loading and processing:
+
+```bash
+# Configure context caching
+rhema prompt configure-cache "code-review" \
+  --enabled \
+  --ttl-seconds 3600 \
+  --max-size-bytes 1048576 \
+  --invalidation-strategy "time_based" \
+  --compression-enabled \
+  --persistence-enabled
+
+# Configure context optimization
+rhema prompt configure-optimization "code-review" \
+  --enabled \
+  --max-tokens 4096 \
+  --min-relevance-score 0.7 \
+  --semantic-compression \
+  --structure-optimization \
+  --relevance-filtering \
+  --algorithm "hybrid"
+
+# Configure context learning
+rhema prompt configure-learning "code-review" \
+  --enabled \
+  --learning-rate 0.1 \
+  --min-sample-size 10 \
+  --window-size 100 \
+  --feedback-weight 0.5 \
+  --success-threshold 0.8 \
+  --algorithm "reinforcement"
+```
+
+### Context Quality Metrics
+
+Track and improve context quality:
+
+```bash
+# Update quality metrics
+rhema prompt update-quality "code-review" \
+  --relevance-score 0.85 \
+  --completeness-score 0.90 \
+  --accuracy-score 0.88 \
+  --timeliness-score 0.92 \
+  --improvement-suggestions "Add more security patterns,Include performance benchmarks"
+
+# View quality metrics
+rhema prompt show-quality "code-review"
+```
+
+### Context Rules
+
+Add conditional context injection:
+
+```bash
+# Add a context rule for security reviews
+rhema prompt add-context-rule "code-review" \
+  --condition "task_type == 'security_review'" \
+  --context-files "patterns.yaml,knowledge.yaml,decisions.yaml" \
+  --injection-method "prepend" \
+  --priority 5 \
+  --variables "security_level=high,review_depth=comprehensive"
+
+# Add a context rule for performance reviews
+rhema prompt add-context-rule "code-review" \
+  --condition "task_type == 'performance_review'" \
+  --context-files "patterns.yaml,knowledge.yaml" \
+  --injection-method "template_variable" \
+  --priority 3
+
+# List context rules
+rhema prompt list-context-rules "code-review"
+```
+
+### Rendering with Composition
+
+Render complex templates with all features:
+
+```bash
+# Render a prompt with variables and context
+rhema prompt render "code-review" \
+  --context "function calculateTotal(items) { return items.reduce((sum, item) => sum + item.price, 0); }" \
+  --variables "language=typescript,complexity=medium,security_focus=true"
+```
+
+## Advanced Usage Examples
+
+### Complex Template with All Features
+
+```yaml
+# prompts.yaml
+prompts:
+  - id: "advanced-code-review"
+    name: "Advanced Code Review"
+    description: "Comprehensive code review with all advanced features"
+    template: |
+      # Code Review: {{LANGUAGE}} - {{COMPLEXITY}} Complexity
+      
+      {{CONTEXT}}
+      
+      ## Review Guidelines
+      {{#if security_focus}}
+      ### Security Focus
+      - Input validation
+      - Authentication checks
+      - Authorization verification
+      - Data encryption
+      {{/if}}
+      
+      {{#each files}}
+      ### Reviewing {{this}}
+      {{CONTEXT}}
+      {{/each}}
+      
+      ## Quality Metrics
+      - Code quality: {{quality_score}}
+      - Performance: {{performance_score}}
+      - Maintainability: {{maintainability_score}}
+    injection: template_variable
+    extends: "base-review"
+    variables:
+      language: "typescript"
+      complexity: "medium"
+    context_rules:
+      - condition: "security_focus == true"
+        context_files: ["patterns.yaml", "knowledge.yaml", "decisions.yaml"]
+        injection_method: prepend
+        priority: 5
+    advanced_variables:
+      - name: "language"
+        var_type: "enum"
+        allowed_values: ["rust", "typescript", "python", "java"]
+        required: true
+        description: "Programming language"
+      - name: "complexity"
+        var_type: "enum"
+        allowed_values: ["simple", "medium", "complex"]
+        default_value: "medium"
+        description: "Code complexity level"
+    composition_blocks:
+      - id: "security-section"
+        block_type: "conditional"
+        condition: "security_focus == true"
+        content: "### Security Review\nFocus on vulnerabilities and security best practices."
+        priority: 1
+    validation_rules:
+      - id: "require-language"
+        rule_type: "required"
+        condition: "language IS NULL"
+        error_message: "Language is required"
+        severity: "error"
+        enabled: true
+    context_cache:
+      enabled: true
+      ttl_seconds: 3600
+      max_size_bytes: 1048576
+      invalidation_strategy: "time_based"
+      compression_enabled: true
+      persistence_enabled: true
+    context_optimization:
+      enabled: true
+      max_tokens: 4096
+      min_relevance_score: 0.7
+      semantic_compression: true
+      structure_optimization: true
+      relevance_filtering: true
+      algorithm: "hybrid"
+    context_learning:
+      enabled: true
+      learning_rate: 0.1
+      min_sample_size: 10
+      window_size: 100
+      feedback_weight: 0.5
+      success_threshold: 0.8
+      algorithm: "reinforcement"
+    context_quality:
+      relevance_score: 0.85
+      completeness_score: 0.90
+      accuracy_score: 0.88
+      timeliness_score: 0.92
+      overall_score: 0.89
+      assessed_at: "2025-01-15T10:30:00Z"
+      improvement_suggestions:
+        - "Add more security patterns"
+        - "Include performance benchmarks"
+        - "Enhance maintainability guidelines"
+```
+
+### CLI Workflow Example
+
+```bash
+# 1. Create a base template
+rhema prompt add "base-review" \
+  --content "Please review the following code: {{CONTEXT}}" \
+  --description "Base template for all code reviews"
+
+# 2. Add variables
+rhema prompt add-variable "base-review" \
+  --name "language" \
+  --type "enum" \
+  --allowed-values "rust,typescript,python,java" \
+  --required \
+  --description "Programming language"
+
+# 3. Add context rules
+rhema prompt add-context-rule "base-review" \
+  --condition "task_type == 'security_review'" \
+  --context-files "patterns.yaml,knowledge.yaml" \
+  --injection-method "prepend" \
+  --priority 5
+
+# 4. Add composition blocks
+rhema prompt add-composition-block "base-review" \
+  --block-id "security-checks" \
+  --block-type "conditional" \
+  --condition "security_focus == true" \
+  --content "Additional security checks:\n- Input validation\n- Authentication" \
+  --priority 1
+
+# 5. Add validation rules
+rhema prompt add-validation-rule "base-review" \
+  --rule-id "require-language" \
+  --rule-type "required" \
+  --condition "language IS NULL" \
+  --error-message "Language is required" \
+  --severity "error" \
+  --enabled
+
+# 6. Configure optimization
+rhema prompt configure-optimization "base-review" \
+  --enabled \
+  --max-tokens 4096 \
+  --min-relevance-score 0.7 \
+  --semantic-compression \
+  --algorithm "hybrid"
+
+# 7. Test the template
+rhema prompt test "base-review" \
+  --task-type "security_review" \
+  --show-context
+
+# 8. Record usage
+rhema prompt record "base-review" \
+  --successful \
+  --feedback "Excellent for security reviews"
+
+# 9. View analytics
+rhema prompt analytics "base-review" --detailed
+
+# 10. Render with variables
+rhema prompt render "base-review" \
+  --context "function calculateTotal(items) { return items.reduce((sum, item) => sum + item.price, 0); }" \
+  --variables "language=typescript,security_focus=true"
+```
+
+## Best Practices
+
+### 1. Start Simple
+Begin with basic templates and gradually add advanced features as needed.
+
+### 2. Use Meaningful Variable Names
+Choose descriptive variable names that clearly indicate their purpose.
+
+### 3. Validate Inputs
+Always add validation rules for required variables and important constraints.
+
+### 4. Monitor Performance
+Regularly check analytics and quality metrics to improve your templates.
+
+### 5. Version Control
+Use versioning to track changes and rollback if needed.
+
+### 6. Optimize Context
+Configure caching and optimization for better performance with large contexts.
+
+### 7. Learn from Feedback
+Use the learning features to automatically improve templates based on usage feedback.
+
+### 8. Document Changes
+Keep detailed descriptions and change logs for each version.
+
+## Success Metrics
+
+Track the effectiveness of your advanced prompt patterns:
+
+- **Success Rate**: Aim for 80%+ success rate
+- **Usage Frequency**: Monitor how often templates are used
+- **Quality Scores**: Maintain high relevance, completeness, accuracy, and timeliness scores
+- **User Feedback**: Positive feedback indicates good template design
+- **Performance**: Fast rendering times and efficient context processing
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Template not rendering**: Check variable names and validation rules
+2. **Context not loading**: Verify context rules and file paths
+3. **Poor performance**: Enable caching and optimization features
+4. **Low success rate**: Review feedback and adjust template content
+
+### Debug Commands
+
+```bash
+# Test template rendering
+rhema prompt render "template-name" --context "test content" --variables "var1=value1"
+
+# Check validation rules
+rhema prompt list-validation-rules "template-name"
+
+# View context rules
+rhema prompt list-context-rules "template-name"
+
+# Check quality metrics
+rhema prompt show-quality "template-name"
+```
+
+The advanced prompt pattern features provide powerful tools for creating sophisticated, adaptive, and effective AI interaction patterns. Use these features to build templates that evolve with your needs and improve over time based on actual usage data.

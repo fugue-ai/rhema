@@ -512,7 +512,20 @@ impl Rhema {
 
     /// Get a specific scope by path (legacy sync version)
     pub fn get_scope(&self, path: &str) -> RhemaResult<Scope> {
-        Ok(scope::get_scope(&self.repo_root, path)?)
+        println!("DEBUG: get_scope called with path: '{}'", path);
+        
+        // First try to find by name
+        println!("DEBUG: Trying to find scope by name...");
+        if let Ok(scope) = scope::get_scope_by_name(&self.repo_root, path) {
+            println!("DEBUG: Found scope by name: {}", scope.definition.name);
+            return Ok(scope);
+        }
+        
+        println!("DEBUG: Not found by name, trying by path...");
+        // If not found by name, try by path
+        let result = scope::get_scope(&self.repo_root, path);
+        println!("DEBUG: Path lookup result: {:?}", result);
+        Ok(result?)
     }
 
     /// Get the path for a specific scope
