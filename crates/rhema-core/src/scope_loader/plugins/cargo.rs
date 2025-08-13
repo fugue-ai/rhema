@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-use crate::scope::Scope;
 use super::super::plugin::ScopeLoaderPlugin;
 use super::super::types::*;
+use crate::scope::Scope;
 
 /// Configuration for the Cargo plugin
 #[derive(Debug, Clone)]
@@ -46,8 +46,7 @@ impl CargoPlugin {
 
     /// Parse a Cargo.toml file
     fn parse_cargo_toml(&self, path: &Path) -> Result<PackageInfo, PluginError> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| PluginError::IoError(e))?;
+        let content = std::fs::read_to_string(path).map_err(|e| PluginError::IoError(e))?;
 
         // Simple TOML parsing for package info
         // In a real implementation, you'd use a proper TOML parser
@@ -70,7 +69,7 @@ impl CargoPlugin {
 
         for line in lines {
             let line = line.trim();
-            
+
             if line == "[package]" {
                 in_package_section = true;
                 continue;
@@ -130,8 +129,7 @@ impl CargoPlugin {
 
     /// Parse dependencies from Cargo.toml
     fn parse_cargo_dependencies(&self, path: &Path) -> Result<Vec<Dependency>, PluginError> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| PluginError::IoError(e))?;
+        let content = std::fs::read_to_string(path).map_err(|e| PluginError::IoError(e))?;
 
         let mut dependencies = Vec::new();
         let lines: Vec<&str> = content.lines().collect();
@@ -139,7 +137,7 @@ impl CargoPlugin {
 
         for line in lines {
             let line = line.trim();
-            
+
             if line == "[dependencies]" {
                 in_dependencies_section = true;
                 continue;
@@ -153,7 +151,7 @@ impl CargoPlugin {
                 if let Some((dep_name, dep_version)) = line.split_once('=') {
                     let dep_name = dep_name.trim();
                     let dep_version = dep_version.trim().trim_matches('"');
-                    
+
                     dependencies.push(Dependency {
                         name: dep_name.to_string(),
                         version: dep_version.to_string(),
@@ -173,8 +171,7 @@ impl CargoPlugin {
             return Ok(false);
         }
 
-        let content = std::fs::read_to_string(&cargo_toml)
-            .map_err(|e| PluginError::IoError(e))?;
+        let content = std::fs::read_to_string(&cargo_toml).map_err(|e| PluginError::IoError(e))?;
 
         // Check for workspace section
         Ok(content.contains("[workspace]"))
@@ -183,7 +180,7 @@ impl CargoPlugin {
     /// Discover crate files
     fn discover_crate_files(&self, path: &Path) -> Result<Vec<PathBuf>, PluginError> {
         let mut files = Vec::new();
-        
+
         for entry in WalkDir::new(path)
             .max_depth(self.config.max_depth)
             .follow_links(true)
@@ -191,14 +188,14 @@ impl CargoPlugin {
             .filter_map(|e| e.ok())
         {
             let path = entry.path();
-            
+
             // Include Rust source files
             if let Some(ext) = path.extension() {
                 if ext == "rs" {
                     files.push(path.to_path_buf());
                 }
             }
-            
+
             // Include Cargo.toml and Cargo.lock
             if let Some(name) = path.file_name() {
                 if name == "Cargo.toml" || name == "Cargo.lock" {
@@ -213,7 +210,7 @@ impl CargoPlugin {
     /// Discover workspace files
     fn discover_workspace_files(&self, path: &Path) -> Result<Vec<PathBuf>, PluginError> {
         let mut files = Vec::new();
-        
+
         // Add workspace Cargo.toml
         let workspace_cargo_toml = path.join("Cargo.toml");
         if workspace_cargo_toml.exists() {
@@ -245,17 +242,29 @@ impl CargoPlugin {
     }
 
     /// Parse Cargo metadata
-    fn parse_cargo_metadata(&self, path: &Path) -> Result<HashMap<String, serde_json::Value>, PluginError> {
+    fn parse_cargo_metadata(
+        &self,
+        path: &Path,
+    ) -> Result<HashMap<String, serde_json::Value>, PluginError> {
         let mut metadata = HashMap::new();
-        
+
         // Add basic metadata
-        metadata.insert("package_manager".to_string(), serde_json::Value::String("cargo".to_string()));
-        metadata.insert("is_workspace".to_string(), serde_json::Value::Bool(self.is_workspace(path)?));
-        
+        metadata.insert(
+            "package_manager".to_string(),
+            serde_json::Value::String("cargo".to_string()),
+        );
+        metadata.insert(
+            "is_workspace".to_string(),
+            serde_json::Value::Bool(self.is_workspace(path)?),
+        );
+
         // Add file count
         let files = self.discover_crate_files(path)?;
-        metadata.insert("file_count".to_string(), serde_json::Value::Number(serde_json::Number::from(files.len())));
-        
+        metadata.insert(
+            "file_count".to_string(),
+            serde_json::Value::Number(serde_json::Number::from(files.len())),
+        );
+
         Ok(metadata)
     }
 }
@@ -286,7 +295,7 @@ impl ScopeLoaderPlugin for CargoPlugin {
             .filter_map(|e| e.ok())
         {
             let entry_path = entry.path();
-            
+
             if entry_path.file_name().and_then(|s| s.to_str()) == Some("Cargo.toml") {
                 let package_info = self.parse_cargo_toml(entry_path)?;
                 let dependencies = self.parse_cargo_dependencies(entry_path)?;
@@ -306,7 +315,10 @@ impl ScopeLoaderPlugin for CargoPlugin {
         Ok(boundaries)
     }
 
-    fn suggest_scopes(&self, boundaries: &[PackageBoundary]) -> Result<Vec<ScopeSuggestion>, PluginError> {
+    fn suggest_scopes(
+        &self,
+        boundaries: &[PackageBoundary],
+    ) -> Result<Vec<ScopeSuggestion>, PluginError> {
         let mut suggestions = Vec::new();
 
         for boundary in boundaries {
@@ -318,7 +330,11 @@ impl ScopeLoaderPlugin for CargoPlugin {
                 confidence: 0.95,
                 reasoning: "Detected Cargo.toml with valid configuration".to_string(),
                 files: self.discover_crate_files(&boundary.path)?,
-                dependencies: boundary.dependencies.iter().map(|d| d.name.clone()).collect(),
+                dependencies: boundary
+                    .dependencies
+                    .iter()
+                    .map(|d| d.name.clone())
+                    .collect(),
                 metadata: boundary.metadata.clone(),
             });
 
@@ -346,19 +362,24 @@ impl ScopeLoaderPlugin for CargoPlugin {
         for suggestion in suggestions {
             // Create the scope directory structure
             let scope_path = &suggestion.path;
-            
+
             // Create .rhema directory if it doesn't exist
             let rhema_dir = scope_path.join(".rhema");
             if !rhema_dir.exists() {
-                std::fs::create_dir_all(&rhema_dir)
-                    .map_err(|e| PluginError::PluginExecutionFailed(format!("Failed to create .rhema directory: {}", e)))?;
+                std::fs::create_dir_all(&rhema_dir).map_err(|e| {
+                    PluginError::PluginExecutionFailed(format!(
+                        "Failed to create .rhema directory: {}",
+                        e
+                    ))
+                })?;
             }
 
             // Create rhema.yaml file
             let rhema_content = self.generate_rhema_yaml(suggestion)?;
             let rhema_file = rhema_dir.join("rhema.yaml");
-            std::fs::write(&rhema_file, rhema_content)
-                .map_err(|e| PluginError::PluginExecutionFailed(format!("Failed to write rhema.yaml: {}", e)))?;
+            std::fs::write(&rhema_file, rhema_content).map_err(|e| {
+                PluginError::PluginExecutionFailed(format!("Failed to write rhema.yaml: {}", e))
+            })?;
 
             // Create the scope
             match Scope::new(scope_path.clone()) {
@@ -375,7 +396,9 @@ impl ScopeLoaderPlugin for CargoPlugin {
     fn load_context(&self, scope: &Scope) -> Result<ScopeContext, PluginError> {
         let cargo_toml = scope.path.join("Cargo.toml");
         if !cargo_toml.exists() {
-            return Err(PluginError::PluginNotFound("Cargo.toml not found".to_string()));
+            return Err(PluginError::PluginNotFound(
+                "Cargo.toml not found".to_string(),
+            ));
         }
 
         let _package_info = self.parse_cargo_toml(&cargo_toml)?;
@@ -396,7 +419,7 @@ impl CargoPlugin {
     /// Generate rhema.yaml content for a scope suggestion
     fn generate_rhema_yaml(&self, suggestion: &ScopeSuggestion) -> Result<String, PluginError> {
         let mut mapping = serde_yaml::Mapping::new();
-        
+
         // Add scope name
         mapping.insert(
             serde_yaml::Value::String("name".to_string()),
@@ -429,7 +452,8 @@ impl CargoPlugin {
 
         // Add dependencies if any
         if !suggestion.dependencies.is_empty() {
-            let deps: Vec<serde_yaml::Value> = suggestion.dependencies
+            let deps: Vec<serde_yaml::Value> = suggestion
+                .dependencies
                 .iter()
                 .map(|d| serde_yaml::Value::String(d.clone()))
                 .collect();
@@ -441,16 +465,18 @@ impl CargoPlugin {
 
         // Add metadata if any
         if !suggestion.metadata.is_empty() {
-            let metadata_value = serde_yaml::to_value(&suggestion.metadata)
-                .map_err(|e| PluginError::PluginExecutionFailed(format!("Failed to serialize metadata: {}", e)))?;
+            let metadata_value = serde_yaml::to_value(&suggestion.metadata).map_err(|e| {
+                PluginError::PluginExecutionFailed(format!("Failed to serialize metadata: {}", e))
+            })?;
             mapping.insert(
                 serde_yaml::Value::String("metadata".to_string()),
                 metadata_value,
             );
         }
 
-        serde_yaml::to_string(&mapping)
-            .map_err(|e| PluginError::PluginExecutionFailed(format!("Failed to serialize YAML: {}", e)))
+        serde_yaml::to_string(&mapping).map_err(|e| {
+            PluginError::PluginExecutionFailed(format!("Failed to serialize YAML: {}", e))
+        })
     }
 }
 

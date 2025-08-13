@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-use chrono::{DateTime, Utc, TimeZone, Timelike};
+use chrono::{DateTime, TimeZone, Timelike, Utc};
 use std::collections::HashMap;
 use tracing::{debug, info, trace};
 
-use super::{TimezoneContext, TimezoneConfig, Content};
-use super::{TemporalResult, TemporalError};
+use super::{Content, TimezoneConfig, TimezoneContext};
+use super::{TemporalError, TemporalResult};
 
 /// Timezone-aware context manager for temporal adjustments
 pub struct TimezoneAwareContextManager {
@@ -59,10 +59,12 @@ impl TimezoneAwareContextManager {
             .map_err(|e| TemporalError::TimezoneError(format!("Invalid timezone: {}", e)))?;
 
         let adjustment = self.calculate_business_hours_adjustment(&timezone_context);
-        
+
         trace!(
             "Timezone adjustment for content {} in {}: {:.3}",
-            content.id, user_timezone, adjustment
+            content.id,
+            user_timezone,
+            adjustment
         );
 
         Ok(adjustment)
@@ -155,7 +157,10 @@ impl TimezoneAwareContextManager {
 
         // Calculate adjustment for each team member's timezone
         for team_tz in team_timezones {
-            if let Ok(adjustment) = self.calculate_timezone_adjustment(content, query_time, team_tz).await {
+            if let Ok(adjustment) = self
+                .calculate_timezone_adjustment(content, query_time, team_tz)
+                .await
+            {
                 total_adjustment += adjustment;
                 valid_timezones += 1;
             }
@@ -166,7 +171,7 @@ impl TimezoneAwareContextManager {
         }
 
         let collaborative_adjustment = total_adjustment / valid_timezones as f64;
-        
+
         debug!(
             "Collaborative timezone adjustment: {} timezones, avg_adjustment={:.3}",
             valid_timezones, collaborative_adjustment
@@ -184,11 +189,12 @@ impl TimezoneAwareContextManager {
         // Look for timezone-related metadata in content
         if let Some(timezone_str) = content.metadata.get("timezone") {
             let content_timezone = timezone_str.as_str();
-            
+
             // If content has a different timezone than user, calculate time difference
             if content_timezone != user_timezone {
-                let time_diff = self.calculate_timezone_difference(content_timezone, user_timezone)?;
-                
+                let time_diff =
+                    self.calculate_timezone_difference(content_timezone, user_timezone)?;
+
                 return Ok(Some(LocalTimeContext {
                     content_timezone: content_timezone.to_string(),
                     user_timezone: user_timezone.to_string(),
@@ -207,11 +213,7 @@ impl TimezoneAwareContextManager {
     }
 
     /// Calculate time difference between two timezones
-    fn calculate_timezone_difference(
-        &self,
-        tz1: &str,
-        tz2: &str,
-    ) -> TemporalResult<i32> {
+    fn calculate_timezone_difference(&self, tz1: &str, tz2: &str) -> TemporalResult<i32> {
         let timezone1: String = tz1.to_string();
         let timezone2: String = tz2.to_string();
 
@@ -220,7 +222,7 @@ impl TimezoneAwareContextManager {
         // In a real implementation, this would convert to the actual timezones
         let time1 = now;
         let time2 = now;
-        
+
         let diff = time1.signed_duration_since(time2);
         let diff_hours = diff.num_hours();
 
@@ -304,9 +306,7 @@ pub struct BusinessHours {
 impl BusinessHours {
     /// Check if a given time is within business hours
     pub fn is_business_hours(&self, hour: u32, day_of_week: u32) -> bool {
-        self.days_of_week.contains(&day_of_week) && 
-        hour >= self.start_hour && 
-        hour < self.end_hour
+        self.days_of_week.contains(&day_of_week) && hour >= self.start_hour && hour < self.end_hour
     }
 }
 
@@ -334,11 +334,10 @@ mod tests {
         let content = create_test_content();
         let query_time = Utc::now();
 
-        let adjustment = manager.calculate_timezone_adjustment(
-            &content,
-            query_time,
-            "America/New_York",
-        ).await.unwrap();
+        let adjustment = manager
+            .calculate_timezone_adjustment(&content, query_time, "America/New_York")
+            .await
+            .unwrap();
 
         assert!(adjustment > 0.0 && adjustment <= 1.5);
     }
@@ -354,12 +353,15 @@ mod tests {
             "Europe/London".to_string(),
         ];
 
-        let adjustment = manager.calculate_collaborative_adjustment(
-            &content,
-            query_time,
-            "America/New_York",
-            &team_timezones,
-        ).await.unwrap();
+        let adjustment = manager
+            .calculate_collaborative_adjustment(
+                &content,
+                query_time,
+                "America/New_York",
+                &team_timezones,
+            )
+            .await
+            .unwrap();
 
         assert!(adjustment > 0.0 && adjustment <= 1.5);
     }
@@ -367,8 +369,10 @@ mod tests {
     #[test]
     fn test_timezone_relationships() {
         let manager = TimezoneAwareContextManager::new();
-        
-        let relationships = manager.get_timezone_relationships("America/New_York").unwrap();
+
+        let relationships = manager
+            .get_timezone_relationships("America/New_York")
+            .unwrap();
         assert!(!relationships.is_empty());
         assert!(relationships.contains(&"America/Chicago".to_string()));
     }
@@ -376,7 +380,7 @@ mod tests {
     #[test]
     fn test_business_hours() {
         let manager = TimezoneAwareContextManager::new();
-        
+
         let business_hours = manager.get_business_hours("America/New_York").unwrap();
         assert_eq!(business_hours.start_hour, 9);
         assert_eq!(business_hours.end_hour, 17);

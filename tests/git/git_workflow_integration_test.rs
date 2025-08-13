@@ -1,13 +1,13 @@
 use git2::{BranchType, Repository};
 use rhema_core::RhemaResult;
 use rhema_git::git::workflow::{
-    AdvancedWorkflowFeatures, AutomationSettings, BranchConventions,
-    BranchPreparation, ConflictResolutionType, ContextAwareFeatureBranching,
-    ContextAwareHotfixManagement, ContextAwareMergeStrategies, ContextAwarePrAnalysis,
-    ContextAwareReleaseManagement, ContextAwareWorkflowSettings, ContextConflictResolution,
-    ContextMergeStrategy, ContextMergeStrategyType, ContextRules, IsolationRules,
-    PullRequestSettings, ReleaseAutomation, ReleaseManagement, ReleaseValidation,
-    VersioningStrategy, WorkflowConfig, WorkflowIntegrationSettings, WorkflowManager, WorkflowType,
+    AdvancedWorkflowFeatures, AutomationSettings, BranchConventions, BranchPreparation,
+    ConflictResolutionType, ContextAwareFeatureBranching, ContextAwareHotfixManagement,
+    ContextAwareMergeStrategies, ContextAwarePrAnalysis, ContextAwareReleaseManagement,
+    ContextAwareWorkflowSettings, ContextConflictResolution, ContextMergeStrategy,
+    ContextMergeStrategyType, ContextRules, IsolationRules, PullRequestSettings, ReleaseAutomation,
+    ReleaseManagement, ReleaseValidation, VersioningStrategy, WorkflowConfig,
+    WorkflowIntegrationSettings, WorkflowManager, WorkflowType,
 };
 use std::collections::HashMap;
 use tempfile::TempDir;
@@ -22,7 +22,7 @@ async fn test_git_workflow_integration() -> RhemaResult<()> {
     // 2. Create branches in a controlled manner
     // 3. Handle checkout operations without conflicts
     // 4. Provide proper cleanup
-    
+
     // Create a temporary directory for testing
     let temp_dir = TempDir::new()?;
     let repo_path = temp_dir.path();
@@ -91,7 +91,7 @@ edition = "2021"
         let main_ref = repo.find_branch("main", BranchType::Local)?;
         let main_commit = main_ref.get().peel_to_commit()?;
         repo.branch("feature/test-feature", &main_commit, false)?;
-        
+
         // Switch to feature branch and add some content
         let branch_ref = repo.find_branch("feature/test-feature", BranchType::Local)?;
         let commit = branch_ref.get().peel_to_commit()?;
@@ -417,7 +417,7 @@ async fn test_context_aware_features() -> RhemaResult<()> {
     // 2. Create branches in a controlled manner
     // 3. Handle checkout operations without conflicts
     // 4. Provide proper cleanup
-    
+
     // Create a temporary directory for testing
     let temp_dir = TempDir::new()?;
     let repo_path = temp_dir.path();
@@ -478,12 +478,12 @@ edition = "2021"
     {
         // Use the repository directly since WorkflowManager doesn't have get_repo()
         let repo = &repo; // Use the repository from the outer scope
-        
+
         // Create the feature branch first
         let main_ref = repo.find_branch("main", BranchType::Local)?;
         let main_commit = main_ref.get().peel_to_commit()?;
         repo.branch(feature_branch, &main_commit, false)?;
-        
+
         // Now switch to the feature branch with force checkout to avoid conflicts
         let branch_ref = repo.find_branch(feature_branch, BranchType::Local)?;
         let commit = branch_ref.get().peel_to_commit()?;

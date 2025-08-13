@@ -16,13 +16,11 @@
 
 use rhema_knowledge::{
     engine::{
-        FileWatcher, SuggestionEngine, SuggestionEventType,
-        UnifiedKnowledgeEngine, UsageAnalyzer,
+        FileWatcher, SuggestionEngine, SuggestionEventType, UnifiedKnowledgeEngine, UsageAnalyzer,
     },
     types::{
         AgentSessionContext, CacheEntryMetadata, ContentType, ContextRequirement,
-        ContextRequirementType, Priority, UnifiedEngineConfig, WorkflowContext,
-        WorkflowType,
+        ContextRequirementType, Priority, UnifiedEngineConfig, WorkflowContext, WorkflowType,
     },
 };
 use std::time::Duration;
@@ -30,7 +28,6 @@ use tracing::info;
 
 // Mock implementations for testing
 mod engine {
-    
 
     #[derive(Debug, Clone)]
     pub enum SuggestionEventType {
@@ -90,35 +87,35 @@ async fn test_rag_cache_integration() {
         // Initialize the unified knowledge engine with dummy implementation
         let engine = UnifiedKnowledgeEngine::new_dummy_minimal();
 
-    info!("🚀 Starting RAG and Cache Integration Test");
+        info!("🚀 Starting RAG and Cache Integration Test");
 
-    // Test 1: Basic RAG operations with caching
-    test_basic_rag_operations(&engine).await;
+        // Test 1: Basic RAG operations with caching
+        test_basic_rag_operations(&engine).await;
 
-    // Test 2: Semantic search with cache enhancement
-    test_semantic_search_with_cache(&engine).await;
+        // Test 2: Semantic search with cache enhancement
+        test_semantic_search_with_cache(&engine).await;
 
-    // Test 3: Agent session management with proactive caching
-    test_agent_session_management(&engine).await;
+        // Test 3: Agent session management with proactive caching
+        test_agent_session_management(&engine).await;
 
-    // Test 4: File watching and proactive indexing
-    test_file_watching_proactive_indexing(&engine).await;
+        // Test 4: File watching and proactive indexing
+        test_file_watching_proactive_indexing(&engine).await;
 
-    // Test 5: Usage analysis and intelligent warming
-    test_usage_analysis_intelligent_warming(&engine).await;
+        // Test 5: Usage analysis and intelligent warming
+        test_usage_analysis_intelligent_warming(&engine).await;
 
-    // Test 6: Suggestion engine and context recommendations
-    test_suggestion_engine_context_recommendations(&engine).await;
+        // Test 6: Suggestion engine and context recommendations
+        test_suggestion_engine_context_recommendations(&engine).await;
 
-    // Test 7: Cross-session knowledge sharing
-    test_cross_session_knowledge_sharing(&engine).await;
+        // Test 7: Cross-session knowledge sharing
+        test_cross_session_knowledge_sharing(&engine).await;
 
-    // Test 8: Performance monitoring and optimization
-    test_performance_monitoring_optimization(&engine).await;
+        // Test 8: Performance monitoring and optimization
+        test_performance_monitoring_optimization(&engine).await;
 
-    info!("✅ All RAG and Cache Integration Tests Passed!");
+        info!("✅ All RAG and Cache Integration Tests Passed!");
     });
-    
+
     match timeout.await {
         Ok(_) => println!("✅ RAG cache integration test completed"),
         Err(_) => {
@@ -173,7 +170,10 @@ async fn test_basic_rag_operations(engine: &UnifiedKnowledgeEngine) {
         Err(e) => {
             // If we get a file system error, just log it and continue
             // This is expected in test environments where the cache directory might not exist
-            info!("⚠️ Skipping disk cache test due to file system error: {}", e);
+            info!(
+                "⚠️ Skipping disk cache test due to file system error: {}",
+                e
+            );
         }
     }
 
@@ -216,7 +216,10 @@ async fn test_semantic_search_with_cache(engine: &UnifiedKnowledgeEngine) {
             )
             .await
         {
-            info!("⚠️ Skipping document storage due to file system error: {}", e);
+            info!(
+                "⚠️ Skipping document storage due to file system error: {}",
+                e
+            );
             // Continue with the test even if storage fails
         }
     }
@@ -279,7 +282,7 @@ async fn test_agent_session_management(engine: &UnifiedKnowledgeEngine) {
     assert_eq!(session_context.agent_id, "reviewer_agent");
     assert_eq!(session_context.session_id, "session_001");
     assert!(session_context.workflow_context.is_some());
-    
+
     let workflow = session_context.workflow_context.as_ref().unwrap();
     assert_eq!(workflow.workflow_id, "code_review_001");
     assert_eq!(workflow.workflow_type, WorkflowType::CodeReview);
@@ -346,7 +349,10 @@ async fn test_file_watching_proactive_indexing(engine: &UnifiedKnowledgeEngine) 
             }
         }
         Err(e) => {
-            info!("⚠️ File watcher error (expected for dummy implementation): {}", e);
+            info!(
+                "⚠️ File watcher error (expected for dummy implementation): {}",
+                e
+            );
         }
     }
 
@@ -420,12 +426,15 @@ async fn test_usage_analysis_intelligent_warming(_engine: &UnifiedKnowledgeEngin
         session_analysis.agent_id, "agent1",
         "Session analysis should match agent"
     );
-    
+
     // Handle dummy implementation that might not predict needs
     if session_analysis.predicted_needs.is_empty() {
         info!("⚠️ Dummy usage analyzer didn't predict needs, but this is expected for dummy implementation");
     } else {
-        info!("✅ Usage analyzer predicted {} needs", session_analysis.predicted_needs.len());
+        info!(
+            "✅ Usage analyzer predicted {} needs",
+            session_analysis.predicted_needs.len()
+        );
     }
 
     // Get agent patterns - handle dummy implementation
@@ -536,7 +545,10 @@ async fn test_cross_session_knowledge_sharing(engine: &UnifiedKnowledgeEngine) {
         .set_agent_context("agent1", "api_patterns", context_data.as_bytes())
         .await
     {
-        info!("⚠️ Skipping agent context setting due to file system error: {}", e);
+        info!(
+            "⚠️ Skipping agent context setting due to file system error: {}",
+            e
+        );
         // Continue with the test even if context setting fails
     }
 
@@ -615,8 +627,6 @@ pub async fn create_test_engine() -> UnifiedKnowledgeEngine {
     // Use dummy implementation to prevent hanging
     UnifiedKnowledgeEngine::new_dummy_minimal()
 }
-
-
 
 /// Helper function to create test session context
 pub fn create_test_session_context(

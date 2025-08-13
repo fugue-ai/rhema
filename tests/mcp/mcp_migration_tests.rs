@@ -203,7 +203,6 @@ use tempfile::TempDir;
 mod rhema {
     pub mod mcp {
         pub mod sdk {
-            
 
             #[derive(Debug, Clone)]
             pub struct PromptSegment {

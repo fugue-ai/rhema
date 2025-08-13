@@ -66,7 +66,11 @@ mod commands {
 
         pub fn run(_rhema: &Rhema, subcommand: &BatchSubcommands) -> RhemaResult<()> {
             match subcommand {
-                BatchSubcommands::Data { output_file, format, .. } => {
+                BatchSubcommands::Data {
+                    output_file,
+                    format,
+                    ..
+                } => {
                     if let Some(output_path) = output_file {
                         // Create a mock export file
                         let export_data = serde_json::json!({
@@ -80,11 +84,15 @@ mod commands {
                                 "export_format": format
                             }
                         });
-                        
+
                         fs::write(output_path, serde_json::to_string_pretty(&export_data)?)?;
                     }
                 }
-                BatchSubcommands::Report { output_file, format, .. } => {
+                BatchSubcommands::Report {
+                    output_file,
+                    format,
+                    ..
+                } => {
                     if let Some(output_path) = output_file {
                         // Create a mock report file
                         let report_content = match format.as_str() {
@@ -105,9 +113,9 @@ mod commands {
                                 });
                                 serde_json::to_string_pretty(&report_data)?
                             }
-                            _ => format!("Report generated at {}", chrono::Utc::now().to_rfc3339())
+                            _ => format!("Report generated at {}", chrono::Utc::now().to_rfc3339()),
                         };
-                        
+
                         fs::write(output_path, report_content)?;
                     }
                 }

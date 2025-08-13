@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
+use crate::CliContext;
 use clap::Subcommand;
 use rhema_api::RhemaResult;
-use rhema_coordination::agent::real_time_coordination::{
-    AgentStatus, MessagePriority,
-};
-use crate::CliContext;
+use rhema_coordination::agent::real_time_coordination::{AgentStatus, MessagePriority};
 
 #[derive(Subcommand)]
 pub enum AgentSubcommands {
@@ -299,41 +297,26 @@ pub fn handle_coordination(
     subcommand: &CoordinationSubcommands,
 ) -> RhemaResult<()> {
     match subcommand {
-        CoordinationSubcommands::Agent { subcommand } => {
-            handle_agent(context, subcommand)
-        }
-        CoordinationSubcommands::Session { subcommand } => {
-            handle_session(context, subcommand)
-        }
-        CoordinationSubcommands::System { subcommand } => {
-            handle_system(context, subcommand)
-        }
+        CoordinationSubcommands::Agent { subcommand } => handle_agent(context, subcommand),
+        CoordinationSubcommands::Session { subcommand } => handle_session(context, subcommand),
+        CoordinationSubcommands::System { subcommand } => handle_system(context, subcommand),
     }
 }
 
-fn handle_agent(
-    context: &CliContext,
-    subcommand: &AgentSubcommands,
-) -> RhemaResult<()> {
+fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaResult<()> {
     // TODO: Implement agent coordination commands
     // This would integrate with the RealTimeCoordinationSystem
     println!("🤖 Agent coordination commands not yet implemented");
     Ok(())
 }
 
-fn handle_session(
-    context: &CliContext,
-    subcommand: &SessionSubcommands,
-) -> RhemaResult<()> {
+fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> RhemaResult<()> {
     // TODO: Implement session coordination commands
     println!("💬 Session coordination commands not yet implemented");
     Ok(())
 }
 
-fn handle_system(
-    context: &CliContext,
-    subcommand: &SystemSubcommands,
-) -> RhemaResult<()> {
+fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaResult<()> {
     // TODO: Implement system monitoring commands
     println!("📊 System monitoring commands not yet implemented");
     Ok(())

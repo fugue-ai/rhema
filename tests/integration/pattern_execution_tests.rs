@@ -246,10 +246,7 @@ impl PatternTestFixture {
             parent_pattern_id: None,
         };
 
-        Self {
-            context,
-            executor,
-        }
+        Self { context, executor }
     }
 
     fn register_pattern<P: CoordinationPattern + 'static>(&mut self, pattern: P) {
@@ -1222,8 +1219,12 @@ async fn test_pattern_validation_with_configuration() {
     );
 
     // Add required capabilities to agents
-    fixture.context.agents[0].capabilities.push("config_test".to_string());
-    fixture.context.agents[1].capabilities.push("config_test".to_string());
+    fixture.context.agents[0]
+        .capabilities
+        .push("config_test".to_string());
+    fixture.context.agents[1]
+        .capabilities
+        .push("config_test".to_string());
 
     // Test validation
     let result = fixture.execute_pattern("config_test").await;
@@ -1500,8 +1501,12 @@ async fn test_pattern_monitoring_integration() {
     fixture.context.config.enable_monitoring = true;
 
     // Add required capabilities to agents
-    fixture.context.agents[0].capabilities.push("validation_test".to_string());
-    fixture.context.agents[1].capabilities.push("validation_test".to_string());
+    fixture.context.agents[0]
+        .capabilities
+        .push("validation_test".to_string());
+    fixture.context.agents[1]
+        .capabilities
+        .push("validation_test".to_string());
 
     // Test monitoring integration
     let result = fixture.execute_pattern("monitoring_test").await;
@@ -1668,8 +1673,12 @@ async fn test_pattern_performance_under_load() {
     fixture.register_pattern(pattern);
 
     // Add required capabilities to agents
-    fixture.context.agents[0].capabilities.push("validation_test".to_string());
-    fixture.context.agents[1].capabilities.push("validation_test".to_string());
+    fixture.context.agents[0]
+        .capabilities
+        .push("validation_test".to_string());
+    fixture.context.agents[1]
+        .capabilities
+        .push("validation_test".to_string());
 
     // Execute pattern multiple times to test performance
     let start_time = std::time::Instant::now();

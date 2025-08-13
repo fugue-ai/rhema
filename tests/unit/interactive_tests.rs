@@ -120,21 +120,27 @@ mod rhema {
 
                 pub fn handle_set(&mut self, args: &[&str]) -> RhemaResult<()> {
                     if args.len() < 2 {
-                        return Err(rhema_core::RhemaError::InvalidInput("Missing value".to_string()));
+                        return Err(rhema_core::RhemaError::InvalidInput(
+                            "Missing value".to_string(),
+                        ));
                     }
                     Ok(())
                 }
 
                 pub fn handle_get(&mut self, args: &[&str]) -> RhemaResult<()> {
                     if args.is_empty() {
-                        return Err(rhema_core::RhemaError::InvalidInput("Missing key".to_string()));
+                        return Err(rhema_core::RhemaError::InvalidInput(
+                            "Missing key".to_string(),
+                        ));
                     }
                     Ok(())
                 }
 
                 pub fn handle_workflow(&mut self, args: &[&str]) -> RhemaResult<()> {
                     if args.is_empty() {
-                        return Err(rhema_core::RhemaError::InvalidInput("Missing workflow name".to_string()));
+                        return Err(rhema_core::RhemaError::InvalidInput(
+                            "Missing workflow name".to_string(),
+                        ));
                     }
                     Ok(())
                 }
@@ -409,7 +415,7 @@ fn test_interactive_session_context_commands() {
     // Create a test scope first
     let rhema_dir = temp_dir.path().join(".rhema");
     std::fs::create_dir_all(&rhema_dir).unwrap();
-    
+
     let scope_config = r#"
 name: "test_scope"
 scope_type: "service"

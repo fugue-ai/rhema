@@ -1,6 +1,6 @@
 pub mod git;
-pub mod utils;
 pub mod git_hooks;
+pub mod utils;
 
 // Re-export version management types
 pub use git::version_management::{

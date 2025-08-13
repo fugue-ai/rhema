@@ -15,17 +15,17 @@
  */
 
 // Import submodules
+pub mod coordination;
 pub mod core;
-pub mod todo;
+pub mod decision;
 pub mod insight;
 pub mod pattern;
-pub mod decision;
-pub mod coordination;
+pub mod todo;
 
 // Re-export command enums and handlers
+pub use coordination::{handle_coordination, CoordinationSubcommands};
 pub use core::{handle_init, handle_query};
-pub use todo::{TodoSubcommands, handle_todo};
-pub use insight::{InsightSubcommands, handle_insight};
-pub use pattern::{PatternSubcommands, handle_pattern};
-pub use decision::{DecisionSubcommands, handle_decision};
-pub use coordination::{CoordinationSubcommands, handle_coordination}; 
+pub use decision::{handle_decision, DecisionSubcommands};
+pub use insight::{handle_insight, InsightSubcommands};
+pub use pattern::{handle_pattern, PatternSubcommands};
+pub use todo::{handle_todo, TodoSubcommands};

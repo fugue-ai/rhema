@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+use crate::CliContext;
 use clap::Subcommand;
 use rhema_api::RhemaResult;
 use rhema_core::DecisionStatus;
-use crate::CliContext;
 
 #[derive(Subcommand)]
 pub enum DecisionSubcommands {
@@ -170,11 +170,7 @@ pub fn handle_decision(
             }
         }
         DecisionSubcommands::List { status, maker } => {
-            match rhema_core::file_ops::list_decisions(
-                &scope.path,
-                status.clone(),
-                maker.clone(),
-            ) {
+            match rhema_core::file_ops::list_decisions(&scope.path, status.clone(), maker.clone()) {
                 Ok(decisions) => {
                     if decisions.is_empty() {
                         println!("📭 No decisions found");

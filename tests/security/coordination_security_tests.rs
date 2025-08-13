@@ -253,7 +253,7 @@ fn test_coordination_malicious_message_payload() {
         "--scope",
         "security-testing",
     ]);
-    
+
     // If agent registration fails, skip the test but don't fail
     if _agent_result.is_err() {
         println!("⚠️ Agent registration failed, skipping malicious payload test");
@@ -315,7 +315,7 @@ fn test_coordination_invalid_json_payload() {
         "--scope",
         "security-testing",
     ]);
-    
+
     // If agent registration fails, skip the test but don't fail
     if _agent_result.is_err() {
         println!("⚠️ Agent registration failed, skipping invalid JSON payload test");
@@ -372,7 +372,7 @@ fn test_coordination_oversized_payload() {
         "--scope",
         "security-testing",
     ]);
-    
+
     // If agent registration fails, skip the test but don't fail
     if _agent_result.is_err() {
         println!("⚠️ Agent registration failed, skipping oversized payload test");
@@ -493,7 +493,7 @@ fn test_coordination_session_hijacking_attempt() {
         "--participants",
         "agent-001",
     ]);
-    
+
     // If session creation fails, skip the test but don't fail
     if _session_result.is_err() {
         println!("⚠️ Session creation failed, skipping session hijacking test");
@@ -659,7 +659,10 @@ fn test_coordination_dos_rapid_registration() {
 
     // Should handle gracefully without crashing
     assert!(duration < max_duration, "Test should not hang indefinitely");
-    assert!(success_count + error_count > 0, "Should have attempted at least one registration");
+    assert!(
+        success_count + error_count > 0,
+        "Should have attempted at least one registration"
+    );
 }
 
 #[test]
@@ -678,7 +681,7 @@ fn test_coordination_dos_rapid_messaging() {
         "--scope",
         "dos-testing",
     ]);
-    
+
     // If agent registration fails, skip the test but don't fail
     if _agent_result.is_err() {
         println!("⚠️ Agent registration failed, skipping DoS messaging test");
@@ -735,7 +738,10 @@ fn test_coordination_dos_rapid_messaging() {
 
     // Should handle gracefully without crashing
     assert!(duration < max_duration, "Test should not hang indefinitely");
-    assert!(success_count + error_count > 0, "Should have attempted at least one message");
+    assert!(
+        success_count + error_count > 0,
+        "Should have attempted at least one message"
+    );
 }
 
 // ============================================================================
@@ -808,7 +814,10 @@ fn test_coordination_cpu_exhaustion() {
 
     println!("=== CPU Exhaustion Test Results ===");
     println!("Duration: {:?}", duration);
-    println!("Iterations completed: {}", max_iterations.min((duration.as_millis() / 50) as usize));
+    println!(
+        "Iterations completed: {}",
+        max_iterations.min((duration.as_millis() / 50) as usize)
+    );
     println!("===================================");
 
     // Should complete within reasonable time

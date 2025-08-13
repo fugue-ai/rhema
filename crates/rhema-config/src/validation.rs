@@ -146,11 +146,13 @@ impl ValidationManager {
             cache_ttl: 3600, // 1 hour default
             available_configs: HashMap::new(),
         };
-        
+
         // Add the global config to available configs
         let global_config_json = serde_json::to_value(global_config)
             .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
-        manager.available_configs.insert("global".to_string(), global_config_json);
+        manager
+            .available_configs
+            .insert("global".to_string(), global_config_json);
 
         manager.load_default_rules();
         manager.load_custom_validators();
@@ -754,16 +756,16 @@ impl ValidationManager {
         // Check for circular dependencies by looking for specific patterns
         let mut dependencies = std::collections::HashSet::new();
         self.collect_dependencies(config, &mut dependencies)?;
-        
+
         // Check if any dependency points to "global" (which would create a circular dependency)
         if dependencies.contains("global") {
-            return Ok(Some("Circular dependency detected: configuration depends on 'global'".to_string()));
+            return Ok(Some(
+                "Circular dependency detected: configuration depends on 'global'".to_string(),
+            ));
         }
-        
+
         Ok(None)
     }
-
-
 
     /// Check for missing dependencies
     fn check_missing_dependencies(&self, config: &serde_json::Value) -> RhemaResult<Vec<String>> {
@@ -804,10 +806,14 @@ impl ValidationManager {
                     } else if key == "dependencies" {
                         // Handle scope dependencies structure
                         if let serde_json::Value::Object(deps_obj) = value {
-                            if let Some(serde_json::Value::Array(deps_array)) = deps_obj.get("dependencies") {
+                            if let Some(serde_json::Value::Array(deps_array)) =
+                                deps_obj.get("dependencies")
+                            {
                                 for dep in deps_array {
                                     if let serde_json::Value::Object(dep_obj) = dep {
-                                        if let Some(serde_json::Value::String(path)) = dep_obj.get("path") {
+                                        if let Some(serde_json::Value::String(path)) =
+                                            dep_obj.get("path")
+                                        {
                                             dependencies.insert(path.clone());
                                         }
                                     }

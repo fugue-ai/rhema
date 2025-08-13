@@ -8,9 +8,9 @@
 //! - Tools functionality (editor, validator, migrator, backup, documentation)
 
 use rhema_config::tools::{
-        BackupFormat, BackupReport as ToolsBackupReport, ValidationLevel as ToolsValidationLevel,
-        ValidationRule, ValidationSeverity,
-    };
+    BackupFormat, BackupReport as ToolsBackupReport, ValidationLevel as ToolsValidationLevel,
+    ValidationRule, ValidationSeverity,
+};
 use rhema_config::BackupRecord;
 use rhema_config::{
     // Additional config imports
@@ -86,7 +86,6 @@ use tokio;
 /// Test fixtures for configuration management tests
 mod fixtures {
     use super::*;
-    
 
     /// Create a test global configuration
     pub fn create_test_global_config() -> GlobalConfig {
@@ -434,10 +433,11 @@ mod validation_tests {
         // The dependency validation should fail because scope references non-existent-config
         // but there's no configuration with that name
         assert!(!scope_result.valid);
-        assert!(scope_result.issues.iter().any(|issue| 
-            issue.message.contains("Missing dependency") && 
-            issue.message.contains("non-existent-config")
-        ));
+        assert!(scope_result
+            .issues
+            .iter()
+            .any(|issue| issue.message.contains("Missing dependency")
+                && issue.message.contains("non-existent-config")));
     }
 
     #[tokio::test]
@@ -504,7 +504,10 @@ mod validation_tests {
             .unwrap();
 
         if !result.valid {
-            println!("Comprehensive validation failed with {} issues:", result.issues.len());
+            println!(
+                "Comprehensive validation failed with {} issues:",
+                result.issues.len()
+            );
             for issue in &result.issues {
                 println!("  - {:?}: {}", issue.severity, issue.message);
             }
@@ -603,7 +606,10 @@ mod migration_tests {
             .unwrap();
 
         if !validation_result.valid {
-            println!("Validation failed with {} issues:", validation_result.issues.len());
+            println!(
+                "Validation failed with {} issues:",
+                validation_result.issues.len()
+            );
             for issue in &validation_result.issues {
                 println!("  - {:?}: {}", issue.severity, issue.message);
             }
@@ -1068,7 +1074,7 @@ mod tools_tests {
             enabled: true,
             auto_backup: true,
             location: PathBuf::from("/tmp/backups"),
-                            format: BackupFormat::Tar,
+            format: BackupFormat::Tar,
             compression: true,
             encryption: true,
             retention: BackupRetention {

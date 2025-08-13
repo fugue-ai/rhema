@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use chrono::{DateTime, Utc, Datelike, Timelike};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -32,7 +32,10 @@ pub enum DecayFunction {
     /// Knowledge uses adaptive decay based on usage patterns
     Knowledge { adaptive_decay: AdaptiveDecayConfig },
     /// Patterns have stable periods with update cycles
-    Patterns { stable_period_days: f64, update_cycle_days: f64 },
+    Patterns {
+        stable_period_days: f64,
+        update_cycle_days: f64,
+    },
 }
 
 /// Adaptive decay configuration for knowledge content
@@ -59,22 +62,34 @@ impl Default for AdaptiveDecayConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TemporalRelationshipType {
     /// Sequential relationship with order and gap
-    Sequential { order: usize, gap_duration: Duration },
+    Sequential {
+        order: usize,
+        gap_duration: Duration,
+    },
     /// Concurrent relationship with overlap
     Concurrent { overlap_duration: Duration },
     /// Cyclical relationship with period and phase
-    Cyclical { cycle_period: Duration, phase_offset: Duration },
+    Cyclical {
+        cycle_period: Duration,
+        phase_offset: Duration,
+    },
     /// Causal relationship with confidence and direction
-    Causal { confidence: f64, direction: CausalDirection },
+    Causal {
+        confidence: f64,
+        direction: CausalDirection,
+    },
     /// Seasonal relationship with period and strength
-    Seasonal { seasonal_period: SeasonalPeriod, strength: f64 },
+    Seasonal {
+        seasonal_period: SeasonalPeriod,
+        strength: f64,
+    },
 }
 
 /// Causal direction for temporal relationships
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CausalDirection {
-    Forward,  // A causes B
-    Backward, // B causes A
+    Forward,       // A causes B
+    Backward,      // B causes A
     Bidirectional, // A and B influence each other
 }
 
@@ -144,10 +159,18 @@ pub enum TemporalFilter {
     AgeLessThan(Duration),
     AgeGreaterThan(Duration),
     /// Filter by activity patterns
-    RecentlyActive { min_access_count: u64, within_duration: Duration },
-    FrequentlyUpdated { min_update_count: u64, within_duration: Duration },
+    RecentlyActive {
+        min_access_count: u64,
+        within_duration: Duration,
+    },
+    FrequentlyUpdated {
+        min_update_count: u64,
+        within_duration: Duration,
+    },
     /// Filter by seasonal content
-    SeasonalContent { seasonal_period: SeasonalPeriod },
+    SeasonalContent {
+        seasonal_period: SeasonalPeriod,
+    },
     NonSeasonalContent,
 }
 
@@ -159,9 +182,14 @@ pub enum FreshnessPreference {
     /// Prefer established content
     PreferEstablished { min_age_days: f64, weight: f64 },
     /// Balanced approach
-    Balanced { recent_weight: f64, established_weight: f64 },
+    Balanced {
+        recent_weight: f64,
+        established_weight: f64,
+    },
     /// Content-type specific preferences
-    ContentTypeSpecific { preferences: std::collections::HashMap<ContentType, f64> },
+    ContentTypeSpecific {
+        preferences: std::collections::HashMap<ContentType, f64>,
+    },
 }
 
 impl Default for FreshnessPreference {
@@ -198,12 +226,12 @@ impl TimezoneContext {
         // For now, we'll use UTC as a fallback since chrono_tz is not available
         // In a real implementation, this would parse the timezone properly
         let local_time = query_time; // Use UTC as local time for now
-        
+
         let hour = local_time.hour();
         let day_of_week = local_time.weekday().num_days_from_sunday();
-        
+
         let is_business_hours = day_of_week >= 1 && day_of_week <= 5 && hour >= 9 && hour < 17;
-        
+
         Ok(Self {
             user_timezone: timezone.to_string(),
             query_time_local: local_time.into(),

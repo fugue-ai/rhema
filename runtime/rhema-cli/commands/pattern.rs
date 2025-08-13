@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+use crate::CliContext;
 use clap::Subcommand;
 use rhema_api::RhemaResult;
 use rhema_core::PatternUsage;
-use crate::CliContext;
 
 #[derive(Subcommand)]
 pub enum PatternSubcommands {

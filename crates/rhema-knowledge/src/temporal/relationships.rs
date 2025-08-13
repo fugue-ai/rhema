@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-use chrono::{DateTime, Utc, Datelike};
+use chrono::{DateTime, Datelike, Utc};
 use std::time::Duration;
 use tracing::{debug, info, trace};
 
 use super::{
-    TemporalRelationshipType, TemporalContextRelationship, CausalDirection, 
-    SeasonalPeriod, Content, RelationshipConfig
+    CausalDirection, Content, RelationshipConfig, SeasonalPeriod, TemporalContextRelationship,
+    TemporalRelationshipType,
 };
-use super::{TemporalResult, TemporalError};
+use super::{TemporalError, TemporalResult};
 
 /// Temporal relationship detector for analyzing content relationships
 pub struct TemporalRelationshipDetector {
@@ -54,16 +54,17 @@ impl TemporalRelationshipDetector {
 
         info!(
             "Detecting temporal relationships for content {} with {} targets",
-            source_content.id, target_contents.len()
+            source_content.id,
+            target_contents.len()
         );
 
         let mut relationships = Vec::new();
 
         for target_content in target_contents {
-            if let Some(relationship) = self.analyze_temporal_relationship(
-                source_content,
-                target_content,
-            ).await? {
+            if let Some(relationship) = self
+                .analyze_temporal_relationship(source_content, target_content)
+                .await?
+            {
                 relationships.push(relationship);
             }
         }
@@ -83,8 +84,12 @@ impl TemporalRelationshipDetector {
         target: &Content,
     ) -> TemporalResult<Option<TemporalContextRelationship>> {
         let temporal_distance = self.calculate_temporal_distance(source, target);
-        let relationship_type = self.classify_relationship_type(source, target, &temporal_distance).await?;
-        let confidence = self.calculate_relationship_confidence(source, target, &relationship_type).await?;
+        let relationship_type = self
+            .classify_relationship_type(source, target, &temporal_distance)
+            .await?;
+        let confidence = self
+            .calculate_relationship_confidence(source, target, &relationship_type)
+            .await?;
 
         // Only return relationships that meet the confidence threshold
         if confidence >= self.config.confidence_threshold {
@@ -98,7 +103,10 @@ impl TemporalRelationshipDetector {
 
             trace!(
                 "Detected relationship: {} -> {} (type={:?}, confidence={:.3})",
-                source.id, target.id, relationship_type, confidence
+                source.id,
+                target.id,
+                relationship_type,
+                confidence
             );
 
             Ok(Some(relationship))
@@ -131,7 +139,8 @@ impl TemporalRelationshipDetector {
         let distance_seconds = temporal_distance.as_secs();
 
         // Sequential relationship
-        if distance_seconds <= 24 * 3600 { // Within 24 hours
+        if distance_seconds <= 24 * 3600 {
+            // Within 24 hours
             let order = if source_time < target_time { 1 } else { 2 };
             return Ok(TemporalRelationshipType::Sequential {
                 order,
@@ -140,7 +149,8 @@ impl TemporalRelationshipDetector {
         }
 
         // Concurrent relationship (overlapping creation times)
-        if distance_seconds <= 3600 { // Within 1 hour
+        if distance_seconds <= 3600 {
+            // Within 1 hour
             return Ok(TemporalRelationshipType::Concurrent {
                 overlap_duration: *temporal_distance,
             });
@@ -273,7 +283,9 @@ impl TemporalRelationshipDetector {
 
         if source_weekday == target_weekday {
             return Ok(Some(TemporalRelationshipType::Seasonal {
-                seasonal_period: SeasonalPeriod::Weekly { weekday: source_weekday },
+                seasonal_period: SeasonalPeriod::Weekly {
+                    weekday: source_weekday,
+                },
                 strength: 0.6,
             }));
         }
@@ -298,7 +310,8 @@ impl TemporalRelationshipDetector {
                     confidence += 0.3;
                 } else if gap_hours <= 24.0 {
                     confidence += 0.2;
-                } else if gap_hours <= 168.0 { // 1 week
+                } else if gap_hours <= 168.0 {
+                    // 1 week
                     confidence += 0.1;
                 }
             }
@@ -314,7 +327,10 @@ impl TemporalRelationshipDetector {
             TemporalRelationshipType::Cyclical { .. } => {
                 confidence += 0.3; // Cyclical patterns are significant
             }
-            TemporalRelationshipType::Causal { confidence: causal_confidence, .. } => {
+            TemporalRelationshipType::Causal {
+                confidence: causal_confidence,
+                ..
+            } => {
                 confidence += causal_confidence * 0.5;
             }
             TemporalRelationshipType::Seasonal { strength, .. } => {
@@ -336,10 +352,18 @@ impl TemporalRelationshipDetector {
 
     /// Calculate similarity in access patterns between content
     fn calculate_access_similarity(&self, source: &Content, target: &Content) -> f64 {
-        let source_access_rate = source.access_count as f64 / 
-            source.created_at.signed_duration_since(Utc::now()).num_days().max(1) as f64;
-        let target_access_rate = target.access_count as f64 / 
-            target.created_at.signed_duration_since(Utc::now()).num_days().max(1) as f64;
+        let source_access_rate = source.access_count as f64
+            / source
+                .created_at
+                .signed_duration_since(Utc::now())
+                .num_days()
+                .max(1) as f64;
+        let target_access_rate = target.access_count as f64
+            / target
+                .created_at
+                .signed_duration_since(Utc::now())
+                .num_days()
+                .max(1) as f64;
 
         if source_access_rate == 0.0 && target_access_rate == 0.0 {
             return 1.0; // Both have no access
@@ -349,7 +373,8 @@ impl TemporalRelationshipDetector {
             return 0.0; // One has access, the other doesn't
         }
 
-        let ratio = source_access_rate.min(target_access_rate) / source_access_rate.max(target_access_rate);
+        let ratio =
+            source_access_rate.min(target_access_rate) / source_access_rate.max(target_access_rate);
         ratio
     }
 
@@ -396,12 +421,15 @@ mod tests {
     #[tokio::test]
     async fn test_temporal_relationship_detection() {
         let detector = TemporalRelationshipDetector::new();
-        
+
         let source = create_test_content("source", 10);
         let target = create_test_content("target", 9); // 1 day later
 
-        let relationships = detector.detect_temporal_relationships(&source, &[target.clone()]).await.unwrap();
-        
+        let relationships = detector
+            .detect_temporal_relationships(&source, &[target.clone()])
+            .await
+            .unwrap();
+
         assert!(!relationships.is_empty());
         assert_eq!(relationships[0].target_content_id, target.id);
     }
@@ -409,12 +437,15 @@ mod tests {
     #[tokio::test]
     async fn test_sequential_relationship() {
         let detector = TemporalRelationshipDetector::new();
-        
+
         let source = create_test_content("source", 10);
         let target = create_test_content("target", 9); // 1 day later
 
-        let relationship_type = detector.classify_relationship_type(&source, &target, &Duration::from_secs(24 * 3600)).await.unwrap();
-        
+        let relationship_type = detector
+            .classify_relationship_type(&source, &target, &Duration::from_secs(24 * 3600))
+            .await
+            .unwrap();
+
         match relationship_type {
             TemporalRelationshipType::Sequential { order, .. } => {
                 assert_eq!(order, 1); // source comes before target
@@ -426,12 +457,15 @@ mod tests {
     #[tokio::test]
     async fn test_cyclical_pattern_detection() {
         let detector = TemporalRelationshipDetector::new();
-        
+
         let source = create_test_content("source", 14);
         let target = create_test_content("target", 7); // 7 days later
 
-        let cyclical = detector.detect_cyclical_pattern(&source, &target).await.unwrap();
-        
+        let cyclical = detector
+            .detect_cyclical_pattern(&source, &target)
+            .await
+            .unwrap();
+
         assert!(cyclical.is_some());
         match cyclical.unwrap() {
             TemporalRelationshipType::Cyclical { cycle_period, .. } => {
@@ -444,7 +478,7 @@ mod tests {
     #[tokio::test]
     async fn test_confidence_calculation() {
         let detector = TemporalRelationshipDetector::new();
-        
+
         let source = create_test_content("source", 10);
         let target = create_test_content("target", 9);
 
@@ -453,8 +487,11 @@ mod tests {
             gap_duration: Duration::from_secs(3600), // 1 hour
         };
 
-        let confidence = detector.calculate_relationship_confidence(&source, &target, &relationship_type).await.unwrap();
-        
+        let confidence = detector
+            .calculate_relationship_confidence(&source, &target, &relationship_type)
+            .await
+            .unwrap();
+
         assert!(confidence > 0.5); // Should have reasonable confidence
         assert!(confidence <= 1.0);
     }

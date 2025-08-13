@@ -694,7 +694,10 @@ impl BackupManager {
     }
 
     /// Validate backup integrity before restoration
-    pub async fn validate_backup_integrity(&self, backup_record: &BackupRecord) -> RhemaResult<bool> {
+    pub async fn validate_backup_integrity(
+        &self,
+        backup_record: &BackupRecord,
+    ) -> RhemaResult<bool> {
         if !backup_record.backup_path.exists() {
             return Err(ConfigError::BackupFailed("Backup file does not exist".to_string()).into());
         }
@@ -811,10 +814,7 @@ impl BackupManager {
         let backup_record = self.backup_config(config, context)?;
 
         // Validate backup integrity
-        if !self
-            .validate_backup_integrity(&backup_record)
-            .await?
-        {
+        if !self.validate_backup_integrity(&backup_record).await? {
             // Remove invalid backup
             if let Err(e) = std::fs::remove_file(&backup_record.backup_path) {
                 tracing::warn!("Failed to remove invalid backup file: {}", e);
@@ -838,10 +838,7 @@ impl BackupManager {
         let backup_record = self.find_backup_record(config_type, backup_id)?;
 
         // Validate backup integrity before restoration
-        if !self
-            .validate_backup_integrity(backup_record)
-            .await?
-        {
+        if !self.validate_backup_integrity(backup_record).await? {
             return Err(ConfigError::BackupFailed(
                 "Backup integrity validation failed before restoration".to_string(),
             )
@@ -908,7 +905,7 @@ impl BackupManager {
     /// Get configuration type from the generic type
     fn get_config_type<T: Config>(&self) -> String {
         let type_name = std::any::type_name::<T>();
-        
+
         // Extract the type name from the full path
         // Type names are like "rhema_config::global::GlobalConfig"
         if let Some(last_part) = type_name.split("::").last() {
@@ -918,7 +915,7 @@ impl BackupManager {
                 return base_name.to_lowercase();
             }
         }
-        
+
         // Fallback to a generic name
         "config".to_string()
     }

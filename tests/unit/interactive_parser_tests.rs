@@ -28,7 +28,7 @@ impl InteractiveCommandParser {
         let mut current = String::new();
         let mut in_quotes = false;
         let mut chars = input.chars().peekable();
-        
+
         while let Some(ch) = chars.next() {
             match ch {
                 '"' => {
@@ -81,7 +81,7 @@ impl InteractiveCommandParser {
                 }
             }
         }
-        
+
         // Don't forget the last part
         if !current.is_empty() {
             parts.push(current);
@@ -262,7 +262,6 @@ fn test_reset() {
 #[test]
 fn test_interactive_builder_integration() {
     use interactive_builder::InteractiveBuilder;
-    
 
     // Test that we can create a builder instance
     let builder = InteractiveBuilder::new();

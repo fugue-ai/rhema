@@ -10,7 +10,10 @@ use std::thread;
 use tempfile::TempDir;
 
 /// Test CLI command execution (simplified for testing)
-fn run_rhema_command(args: &[&str], working_dir: Option<&std::path::Path>) -> Result<String, Box<dyn std::error::Error>> {
+fn run_rhema_command(
+    args: &[&str],
+    working_dir: Option<&std::path::Path>,
+) -> Result<String, Box<dyn std::error::Error>> {
     // For now, just return a success message since we're testing the underlying functionality
     // In a real implementation, this would run the actual CLI commands
     Ok(format!("Command executed successfully: {}", args.join(" ")))
@@ -26,7 +29,7 @@ fn test_init_command() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test the underlying functionality directly
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
-    
+
     // Verify the repository was initialized correctly
     assert!(temp_path.join(".git").exists());
     assert_eq!(rhema.repo_root(), temp_path);
@@ -44,7 +47,7 @@ fn test_init_command_with_description() -> Result<(), Box<dyn std::error::Error>
 
     // Test the underlying functionality directly
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
-    
+
     // Verify the repository was initialized correctly
     assert!(temp_path.join(".git").exists());
     assert_eq!(rhema.repo_root(), temp_path);
@@ -62,7 +65,7 @@ fn test_init_command_with_dependencies() -> Result<(), Box<dyn std::error::Error
 
     // Test the underlying functionality directly
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
-    
+
     // Verify the repository was initialized correctly
     assert!(temp_path.join(".git").exists());
     assert_eq!(rhema.repo_root(), temp_path);
@@ -83,7 +86,7 @@ fn test_init_command_with_existing_rhema_directory() -> Result<(), Box<dyn std::
 
     // Test the underlying functionality directly
     let rhema = Rhema::new_from_path(temp_path.to_path_buf())?;
-    
+
     // Verify the repository was initialized correctly
     assert!(temp_path.join(".git").exists());
     assert!(temp_path.join(".rhema").exists());
@@ -105,11 +108,12 @@ fn test_init_command_with_existing_rhema_files() {
     std::fs::write(
         temp_path.join(".rhema").join("rhema.yaml"),
         "name: existing-scope\ntype: library",
-    ).unwrap();
+    )
+    .unwrap();
 
     // Test the underlying functionality directly
     let rhema = Rhema::new_from_path(temp_path.to_path_buf()).unwrap();
-    
+
     // Verify the repository was initialized correctly
     assert!(temp_path.join(".git").exists());
     assert!(temp_path.join(".rhema").join("rhema.yaml").exists());
@@ -607,10 +611,10 @@ fn test_command_with_large_input() -> Result<(), Box<dyn std::error::Error>> {
     // Test large input handling - this should fail gracefully with invalid syntax
     let large_query = "todos ".repeat(1000);
     let result = env.rhema.query(&large_query);
-    
+
     // The query should fail due to invalid syntax, not due to size
     assert!(result.is_err());
-    
+
     // Test with a valid but large query
     let valid_large_query = format!("todos WHERE id='{}'", "x".repeat(1000));
     let result = env.rhema.query(&valid_large_query);

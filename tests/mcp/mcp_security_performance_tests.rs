@@ -15,8 +15,8 @@
  */
 
 use rhema_mcp::{
-    AuthManager, CacheManager, ContextProvider, EnhancedConnectionPool,
-    FileWatcher, McpConfig, OfficialRhemaMcpServer, PerformanceMetrics,
+    AuthManager, CacheManager, ContextProvider, EnhancedConnectionPool, FileWatcher, McpConfig,
+    OfficialRhemaMcpServer, PerformanceMetrics,
 };
 use std::sync::Arc;
 use std::time::Duration;
@@ -276,7 +276,10 @@ async fn test_rate_limiting_functionality() {
 
     // Test that rate limiting is working (don't test reset for now)
     // The rate limit should prevent the 11th request
-    assert!(!allowed, "Rate limiting should prevent requests beyond the limit");
+    assert!(
+        !allowed,
+        "Rate limiting should prevent requests beyond the limit"
+    );
 }
 
 #[tokio::test]
@@ -384,7 +387,7 @@ async fn test_connection_pool_performance() {
         assert!(stats.total_connections > 0);
         assert!(stats.utilization_rate > 0.0);
     });
-    
+
     match timeout.await {
         Ok(_) => println!("✅ Connection pool performance test completed"),
         Err(_) => {

@@ -104,12 +104,14 @@ impl TemporalContextManager {
         user_timezone: Option<&str>,
     ) -> TemporalResult<f64> {
         // 1. Calculate base temporal relevance
-        let base_relevance = self.relevance_engine
+        let base_relevance = self
+            .relevance_engine
             .calculate_temporal_relevance(content, query_time, user_timezone)
             .await?;
 
         // 2. Apply seasonal adjustments
-        let seasonal_adjustment = self.seasonal_detector
+        let seasonal_adjustment = self
+            .seasonal_detector
             .calculate_seasonal_adjustment(content, query_time)
             .await?;
 
@@ -124,7 +126,7 @@ impl TemporalContextManager {
 
         // 4. Combine all factors
         let final_relevance = base_relevance * seasonal_adjustment * timezone_adjustment;
-        
+
         Ok(final_relevance.min(1.0).max(0.0))
     }
 
@@ -185,16 +187,37 @@ impl Default for TemporalConfig {
 impl TemporalConfig {
     fn default_decay_functions() -> HashMap<ContentType, DecayFunction> {
         let mut functions = HashMap::new();
-        functions.insert(ContentType::Documentation, DecayFunction::Documentation { half_life_days: 365.0 });
-        functions.insert(ContentType::Code, DecayFunction::Code { half_life_hours: 168.0 });
-        functions.insert(ContentType::Decision, DecayFunction::Decisions { half_life_weeks: 52.0 });
-        functions.insert(ContentType::Knowledge, DecayFunction::Knowledge { 
-            adaptive_decay: AdaptiveDecayConfig::default() 
-        });
-        functions.insert(ContentType::Pattern, DecayFunction::Patterns { 
-            stable_period_days: 90.0, 
-            update_cycle_days: 30.0 
-        });
+        functions.insert(
+            ContentType::Documentation,
+            DecayFunction::Documentation {
+                half_life_days: 365.0,
+            },
+        );
+        functions.insert(
+            ContentType::Code,
+            DecayFunction::Code {
+                half_life_hours: 168.0,
+            },
+        );
+        functions.insert(
+            ContentType::Decision,
+            DecayFunction::Decisions {
+                half_life_weeks: 52.0,
+            },
+        );
+        functions.insert(
+            ContentType::Knowledge,
+            DecayFunction::Knowledge {
+                adaptive_decay: AdaptiveDecayConfig::default(),
+            },
+        );
+        functions.insert(
+            ContentType::Pattern,
+            DecayFunction::Patterns {
+                stable_period_days: 90.0,
+                update_cycle_days: 30.0,
+            },
+        );
         functions
     }
 }

@@ -713,7 +713,13 @@ impl FeatureAutomationManager {
             .join(branch_name);
 
         // Load boundary rules from repository configuration
-        let boundary_rules_file = self.repo.path().parent().unwrap().join(".rhema").join("boundary_rules.json");
+        let boundary_rules_file = self
+            .repo
+            .path()
+            .parent()
+            .unwrap()
+            .join(".rhema")
+            .join("boundary_rules.json");
 
         if boundary_rules_file.exists() {
             let rules_content = std::fs::read_to_string(&boundary_rules_file)?;
@@ -1847,7 +1853,13 @@ impl FeatureAutomationManager {
     }
 
     fn cleanup_backups(&self, branch_name: &str) -> RhemaResult<()> {
-        let backup_dir = self.repo.path().parent().unwrap().join(".rhema").join("backups");
+        let backup_dir = self
+            .repo
+            .path()
+            .parent()
+            .unwrap()
+            .join(".rhema")
+            .join("backups");
         if backup_dir.exists() {
             for entry in std::fs::read_dir(&backup_dir)? {
                 let entry = entry?;
@@ -1873,7 +1885,13 @@ impl FeatureAutomationManager {
             .join(".rhema")
             .join("context")
             .join(branch_name);
-        let archive_dir = self.repo.path().parent().unwrap().join(".rhema").join("archives");
+        let archive_dir = self
+            .repo
+            .path()
+            .parent()
+            .unwrap()
+            .join(".rhema")
+            .join("archives");
         std::fs::create_dir_all(&archive_dir)?;
 
         if context_dir.exists() {
@@ -1962,7 +1980,13 @@ impl FeatureAutomationManager {
         });
 
         // Save notification to file
-        let notifications_dir = self.repo.path().parent().unwrap().join(".rhema").join("notifications");
+        let notifications_dir = self
+            .repo
+            .path()
+            .parent()
+            .unwrap()
+            .join(".rhema")
+            .join("notifications");
         std::fs::create_dir_all(&notifications_dir)?;
 
         let notification_file =

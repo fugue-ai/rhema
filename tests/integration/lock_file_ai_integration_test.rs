@@ -38,7 +38,7 @@ async fn test_lock_file_context_provider() -> RhemaResult<()> {
 
     // The load operation should always succeed, but has_lock_file() depends on whether a lock file exists
     assert!(load_result.is_ok());
-    
+
     if provider.get_lock_file_path().exists() {
         // Lock file exists and should be loaded
         assert!(provider.has_lock_file());
@@ -61,7 +61,9 @@ async fn test_lock_file_context_provider() -> RhemaResult<()> {
 
 #[tokio::test]
 async fn test_context_injection_rules() -> RhemaResult<()> {
-    use rhema_coordination::context_injection::{ContextInjectionRule, LockFileContextRequirement, TaskType};
+    use rhema_coordination::context_injection::{
+        ContextInjectionRule, LockFileContextRequirement, TaskType,
+    };
     use rhema_core::schema::PromptInjectionMethod;
 
     // Test creating injection rules

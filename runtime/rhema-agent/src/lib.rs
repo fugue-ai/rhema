@@ -2,8 +2,10 @@
 // and re-exported through the main mod.rs file
 
 // Re-export types from other crates for convenience
-pub use rhema_coordination::context_injection::{ContextInjectionRule, EnhancedContextInjector, TaskType};
 pub use rhema_config::{Config, GlobalConfig, RepositoryConfig};
+pub use rhema_coordination::context_injection::{
+    ContextInjectionRule, EnhancedContextInjector, TaskType,
+};
 pub use rhema_core::{
     file_ops, schema::*, scope, JsonSchema, RhemaError, RhemaResult, SchemaMigratable, Validatable,
 };
@@ -80,24 +82,24 @@ impl Rhema {
     pub fn get_current_scope_path(&self) -> RhemaResult<PathBuf> {
         // Discover all scopes in the repository
         let scopes = self.discover_scopes()?;
-        
+
         // If there's only one scope, return it
         if scopes.len() == 1 {
             return Ok(scopes[0].path.clone());
         }
-        
+
         // If there are multiple scopes, try to find the one at the repo root
         for scope in &scopes {
             if scope.path.parent().unwrap() == &self.repo_root {
                 return Ok(scope.path.clone());
             }
         }
-        
+
         // If no scope found at repo root, return the first scope
         if let Some(first_scope) = scopes.first() {
             return Ok(first_scope.path.clone());
         }
-        
+
         // If no scopes found, return the repo root
         Ok(self.repo_root.clone())
     }

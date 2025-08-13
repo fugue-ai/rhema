@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-use chrono::{DateTime, Utc, Duration as ChronoDuration, Datelike, Timelike};
+use chrono::{DateTime, Datelike, Duration as ChronoDuration, Timelike, Utc};
 use std::time::Duration;
 use tracing::{debug, trace};
 
-use super::types::{TemporalFilter, TimeRange, SeasonalPeriod};
-use super::{TemporalResult, TemporalError};
+use super::types::{SeasonalPeriod, TemporalFilter, TimeRange};
+use super::{TemporalError, TemporalResult};
 
 /// Builder for creating temporal filters
 pub struct TemporalFilterBuilder {
@@ -125,7 +125,8 @@ impl TemporalFilterBuilder {
 
     /// Add a filter for seasonal content
     pub fn seasonal_content(mut self, seasonal_period: SeasonalPeriod) -> Self {
-        self.filters.push(TemporalFilter::SeasonalContent { seasonal_period });
+        self.filters
+            .push(TemporalFilter::SeasonalContent { seasonal_period });
         self
     }
 
@@ -137,8 +138,10 @@ impl TemporalFilterBuilder {
 
     /// Add a filter for content created in a specific time range
     pub fn in_time_range(mut self, time_range: TimeRange) -> Self {
-        self.filters.push(TemporalFilter::CreatedAfter(time_range.start));
-        self.filters.push(TemporalFilter::CreatedBefore(time_range.end));
+        self.filters
+            .push(TemporalFilter::CreatedAfter(time_range.start));
+        self.filters
+            .push(TemporalFilter::CreatedBefore(time_range.end));
         self
     }
 
@@ -147,35 +150,77 @@ impl TemporalFilterBuilder {
         let now = Utc::now();
         let start_of_week = now - ChronoDuration::days(now.weekday().num_days_from_monday() as i64);
         let end_of_week = start_of_week + ChronoDuration::days(6);
-        
-        self.filters.push(TemporalFilter::CreatedAfter(start_of_week));
-        self.filters.push(TemporalFilter::CreatedBefore(end_of_week));
+
+        self.filters
+            .push(TemporalFilter::CreatedAfter(start_of_week));
+        self.filters
+            .push(TemporalFilter::CreatedBefore(end_of_week));
         self
     }
 
     /// Add a filter for content created this month
     pub fn this_month(mut self) -> Self {
         let now = Utc::now();
-        let start_of_month = now.with_day(1).unwrap().with_hour(0).unwrap().with_minute(0).unwrap().with_second(0).unwrap();
+        let start_of_month = now
+            .with_day(1)
+            .unwrap()
+            .with_hour(0)
+            .unwrap()
+            .with_minute(0)
+            .unwrap()
+            .with_second(0)
+            .unwrap();
         let end_of_month = if now.month() == 12 {
-            now.with_year(now.year() + 1).unwrap().with_month(1).unwrap().with_day(1).unwrap()
+            now.with_year(now.year() + 1)
+                .unwrap()
+                .with_month(1)
+                .unwrap()
+                .with_day(1)
+                .unwrap()
         } else {
-            now.with_month(now.month() + 1).unwrap().with_day(1).unwrap()
+            now.with_month(now.month() + 1)
+                .unwrap()
+                .with_day(1)
+                .unwrap()
         };
-        
-        self.filters.push(TemporalFilter::CreatedAfter(start_of_month));
-        self.filters.push(TemporalFilter::CreatedBefore(end_of_month));
+
+        self.filters
+            .push(TemporalFilter::CreatedAfter(start_of_month));
+        self.filters
+            .push(TemporalFilter::CreatedBefore(end_of_month));
         self
     }
 
     /// Add a filter for content created this year
     pub fn this_year(mut self) -> Self {
         let now = Utc::now();
-        let start_of_year = now.with_month(1).unwrap().with_day(1).unwrap().with_hour(0).unwrap().with_minute(0).unwrap().with_second(0).unwrap();
-        let end_of_year = now.with_month(12).unwrap().with_day(31).unwrap().with_hour(23).unwrap().with_minute(59).unwrap().with_second(59).unwrap();
-        
-        self.filters.push(TemporalFilter::CreatedAfter(start_of_year));
-        self.filters.push(TemporalFilter::CreatedBefore(end_of_year));
+        let start_of_year = now
+            .with_month(1)
+            .unwrap()
+            .with_day(1)
+            .unwrap()
+            .with_hour(0)
+            .unwrap()
+            .with_minute(0)
+            .unwrap()
+            .with_second(0)
+            .unwrap();
+        let end_of_year = now
+            .with_month(12)
+            .unwrap()
+            .with_day(31)
+            .unwrap()
+            .with_hour(23)
+            .unwrap()
+            .with_minute(59)
+            .unwrap()
+            .with_second(59)
+            .unwrap();
+
+        self.filters
+            .push(TemporalFilter::CreatedAfter(start_of_year));
+        self.filters
+            .push(TemporalFilter::CreatedBefore(end_of_year));
         self
     }
 
@@ -214,9 +259,7 @@ pub struct TemporalFilterUtils;
 impl TemporalFilterUtils {
     /// Create a filter for recent content (last 7 days)
     pub fn recent_content() -> Vec<TemporalFilter> {
-        TemporalFilterBuilder::new()
-            .created_within_days(7)
-            .build()
+        TemporalFilterBuilder::new().created_within_days(7).build()
     }
 
     /// Create a filter for recent content (last 24 hours)
@@ -228,9 +271,7 @@ impl TemporalFilterUtils {
 
     /// Create a filter for established content (older than 30 days)
     pub fn established_content() -> Vec<TemporalFilter> {
-        TemporalFilterBuilder::new()
-            .older_than_days(30)
-            .build()
+        TemporalFilterBuilder::new().older_than_days(30).build()
     }
 
     /// Create a filter for active content (accessed recently)
@@ -249,23 +290,17 @@ impl TemporalFilterUtils {
 
     /// Create a filter for content from this week
     pub fn this_week_content() -> Vec<TemporalFilter> {
-        TemporalFilterBuilder::new()
-            .this_week()
-            .build()
+        TemporalFilterBuilder::new().this_week().build()
     }
 
     /// Create a filter for content from this month
     pub fn this_month_content() -> Vec<TemporalFilter> {
-        TemporalFilterBuilder::new()
-            .this_month()
-            .build()
+        TemporalFilterBuilder::new().this_month().build()
     }
 
     /// Create a filter for content from this year
     pub fn this_year_content() -> Vec<TemporalFilter> {
-        TemporalFilterBuilder::new()
-            .this_year()
-            .build()
+        TemporalFilterBuilder::new().this_year().build()
     }
 
     /// Create a filter for seasonal content (e.g., yearly patterns)
@@ -305,9 +340,7 @@ impl TemporalFilterUtils {
 
     /// Create a filter for content older than a specific age
     pub fn old_content(days: u64) -> Vec<TemporalFilter> {
-        TemporalFilterBuilder::new()
-            .older_than_days(days)
-            .build()
+        TemporalFilterBuilder::new().older_than_days(days).build()
     }
 
     /// Create a filter for content newer than a specific age
@@ -333,42 +366,50 @@ impl TemporalFilterValidator {
     /// Validate a single temporal filter
     pub fn validate_single_filter(filter: &TemporalFilter) -> TemporalResult<()> {
         match filter {
-            TemporalFilter::CreatedAfter(datetime) | TemporalFilter::CreatedBefore(datetime) |
-            TemporalFilter::ModifiedAfter(datetime) | TemporalFilter::ModifiedBefore(datetime) => {
+            TemporalFilter::CreatedAfter(datetime)
+            | TemporalFilter::CreatedBefore(datetime)
+            | TemporalFilter::ModifiedAfter(datetime)
+            | TemporalFilter::ModifiedBefore(datetime) => {
                 if datetime > &(Utc::now() + ChronoDuration::days(365)) {
                     return Err(TemporalError::InvalidData(
-                        "Filter datetime is too far in the future".to_string()
+                        "Filter datetime is too far in the future".to_string(),
                     ));
                 }
             }
             TemporalFilter::AgeLessThan(duration) | TemporalFilter::AgeGreaterThan(duration) => {
                 if duration.as_secs() == 0 {
                     return Err(TemporalError::InvalidData(
-                        "Duration cannot be zero".to_string()
+                        "Duration cannot be zero".to_string(),
                     ));
                 }
             }
-            TemporalFilter::RecentlyActive { min_access_count, within_duration } => {
+            TemporalFilter::RecentlyActive {
+                min_access_count,
+                within_duration,
+            } => {
                 if *min_access_count == 0 {
                     return Err(TemporalError::InvalidData(
-                        "Minimum access count cannot be zero".to_string()
+                        "Minimum access count cannot be zero".to_string(),
                     ));
                 }
                 if within_duration.as_secs() == 0 {
                     return Err(TemporalError::InvalidData(
-                        "Within duration cannot be zero".to_string()
+                        "Within duration cannot be zero".to_string(),
                     ));
                 }
             }
-            TemporalFilter::FrequentlyUpdated { min_update_count, within_duration } => {
+            TemporalFilter::FrequentlyUpdated {
+                min_update_count,
+                within_duration,
+            } => {
                 if *min_update_count == 0 {
                     return Err(TemporalError::InvalidData(
-                        "Minimum update count cannot be zero".to_string()
+                        "Minimum update count cannot be zero".to_string(),
                     ));
                 }
                 if within_duration.as_secs() == 0 {
                     return Err(TemporalError::InvalidData(
-                        "Within duration cannot be zero".to_string()
+                        "Within duration cannot be zero".to_string(),
                     ));
                 }
             }
@@ -387,35 +428,34 @@ impl TemporalFilterValidator {
         match period {
             SeasonalPeriod::Yearly { month, day } => {
                 if *month < 1 || *month > 12 {
-                    return Err(TemporalError::InvalidData(
-                        format!("Invalid month: {}", month)
-                    ));
+                    return Err(TemporalError::InvalidData(format!(
+                        "Invalid month: {}",
+                        month
+                    )));
                 }
                 if *day < 1 || *day > 31 {
-                    return Err(TemporalError::InvalidData(
-                        format!("Invalid day: {}", day)
-                    ));
+                    return Err(TemporalError::InvalidData(format!("Invalid day: {}", day)));
                 }
             }
             SeasonalPeriod::Monthly { day } => {
                 if *day < 1 || *day > 31 {
-                    return Err(TemporalError::InvalidData(
-                        format!("Invalid day: {}", day)
-                    ));
+                    return Err(TemporalError::InvalidData(format!("Invalid day: {}", day)));
                 }
             }
             SeasonalPeriod::Weekly { weekday } => {
                 if *weekday > 6 {
-                    return Err(TemporalError::InvalidData(
-                        format!("Invalid weekday: {}", weekday)
-                    ));
+                    return Err(TemporalError::InvalidData(format!(
+                        "Invalid weekday: {}",
+                        weekday
+                    )));
                 }
             }
             SeasonalPeriod::Daily { hour } => {
                 if *hour > 23 {
-                    return Err(TemporalError::InvalidData(
-                        format!("Invalid hour: {}", hour)
-                    ));
+                    return Err(TemporalError::InvalidData(format!(
+                        "Invalid hour: {}",
+                        hour
+                    )));
                 }
             }
         }
@@ -442,9 +482,9 @@ mod tests {
     fn test_recent_content_filter() {
         let filters = TemporalFilterUtils::recent_content();
         assert_eq!(filters.len(), 1);
-        
+
         match &filters[0] {
-            TemporalFilter::CreatedAfter(_) => {},
+            TemporalFilter::CreatedAfter(_) => {}
             _ => panic!("Expected CreatedAfter filter"),
         }
     }
@@ -453,9 +493,9 @@ mod tests {
     fn test_established_content_filter() {
         let filters = TemporalFilterUtils::established_content();
         assert_eq!(filters.len(), 1);
-        
+
         match &filters[0] {
-            TemporalFilter::CreatedBefore(_) => {},
+            TemporalFilter::CreatedBefore(_) => {}
             _ => panic!("Expected CreatedBefore filter"),
         }
     }
@@ -464,17 +504,15 @@ mod tests {
     fn test_seasonal_content_filter() {
         let filters = TemporalFilterUtils::yearly_seasonal_content(12, 25);
         assert_eq!(filters.len(), 1);
-        
+
         match &filters[0] {
-            TemporalFilter::SeasonalContent { seasonal_period } => {
-                match seasonal_period {
-                    SeasonalPeriod::Yearly { month, day } => {
-                        assert_eq!(*month, 12);
-                        assert_eq!(*day, 25);
-                    }
-                    _ => panic!("Expected Yearly seasonal period"),
+            TemporalFilter::SeasonalContent { seasonal_period } => match seasonal_period {
+                SeasonalPeriod::Yearly { month, day } => {
+                    assert_eq!(*month, 12);
+                    assert_eq!(*day, 25);
                 }
-            }
+                _ => panic!("Expected Yearly seasonal period"),
+            },
             _ => panic!("Expected SeasonalContent filter"),
         }
     }
@@ -495,16 +533,16 @@ mod tests {
         let start = Utc::now() - ChronoDuration::days(30);
         let end = Utc::now();
         let filters = TemporalFilterUtils::time_range_content(start, end);
-        
+
         assert_eq!(filters.len(), 2);
-        
+
         match &filters[0] {
             TemporalFilter::CreatedAfter(datetime) => {
                 assert_eq!(*datetime, start);
             }
             _ => panic!("Expected CreatedAfter filter"),
         }
-        
+
         match &filters[1] {
             TemporalFilter::CreatedBefore(datetime) => {
                 assert_eq!(*datetime, end);

@@ -54,7 +54,7 @@ async fn test_schema_validation_basic() {
     let result = validator
         .validate_against_schema(&valid_config, &SchemaType::Rhema)
         .await;
-    
+
     // Handle the case where schema might not be loaded in test environment
     match result {
         Ok(validation_result) => {

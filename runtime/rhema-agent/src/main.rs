@@ -128,43 +128,43 @@ enum ScopeLoaderCommands {
         /// Path to scan for package boundaries
         #[arg(default_value = ".")]
         path: String,
-        
+
         /// Minimum confidence threshold for scope creation
         #[arg(long, default_value = "0.8")]
         confidence: f64,
-        
+
         /// Create scopes automatically without confirmation
         #[arg(long)]
         auto_create: bool,
-        
+
         /// Show detailed reasoning for scope suggestions
         #[arg(long)]
         verbose: bool,
     },
-    
+
     /// List available scope loader plugins
     ListPlugins,
-    
+
     /// Test plugin detection on a specific path
     TestPlugin {
         /// Path to test
         path: String,
-        
+
         /// Plugin name to test (optional)
         #[arg(long)]
         plugin: Option<String>,
     },
-    
+
     /// Generate scope suggestions without creating them
     Suggest {
         /// Path to scan
         #[arg(default_value = ".")]
         path: String,
-        
+
         /// Output format
         #[arg(long, default_value = "table")]
         format: String,
-        
+
         /// Show detailed information
         #[arg(long)]
         verbose: bool,
@@ -175,11 +175,11 @@ enum ScopeLoaderCommands {
         /// Path to scan
         #[arg(default_value = ".")]
         path: String,
-        
+
         /// Output format
         #[arg(long, default_value = "table")]
         format: String,
-        
+
         /// Show detailed information
         #[arg(long)]
         verbose: bool,
@@ -193,11 +193,11 @@ enum ConfigSubcommands {
         /// Show global configuration
         #[arg(long)]
         global: bool,
-        
+
         /// Show project configuration
         #[arg(long)]
         project: bool,
-        
+
         /// Output format
         #[arg(long, default_value = "yaml")]
         format: String,
@@ -208,7 +208,7 @@ enum ConfigSubcommands {
         /// Edit global configuration
         #[arg(long)]
         global: bool,
-        
+
         /// Edit project configuration
         #[arg(long)]
         project: bool,
@@ -219,7 +219,7 @@ enum ConfigSubcommands {
         /// Reset global configuration
         #[arg(long)]
         global: bool,
-        
+
         /// Reset project configuration
         #[arg(long)]
         project: bool,
@@ -259,20 +259,29 @@ enum GitSubcommands {
 }
 
 async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaResult<()> {
-    use rhema_core::scope_loader::*;
     use rhema_core::scope_loader::service::ScopeLoaderConfig;
+    use rhema_core::scope_loader::*;
     use std::path::PathBuf;
 
     // Create a plugin registry
     let mut registry = PluginRegistry::new();
-    
+
     // Register our built-in plugins
-    registry.register_plugin(Box::new(CargoPlugin::new()))
-        .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to register Cargo plugin: {}", e)))?;
-    registry.register_plugin(Box::new(NodePackagePlugin::new()))
-        .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to register Node plugin: {}", e)))?;
-    registry.register_plugin(Box::new(NxPlugin::new()))
-        .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to register Nx plugin: {}", e)))?;
+    registry
+        .register_plugin(Box::new(CargoPlugin::new()))
+        .map_err(|e| {
+            rhema_api::RhemaError::SystemError(format!("Failed to register Cargo plugin: {}", e))
+        })?;
+    registry
+        .register_plugin(Box::new(NodePackagePlugin::new()))
+        .map_err(|e| {
+            rhema_api::RhemaError::SystemError(format!("Failed to register Node plugin: {}", e))
+        })?;
+    registry
+        .register_plugin(Box::new(NxPlugin::new()))
+        .map_err(|e| {
+            rhema_api::RhemaError::SystemError(format!("Failed to register Nx plugin: {}", e))
+        })?;
 
     match subcommand {
         ScopeLoaderCommands::AutoDiscover {
@@ -282,10 +291,13 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
             verbose,
         } => {
             println!("🚀 Auto-discovering scopes in: {}", path);
-            
+
             let path = PathBuf::from(path);
             if !path.exists() {
-                return Err(rhema_api::RhemaError::FileNotFound(format!("Path does not exist: {}", path.display())));
+                return Err(rhema_api::RhemaError::FileNotFound(format!(
+                    "Path does not exist: {}",
+                    path.display()
+                )));
             }
 
             // Create scope loader service
@@ -298,13 +310,14 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
                 cache_duration: 3600,
                 cache_path: None,
             };
-            
+
             let service = ScopeLoaderService::new(registry, config);
-            
+
             // Generate suggestions
-            let suggestions = service.suggest_scopes(&path).await
-                .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to suggest scopes: {}", e)))?;
-            
+            let suggestions = service.suggest_scopes(&path).await.map_err(|e| {
+                rhema_api::RhemaError::SystemError(format!("Failed to suggest scopes: {}", e))
+            })?;
+
             if suggestions.is_empty() {
                 println!("❌ No scope suggestions found");
                 return Ok(());
@@ -317,18 +330,27 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
                 .collect();
 
             if high_confidence.is_empty() {
-                println!("❌ No suggestions meet the confidence threshold of {}", confidence);
+                println!(
+                    "❌ No suggestions meet the confidence threshold of {}",
+                    confidence
+                );
                 return Ok(());
             }
 
-            println!("✅ Found {} scope suggestions (confidence >= {})", high_confidence.len(), confidence);
-            
+            println!(
+                "✅ Found {} scope suggestions (confidence >= {})",
+                high_confidence.len(),
+                confidence
+            );
+
             if verbose {
                 for suggestion in &high_confidence {
-                    println!("  🎯 {} ({}) - Confidence: {:.2}", 
-                             suggestion.name,
-                             suggestion.scope_type.as_str(),
-                             suggestion.confidence);
+                    println!(
+                        "  🎯 {} ({}) - Confidence: {:.2}",
+                        suggestion.name,
+                        suggestion.scope_type.as_str(),
+                        suggestion.confidence
+                    );
                     println!("    Path: {}", suggestion.path.display());
                     println!("    Reasoning: {}", suggestion.reasoning);
                     if !suggestion.dependencies.is_empty() {
@@ -340,8 +362,9 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
 
             if auto_create {
                 println!("🔧 Auto-creating scopes...");
-                let scopes = service.auto_create_scopes(&path).await
-                    .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to create scopes: {}", e)))?;
+                let scopes = service.auto_create_scopes(&path).await.map_err(|e| {
+                    rhema_api::RhemaError::SystemError(format!("Failed to create scopes: {}", e))
+                })?;
                 println!("✅ Created {} scopes", scopes.len());
             } else {
                 println!("💡 Use --auto-create to automatically create these scopes");
@@ -354,45 +377,54 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
         ScopeLoaderCommands::ListPlugins => {
             println!("📦 Available Scope Loader Plugins:");
             println!("==================================");
-            
+
             for plugin_info in registry.list_plugins() {
-                println!("  • {} (v{}) - {}", 
-                         plugin_info.metadata.name, 
-                         plugin_info.metadata.version, 
-                         plugin_info.metadata.description);
-                println!("    Supported package managers: {}", 
-                         plugin_info.metadata.supported_package_managers.join(", "));
+                println!(
+                    "  • {} (v{}) - {}",
+                    plugin_info.metadata.name,
+                    plugin_info.metadata.version,
+                    plugin_info.metadata.description
+                );
+                println!(
+                    "    Supported package managers: {}",
+                    plugin_info.metadata.supported_package_managers.join(", ")
+                );
                 println!("    Priority: {}", plugin_info.metadata.priority);
                 println!();
             }
-            
+
             Ok(())
         }
 
         ScopeLoaderCommands::TestPlugin { path, plugin } => {
             println!("🧪 Testing plugin detection in: {}", path);
-            
+
             let path = PathBuf::from(path);
             if !path.exists() {
-                return Err(rhema_api::RhemaError::FileNotFound(format!("Path does not exist: {}", path.display())));
+                return Err(rhema_api::RhemaError::FileNotFound(format!(
+                    "Path does not exist: {}",
+                    path.display()
+                )));
             }
 
             if let Some(plugin_name) = plugin {
                 // Test specific plugin
                 if let Some(plugin) = registry.get_plugin(&plugin_name) {
                     println!("Testing plugin: {}", plugin_name);
-                    
+
                     if plugin.can_handle(&path) {
                         println!("✅ Plugin can handle this path");
-                        
+
                         match plugin.detect_boundaries(&path) {
                             Ok(boundaries) => {
                                 println!("✅ Detected {} package boundaries:", boundaries.len());
                                 for boundary in &boundaries {
-                                    println!("  📦 {} ({}) at {}", 
-                                             boundary.package_info.name,
-                                             boundary.package_manager.as_str(),
-                                             boundary.path.display());
+                                    println!(
+                                        "  📦 {} ({}) at {}",
+                                        boundary.package_info.name,
+                                        boundary.package_manager.as_str(),
+                                        boundary.path.display()
+                                    );
                                 }
                             }
                             Err(e) => {
@@ -409,10 +441,10 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
                 // Test all plugins
                 let plugins = registry.get_plugins_for_path(&path);
                 println!("Found {} applicable plugins", plugins.len());
-                
+
                 for plugin in plugins {
                     println!("Testing plugin: {}", plugin.metadata().name);
-                    
+
                     match plugin.detect_boundaries(&path) {
                         Ok(boundaries) => {
                             println!("✅ Detected {} boundaries", boundaries.len());
@@ -423,28 +455,36 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
                     }
                 }
             }
-            
+
             Ok(())
         }
 
-        ScopeLoaderCommands::Suggest { path, format, verbose } => {
+        ScopeLoaderCommands::Suggest {
+            path,
+            format,
+            verbose,
+        } => {
             println!("💡 Generating scope suggestions for: {}", path);
-            
+
             let path = PathBuf::from(path);
             if !path.exists() {
-                return Err(rhema_api::RhemaError::FileNotFound(format!("Path does not exist: {}", path.display())));
+                return Err(rhema_api::RhemaError::FileNotFound(format!(
+                    "Path does not exist: {}",
+                    path.display()
+                )));
             }
 
-            let suggestions = registry.suggest_scopes(&path)
-                .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to suggest scopes: {}", e)))?;
-            
+            let suggestions = registry.suggest_scopes(&path).map_err(|e| {
+                rhema_api::RhemaError::SystemError(format!("Failed to suggest scopes: {}", e))
+            })?;
+
             if suggestions.is_empty() {
                 println!("❌ No scope suggestions found");
                 return Ok(());
             }
 
             println!("✅ Generated {} scope suggestions:", suggestions.len());
-            
+
             match format.as_str() {
                 "json" => {
                     println!("{}", serde_json::to_string_pretty(&suggestions)?);
@@ -454,16 +494,21 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
                 }
                 _ => {
                     for suggestion in &suggestions {
-                        println!("  🎯 {} ({}) - Confidence: {:.2}", 
-                                 suggestion.name,
-                                 suggestion.scope_type.as_str(),
-                                 suggestion.confidence);
+                        println!(
+                            "  🎯 {} ({}) - Confidence: {:.2}",
+                            suggestion.name,
+                            suggestion.scope_type.as_str(),
+                            suggestion.confidence
+                        );
                         println!("    Path: {}", suggestion.path.display());
-                        
+
                         if verbose {
                             println!("    Reasoning: {}", suggestion.reasoning);
                             if !suggestion.dependencies.is_empty() {
-                                println!("    Dependencies: {}", suggestion.dependencies.join(", "));
+                                println!(
+                                    "    Dependencies: {}",
+                                    suggestion.dependencies.join(", ")
+                                );
                             }
                             if !suggestion.files.is_empty() {
                                 println!("    Files: {} files", suggestion.files.len());
@@ -473,28 +518,36 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
                     }
                 }
             }
-            
+
             Ok(())
         }
 
-        ScopeLoaderCommands::DetectBoundaries { path, format, verbose } => {
+        ScopeLoaderCommands::DetectBoundaries {
+            path,
+            format,
+            verbose,
+        } => {
             println!("📦 Detecting package boundaries in: {}", path);
-            
+
             let path = PathBuf::from(path);
             if !path.exists() {
-                return Err(rhema_api::RhemaError::FileNotFound(format!("Path does not exist: {}", path.display())));
+                return Err(rhema_api::RhemaError::FileNotFound(format!(
+                    "Path does not exist: {}",
+                    path.display()
+                )));
             }
 
-            let boundaries = registry.detect_boundaries(&path)
-                .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to detect boundaries: {}", e)))?;
-            
+            let boundaries = registry.detect_boundaries(&path).map_err(|e| {
+                rhema_api::RhemaError::SystemError(format!("Failed to detect boundaries: {}", e))
+            })?;
+
             if boundaries.is_empty() {
                 println!("❌ No package boundaries detected");
                 return Ok(());
             }
 
             println!("✅ Detected {} package boundaries:", boundaries.len());
-            
+
             match format.as_str() {
                 "json" => {
                     println!("{}", serde_json::to_string_pretty(&boundaries)?);
@@ -504,33 +557,43 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
                 }
                 _ => {
                     for boundary in &boundaries {
-                        println!("  📦 {} ({}) at {}", 
-                                 boundary.package_info.name,
-                                 boundary.package_manager.as_str(),
-                                 boundary.path.display());
-                        
+                        println!(
+                            "  📦 {} ({}) at {}",
+                            boundary.package_info.name,
+                            boundary.package_manager.as_str(),
+                            boundary.path.display()
+                        );
+
                         if verbose {
                             if !boundary.dependencies.is_empty() {
-                                println!("    Dependencies: {}", 
-                                         boundary.dependencies.iter()
-                                             .map(|d| format!("{}@{}", d.name, d.version))
-                                             .collect::<Vec<_>>()
-                                             .join(", "));
+                                println!(
+                                    "    Dependencies: {}",
+                                    boundary
+                                        .dependencies
+                                        .iter()
+                                        .map(|d| format!("{}@{}", d.name, d.version))
+                                        .collect::<Vec<_>>()
+                                        .join(", ")
+                                );
                             }
-                            
+
                             if !boundary.scripts.is_empty() {
-                                println!("    Scripts: {}", 
-                                         boundary.scripts.keys()
-                                             .cloned()
-                                             .collect::<Vec<_>>()
-                                             .join(", "));
+                                println!(
+                                    "    Scripts: {}",
+                                    boundary
+                                        .scripts
+                                        .keys()
+                                        .cloned()
+                                        .collect::<Vec<_>>()
+                                        .join(", ")
+                                );
                             }
                         }
                         println!();
                     }
                 }
             }
-            
+
             Ok(())
         }
     }
@@ -540,11 +603,13 @@ async fn handle_config_commands(subcommand: ConfigSubcommands) -> RhemaResult<()
     use rhema_core::scope_loader::*;
     use std::path::PathBuf;
 
-    let current_dir = std::env::current_dir()
-        .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to get current directory: {}", e)))?;
+    let current_dir = std::env::current_dir().map_err(|e| {
+        rhema_api::RhemaError::SystemError(format!("Failed to get current directory: {}", e))
+    })?;
 
-    let mut config_manager = ScopeLoaderConfigManager::new()
-        .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to create config manager: {}", e)))?;
+    let mut config_manager = ScopeLoaderConfigManager::new().map_err(|e| {
+        rhema_api::RhemaError::SystemError(format!("Failed to create config manager: {}", e))
+    })?;
 
     // Load project configuration if it exists
     if let Err(_) = config_manager.load_project_config(&current_dir) {
@@ -552,7 +617,11 @@ async fn handle_config_commands(subcommand: ConfigSubcommands) -> RhemaResult<()
     }
 
     match subcommand {
-        ConfigSubcommands::Show { global, project, format } => {
+        ConfigSubcommands::Show {
+            global,
+            project,
+            format,
+        } => {
             if global {
                 let config = config_manager.get_global_config();
                 match format.as_str() {
@@ -622,12 +691,14 @@ async fn handle_git_commands(subcommand: GitSubcommands) -> RhemaResult<()> {
     use rhema_core::scope_loader::*;
     use std::path::PathBuf;
 
-    let current_dir = std::env::current_dir()
-        .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to get current directory: {}", e)))?;
+    let current_dir = std::env::current_dir().map_err(|e| {
+        rhema_api::RhemaError::SystemError(format!("Failed to get current directory: {}", e))
+    })?;
 
     let git_config = GitIntegrationConfig::default();
-    let mut git_manager = GitIntegrationManager::new(&current_dir, git_config)
-        .map_err(|e| rhema_api::RhemaError::SystemError(format!("Failed to create Git manager: {}", e)))?;
+    let mut git_manager = GitIntegrationManager::new(&current_dir, git_config).map_err(|e| {
+        rhema_api::RhemaError::SystemError(format!("Failed to create Git manager: {}", e))
+    })?;
 
     match subcommand {
         GitSubcommands::InstallHooks { auto } => {
@@ -647,9 +718,16 @@ async fn handle_git_commands(subcommand: GitSubcommands) -> RhemaResult<()> {
         GitSubcommands::Status => {
             let repo_info = git_manager.get_repo_info().await;
             let hooks_installed = git_manager.are_hooks_installed().await;
-            
+
             println!("Git Integration Status:");
-            println!("  Repository: {}", if repo_info.is_git_repo { "✅ Git repo" } else { "❌ Not a Git repo" });
+            println!(
+                "  Repository: {}",
+                if repo_info.is_git_repo {
+                    "✅ Git repo"
+                } else {
+                    "❌ Not a Git repo"
+                }
+            );
             if repo_info.is_git_repo {
                 println!("  Branch: {}", repo_info.current_branch);
                 println!("  Last commit: {}", repo_info.last_commit);
@@ -657,9 +735,16 @@ async fn handle_git_commands(subcommand: GitSubcommands) -> RhemaResult<()> {
                     println!("  Remote: {}", url);
                 }
             }
-            
-            println!("  Integration enabled: {}", if git_manager.is_enabled() { "✅" } else { "❌" });
-            
+
+            println!(
+                "  Integration enabled: {}",
+                if git_manager.is_enabled() {
+                    "✅"
+                } else {
+                    "❌"
+                }
+            );
+
             if !hooks_installed.is_empty() {
                 println!("  Hooks installed:");
                 for (hook_type, installed) in hooks_installed {
@@ -682,7 +767,7 @@ async fn handle_git_commands(subcommand: GitSubcommands) -> RhemaResult<()> {
         GitSubcommands::History { limit } => {
             let history = git_manager.get_change_history().await;
             let recent_history: Vec<_> = history.into_iter().rev().take(limit).collect();
-            
+
             if recent_history.is_empty() {
                 println!("No Git change history found");
             } else {
@@ -698,11 +783,25 @@ async fn handle_git_commands(subcommand: GitSubcommands) -> RhemaResult<()> {
                         GitChangeEvent::FileDeleted { path, timestamp } => {
                             println!("  🗑️ Deleted: {} at {}", path.display(), timestamp);
                         }
-                        GitChangeEvent::BranchChanged { old_branch, new_branch, timestamp } => {
-                            println!("  🌿 Branch: {} → {} at {}", old_branch, new_branch, timestamp);
+                        GitChangeEvent::BranchChanged {
+                            old_branch,
+                            new_branch,
+                            timestamp,
+                        } => {
+                            println!(
+                                "  🌿 Branch: {} → {} at {}",
+                                old_branch, new_branch, timestamp
+                            );
                         }
-                        GitChangeEvent::CommitMade { commit_hash, message, timestamp } => {
-                            println!("  💾 Commit: {} - {} at {}", commit_hash, message, timestamp);
+                        GitChangeEvent::CommitMade {
+                            commit_hash,
+                            message,
+                            timestamp,
+                        } => {
+                            println!(
+                                "  💾 Commit: {} - {} at {}",
+                                commit_hash, message, timestamp
+                            );
                         }
                     }
                 }
@@ -851,12 +950,8 @@ async fn main() -> RhemaResult<()> {
         Some(Commands::ScopeLoader { subcommand }) => {
             handle_scope_loader_commands(subcommand.clone()).await
         }
-        Some(Commands::Config { subcommand }) => {
-            handle_config_commands(subcommand.clone()).await
-        }
-        Some(Commands::Git { subcommand }) => {
-            handle_git_commands(subcommand.clone()).await
-        }
+        Some(Commands::Config { subcommand }) => handle_config_commands(subcommand.clone()).await,
+        Some(Commands::Git { subcommand }) => handle_git_commands(subcommand.clone()).await,
 
         // Some(Commands::Coordination { subcommand }) => {
         //     println!("Executing coordination command...");

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use chrono::{Utc, Duration as ChronoDuration, Datelike};
+use chrono::{Datelike, Duration as ChronoDuration, Utc};
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -75,16 +75,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// Create a comprehensive temporal configuration
 fn create_temporal_config() -> TemporalConfig {
     let mut decay_functions = HashMap::new();
-    decay_functions.insert(ContentType::Documentation, DecayFunction::Documentation { half_life_days: 365.0 });
-    decay_functions.insert(ContentType::Code, DecayFunction::Code { half_life_hours: 168.0 });
-    decay_functions.insert(ContentType::Decision, DecayFunction::Decisions { half_life_weeks: 52.0 });
-    decay_functions.insert(ContentType::Knowledge, DecayFunction::Knowledge { 
-        adaptive_decay: AdaptiveDecayConfig::default() 
-    });
-    decay_functions.insert(ContentType::Pattern, DecayFunction::Patterns { 
-        stable_period_days: 90.0, 
-        update_cycle_days: 30.0 
-    });
+    decay_functions.insert(
+        ContentType::Documentation,
+        DecayFunction::Documentation {
+            half_life_days: 365.0,
+        },
+    );
+    decay_functions.insert(
+        ContentType::Code,
+        DecayFunction::Code {
+            half_life_hours: 168.0,
+        },
+    );
+    decay_functions.insert(
+        ContentType::Decision,
+        DecayFunction::Decisions {
+            half_life_weeks: 52.0,
+        },
+    );
+    decay_functions.insert(
+        ContentType::Knowledge,
+        DecayFunction::Knowledge {
+            adaptive_decay: AdaptiveDecayConfig::default(),
+        },
+    );
+    decay_functions.insert(
+        ContentType::Pattern,
+        DecayFunction::Patterns {
+            stable_period_days: 90.0,
+            update_cycle_days: 30.0,
+        },
+    );
 
     TemporalConfig {
         enabled: true,
@@ -197,17 +218,19 @@ async fn demonstrate_temporal_relevance(
     let query_time = Utc::now();
     let user_timezone = Some("America/New_York");
 
-    println!("  Calculating temporal relevance for {} content items...", content.len());
+    println!(
+        "  Calculating temporal relevance for {} content items...",
+        content.len()
+    );
 
     for item in content {
         let relevance = temporal_manager
             .calculate_temporal_relevance(item, query_time, user_timezone)
             .await?;
 
-        println!("    📄 {} ({:?}): {:.3}", 
-            item.id, 
-            item.content_type, 
-            relevance
+        println!(
+            "    📄 {} ({:?}): {:.3}",
+            item.id, item.content_type, relevance
         );
     }
 
@@ -229,10 +252,10 @@ async fn demonstrate_seasonal_patterns(
     for i in 0..30 {
         let access_time = now - ChronoDuration::days(i);
         let weekday = access_time.weekday().num_days_from_sunday();
-        
+
         // More access on Mondays (weekday = 1)
         let access_count = if weekday == 1 { 3 } else { 1 };
-        
+
         for _ in 0..access_count {
             access_history.push(ContentAccess {
                 content_id: "seasonal_content".to_string(),
@@ -245,7 +268,10 @@ async fn demonstrate_seasonal_patterns(
         }
     }
 
-    println!("  Detecting seasonal patterns in {} access records...", access_history.len());
+    println!(
+        "  Detecting seasonal patterns in {} access records...",
+        access_history.len()
+    );
 
     // Note: Seasonal pattern detection would be available through public methods
     // For now, we'll demonstrate the concept without accessing private fields
@@ -268,7 +294,10 @@ async fn demonstrate_timezone_awareness(
     // Note: Timezone adjustments would be available through public methods
     // For now, we'll demonstrate the concept without accessing private fields
     for timezone in timezones {
-        println!("    🌍 {}: Timezone adjustment would be calculated", timezone);
+        println!(
+            "    🌍 {}: Timezone adjustment would be calculated",
+            timezone
+        );
     }
 
     // Test collaborative timezone adjustment
@@ -278,7 +307,10 @@ async fn demonstrate_timezone_awareness(
         "Asia/Tokyo".to_string(),
     ];
 
-    println!("    👥 Collaborative adjustment: Would be calculated for team across {} timezones", team_timezones.len());
+    println!(
+        "    👥 Collaborative adjustment: Would be calculated for team across {} timezones",
+        team_timezones.len()
+    );
 
     Ok(())
 }
@@ -300,7 +332,8 @@ async fn demonstrate_temporal_relationships(
     println!("  Found {} temporal relationships:", relationships.len());
 
     for relationship in &relationships {
-        println!("    🔗 {} -> {}: {:?} (confidence: {:.3})", 
+        println!(
+            "    🔗 {} -> {}: {:?} (confidence: {:.3})",
             source_content.id,
             relationship.target_content_id,
             relationship.relationship_type,
@@ -319,33 +352,38 @@ async fn demonstrate_temporal_search(
     println!("  Creating sample search results...");
 
     // Convert content to semantic results
-    let search_results: Vec<SemanticResult> = content.iter().map(|c| SemanticResult {
-        cache_key: c.id.clone(),
-        content: c.content.clone(),
-        embedding: vec![0.1, 0.2, 0.3],
-        relevance_score: 0.8,
-        semantic_tags: vec!["test".to_string()],
-        metadata: SearchResultMetadata {
-            source_type: c.content_type.clone(),
-            scope_path: None,
-            created_at: c.created_at,
-            last_modified: c.modified_at,
-            size_bytes: 1024,
-            chunk_id: None,
-        },
-        cache_info: Some(CacheInfo {
-            is_cached: true,
-            cache_tier: CacheTier::Memory,
-            access_count: c.access_count,
-            last_accessed: c.accessed_at,
-            ttl_remaining: Duration::from_secs(3600),
-        }),
-    }).collect();
+    let search_results: Vec<SemanticResult> = content
+        .iter()
+        .map(|c| SemanticResult {
+            cache_key: c.id.clone(),
+            content: c.content.clone(),
+            embedding: vec![0.1, 0.2, 0.3],
+            relevance_score: 0.8,
+            semantic_tags: vec!["test".to_string()],
+            metadata: SearchResultMetadata {
+                source_type: c.content_type.clone(),
+                scope_path: None,
+                created_at: c.created_at,
+                last_modified: c.modified_at,
+                size_bytes: 1024,
+                chunk_id: None,
+            },
+            cache_info: Some(CacheInfo {
+                is_cached: true,
+                cache_tier: CacheTier::Memory,
+                access_count: c.access_count,
+                last_accessed: c.accessed_at,
+                ttl_remaining: Duration::from_secs(3600),
+            }),
+        })
+        .collect();
 
     // Create temporal search query
     let temporal_query = TemporalSearchQuery::new("API documentation".to_string())
         .with_freshness_preference(FreshnessPreference::PreferRecent { weight: 0.3 })
-        .with_filter(TemporalFilter::AgeLessThan(Duration::from_secs(30 * 24 * 3600))) // Last 30 days
+        .with_filter(TemporalFilter::AgeLessThan(Duration::from_secs(
+            30 * 24 * 3600,
+        ))) // Last 30 days
         .with_max_results(5);
 
     println!("  Enhancing search results with temporal context...");
@@ -357,7 +395,8 @@ async fn demonstrate_temporal_search(
     println!("  Enhanced {} search results:", enhanced_results.len());
 
     for (i, result) in enhanced_results.iter().enumerate() {
-        println!("    {}. {} (final score: {:.3}, temporal score: {:.3})", 
+        println!(
+            "    {}. {} (final score: {:.3}, temporal score: {:.3})",
             i + 1,
             result.base_result.cache_key,
             result.final_score,
@@ -369,22 +408,34 @@ async fn demonstrate_temporal_search(
 }
 
 /// Demonstrate temporal filters
-async fn demonstrate_temporal_filters(_content: &[Content]) -> Result<(), Box<dyn std::error::Error>> {
+async fn demonstrate_temporal_filters(
+    _content: &[Content],
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("  Demonstrating temporal filter utilities...");
 
     // Create various temporal filters
     let recent_filters = TemporalFilterUtils::recent_content();
     let established_filters = TemporalFilterUtils::established_content();
     let seasonal_filters = TemporalFilterUtils::yearly_seasonal_content(12, 25); // Christmas
-    let time_range_filters = TemporalFilterUtils::time_range_content(
-        Utc::now() - ChronoDuration::days(30),
-        Utc::now()
-    );
+    let time_range_filters =
+        TemporalFilterUtils::time_range_content(Utc::now() - ChronoDuration::days(30), Utc::now());
 
-    println!("    📅 Recent content filters: {} filters", recent_filters.len());
-    println!("    📅 Established content filters: {} filters", established_filters.len());
-    println!("    📅 Seasonal content filters: {} filters", seasonal_filters.len());
-    println!("    📅 Time range filters: {} filters", time_range_filters.len());
+    println!(
+        "    📅 Recent content filters: {} filters",
+        recent_filters.len()
+    );
+    println!(
+        "    📅 Established content filters: {} filters",
+        established_filters.len()
+    );
+    println!(
+        "    📅 Seasonal content filters: {} filters",
+        seasonal_filters.len()
+    );
+    println!(
+        "    📅 Time range filters: {} filters",
+        time_range_filters.len()
+    );
 
     // Validate filters
     println!("  Validating temporal filters...");

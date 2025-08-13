@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+use crate::CliContext;
 use clap::Subcommand;
 use rhema_api::RhemaResult;
-use crate::CliContext;
 
 #[derive(Subcommand)]
 pub enum InsightSubcommands {
@@ -154,7 +154,9 @@ pub fn handle_insight(
                         for insight in insights {
                             println!(
                                 "  • {} - {} (confidence: {})",
-                                insight.id, insight.title, insight.confidence.unwrap_or(0)
+                                insight.id,
+                                insight.title,
+                                insight.confidence.unwrap_or(0)
                             );
                         }
                     }

@@ -191,13 +191,13 @@ pub fn get_scope(repo_root: &Path, scope_path: &str) -> Result<Scope, RhemaError
 /// Get a specific scope by name
 pub fn get_scope_by_name(repo_root: &Path, scope_name: &str) -> Result<Scope, RhemaError> {
     let scopes = discover_scopes(repo_root)?;
-    
+
     for scope in &scopes {
         if scope.definition.name == scope_name {
             return Ok(scope.clone());
         }
     }
-    
+
     Err(RhemaError::ScopeNotFound(format!(
         "Scope not found: {}",
         scope_name

@@ -16,9 +16,8 @@
 
 use git2::{BranchType, Repository};
 use rhema_git::{
-    git::feature_automation::{
-        default_feature_automation_config, FeatureAutomationManager,
-    }, FeatureBranch,
+    git::feature_automation::{default_feature_automation_config, FeatureAutomationManager},
+    FeatureBranch,
 };
 use std::fs;
 use std::path::Path;

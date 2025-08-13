@@ -91,14 +91,14 @@ pub use integration::{
 
 // Temporal module exports
 pub use temporal::{
-    TemporalContextManager, TemporalConfig, TemporalWeights, TemporalSearchQuery,
-    TemporalFilter, FreshnessPreference, SeasonalPreference, TimeRange, TimezoneContext,
-    TemporalEnhancedResult, TemporalContextRelationship, SeasonalPattern, DecayFunction,
-    AdaptiveDecayConfig, TemporalRelationshipType, CausalDirection, SeasonalPeriod,
-    ContentAccess, AccessType, TemporalRelevanceBreakdown, TemporalFactor, TemporalFactorType,
+    AccessType, AdaptiveDecayConfig, CausalDirection, ContentAccess, DecayFunction,
+    FreshnessPreference, SeasonalPattern, SeasonalPatternDetector, SeasonalPeriod,
+    SeasonalPreference, TemporalConfig, TemporalContextManager, TemporalContextRelationship,
+    TemporalEnhancedResult, TemporalFactor, TemporalFactorType, TemporalFilter,
     TemporalFilterBuilder, TemporalFilterUtils, TemporalFilterValidator,
-    TemporalRelevanceEngine, SeasonalPatternDetector, TimezoneAwareContextManager,
-    TemporalRelationshipDetector, TemporalSearchEnhancer,
+    TemporalRelationshipDetector, TemporalRelationshipType, TemporalRelevanceBreakdown,
+    TemporalRelevanceEngine, TemporalSearchEnhancer, TemporalSearchQuery, TemporalWeights,
+    TimeRange, TimezoneAwareContextManager, TimezoneContext,
 };
 
 // Error type conversions

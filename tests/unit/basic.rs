@@ -226,7 +226,10 @@ todos:
     created_at: "2024-01-15T10:00:00Z"
 "#;
     fs::write(rhema_dir.join("todos.yaml"), todos_yaml)?;
-    println!("Created todos.yaml file at {:?}", rhema_dir.join("todos.yaml"));
+    println!(
+        "Created todos.yaml file at {:?}",
+        rhema_dir.join("todos.yaml")
+    );
 
     // Create a knowledge.yaml with some data
     let knowledge_yaml = r#"
@@ -283,10 +286,10 @@ conventions:
     let scopes = rhema.discover_scopes()?;
     println!("Discovered scopes count: {}", scopes.len());
     for scope in &scopes {
-        println!("Scope: name={}, type={}, path={:?}", 
-                 scope.definition.name, 
-                 scope.definition.scope_type, 
-                 scope.path);
+        println!(
+            "Scope: name={}, type={}, path={:?}",
+            scope.definition.name, scope.definition.scope_type, scope.path
+        );
     }
 
     // Test get_scope_by_name directly
@@ -295,7 +298,7 @@ conventions:
 
     // Test loading todos
     println!("About to call rhema.load_todos(\".\")");
-    
+
     // Debug: Check if todos.yaml file exists
     let scope = rhema.get_scope(".")?;
     let todos_path = scope.path.join("todos.yaml");
@@ -305,7 +308,7 @@ conventions:
         let content = std::fs::read_to_string(&todos_path)?;
         println!("Todos file content: {}", content);
     }
-    
+
     let todos = rhema.load_todos(".")?;
     println!("Loaded todos count: {}", todos.todos.len());
     assert_eq!(todos.todos.len(), 1); // Expect 1 todo as created in the test
@@ -530,10 +533,10 @@ dependencies: null
     let scopes = rhema.discover_scopes()?;
     println!("Discovered scopes count: {}", scopes.len());
     for scope in &scopes {
-        println!("Scope: name={}, type={}, path={:?}", 
-                 scope.definition.name, 
-                 scope.definition.scope_type, 
-                 scope.path);
+        println!(
+            "Scope: name={}, type={}, path={:?}",
+            scope.definition.name, scope.definition.scope_type, scope.path
+        );
     }
 
     // Test get_scope_by_name directly

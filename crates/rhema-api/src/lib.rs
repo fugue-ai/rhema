@@ -24,8 +24,8 @@ use tracing::{error, info, instrument, warn};
 pub use rhema_core::{schema::*, scope, RhemaError, RhemaResult, Scope};
 
 // Re-export types from other crates
-pub use rhema_coordination::ai_service;
 pub use rhema_config::config;
+pub use rhema_coordination::ai_service;
 pub use rhema_git::utils;
 pub use rhema_integrations::integrations;
 pub use rhema_mcp::mcp;
@@ -513,14 +513,14 @@ impl Rhema {
     /// Get a specific scope by path (legacy sync version)
     pub fn get_scope(&self, path: &str) -> RhemaResult<Scope> {
         println!("DEBUG: get_scope called with path: '{}'", path);
-        
+
         // First try to find by name
         println!("DEBUG: Trying to find scope by name...");
         if let Ok(scope) = scope::get_scope_by_name(&self.repo_root, path) {
             println!("DEBUG: Found scope by name: {}", scope.definition.name);
             return Ok(scope);
         }
-        
+
         println!("DEBUG: Not found by name, trying by path...");
         // If not found by name, try by path
         let result = scope::get_scope(&self.repo_root, path);
@@ -543,24 +543,24 @@ impl Rhema {
     pub fn get_current_scope_path(&self) -> RhemaResult<PathBuf> {
         // Discover all scopes in the repository
         let scopes = self.discover_scopes()?;
-        
+
         // If there's only one scope, return it
         if scopes.len() == 1 {
             return Ok(scopes[0].path.clone());
         }
-        
+
         // If there are multiple scopes, try to find the one at the repo root
         for scope in &scopes {
             if scope.path.parent().unwrap() == &self.repo_root {
                 return Ok(scope.path.clone());
             }
         }
-        
+
         // If no scope found at repo root, return the first scope
         if let Some(first_scope) = scopes.first() {
             return Ok(first_scope.path.clone());
         }
-        
+
         // If no scopes found, return the repo root
         Ok(self.repo_root.clone())
     }

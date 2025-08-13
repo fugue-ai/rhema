@@ -60,10 +60,7 @@ impl AIIntegration {
         // Perform semantic search
         let search_results = self
             .search_engine
-            .search_semantic(
-                &request.query,
-                request.max_results,
-            )
+            .search_semantic(&request.query, request.max_results)
             .await?;
 
         // Apply AI enhancements
@@ -88,7 +85,8 @@ impl AIIntegration {
 
         // Update metrics
         let processing_time = start_time.elapsed().as_millis() as u64;
-        self.update_metrics(processing_time, enhanced_results.len()).await;
+        self.update_metrics(processing_time, enhanced_results.len())
+            .await;
 
         Ok(AIKnowledgeResponse {
             request_id: request.request_id,
@@ -120,7 +118,8 @@ impl AIIntegration {
             let related_concepts = self.extract_related_concepts(&result.content).await?;
 
             // Calculate AI-enhanced score
-            let ai_enhanced_score = self.calculate_ai_enhanced_score(result.relevance_score, &insights);
+            let ai_enhanced_score =
+                self.calculate_ai_enhanced_score(result.relevance_score, &insights);
 
             // Calculate confidence level
             let confidence_level = self.calculate_confidence_level(&insights);
@@ -401,8 +400,7 @@ impl AIIntegration {
         let mut metrics = self.metrics.write().await;
         metrics.total_requests += 1;
         metrics.successful_requests += 1;
-        metrics.average_response_time_ms = 
-            (metrics.average_response_time_ms + processing_time) / 2;
+        metrics.average_response_time_ms = (metrics.average_response_time_ms + processing_time) / 2;
         metrics.ai_enhancement_count += result_count as u64;
         metrics.last_updated = chrono::Utc::now();
     }

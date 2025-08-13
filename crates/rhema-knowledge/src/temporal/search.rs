@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-use chrono::{DateTime, Utc, Datelike, Timelike};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use std::collections::HashMap;
 use tracing::{debug, info, trace};
 
-use crate::types::ContentType;
-use super::{
-    TemporalSearchQuery, TemporalFilter, FreshnessPreference, SeasonalPreference,
-    TimeRange, TemporalEnhancedResult, SemanticResult, SearchResultMetadata,
-    TemporalSearchConfig, SeasonalPeriod, Content
-};
 use super::engine::TemporalRelevanceEngine;
+use super::relationships::TemporalRelationshipDetector;
 use super::seasonal::SeasonalPatternDetector;
 use super::timezone::TimezoneAwareContextManager;
-use super::relationships::TemporalRelationshipDetector;
-use super::{TemporalResult, TemporalError};
+use super::{
+    Content, FreshnessPreference, SearchResultMetadata, SeasonalPeriod, SeasonalPreference,
+    SemanticResult, TemporalEnhancedResult, TemporalFilter, TemporalSearchConfig,
+    TemporalSearchQuery, TimeRange,
+};
+use super::{TemporalError, TemporalResult};
+use crate::types::ContentType;
 
 /// Temporal search enhancer for applying temporal context to search results
 pub struct TemporalSearchEnhancer {
@@ -69,10 +69,16 @@ impl TemporalSearchEnhancer {
         temporal_query: &TemporalSearchQuery,
     ) -> TemporalResult<Vec<TemporalEnhancedResult>> {
         if !self.config.enabled {
-            return Ok(search_results.iter().map(|r| self.convert_to_temporal_result(r, 1.0)).collect());
+            return Ok(search_results
+                .iter()
+                .map(|r| self.convert_to_temporal_result(r, 1.0))
+                .collect());
         }
 
-        info!("Enhancing {} search results with temporal context", search_results.len());
+        info!(
+            "Enhancing {} search results with temporal context",
+            search_results.len()
+        );
 
         let mut enhanced_results = Vec::new();
 
@@ -83,19 +89,29 @@ impl TemporalSearchEnhancer {
             }
 
             // Calculate temporal relevance
-            let temporal_score = self.calculate_temporal_relevance(result, temporal_query).await?;
+            let temporal_score = self
+                .calculate_temporal_relevance(result, temporal_query)
+                .await?;
 
             // Apply freshness preferences
-            let freshness_adjustment = self.apply_freshness_preferences(result, temporal_query).await?;
+            let freshness_adjustment = self
+                .apply_freshness_preferences(result, temporal_query)
+                .await?;
 
             // Apply seasonal preferences
-            let seasonal_adjustment = self.apply_seasonal_preferences(result, temporal_query).await?;
+            let seasonal_adjustment = self
+                .apply_seasonal_preferences(result, temporal_query)
+                .await?;
 
             // Apply timezone adjustments
-            let timezone_adjustment = self.apply_timezone_adjustments(result, temporal_query).await?;
+            let timezone_adjustment = self
+                .apply_timezone_adjustments(result, temporal_query)
+                .await?;
 
             // Calculate relationship score
-            let relationship_score = self.calculate_relationship_score(result, search_results).await?;
+            let relationship_score = self
+                .calculate_relationship_score(result, search_results)
+                .await?;
 
             // Calculate final score
             let final_score = self.calculate_final_score(
@@ -108,14 +124,16 @@ impl TemporalSearchEnhancer {
             );
 
             // Create enhanced result
-            let enhanced_result = self.create_enhanced_result(
-                result,
-                temporal_score,
-                seasonal_adjustment,
-                timezone_adjustment,
-                relationship_score,
-                final_score,
-            ).await?;
+            let enhanced_result = self
+                .create_enhanced_result(
+                    result,
+                    temporal_score,
+                    seasonal_adjustment,
+                    timezone_adjustment,
+                    relationship_score,
+                    final_score,
+                )
+                .await?;
 
             enhanced_results.push(enhanced_result);
         }
@@ -149,12 +167,8 @@ impl TemporalSearchEnhancer {
         filter: &TemporalFilter,
     ) -> TemporalResult<bool> {
         match filter {
-            TemporalFilter::CreatedAfter(datetime) => {
-                Ok(result.metadata.created_at > *datetime)
-            }
-            TemporalFilter::CreatedBefore(datetime) => {
-                Ok(result.metadata.created_at < *datetime)
-            }
+            TemporalFilter::CreatedAfter(datetime) => Ok(result.metadata.created_at > *datetime),
+            TemporalFilter::CreatedBefore(datetime) => Ok(result.metadata.created_at < *datetime),
             TemporalFilter::ModifiedAfter(datetime) => {
                 Ok(result.metadata.last_modified > *datetime)
             }
@@ -169,16 +183,23 @@ impl TemporalSearchEnhancer {
                 let age = Utc::now().signed_duration_since(result.metadata.created_at);
                 Ok(age.num_seconds() as u64 >= duration.as_secs())
             }
-            TemporalFilter::RecentlyActive { min_access_count, within_duration } => {
+            TemporalFilter::RecentlyActive {
+                min_access_count,
+                within_duration,
+            } => {
                 if let Some(cache_info) = &result.cache_info {
-                    let last_access_age = Utc::now().signed_duration_since(cache_info.last_accessed);
-                    Ok(cache_info.access_count >= *min_access_count && 
-                       last_access_age.num_seconds() as u64 <= within_duration.as_secs())
+                    let last_access_age =
+                        Utc::now().signed_duration_since(cache_info.last_accessed);
+                    Ok(cache_info.access_count >= *min_access_count
+                        && last_access_age.num_seconds() as u64 <= within_duration.as_secs())
                 } else {
                     Ok(false)
                 }
             }
-            TemporalFilter::FrequentlyUpdated { min_update_count, within_duration } => {
+            TemporalFilter::FrequentlyUpdated {
+                min_update_count,
+                within_duration,
+            } => {
                 // This would require tracking update history, simplified for now
                 Ok(true)
             }
@@ -188,7 +209,9 @@ impl TemporalSearchEnhancer {
             }
             TemporalFilter::NonSeasonalContent => {
                 // Check if content was NOT created during any seasonal period
-                Ok(!self.check_seasonal_content(result, &SeasonalPeriod::Yearly { month: 1, day: 1 }).await?)
+                Ok(!self
+                    .check_seasonal_content(result, &SeasonalPeriod::Yearly { month: 1, day: 1 })
+                    .await?)
             }
         }
     }
@@ -200,20 +223,16 @@ impl TemporalSearchEnhancer {
         seasonal_period: &super::types::SeasonalPeriod,
     ) -> TemporalResult<bool> {
         let created_at = result.metadata.created_at;
-        
+
         match seasonal_period {
             super::types::SeasonalPeriod::Yearly { month, day } => {
                 Ok(created_at.month() == *month && created_at.day() == *day)
             }
-            super::types::SeasonalPeriod::Monthly { day } => {
-                Ok(created_at.day() == *day)
-            }
+            super::types::SeasonalPeriod::Monthly { day } => Ok(created_at.day() == *day),
             super::types::SeasonalPeriod::Weekly { weekday } => {
                 Ok(created_at.weekday().num_days_from_sunday() == *weekday)
             }
-            super::types::SeasonalPeriod::Daily { hour } => {
-                Ok(created_at.hour() == *hour)
-            }
+            super::types::SeasonalPeriod::Daily { hour } => Ok(created_at.hour() == *hour),
         }
     }
 
@@ -225,12 +244,15 @@ impl TemporalSearchEnhancer {
     ) -> TemporalResult<f64> {
         // Convert SemanticResult to Content for temporal relevance calculation
         let content = self.convert_to_content(result);
-        
+
         let query_time = Utc::now();
-        let user_timezone = temporal_query.timezone_context.as_ref()
+        let user_timezone = temporal_query
+            .timezone_context
+            .as_ref()
             .map(|ctx| ctx.user_timezone.as_str());
 
-        let temporal_relevance = self.relevance_engine
+        let temporal_relevance = self
+            .relevance_engine
             .calculate_temporal_relevance(&content, query_time, user_timezone)
             .await?;
 
@@ -259,7 +281,10 @@ impl TemporalSearchEnhancer {
                 };
                 Ok(1.0 + (freshness_score * weight))
             }
-            FreshnessPreference::PreferEstablished { min_age_days, weight } => {
+            FreshnessPreference::PreferEstablished {
+                min_age_days,
+                weight,
+            } => {
                 let established_score = if age_days >= *min_age_days {
                     1.0
                 } else {
@@ -267,9 +292,16 @@ impl TemporalSearchEnhancer {
                 };
                 Ok(1.0 + (established_score * weight))
             }
-            FreshnessPreference::Balanced { recent_weight, established_weight } => {
+            FreshnessPreference::Balanced {
+                recent_weight,
+                established_weight,
+            } => {
                 let recent_score = if age_days < 7.0 { 1.0 } else { 0.5 };
-                let established_score = if age_days >= 30.0 { 1.0 } else { age_days / 30.0 };
+                let established_score = if age_days >= 30.0 {
+                    1.0
+                } else {
+                    age_days / 30.0
+                };
                 Ok(1.0 + (recent_score * recent_weight + established_score * established_weight))
             }
             FreshnessPreference::ContentTypeSpecific { preferences } => {
@@ -292,7 +324,7 @@ impl TemporalSearchEnhancer {
         for preference in &temporal_query.seasonal_preferences {
             let content_created_at = result.metadata.created_at;
             let matches = self.matches_seasonal_preference(content_created_at, preference);
-            
+
             if matches {
                 total_adjustment *= (1.0 + preference.weight);
             }
@@ -310,7 +342,8 @@ impl TemporalSearchEnhancer {
         match &preference.seasonal_period {
             super::types::SeasonalPeriod::Yearly { month, day } => {
                 let month_match = created_at.month() == *month;
-                let day_match = (created_at.day() as i32 - *day as i32).abs() <= preference.tolerance_days as i32;
+                let day_match = (created_at.day() as i32 - *day as i32).abs()
+                    <= preference.tolerance_days as i32;
                 month_match && day_match
             }
             super::types::SeasonalPeriod::Monthly { day } => {
@@ -319,9 +352,7 @@ impl TemporalSearchEnhancer {
             super::types::SeasonalPeriod::Weekly { weekday } => {
                 created_at.weekday().num_days_from_sunday() == *weekday
             }
-            super::types::SeasonalPeriod::Daily { hour } => {
-                created_at.hour() == *hour
-            }
+            super::types::SeasonalPeriod::Daily { hour } => created_at.hour() == *hour,
         }
     }
 
@@ -334,11 +365,16 @@ impl TemporalSearchEnhancer {
         if let Some(timezone_context) = &temporal_query.timezone_context {
             let content = self.convert_to_content(result);
             let query_time = Utc::now();
-            
-            let adjustment = self.timezone_manager
-                .calculate_timezone_adjustment(&content, query_time, &timezone_context.user_timezone)
+
+            let adjustment = self
+                .timezone_manager
+                .calculate_timezone_adjustment(
+                    &content,
+                    query_time,
+                    &timezone_context.user_timezone,
+                )
                 .await?;
-            
+
             Ok(adjustment)
         } else {
             Ok(1.0) // No timezone adjustment
@@ -356,12 +392,14 @@ impl TemporalSearchEnhancer {
         }
 
         let content = self.convert_to_content(result);
-        let other_contents: Vec<_> = all_results.iter()
+        let other_contents: Vec<_> = all_results
+            .iter()
             .filter(|r| r.cache_key != result.cache_key)
             .map(|r| self.convert_to_content(r))
             .collect();
 
-        let relationships = self.relationship_detector
+        let relationships = self
+            .relationship_detector
             .detect_temporal_relationships(&content, &other_contents)
             .await?;
 
@@ -386,12 +424,12 @@ impl TemporalSearchEnhancer {
         timezone_adjustment: f64,
         relationship_score: f64,
     ) -> f64 {
-        let adjusted_score = base_score * 
-            temporal_score * 
-            freshness_adjustment * 
-            seasonal_adjustment * 
-            timezone_adjustment * 
-            relationship_score;
+        let adjusted_score = base_score
+            * temporal_score
+            * freshness_adjustment
+            * seasonal_adjustment
+            * timezone_adjustment
+            * relationship_score;
 
         adjusted_score.min(1.0).max(0.0)
     }
@@ -431,14 +469,22 @@ impl TemporalSearchEnhancer {
             created_at: result.metadata.created_at,
             modified_at: result.metadata.last_modified,
             accessed_at: result.metadata.last_modified, // Use last_modified as accessed_at
-            access_count: result.cache_info.as_ref().map(|ci| ci.access_count).unwrap_or(0),
+            access_count: result
+                .cache_info
+                .as_ref()
+                .map(|ci| ci.access_count)
+                .unwrap_or(0),
             content: result.content.clone(),
             metadata: HashMap::new(),
         }
     }
 
     /// Convert SemanticResult to TemporalEnhancedResult with default temporal score
-    fn convert_to_temporal_result(&self, result: &SemanticResult, temporal_score: f64) -> TemporalEnhancedResult {
+    fn convert_to_temporal_result(
+        &self,
+        result: &SemanticResult,
+        temporal_score: f64,
+    ) -> TemporalEnhancedResult {
         TemporalEnhancedResult {
             base_result: result.clone(),
             temporal_score,
@@ -506,7 +552,7 @@ mod tests {
     #[tokio::test]
     async fn test_temporal_search_enhancement() {
         let enhancer = TemporalSearchEnhancer::new();
-        
+
         let results = vec![
             create_test_semantic_result("result1", 1),
             create_test_semantic_result("result2", 30),
@@ -515,39 +561,54 @@ mod tests {
         let temporal_query = TemporalSearchQuery::new("test query".to_string())
             .with_freshness_preference(FreshnessPreference::PreferRecent { weight: 0.3 });
 
-        let enhanced_results = enhancer.enhance_with_temporal_context(&results, &temporal_query).await.unwrap();
-        
+        let enhanced_results = enhancer
+            .enhance_with_temporal_context(&results, &temporal_query)
+            .await
+            .unwrap();
+
         assert_eq!(enhanced_results.len(), 2);
-        assert!(enhanced_results[0].final_score > enhanced_results[1].final_score); // Recent should score higher
+        assert!(enhanced_results[0].final_score > enhanced_results[1].final_score);
+        // Recent should score higher
     }
 
     #[tokio::test]
     async fn test_temporal_filters() {
         let enhancer = TemporalSearchEnhancer::new();
-        
-        let result = create_test_semantic_result("result1", 5);
-        let temporal_query = TemporalSearchQuery::new("test query".to_string())
-            .with_filter(TemporalFilter::AgeLessThan(std::time::Duration::from_secs(7 * 24 * 3600)));
 
-        let passes_filter = enhancer.apply_temporal_filters(&result, &temporal_query).await.unwrap();
+        let result = create_test_semantic_result("result1", 5);
+        let temporal_query = TemporalSearchQuery::new("test query".to_string()).with_filter(
+            TemporalFilter::AgeLessThan(std::time::Duration::from_secs(7 * 24 * 3600)),
+        );
+
+        let passes_filter = enhancer
+            .apply_temporal_filters(&result, &temporal_query)
+            .await
+            .unwrap();
         assert!(passes_filter); // Should pass age filter
 
-        let temporal_query_old = TemporalSearchQuery::new("test query".to_string())
-            .with_filter(TemporalFilter::AgeLessThan(std::time::Duration::from_secs(1 * 24 * 3600)));
+        let temporal_query_old = TemporalSearchQuery::new("test query".to_string()).with_filter(
+            TemporalFilter::AgeLessThan(std::time::Duration::from_secs(1 * 24 * 3600)),
+        );
 
-        let passes_old_filter = enhancer.apply_temporal_filters(&result, &temporal_query_old).await.unwrap();
+        let passes_old_filter = enhancer
+            .apply_temporal_filters(&result, &temporal_query_old)
+            .await
+            .unwrap();
         assert!(!passes_old_filter); // Should not pass stricter age filter
     }
 
     #[tokio::test]
     async fn test_freshness_preferences() {
         let enhancer = TemporalSearchEnhancer::new();
-        
+
         let result = create_test_semantic_result("result1", 1);
         let temporal_query = TemporalSearchQuery::new("test query".to_string())
             .with_freshness_preference(FreshnessPreference::PreferRecent { weight: 0.3 });
 
-        let adjustment = enhancer.apply_freshness_preferences(&result, &temporal_query).await.unwrap();
+        let adjustment = enhancer
+            .apply_freshness_preferences(&result, &temporal_query)
+            .await
+            .unwrap();
         assert!(adjustment > 1.0); // Should boost recent content
     }
 }

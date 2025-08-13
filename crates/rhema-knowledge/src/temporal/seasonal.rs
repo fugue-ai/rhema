@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-use chrono::{DateTime, Utc, Datelike, Timelike};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use std::collections::HashMap;
 use tracing::{debug, info, trace};
 
-use super::{SeasonalPeriod, SeasonalPattern, SeasonalConfig, Content, ContentAccess};
-use super::{TemporalResult, TemporalError};
+use super::{Content, ContentAccess, SeasonalConfig, SeasonalPattern, SeasonalPeriod};
+use super::{TemporalError, TemporalResult};
 
 /// Seasonal pattern detector for identifying temporal patterns in content
 pub struct SeasonalPatternDetector {
@@ -48,7 +48,10 @@ impl SeasonalPatternDetector {
             return Ok(Vec::new());
         }
 
-        info!("Detecting seasonal patterns in {} access records", content_history.len());
+        info!(
+            "Detecting seasonal patterns in {} access records",
+            content_history.len()
+        );
 
         let mut patterns = Vec::new();
 
@@ -89,10 +92,12 @@ impl SeasonalPatternDetector {
         // For now, we'll use a simplified seasonal adjustment
         // In a real implementation, this would use detected patterns from access history
         let adjustment = self.calculate_basic_seasonal_adjustment(query_time);
-        
+
         trace!(
             "Seasonal adjustment for content {} at {}: {:.3}",
-            content.id, query_time, adjustment
+            content.id,
+            query_time,
+            adjustment
         );
 
         Ok(adjustment)
@@ -108,23 +113,25 @@ impl SeasonalPatternDetector {
         }
 
         let mut monthly_counts: HashMap<u32, usize> = HashMap::new();
-        
+
         for access in content_history {
             let month = access.access_time.month();
             *monthly_counts.entry(month).or_insert(0) += 1;
         }
 
         // Find the month with the highest access count
-        if let Some((peak_month, peak_count)) = monthly_counts.iter().max_by_key(|(_, &count)| count) {
+        if let Some((peak_month, peak_count)) =
+            monthly_counts.iter().max_by_key(|(_, &count)| count)
+        {
             let total_accesses = content_history.len();
             let peak_ratio = *peak_count as f64 / total_accesses as f64;
-            
+
             // Check if the pattern is significant enough
             if peak_ratio > 0.2 && *peak_count >= 3 {
                 let pattern = SeasonalPattern {
-                    pattern_type: SeasonalPeriod::Yearly { 
-                        month: *peak_month, 
-                        day: 1 
+                    pattern_type: SeasonalPeriod::Yearly {
+                        month: *peak_month,
+                        day: 1,
                     },
                     confidence: peak_ratio.min(1.0),
                     strength: peak_ratio,
@@ -153,7 +160,7 @@ impl SeasonalPatternDetector {
         }
 
         let mut day_counts: HashMap<u32, usize> = HashMap::new();
-        
+
         for access in content_history {
             let day = access.access_time.day();
             *day_counts.entry(day).or_insert(0) += 1;
@@ -163,7 +170,7 @@ impl SeasonalPatternDetector {
         if let Some((peak_day, peak_count)) = day_counts.iter().max_by_key(|(_, &count)| count) {
             let total_accesses = content_history.len();
             let peak_ratio = *peak_count as f64 / total_accesses as f64;
-            
+
             // Check if the pattern is significant enough
             if peak_ratio > 0.15 && *peak_count >= 2 {
                 let pattern = SeasonalPattern {
@@ -195,21 +202,25 @@ impl SeasonalPatternDetector {
         }
 
         let mut weekday_counts: HashMap<u32, usize> = HashMap::new();
-        
+
         for access in content_history {
             let weekday = access.access_time.weekday().num_days_from_sunday();
             *weekday_counts.entry(weekday).or_insert(0) += 1;
         }
 
         // Find the weekday with the highest access count
-        if let Some((peak_weekday, peak_count)) = weekday_counts.iter().max_by_key(|(_, &count)| count) {
+        if let Some((peak_weekday, peak_count)) =
+            weekday_counts.iter().max_by_key(|(_, &count)| count)
+        {
             let total_accesses = content_history.len();
             let peak_ratio = *peak_count as f64 / total_accesses as f64;
-            
+
             // Check if the pattern is significant enough
             if peak_ratio > 0.25 && *peak_count >= 3 {
                 let pattern = SeasonalPattern {
-                    pattern_type: SeasonalPeriod::Weekly { weekday: *peak_weekday },
+                    pattern_type: SeasonalPeriod::Weekly {
+                        weekday: *peak_weekday,
+                    },
                     confidence: peak_ratio.min(1.0),
                     strength: peak_ratio,
                     detected_at: Utc::now(),
@@ -237,7 +248,7 @@ impl SeasonalPatternDetector {
         }
 
         let mut hour_counts: HashMap<u32, usize> = HashMap::new();
-        
+
         for access in content_history {
             let hour = access.access_time.hour();
             *hour_counts.entry(hour).or_insert(0) += 1;
@@ -247,7 +258,7 @@ impl SeasonalPatternDetector {
         if let Some((peak_hour, peak_count)) = hour_counts.iter().max_by_key(|(_, &count)| count) {
             let total_accesses = content_history.len();
             let peak_ratio = *peak_count as f64 / total_accesses as f64;
-            
+
             // Check if the pattern is significant enough
             if peak_ratio > 0.2 && *peak_count >= 2 {
                 let pattern = SeasonalPattern {
@@ -292,11 +303,11 @@ impl SeasonalPatternDetector {
 
         // Seasonal adjustments (simplified)
         match month {
-            1..=2 => adjustment *= 0.9,   // Winter (slightly lower)
-            3..=5 => adjustment *= 1.0,   // Spring (neutral)
-            6..=8 => adjustment *= 1.05,  // Summer (slightly higher)
-            9..=11 => adjustment *= 1.0,  // Fall (neutral)
-            12 => adjustment *= 0.95,     // December (slightly lower)
+            1..=2 => adjustment *= 0.9,  // Winter (slightly lower)
+            3..=5 => adjustment *= 1.0,  // Spring (neutral)
+            6..=8 => adjustment *= 1.05, // Summer (slightly higher)
+            9..=11 => adjustment *= 1.0, // Fall (neutral)
+            12 => adjustment *= 0.95,    // December (slightly lower)
             _ => adjustment *= 1.0,
         }
 
@@ -314,15 +325,11 @@ impl SeasonalPatternDetector {
             SeasonalPeriod::Yearly { month, day } => {
                 query_time.month() == *month && query_time.day() == *day
             }
-            SeasonalPeriod::Monthly { day } => {
-                query_time.day() == *day
-            }
+            SeasonalPeriod::Monthly { day } => query_time.day() == *day,
             SeasonalPeriod::Weekly { weekday } => {
                 query_time.weekday().num_days_from_sunday() == *weekday
             }
-            SeasonalPeriod::Daily { hour } => {
-                query_time.hour() == *hour
-            }
+            SeasonalPeriod::Daily { hour } => query_time.hour() == *hour,
         }
     }
 
@@ -366,37 +373,42 @@ mod tests {
     #[tokio::test]
     async fn test_seasonal_adjustment() {
         let detector = SeasonalPatternDetector::new();
-        
+
         // Test business hours
         let business_hours = Utc::now().with_hour(14).unwrap();
-        let business_adjustment = detector.calculate_seasonal_adjustment(
-            &Content { 
-                id: "test".to_string(),
-                content_type: crate::types::ContentType::Code,
-                created_at: Utc::now(),
-                modified_at: Utc::now(),
-                accessed_at: Utc::now(),
-                access_count: 0,
-                content: "test".to_string(),
-                metadata: std::collections::HashMap::new(),
-            },
-            business_hours,
-        ).await.unwrap();
-        
+        let business_adjustment = detector
+            .calculate_seasonal_adjustment(
+                &Content {
+                    id: "test".to_string(),
+                    content_type: crate::types::ContentType::Code,
+                    created_at: Utc::now(),
+                    modified_at: Utc::now(),
+                    accessed_at: Utc::now(),
+                    access_count: 0,
+                    content: "test".to_string(),
+                    metadata: std::collections::HashMap::new(),
+                },
+                business_hours,
+            )
+            .await
+            .unwrap();
+
         assert!(business_adjustment > 1.0); // Should be boosted during business hours
     }
 
     #[tokio::test]
     async fn test_weekly_pattern_detection() {
         let detector = SeasonalPatternDetector::new();
-        
+
         // Create access history with a clear weekly pattern (more on Mondays)
         let mut history = Vec::new();
         for i in 0..30 {
             let weekday = if i % 7 == 1 { 1 } else { 3 }; // Monday vs Wednesday
             let access_time = Utc::now() - ChronoDuration::days(i);
-            let access_time = access_time.with_weekday(chrono::Weekday::try_from(weekday as u8).unwrap()).unwrap();
-            
+            let access_time = access_time
+                .with_weekday(chrono::Weekday::try_from(weekday as u8).unwrap())
+                .unwrap();
+
             history.push(ContentAccess {
                 content_id: "test".to_string(),
                 access_time,
@@ -408,21 +420,21 @@ mod tests {
         }
 
         let patterns = detector.detect_seasonal_patterns(&history).await.unwrap();
-        
+
         // Should detect a weekly pattern
         assert!(!patterns.is_empty());
-        
-        let weekly_pattern = patterns.iter().find(|p| {
-            matches!(p.pattern_type, SeasonalPeriod::Weekly { .. })
-        });
-        
+
+        let weekly_pattern = patterns
+            .iter()
+            .find(|p| matches!(p.pattern_type, SeasonalPeriod::Weekly { .. }));
+
         assert!(weekly_pattern.is_some());
     }
 
     #[tokio::test]
     async fn test_pattern_matching() {
         let detector = SeasonalPatternDetector::new();
-        
+
         let pattern = SeasonalPattern {
             pattern_type: SeasonalPeriod::Weekly { weekday: 1 }, // Monday
             confidence: 0.8,

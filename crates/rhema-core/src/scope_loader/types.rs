@@ -160,25 +160,25 @@ pub struct ScopeContext {
 pub enum PluginError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
-    
+
     #[error("JSON parsing error: {0}")]
     JsonError(#[from] serde_json::Error),
-    
+
     #[error("YAML parsing error: {0}")]
     YamlError(#[from] serde_yaml::Error),
-    
+
     #[error("Package manager not supported: {0}")]
     UnsupportedPackageManager(String),
-    
+
     #[error("Invalid package configuration: {0}")]
     InvalidPackageConfig(String),
-    
+
     #[error("Plugin not found: {0}")]
     PluginNotFound(String),
-    
+
     #[error("Plugin execution failed: {0}")]
     PluginExecutionFailed(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
 }
@@ -188,10 +188,10 @@ pub enum PluginError {
 pub enum RegistryError {
     #[error("Plugin already registered: {0}")]
     PluginAlreadyRegistered(String),
-    
+
     #[error("Plugin not found: {0}")]
     PluginNotFound(String),
-    
+
     #[error("Plugin configuration error: {0}")]
     ConfigurationError(String),
 }
@@ -201,16 +201,16 @@ pub enum RegistryError {
 pub enum ScopeLoaderError {
     #[error("Plugin error: {0}")]
     PluginError(#[from] PluginError),
-    
+
     #[error("Registry error: {0}")]
     RegistryError(#[from] RegistryError),
-    
+
     #[error("No plugins found for path: {0}")]
     NoPluginsFound(String),
-    
+
     #[error("Scope creation failed: {0}")]
     ScopeCreationFailed(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
 }

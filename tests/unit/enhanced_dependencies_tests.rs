@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-use rhema_dependency::{
-    DependencyConfig, DependencyType,
-};
+use rhema_dependency::{DependencyConfig, DependencyType};
 use std::collections::HashMap;
 use std::fs;
 use tempfile::TempDir;

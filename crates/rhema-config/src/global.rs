@@ -772,21 +772,21 @@ impl Config for GlobalConfig {
                 "Version cannot be empty".to_string(),
             ));
         }
-        
+
         // Validate user configuration
         if self.user.name.is_empty() {
             return Err(rhema_core::RhemaError::ConfigError(
                 "User name cannot be empty".to_string(),
             ));
         }
-        
+
         // Validate application configuration
         if self.application.name.is_empty() {
             return Err(rhema_core::RhemaError::ConfigError(
                 "Application name cannot be empty".to_string(),
             ));
         }
-        
+
         Ok(())
     }
 

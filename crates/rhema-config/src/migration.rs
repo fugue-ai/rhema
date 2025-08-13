@@ -175,15 +175,13 @@ impl MigrationManager {
             to_version: "1.0.0".to_string(),
             name: "test_migration".to_string(),
             description: "Test migration from 0.2.0 to 1.0.0".to_string(),
-            steps: vec![
-                MigrationStep {
-                    step_type: MigrationStepType::UpdateFieldValue,
-                    description: "Update version to 1.0.0".to_string(),
-                    parameters: HashMap::new(),
-                    condition: None,
-                    rollback: None,
-                },
-            ],
+            steps: vec![MigrationStep {
+                step_type: MigrationStepType::UpdateFieldValue,
+                description: "Update version to 1.0.0".to_string(),
+                parameters: HashMap::new(),
+                condition: None,
+                rollback: None,
+            }],
             rollback_steps: vec![],
             required: true,
             automatic: true,
@@ -278,10 +276,11 @@ impl MigrationManager {
                 found: e.to_string(),
             })?;
 
-        let target_version = Version::parse(CURRENT_CONFIG_VERSION).map_err(|e| ConfigError::VersionMismatch {
-            expected: "valid semver".to_string(),
-            found: e.to_string(),
-        })?;
+        let target_version =
+            Version::parse(CURRENT_CONFIG_VERSION).map_err(|e| ConfigError::VersionMismatch {
+                expected: "valid semver".to_string(),
+                found: e.to_string(),
+            })?;
 
         if current_version >= target_version {
             return Ok(MigrationReport {
@@ -373,20 +372,23 @@ impl MigrationManager {
         let applicable_migrations = self.get_applicable_migrations(&from_version, &to_version);
 
         if applicable_migrations.is_empty() {
-            return Ok((MigrationReport {
-                migrations_applied,
-                migrations_skipped: vec!["No migrations needed".to_string()],
-                migrations_failed,
-                summary: MigrationSummary {
-                    total_migrations: 0,
-                    successful_migrations: 0,
-                    failed_migrations: 0,
-                    skipped_migrations: 1,
-                    total_changes: 0,
+            return Ok((
+                MigrationReport {
+                    migrations_applied,
+                    migrations_skipped: vec!["No migrations needed".to_string()],
+                    migrations_failed,
+                    summary: MigrationSummary {
+                        total_migrations: 0,
+                        successful_migrations: 0,
+                        failed_migrations: 0,
+                        skipped_migrations: 1,
+                        total_changes: 0,
+                    },
+                    timestamp: chrono::Utc::now(),
+                    duration_ms: start_time.elapsed().as_millis() as u64,
                 },
-                timestamp: chrono::Utc::now(),
-                duration_ms: start_time.elapsed().as_millis() as u64,
-            }, config.clone()));
+                config.clone(),
+            ));
         }
 
         // Create backup if enabled
@@ -401,7 +403,11 @@ impl MigrationManager {
             .map_err(|e| ConfigError::SerializationError(e.to_string()))?;
 
         for migration in &applicable_migrations {
-            match self.apply_migration_to_value(&mut updated_config_value, migration, "version_migration") {
+            match self.apply_migration_to_value(
+                &mut updated_config_value,
+                migration,
+                "version_migration",
+            ) {
                 Ok(record) => {
                     migrations_applied.push(record);
                 }
@@ -435,24 +441,28 @@ impl MigrationManager {
         }
 
         // Deserialize back to configuration type
-        let updated_config: T = serde_json::from_value(updated_config_value)
-            .map_err(|e| ConfigError::SerializationError(format!("Failed to deserialize migrated config: {}", e)))?;
+        let updated_config: T = serde_json::from_value(updated_config_value).map_err(|e| {
+            ConfigError::SerializationError(format!("Failed to deserialize migrated config: {}", e))
+        })?;
 
         let duration = start_time.elapsed();
-        Ok((MigrationReport {
-            migrations_applied: migrations_applied.clone(),
-            migrations_skipped: migrations_skipped.clone(),
-            migrations_failed: migrations_failed.clone(),
-            summary: MigrationSummary {
-                total_migrations: applicable_migrations.len(),
-                successful_migrations: migrations_applied.len(),
-                failed_migrations: migrations_failed.len(),
-                skipped_migrations: migrations_skipped.len(),
-                total_changes: migrations_applied.iter().map(|r| r.changes.len()).sum(),
+        Ok((
+            MigrationReport {
+                migrations_applied: migrations_applied.clone(),
+                migrations_skipped: migrations_skipped.clone(),
+                migrations_failed: migrations_failed.clone(),
+                summary: MigrationSummary {
+                    total_migrations: applicable_migrations.len(),
+                    successful_migrations: migrations_applied.len(),
+                    failed_migrations: migrations_failed.len(),
+                    skipped_migrations: migrations_skipped.len(),
+                    total_changes: migrations_applied.iter().map(|r| r.changes.len()).sum(),
+                },
+                timestamp: chrono::Utc::now(),
+                duration_ms: duration.as_millis() as u64,
             },
-            timestamp: chrono::Utc::now(),
-            duration_ms: duration.as_millis() as u64,
-        }, updated_config))
+            updated_config,
+        ))
     }
 
     /// Rollback a migration
@@ -587,7 +597,10 @@ impl MigrationManager {
             let migration_to =
                 Version::parse(&migration.to_version).unwrap_or_else(|_| Version::new(0, 0, 0));
 
-            if migration_from >= *from_version && migration_to <= *to_version && migration_from < migration_to {
+            if migration_from >= *from_version
+                && migration_to <= *to_version
+                && migration_from < migration_to
+            {
                 applicable.push(migration);
             }
         }

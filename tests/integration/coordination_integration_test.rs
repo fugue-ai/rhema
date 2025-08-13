@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use rhema_coordination::agent::real_time_coordination::ConsensusAlgorithm;
-use rhema_coordination::agent::real_time_coordination::EncryptionAlgorithm;
 use rhema_api::{
     AdvancedCoordinationConfig, AgentInfo, AgentMessage, AgentStatus, ConsensusConfig,
     CoordinationConfig, EncryptionConfig, FaultToleranceConfig, IntegrationConfig,
     LoadBalancingStrategy, MessagePriority, MessageType, PerformanceMonitoringConfig, Rhema,
 };
+use rhema_coordination::agent::real_time_coordination::ConsensusAlgorithm;
+use rhema_coordination::agent::real_time_coordination::EncryptionAlgorithm;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;

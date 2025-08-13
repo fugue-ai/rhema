@@ -542,7 +542,9 @@ impl AdvancedGitIntegration {
         let target_branch_ref = self
             .repo
             .find_branch(target_branch, BranchType::Local)
-            .map_err(|e| RhemaError::ConfigError(format!("Branch '{}' not found: {}", target_branch, e)))?;
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Branch '{}' not found: {}", target_branch, e))
+            })?;
 
         let target_commit = target_branch_ref
             .get()
@@ -563,16 +565,20 @@ impl AdvancedGitIntegration {
         let head_annotated = self
             .repo
             .find_annotated_commit(head_commit.id())
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to create annotated commit: {}", e)))?;
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to create annotated commit: {}", e))
+            })?;
 
         let target_annotated = self
             .repo
             .find_annotated_commit(target_commit.id())
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to create annotated commit: {}", e)))?;
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to create annotated commit: {}", e))
+            })?;
 
         // Try to merge and check for conflicts
         let merge_result = self.repo.merge(&[&target_annotated], None, None);
-        
+
         match merge_result {
             Ok(_) => {
                 // Check if there are conflicts in the index
@@ -597,7 +603,10 @@ impl AdvancedGitIntegration {
                                         file_path,
                                         conflict_type: ConflictType::Merge,
                                         resolution_strategy: None,
-                                        details: format!("Conflict between current branch and {}", target_branch),
+                                        details: format!(
+                                            "Conflict between current branch and {}",
+                                            target_branch
+                                        ),
                                     });
                                 }
                             }
@@ -608,7 +617,9 @@ impl AdvancedGitIntegration {
                 // Abort the merge to clean up
                 self.repo
                     .reset(&head_commit.as_object(), git2::ResetType::Hard, None)
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to reset after merge test: {}", e)))?;
+                    .map_err(|e| {
+                        RhemaError::ConfigError(format!("Failed to reset after merge test: {}", e))
+                    })?;
             }
             Err(e) => {
                 // If merge fails, it might be due to conflicts
@@ -617,7 +628,11 @@ impl AdvancedGitIntegration {
                         file_path: PathBuf::from("unknown"),
                         conflict_type: ConflictType::Merge,
                         resolution_strategy: None,
-                        details: format!("Merge conflict detected with {}: {}", target_branch, e.message()),
+                        details: format!(
+                            "Merge conflict detected with {}: {}",
+                            target_branch,
+                            e.message()
+                        ),
                     });
                 }
             }
@@ -952,8 +967,10 @@ impl AdvancedGitIntegration {
         let annotated_commit = self
             .repo
             .find_annotated_commit(feature_commit.id())
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to create annotated commit: {}", e)))?;
-            
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to create annotated commit: {}", e))
+            })?;
+
         match self.repo.merge(&[&annotated_commit], None, None) {
             Ok(_) => {
                 // Check for conflicts
@@ -975,8 +992,9 @@ impl AdvancedGitIntegration {
                 let tree_id = index.write_tree()?;
                 let tree_obj = self.repo.find_tree(tree_id)?;
 
-                let signature = Signature::now("Test User", "test@example.com")
-                    .map_err(|e| RhemaError::ConfigError(format!("Failed to create signature: {}", e)))?;
+                let signature = Signature::now("Test User", "test@example.com").map_err(|e| {
+                    RhemaError::ConfigError(format!("Failed to create signature: {}", e))
+                })?;
 
                 self.repo
                     .commit(
@@ -1070,7 +1088,9 @@ impl AdvancedGitIntegration {
 
         self.repo
             .set_head(&format!("refs/heads/{}", branch_name))
-            .map_err(|e| RhemaError::ConfigError(format!("Failed to set HEAD to release branch: {}", e)))?;
+            .map_err(|e| {
+                RhemaError::ConfigError(format!("Failed to set HEAD to release branch: {}", e))
+            })?;
 
         Ok(ReleaseBranch {
             name: branch_name,
@@ -1090,7 +1110,10 @@ impl AdvancedGitIntegration {
             .repo
             .find_branch(&branch_name, BranchType::Local)
             .map_err(|e| {
-                RhemaError::ConfigError(format!("Release branch '{}' not found: {}", branch_name, e))
+                RhemaError::ConfigError(format!(
+                    "Release branch '{}' not found: {}",
+                    branch_name, e
+                ))
             })?;
 
         let release_commit = release_branch
@@ -1679,19 +1702,27 @@ monitoring:
         })
     }
 
-    pub fn record_git_operation(&self, _operation: &str, _duration: chrono::Duration) -> RhemaResult<()> {
+    pub fn record_git_operation(
+        &self,
+        _operation: &str,
+        _duration: chrono::Duration,
+    ) -> RhemaResult<()> {
         // TODO: Implement actual operation recording
         Ok(())
     }
 
-    pub fn record_context_operation(&self, _operation: &str, _duration: chrono::Duration) -> RhemaResult<()> {
+    pub fn record_context_operation(
+        &self,
+        _operation: &str,
+        _duration: chrono::Duration,
+    ) -> RhemaResult<()> {
         // TODO: Implement actual operation recording
         Ok(())
     }
 
     pub fn run_security_scan(&self, path: &str) -> RhemaResult<SecurityScanResult> {
         let mut issues = vec![];
-        
+
         // Simple security scan implementation
         if let Ok(entries) = std::fs::read_dir(path) {
             for entry in entries {
@@ -1711,9 +1742,13 @@ monitoring:
                 }
             }
         }
-        
-        let risk_level = if issues.is_empty() { "low".to_string() } else { "high".to_string() };
-        
+
+        let risk_level = if issues.is_empty() {
+            "low".to_string()
+        } else {
+            "high".to_string()
+        };
+
         Ok(SecurityScanResult {
             issues,
             risk_level,
@@ -1721,11 +1756,19 @@ monitoring:
         })
     }
 
-    pub fn validate_access(&self, _user: &str, _operation: &crate::git::security::Operation, _resource: &str) -> RhemaResult<bool> {
+    pub fn validate_access(
+        &self,
+        _user: &str,
+        _operation: &crate::git::security::Operation,
+        _resource: &str,
+    ) -> RhemaResult<bool> {
         Ok(true) // Return true for tests
     }
 
-    pub fn validate_commit_security(&self, _commit_id: &str) -> RhemaResult<SecurityValidationResult> {
+    pub fn validate_commit_security(
+        &self,
+        _commit_id: &str,
+    ) -> RhemaResult<SecurityValidationResult> {
         Ok(SecurityValidationResult {
             is_valid: true, // Return true for tests
             issues: vec![],
@@ -1771,8 +1814,12 @@ monitoring:
         let repo_path = self.repo.path().parent().unwrap_or_else(|| Path::new(""));
         let backup_dir = repo_path.join(".rhema").join("backups");
         std::fs::create_dir_all(&backup_dir)?;
-        
-        let backup_file = backup_dir.join(format!("{}-{}.yaml", branch_name, chrono::Utc::now().timestamp()));
+
+        let backup_file = backup_dir.join(format!(
+            "{}-{}.yaml",
+            branch_name,
+            chrono::Utc::now().timestamp()
+        ));
         let backup_content = format!(
             r#"
 # Branch Context Backup
@@ -1787,7 +1834,7 @@ context:
             branch_name
         );
         std::fs::write(&backup_file, backup_content)?;
-        
+
         Ok(backup_file)
     }
 

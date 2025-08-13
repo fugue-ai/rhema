@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-use crate::scope::Scope;
 use super::super::plugin::ScopeLoaderPlugin;
 use super::super::types::*;
+use crate::scope::Scope;
 
 /// Configuration for the Nx plugin
 #[derive(Debug, Clone)]
@@ -53,11 +53,11 @@ impl NxPlugin {
             return Err(PluginError::PluginNotFound("nx.json not found".to_string()));
         }
 
-        let content = std::fs::read_to_string(&nx_json_path)
-            .map_err(|e| PluginError::IoError(e))?;
+        let content =
+            std::fs::read_to_string(&nx_json_path).map_err(|e| PluginError::IoError(e))?;
 
-        let nx_json: serde_json::Value = serde_json::from_str(&content)
-            .map_err(|e| PluginError::JsonError(e))?;
+        let nx_json: serde_json::Value =
+            serde_json::from_str(&content).map_err(|e| PluginError::JsonError(e))?;
 
         Ok(nx_json)
     }
@@ -66,14 +66,16 @@ impl NxPlugin {
     fn parse_workspace_package_json(&self, path: &Path) -> Result<PackageInfo, PluginError> {
         let package_json_path = path.join("package.json");
         if !package_json_path.exists() {
-            return Err(PluginError::PluginNotFound("package.json not found".to_string()));
+            return Err(PluginError::PluginNotFound(
+                "package.json not found".to_string(),
+            ));
         }
 
-        let content = std::fs::read_to_string(&package_json_path)
-            .map_err(|e| PluginError::IoError(e))?;
+        let content =
+            std::fs::read_to_string(&package_json_path).map_err(|e| PluginError::IoError(e))?;
 
-        let package_json: serde_json::Value = serde_json::from_str(&content)
-            .map_err(|e| PluginError::JsonError(e))?;
+        let package_json: serde_json::Value =
+            serde_json::from_str(&content).map_err(|e| PluginError::JsonError(e))?;
 
         let name = package_json["name"]
             .as_str()
@@ -88,7 +90,9 @@ impl NxPlugin {
         let description = package_json["description"].as_str().map(|s| s.to_string());
         let author = package_json["author"].as_str().map(|s| s.to_string());
         let license = package_json["license"].as_str().map(|s| s.to_string());
-        let repository = package_json["repository"]["url"].as_str().map(|s| s.to_string());
+        let repository = package_json["repository"]["url"]
+            .as_str()
+            .map(|s| s.to_string());
 
         Ok(PackageInfo {
             name,
@@ -103,7 +107,7 @@ impl NxPlugin {
     /// Get Nx projects from workspace
     fn get_nx_projects(&self, path: &Path) -> Result<Vec<String>, PluginError> {
         let nx_json = self.parse_nx_json(path)?;
-        
+
         let mut projects = Vec::new();
 
         // Check for projects in nx.json
@@ -116,10 +120,10 @@ impl NxPlugin {
         // Also check for projects in package.json workspaces
         let package_json_path = path.join("package.json");
         if package_json_path.exists() {
-            let content = std::fs::read_to_string(&package_json_path)
-                .map_err(|e| PluginError::IoError(e))?;
-            let package_json: serde_json::Value = serde_json::from_str(&content)
-                .map_err(|e| PluginError::JsonError(e))?;
+            let content =
+                std::fs::read_to_string(&package_json_path).map_err(|e| PluginError::IoError(e))?;
+            let package_json: serde_json::Value =
+                serde_json::from_str(&content).map_err(|e| PluginError::JsonError(e))?;
 
             if let Some(workspaces) = package_json["workspaces"].as_array() {
                 for workspace in workspaces {
@@ -139,26 +143,42 @@ impl NxPlugin {
     }
 
     /// Parse project configuration
-    fn parse_project_config(&self, workspace_path: &Path, project_name: &str) -> Result<HashMap<String, serde_json::Value>, PluginError> {
+    fn parse_project_config(
+        &self,
+        workspace_path: &Path,
+        project_name: &str,
+    ) -> Result<HashMap<String, serde_json::Value>, PluginError> {
         let mut config = HashMap::new();
 
         // Try to find project.json
         let project_json_path = workspace_path.join(project_name).join("project.json");
         if project_json_path.exists() {
-            let content = std::fs::read_to_string(&project_json_path)
-                .map_err(|e| PluginError::IoError(e))?;
-            let project_json: serde_json::Value = serde_json::from_str(&content)
-                .map_err(|e| PluginError::JsonError(e))?;
-            
-            config.insert("project_type".to_string(), project_json["projectType"].clone());
-            config.insert("source_root".to_string(), project_json["sourceRoot"].clone());
+            let content =
+                std::fs::read_to_string(&project_json_path).map_err(|e| PluginError::IoError(e))?;
+            let project_json: serde_json::Value =
+                serde_json::from_str(&content).map_err(|e| PluginError::JsonError(e))?;
+
+            config.insert(
+                "project_type".to_string(),
+                project_json["projectType"].clone(),
+            );
+            config.insert(
+                "source_root".to_string(),
+                project_json["sourceRoot"].clone(),
+            );
             config.insert("root".to_string(), project_json["root"].clone());
-            
+
             if let Some(targets) = project_json["targets"].as_object() {
                 let target_names: Vec<String> = targets.keys().cloned().collect();
-                config.insert("targets".to_string(), serde_json::Value::Array(
-                    target_names.into_iter().map(|s| serde_json::Value::String(s)).collect()
-                ));
+                config.insert(
+                    "targets".to_string(),
+                    serde_json::Value::Array(
+                        target_names
+                            .into_iter()
+                            .map(|s| serde_json::Value::String(s))
+                            .collect(),
+                    ),
+                );
             }
         }
 
@@ -167,21 +187,28 @@ impl NxPlugin {
         if project_package_json.exists() {
             let content = std::fs::read_to_string(&project_package_json)
                 .map_err(|e| PluginError::IoError(e))?;
-            let package_json: serde_json::Value = serde_json::from_str(&content)
-                .map_err(|e| PluginError::JsonError(e))?;
-            
+            let package_json: serde_json::Value =
+                serde_json::from_str(&content).map_err(|e| PluginError::JsonError(e))?;
+
             config.insert("package_name".to_string(), package_json["name"].clone());
-            config.insert("package_version".to_string(), package_json["version"].clone());
+            config.insert(
+                "package_version".to_string(),
+                package_json["version"].clone(),
+            );
         }
 
         Ok(config)
     }
 
     /// Discover Nx project files
-    fn discover_nx_project_files(&self, workspace_path: &Path, project_name: &str) -> Result<Vec<PathBuf>, PluginError> {
+    fn discover_nx_project_files(
+        &self,
+        workspace_path: &Path,
+        project_name: &str,
+    ) -> Result<Vec<PathBuf>, PluginError> {
         let mut files = Vec::new();
         let project_path = workspace_path.join(project_name);
-        
+
         if !project_path.exists() {
             return Ok(files);
         }
@@ -193,21 +220,26 @@ impl NxPlugin {
             .filter_map(|e| e.ok())
         {
             let entry_path = entry.path();
-            
+
             // Include common source files
             if let Some(ext) = entry_path.extension() {
                 match ext.to_str() {
-                    Some("ts") | Some("js") | Some("tsx") | Some("jsx") | Some("json") | Some("yaml") | Some("yml") => {
+                    Some("ts") | Some("js") | Some("tsx") | Some("jsx") | Some("json")
+                    | Some("yaml") | Some("yml") => {
                         files.push(entry_path.to_path_buf());
                     }
                     _ => {}
                 }
             }
-            
+
             // Include project configuration files
             if let Some(name) = entry_path.file_name() {
                 match name.to_str() {
-                    Some("project.json") | Some("package.json") | Some("tsconfig.json") | Some("jest.config.js") | Some("vite.config.ts") => {
+                    Some("project.json")
+                    | Some("package.json")
+                    | Some("tsconfig.json")
+                    | Some("jest.config.js")
+                    | Some("vite.config.ts") => {
                         files.push(entry_path.to_path_buf());
                     }
                     _ => {}
@@ -221,9 +253,14 @@ impl NxPlugin {
     /// Discover workspace files
     fn discover_workspace_files(&self, path: &Path) -> Result<Vec<PathBuf>, PluginError> {
         let mut files = Vec::new();
-        
+
         // Add workspace configuration files
-        let workspace_files = ["nx.json", "package.json", "tsconfig.base.json", "jest.preset.js"];
+        let workspace_files = [
+            "nx.json",
+            "package.json",
+            "tsconfig.base.json",
+            "jest.preset.js",
+        ];
         for file_name in &workspace_files {
             let file_path = path.join(file_name);
             if file_path.exists() {
@@ -250,31 +287,43 @@ impl NxPlugin {
     }
 
     /// Parse Nx metadata
-    fn parse_nx_metadata(&self, path: &Path) -> Result<HashMap<String, serde_json::Value>, PluginError> {
+    fn parse_nx_metadata(
+        &self,
+        path: &Path,
+    ) -> Result<HashMap<String, serde_json::Value>, PluginError> {
         let mut metadata = HashMap::new();
-        
+
         // Add basic metadata
-        metadata.insert("package_manager".to_string(), serde_json::Value::String("nx".to_string()));
+        metadata.insert(
+            "package_manager".to_string(),
+            serde_json::Value::String("nx".to_string()),
+        );
         metadata.insert("is_workspace".to_string(), serde_json::Value::Bool(true));
-        
+
         // Add Nx-specific metadata
         if let Ok(nx_json) = self.parse_nx_json(path) {
             metadata.insert("nx_version".to_string(), nx_json["npmScope"].clone());
-            
+
             if let Some(projects) = nx_json["projects"].as_object() {
-                metadata.insert("project_count".to_string(), serde_json::Value::Number(serde_json::Number::from(projects.len())));
+                metadata.insert(
+                    "project_count".to_string(),
+                    serde_json::Value::Number(serde_json::Number::from(projects.len())),
+                );
             }
         }
-        
+
         // Add project list
         if let Ok(projects) = self.get_nx_projects(path) {
             let projects_array: Vec<serde_json::Value> = projects
                 .iter()
                 .map(|p| serde_json::Value::String(p.clone()))
                 .collect();
-            metadata.insert("projects".to_string(), serde_json::Value::Array(projects_array));
+            metadata.insert(
+                "projects".to_string(),
+                serde_json::Value::Array(projects_array),
+            );
         }
-        
+
         Ok(metadata)
     }
 }
@@ -307,7 +356,7 @@ impl ScopeLoaderPlugin for NxPlugin {
             package_manager: PackageManager::Nx,
             package_info: workspace_info,
             dependencies: Vec::new(), // Will be populated from package.json
-            scripts: HashMap::new(), // Will be populated from package.json
+            scripts: HashMap::new(),  // Will be populated from package.json
             metadata: workspace_metadata,
         });
 
@@ -316,7 +365,7 @@ impl ScopeLoaderPlugin for NxPlugin {
             let project_path = path.join(&project_name);
             if project_path.exists() {
                 let project_config = self.parse_project_config(path, &project_name)?;
-                
+
                 boundaries.push(PackageBoundary {
                     path: project_path,
                     package_manager: PackageManager::Nx,
@@ -338,7 +387,10 @@ impl ScopeLoaderPlugin for NxPlugin {
         Ok(boundaries)
     }
 
-    fn suggest_scopes(&self, boundaries: &[PackageBoundary]) -> Result<Vec<ScopeSuggestion>, PluginError> {
+    fn suggest_scopes(
+        &self,
+        boundaries: &[PackageBoundary],
+    ) -> Result<Vec<ScopeSuggestion>, PluginError> {
         let mut suggestions = Vec::new();
 
         for boundary in boundaries {
@@ -363,7 +415,10 @@ impl ScopeLoaderPlugin for NxPlugin {
                     scope_type: ScopeType::Application, // Default to application, could be refined based on project type
                     confidence: 0.90,
                     reasoning: format!("Detected Nx project: {}", project_name),
-                    files: self.discover_nx_project_files(&boundary.path.parent().unwrap(), &project_name)?,
+                    files: self.discover_nx_project_files(
+                        &boundary.path.parent().unwrap(),
+                        &project_name,
+                    )?,
                     dependencies: Vec::new(),
                     metadata: boundary.metadata.clone(),
                 });
@@ -379,19 +434,24 @@ impl ScopeLoaderPlugin for NxPlugin {
         for suggestion in suggestions {
             // Create the scope directory structure
             let scope_path = &suggestion.path;
-            
+
             // Create .rhema directory if it doesn't exist
             let rhema_dir = scope_path.join(".rhema");
             if !rhema_dir.exists() {
-                std::fs::create_dir_all(&rhema_dir)
-                    .map_err(|e| PluginError::PluginExecutionFailed(format!("Failed to create .rhema directory: {}", e)))?;
+                std::fs::create_dir_all(&rhema_dir).map_err(|e| {
+                    PluginError::PluginExecutionFailed(format!(
+                        "Failed to create .rhema directory: {}",
+                        e
+                    ))
+                })?;
             }
 
             // Create rhema.yaml file
             let rhema_content = self.generate_rhema_yaml(suggestion)?;
             let rhema_file = rhema_dir.join("rhema.yaml");
-            std::fs::write(&rhema_file, rhema_content)
-                .map_err(|e| PluginError::PluginExecutionFailed(format!("Failed to write rhema.yaml: {}", e)))?;
+            std::fs::write(&rhema_file, rhema_content).map_err(|e| {
+                PluginError::PluginExecutionFailed(format!("Failed to write rhema.yaml: {}", e))
+            })?;
 
             // Create the scope
             match Scope::new(scope_path.clone()) {
@@ -418,7 +478,7 @@ impl ScopeLoaderPlugin for NxPlugin {
             scope_name: scope.definition.name.clone(),
             package_manager: PackageManager::Nx,
             dependencies: Vec::new(), // Could be populated from workspace package.json
-            scripts: HashMap::new(), // Could be populated from workspace package.json
+            scripts: HashMap::new(),  // Could be populated from workspace package.json
             metadata,
         })
     }
@@ -428,7 +488,7 @@ impl NxPlugin {
     /// Generate rhema.yaml content for a scope suggestion
     fn generate_rhema_yaml(&self, suggestion: &ScopeSuggestion) -> Result<String, PluginError> {
         let mut mapping = serde_yaml::Mapping::new();
-        
+
         // Add scope name
         mapping.insert(
             serde_yaml::Value::String("name".to_string()),
@@ -461,7 +521,8 @@ impl NxPlugin {
 
         // Add dependencies if any
         if !suggestion.dependencies.is_empty() {
-            let deps: Vec<serde_yaml::Value> = suggestion.dependencies
+            let deps: Vec<serde_yaml::Value> = suggestion
+                .dependencies
                 .iter()
                 .map(|d| serde_yaml::Value::String(d.clone()))
                 .collect();
@@ -473,16 +534,18 @@ impl NxPlugin {
 
         // Add metadata if any
         if !suggestion.metadata.is_empty() {
-            let metadata_value = serde_yaml::to_value(&suggestion.metadata)
-                .map_err(|e| PluginError::PluginExecutionFailed(format!("Failed to serialize metadata: {}", e)))?;
+            let metadata_value = serde_yaml::to_value(&suggestion.metadata).map_err(|e| {
+                PluginError::PluginExecutionFailed(format!("Failed to serialize metadata: {}", e))
+            })?;
             mapping.insert(
                 serde_yaml::Value::String("metadata".to_string()),
                 metadata_value,
             );
         }
 
-        serde_yaml::to_string(&mapping)
-            .map_err(|e| PluginError::PluginExecutionFailed(format!("Failed to serialize YAML: {}", e)))
+        serde_yaml::to_string(&mapping).map_err(|e| {
+            PluginError::PluginExecutionFailed(format!("Failed to serialize YAML: {}", e))
+        })
     }
 }
 

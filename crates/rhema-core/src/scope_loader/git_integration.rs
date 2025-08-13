@@ -1,42 +1,42 @@
-use std::path::{Path, PathBuf};
+use crate::RhemaResult;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-use crate::RhemaResult;
 
 /// Git integration configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitIntegrationConfig {
     /// Whether Git integration is enabled
     pub enabled: bool,
-    
+
     /// Whether to monitor file changes
     pub monitor_file_changes: bool,
-    
+
     /// Whether to monitor branch changes
     pub monitor_branch_changes: bool,
-    
+
     /// Whether to monitor commit changes
     pub monitor_commit_changes: bool,
-    
+
     /// File patterns to monitor
     pub monitored_patterns: Vec<String>,
-    
+
     /// File patterns to ignore
     pub ignored_patterns: Vec<String>,
-    
+
     /// Whether to auto-discover scopes on changes
     pub auto_discover_on_changes: bool,
-    
+
     /// Whether to show notifications
     pub show_notifications: bool,
-    
+
     /// Hook installation directory
     pub hooks_directory: Option<String>,
-    
+
     /// Whether to install Git hooks automatically
     pub install_hooks_automatically: bool,
 }
@@ -46,19 +46,19 @@ pub struct GitIntegrationConfig {
 pub struct GitRepoInfo {
     /// Repository root path
     pub root_path: PathBuf,
-    
+
     /// Current branch
     pub current_branch: String,
-    
+
     /// Last commit hash
     pub last_commit: String,
-    
+
     /// Repository URL
     pub remote_url: Option<String>,
-    
+
     /// Whether it's a Git repository
     pub is_git_repo: bool,
-    
+
     /// Git hooks directory
     pub hooks_directory: Option<PathBuf>,
 }
@@ -71,26 +71,26 @@ pub enum GitChangeEvent {
         path: PathBuf,
         timestamp: DateTime<Utc>,
     },
-    
+
     /// File was added
     FileAdded {
         path: PathBuf,
         timestamp: DateTime<Utc>,
     },
-    
+
     /// File was deleted
     FileDeleted {
         path: PathBuf,
         timestamp: DateTime<Utc>,
     },
-    
+
     /// Branch was changed
     BranchChanged {
         old_branch: String,
         new_branch: String,
         timestamp: DateTime<Utc>,
     },
-    
+
     /// New commit was made
     CommitMade {
         commit_hash: String,
@@ -160,7 +160,7 @@ impl GitIntegrationManager {
     /// Create a new Git integration manager
     pub fn new(repo_path: &Path, config: GitIntegrationConfig) -> RhemaResult<Self> {
         let repo_info = Self::discover_git_repo(repo_path)?;
-        
+
         Ok(Self {
             config,
             repo_info: Arc::new(RwLock::new(repo_info)),
@@ -173,7 +173,7 @@ impl GitIntegrationManager {
     fn discover_git_repo(repo_path: &Path) -> RhemaResult<GitRepoInfo> {
         let git_dir = repo_path.join(".git");
         let is_git_repo = git_dir.exists() && git_dir.is_dir();
-        
+
         if !is_git_repo {
             return Ok(GitRepoInfo {
                 root_path: repo_path.to_path_buf(),
@@ -188,11 +188,14 @@ impl GitIntegrationManager {
         // Get current branch
         let head_file = git_dir.join("HEAD");
         let current_branch = if head_file.exists() {
-            let content = fs::read_to_string(&head_file)
-                .map_err(|e| crate::RhemaError::IoError(e))?;
-            
+            let content =
+                fs::read_to_string(&head_file).map_err(|e| crate::RhemaError::IoError(e))?;
+
             if content.starts_with("ref: refs/heads/") {
-                content.trim_start_matches("ref: refs/heads/").trim().to_string()
+                content
+                    .trim_start_matches("ref: refs/heads/")
+                    .trim()
+                    .to_string()
             } else {
                 "detached".to_string()
             }
@@ -231,16 +234,15 @@ impl GitIntegrationManager {
             return Ok(String::new());
         }
 
-        let content = fs::read_to_string(&head_file)
-            .map_err(|e| crate::RhemaError::IoError(e))?;
+        let content = fs::read_to_string(&head_file).map_err(|e| crate::RhemaError::IoError(e))?;
 
         if content.starts_with("ref: refs/heads/") {
             let ref_path = content.trim_start_matches("ref: ").trim();
             let ref_file = git_dir.join(ref_path);
-            
+
             if ref_file.exists() {
-                let commit_hash = fs::read_to_string(&ref_file)
-                    .map_err(|e| crate::RhemaError::IoError(e))?;
+                let commit_hash =
+                    fs::read_to_string(&ref_file).map_err(|e| crate::RhemaError::IoError(e))?;
                 Ok(commit_hash.trim().to_string())
             } else {
                 Ok(String::new())
@@ -252,8 +254,7 @@ impl GitIntegrationManager {
 
     /// Extract remote URL from Git config
     fn extract_remote_url(config_file: &Path) -> RhemaResult<Option<String>> {
-        let content = fs::read_to_string(config_file)
-            .map_err(|e| crate::RhemaError::IoError(e))?;
+        let content = fs::read_to_string(config_file).map_err(|e| crate::RhemaError::IoError(e))?;
 
         for line in content.lines() {
             if line.trim().starts_with("url = ") {
@@ -267,9 +268,7 @@ impl GitIntegrationManager {
 
     /// Check if a file should be monitored
     pub fn should_monitor_file(&self, file_path: &Path) -> bool {
-        let file_name = file_path.file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("");
+        let file_name = file_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
         // Check ignored patterns first
         for pattern in &self.config.ignored_patterns {
@@ -342,7 +341,11 @@ impl GitIntegrationManager {
         }
 
         if self.config.show_notifications {
-            println!("📁 Git change detected: {} {}", event_type, file_path.display());
+            println!(
+                "📁 Git change detected: {} {}",
+                event_type,
+                file_path.display()
+            );
         }
 
         Ok(())
@@ -380,11 +383,7 @@ impl GitIntegrationManager {
     }
 
     /// Record a commit event
-    pub async fn record_commit(
-        &self,
-        commit_hash: String,
-        message: String,
-    ) -> RhemaResult<()> {
+    pub async fn record_commit(&self, commit_hash: String, message: String) -> RhemaResult<()> {
         if !self.config.enabled || !self.config.monitor_commit_changes {
             return Ok(());
         }
@@ -428,15 +427,15 @@ impl GitIntegrationManager {
 
         // Create hooks directory if it doesn't exist
         if !hooks_dir.exists() {
-            fs::create_dir_all(hooks_dir)
-                .map_err(|e| crate::RhemaError::IoError(e))?;
+            fs::create_dir_all(hooks_dir).map_err(|e| crate::RhemaError::IoError(e))?;
         }
 
         // Install pre-commit hook
         self.install_hook(GitHookType::PreCommit, hooks_dir).await?;
 
         // Install post-commit hook
-        self.install_hook(GitHookType::PostCommit, hooks_dir).await?;
+        self.install_hook(GitHookType::PostCommit, hooks_dir)
+            .await?;
 
         println!("✅ Git hooks installed successfully");
 
@@ -459,12 +458,11 @@ impl GitIntegrationManager {
         };
 
         let hook_path = hooks_dir.join(hook_name);
-        
+
         // Create hook script
         let hook_script = self.generate_hook_script(&hook_type)?;
-        
-        fs::write(&hook_path, hook_script)
-            .map_err(|e| crate::RhemaError::IoError(e))?;
+
+        fs::write(&hook_path, hook_script).map_err(|e| crate::RhemaError::IoError(e))?;
 
         // Make hook executable
         #[cfg(unix)]
@@ -474,8 +472,7 @@ impl GitIntegrationManager {
                 .map_err(|e| crate::RhemaError::IoError(e))?
                 .permissions();
             perms.set_mode(0o755);
-            fs::set_permissions(&hook_path, perms)
-                .map_err(|e| crate::RhemaError::IoError(e))?;
+            fs::set_permissions(&hook_path, perms).map_err(|e| crate::RhemaError::IoError(e))?;
         }
 
         let mut hooks_installed = self.hooks_installed.write().await;
@@ -498,7 +495,7 @@ rhema scope-loader auto-discover --auto-create --confidence 0.8
 # Continue with commit
 exit 0
 "#
-            },
+            }
             GitHookType::PostCommit => {
                 r#"#!/bin/sh
 # Rhema scope loader post-commit hook
@@ -509,14 +506,14 @@ rhema scope-loader update-scopes
 
 echo "✅ Rhema: Scope information updated"
 "#
-            },
+            }
             _ => {
                 r#"#!/bin/sh
 # Rhema scope loader hook
 echo "🔍 Rhema: Processing Git event..."
 exit 0
 "#
-            },
+            }
         };
 
         Ok(script.to_string())
@@ -552,8 +549,7 @@ exit 0
 
             let hook_path = hooks_dir.join(hook_name);
             if hook_path.exists() {
-                fs::remove_file(&hook_path)
-                    .map_err(|e| crate::RhemaError::IoError(e))?;
+                fs::remove_file(&hook_path).map_err(|e| crate::RhemaError::IoError(e))?;
             }
         }
 
@@ -579,12 +575,12 @@ exit 0
     pub async fn update_repo_info(&self) -> RhemaResult<()> {
         let repo_info = self.repo_info.read().await;
         let new_repo_info = Self::discover_git_repo(&repo_info.root_path)?;
-        
+
         drop(repo_info);
-        
+
         let mut repo_info = self.repo_info.write().await;
         *repo_info = new_repo_info;
-        
+
         Ok(())
     }
 
@@ -623,13 +619,13 @@ exit 0
 pub trait GitHookHandler: Send + Sync {
     /// Handle pre-commit hook
     fn handle_pre_commit(&self, repo_path: &Path) -> RhemaResult<()>;
-    
+
     /// Handle post-commit hook
     fn handle_post_commit(&self, repo_path: &Path) -> RhemaResult<()>;
-    
+
     /// Handle pre-push hook
     fn handle_pre_push(&self, repo_path: &Path) -> RhemaResult<()>;
-    
+
     /// Handle post-push hook
     fn handle_post_push(&self, repo_path: &Path) -> RhemaResult<()>;
 }

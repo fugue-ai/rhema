@@ -86,9 +86,9 @@ impl BenchmarkStats {
 // Agent Management Benchmarks
 // ============================================================================
 
-    #[test]
-    #[ignore]
-    fn benchmark_agent_registration() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_agent_registration() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -114,9 +114,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_agent_listing() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_agent_listing() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -146,9 +146,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_agent_listing_with_filters() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_agent_listing_with_filters() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -184,9 +184,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_agent_message_sending() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_agent_message_sending() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -225,9 +225,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_agent_broadcast() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_agent_broadcast() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -270,9 +270,9 @@ impl BenchmarkStats {
 // Session Management Benchmarks
 // ============================================================================
 
-    #[test]
-    #[ignore]
-    fn benchmark_session_creation() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_session_creation() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -309,9 +309,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_session_listing() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_session_listing() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -338,9 +338,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_session_message_sending() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_session_message_sending() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -382,9 +382,9 @@ impl BenchmarkStats {
 // System Monitoring Benchmarks
 // ============================================================================
 
-    #[test]
-    #[ignore]
-    fn benchmark_system_stats() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_system_stats() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -424,9 +424,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_system_stats_detailed() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_system_stats_detailed() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -457,9 +457,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_message_history() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_message_history() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 
@@ -502,9 +502,9 @@ impl BenchmarkStats {
     Ok(())
 }
 
-    #[test]
-    #[ignore]
-    fn benchmark_health_check() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[test]
+#[ignore]
+fn benchmark_health_check() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let env = TestEnv::with_sample_data()?;
     std::env::set_current_dir(&env.repo_path)?;
 

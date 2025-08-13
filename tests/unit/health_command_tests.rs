@@ -45,12 +45,21 @@ fn test_lock_file_health_checks() {
 
     // Initialize Git repository
     let repo = git2::Repository::init(repo_root).unwrap();
-    
+
     // Create initial commit
-    let signature = git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
+    let signature =
+        git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
     let tree_id = repo.index().unwrap().write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
-    repo.commit(Some("HEAD"), &signature, &signature, "Initial commit", &tree, &[]).unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "Initial commit",
+        &tree,
+        &[],
+    )
+    .unwrap();
 
     // Test 1: Missing lock file
     let rhema = rhema_cli::Rhema::new_from_path(repo_root.to_path_buf()).unwrap();
@@ -71,12 +80,21 @@ fn test_lock_file_validation() {
 
     // Initialize Git repository
     let repo = git2::Repository::init(repo_root).unwrap();
-    
+
     // Create initial commit
-    let signature = git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
+    let signature =
+        git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
     let tree_id = repo.index().unwrap().write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
-    repo.commit(Some("HEAD"), &signature, &signature, "Initial commit", &tree, &[]).unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "Initial commit",
+        &tree,
+        &[],
+    )
+    .unwrap();
 
     // Create a test scope
     let scope_dir = repo_root.join("test-scope");
@@ -126,12 +144,21 @@ fn test_lock_file_with_invalid_content() {
 
     // Initialize Git repository
     let repo = git2::Repository::init(repo_root).unwrap();
-    
+
     // Create initial commit
-    let signature = git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
+    let signature =
+        git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
     let tree_id = repo.index().unwrap().write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
-    repo.commit(Some("HEAD"), &signature, &signature, "Initial commit", &tree, &[]).unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "Initial commit",
+        &tree,
+        &[],
+    )
+    .unwrap();
 
     // Create a test scope
     let scope_dir = repo_root.join("test-scope");
@@ -176,12 +203,21 @@ fn test_lock_file_version_mismatch() {
 
     // Initialize Git repository
     let repo = git2::Repository::init(repo_root).unwrap();
-    
+
     // Create initial commit
-    let signature = git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
+    let signature =
+        git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
     let tree_id = repo.index().unwrap().write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
-    repo.commit(Some("HEAD"), &signature, &signature, "Initial commit", &tree, &[]).unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "Initial commit",
+        &tree,
+        &[],
+    )
+    .unwrap();
 
     // Create a test scope with version 2.0.0
     let scope_dir = repo_root.join("test-scope");
@@ -231,12 +267,21 @@ fn test_lock_file_with_dependencies() {
 
     // Initialize Git repository
     let repo = git2::Repository::init(repo_root).unwrap();
-    
+
     // Create initial commit
-    let signature = git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
+    let signature =
+        git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
     let tree_id = repo.index().unwrap().write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
-    repo.commit(Some("HEAD"), &signature, &signature, "Initial commit", &tree, &[]).unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "Initial commit",
+        &tree,
+        &[],
+    )
+    .unwrap();
 
     // Create a test scope with dependency
     let scope_dir = repo_root.join("test-scope");
@@ -302,12 +347,21 @@ fn test_lock_file_staleness_check() {
 
     // Initialize Git repository
     let repo = git2::Repository::init(repo_root).unwrap();
-    
+
     // Create initial commit
-    let signature = git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
+    let signature =
+        git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
     let tree_id = repo.index().unwrap().write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
-    repo.commit(Some("HEAD"), &signature, &signature, "Initial commit", &tree, &[]).unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "Initial commit",
+        &tree,
+        &[],
+    )
+    .unwrap();
 
     // Create a test scope
     let scope_dir = repo_root.join("test-scope");
@@ -359,12 +413,21 @@ fn test_checksum_validation() {
 
     // Initialize Git repository
     let repo = git2::Repository::init(repo_root).unwrap();
-    
+
     // Create initial commit
-    let signature = git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
+    let signature =
+        git2::Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0)).unwrap();
     let tree_id = repo.index().unwrap().write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
-    repo.commit(Some("HEAD"), &signature, &signature, "Initial commit", &tree, &[]).unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "Initial commit",
+        &tree,
+        &[],
+    )
+    .unwrap();
 
     // Create a test scope
     let scope_dir = repo_root.join("test-scope");

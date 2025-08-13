@@ -52,7 +52,6 @@ async fn test_workflow_manager_send_sync() {
 
     use git2::Repository;
     use rhema_git::git::workflow::{default_git_flow_config, WorkflowManager};
-    
 
     // Create a temporary directory for the test repository
     let temp_dir = tempfile::tempdir().unwrap();
@@ -85,7 +84,6 @@ async fn test_automation_manager_send_sync() {
     // This test would verify that GitAutomationManager can be used in async contexts
     use git2::Repository;
     use rhema_git::git::automation::{default_automation_config, GitAutomationManager};
-    
 
     // Create a temporary directory for the test repository
     let temp_dir = tempfile::tempdir().unwrap();

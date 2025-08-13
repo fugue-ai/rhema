@@ -57,36 +57,54 @@ impl ScopeCache {
     }
 
     pub fn get_boundaries(&self, key: &str) -> Option<&Vec<PackageBoundary>> {
-        self.boundaries.get(key).and_then(|(boundaries, timestamp)| {
-            if chrono::Utc::now().signed_duration_since(*timestamp).num_seconds() < 3600 {
-                Some(boundaries)
-            } else {
-                None
-            }
-        })
+        self.boundaries
+            .get(key)
+            .and_then(|(boundaries, timestamp)| {
+                if chrono::Utc::now()
+                    .signed_duration_since(*timestamp)
+                    .num_seconds()
+                    < 3600
+                {
+                    Some(boundaries)
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn set_boundaries(&mut self, key: String, boundaries: Vec<PackageBoundary>) {
-        self.boundaries.insert(key, (boundaries, chrono::Utc::now()));
+        self.boundaries
+            .insert(key, (boundaries, chrono::Utc::now()));
     }
 
     pub fn get_suggestions(&self, key: &str) -> Option<&Vec<ScopeSuggestion>> {
-        self.suggestions.get(key).and_then(|(suggestions, timestamp)| {
-            if chrono::Utc::now().signed_duration_since(*timestamp).num_seconds() < 3600 {
-                Some(suggestions)
-            } else {
-                None
-            }
-        })
+        self.suggestions
+            .get(key)
+            .and_then(|(suggestions, timestamp)| {
+                if chrono::Utc::now()
+                    .signed_duration_since(*timestamp)
+                    .num_seconds()
+                    < 3600
+                {
+                    Some(suggestions)
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn set_suggestions(&mut self, key: String, suggestions: Vec<ScopeSuggestion>) {
-        self.suggestions.insert(key, (suggestions, chrono::Utc::now()));
+        self.suggestions
+            .insert(key, (suggestions, chrono::Utc::now()));
     }
 
     pub fn get_scopes(&self, key: &str) -> Option<&Vec<Scope>> {
         self.scopes.get(key).and_then(|(scopes, timestamp)| {
-            if chrono::Utc::now().signed_duration_since(*timestamp).num_seconds() < 3600 {
+            if chrono::Utc::now()
+                .signed_duration_since(*timestamp)
+                .num_seconds()
+                < 3600
+            {
                 Some(scopes)
             } else {
                 None
@@ -145,7 +163,7 @@ impl ScopeLoaderService {
 
         // Get applicable plugins
         let plugins = self.registry.get_plugins_for_path(path);
-        
+
         if plugins.is_empty() {
             return Err(ScopeLoaderError::NoPluginsFound(path.display().to_string()));
         }
@@ -158,21 +176,27 @@ impl ScopeLoaderService {
                     all_boundaries.extend(boundaries);
                 }
                 Err(e) => {
-                    eprintln!("Plugin {} failed to detect boundaries: {}", 
-                             plugin.metadata().name, e);
+                    eprintln!(
+                        "Plugin {} failed to detect boundaries: {}",
+                        plugin.metadata().name,
+                        e
+                    );
                 }
             }
         }
 
         // Generate scope suggestions
         let suggestions = self.generate_suggestions(&all_boundaries)?;
-        
+
         // Create scopes from suggestions
         let scopes = self.create_scopes_from_suggestions(&suggestions)?;
 
         // Cache the results
         if self.config.enable_caching {
-            self.cache.write().await.set_scopes(cache_key, scopes.clone());
+            self.cache
+                .write()
+                .await
+                .set_scopes(cache_key, scopes.clone());
         }
 
         Ok(scopes)
@@ -181,7 +205,7 @@ impl ScopeLoaderService {
     /// Auto-create scopes based on detected boundaries
     pub async fn auto_create_scopes(&self, path: &Path) -> Result<Vec<Scope>, ScopeLoaderError> {
         let suggestions = self.suggest_scopes(path).await?;
-        
+
         // Filter high-confidence suggestions
         let high_confidence: Vec<_> = suggestions
             .into_iter()
@@ -197,7 +221,10 @@ impl ScopeLoaderService {
     }
 
     /// Generate scope suggestions for a path
-    pub async fn suggest_scopes(&self, path: &Path) -> Result<Vec<ScopeSuggestion>, ScopeLoaderError> {
+    pub async fn suggest_scopes(
+        &self,
+        path: &Path,
+    ) -> Result<Vec<ScopeSuggestion>, ScopeLoaderError> {
         // Check cache first
         let cache_key = format!("{}_suggestions", path.to_string_lossy());
         if self.config.enable_caching {
@@ -210,14 +237,20 @@ impl ScopeLoaderService {
 
         // Cache the results
         if self.config.enable_caching {
-            self.cache.write().await.set_suggestions(cache_key, suggestions.clone());
+            self.cache
+                .write()
+                .await
+                .set_suggestions(cache_key, suggestions.clone());
         }
 
         Ok(suggestions)
     }
 
     /// Detect package boundaries for a path
-    pub async fn detect_boundaries(&self, path: &Path) -> Result<Vec<PackageBoundary>, ScopeLoaderError> {
+    pub async fn detect_boundaries(
+        &self,
+        path: &Path,
+    ) -> Result<Vec<PackageBoundary>, ScopeLoaderError> {
         // Check cache first
         let cache_key = format!("{}_boundaries", path.to_string_lossy());
         if self.config.enable_caching {
@@ -230,14 +263,20 @@ impl ScopeLoaderService {
 
         // Cache the results
         if self.config.enable_caching {
-            self.cache.write().await.set_boundaries(cache_key, boundaries.clone());
+            self.cache
+                .write()
+                .await
+                .set_boundaries(cache_key, boundaries.clone());
         }
 
         Ok(boundaries)
     }
 
     /// Generate scope suggestions from package boundaries
-    fn generate_suggestions(&self, boundaries: &[PackageBoundary]) -> Result<Vec<ScopeSuggestion>, ScopeLoaderError> {
+    fn generate_suggestions(
+        &self,
+        boundaries: &[PackageBoundary],
+    ) -> Result<Vec<ScopeSuggestion>, ScopeLoaderError> {
         let plugins = self.registry.list_plugins();
         let mut all_suggestions = Vec::new();
 
@@ -248,21 +287,30 @@ impl ScopeLoaderService {
                         all_suggestions.extend(suggestions);
                     }
                     Err(e) => {
-                        eprintln!("Plugin {} failed to generate suggestions: {}", 
-                                 plugin_info.name, e);
+                        eprintln!(
+                            "Plugin {} failed to generate suggestions: {}",
+                            plugin_info.name, e
+                        );
                     }
                 }
             }
         }
 
         // Sort by confidence (higher confidence first)
-        all_suggestions.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal));
+        all_suggestions.sort_by(|a, b| {
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Ok(all_suggestions)
     }
 
     /// Create scopes from suggestions
-    fn create_scopes_from_suggestions(&self, suggestions: &[ScopeSuggestion]) -> Result<Vec<Scope>, ScopeLoaderError> {
+    fn create_scopes_from_suggestions(
+        &self,
+        suggestions: &[ScopeSuggestion],
+    ) -> Result<Vec<Scope>, ScopeLoaderError> {
         let mut scopes = Vec::new();
 
         for suggestion in suggestions {
@@ -271,8 +319,10 @@ impl ScopeLoaderService {
                     scopes.push(scope);
                 }
                 Err(e) => {
-                    eprintln!("Failed to create scope from suggestion {}: {}", 
-                             suggestion.name, e);
+                    eprintln!(
+                        "Failed to create scope from suggestion {}: {}",
+                        suggestion.name, e
+                    );
                 }
             }
         }
@@ -281,36 +331,49 @@ impl ScopeLoaderService {
     }
 
     /// Create a single scope from a suggestion
-    fn create_scope_from_suggestion(&self, suggestion: &ScopeSuggestion) -> Result<Scope, ScopeLoaderError> {
+    fn create_scope_from_suggestion(
+        &self,
+        suggestion: &ScopeSuggestion,
+    ) -> Result<Scope, ScopeLoaderError> {
         // Create the scope directory structure
         let scope_path = &suggestion.path;
-        
+
         // Create .rhema directory if it doesn't exist
         let rhema_dir = scope_path.join(".rhema");
         if !rhema_dir.exists() {
-            std::fs::create_dir_all(&rhema_dir)
-                .map_err(|e| ScopeLoaderError::ScopeCreationFailed(format!("Failed to create .rhema directory: {}", e)))?;
+            std::fs::create_dir_all(&rhema_dir).map_err(|e| {
+                ScopeLoaderError::ScopeCreationFailed(format!(
+                    "Failed to create .rhema directory: {}",
+                    e
+                ))
+            })?;
         }
 
         // Create rhema.yaml file
         let rhema_content = self.generate_rhema_yaml(suggestion)?;
         let rhema_file = rhema_dir.join("rhema.yaml");
-        std::fs::write(&rhema_file, rhema_content)
-            .map_err(|e| ScopeLoaderError::ScopeCreationFailed(format!("Failed to write rhema.yaml: {}", e)))?;
+        std::fs::write(&rhema_file, rhema_content).map_err(|e| {
+            ScopeLoaderError::ScopeCreationFailed(format!("Failed to write rhema.yaml: {}", e))
+        })?;
 
         // Create the scope
-        Scope::new(scope_path.clone())
-            .map_err(|e| ScopeLoaderError::ScopeCreationFailed(format!("Failed to create scope: {}", e)))
+        Scope::new(scope_path.clone()).map_err(|e| {
+            ScopeLoaderError::ScopeCreationFailed(format!("Failed to create scope: {}", e))
+        })
     }
 
     /// Generate rhema.yaml content for a scope suggestion
-    fn generate_rhema_yaml(&self, suggestion: &ScopeSuggestion) -> Result<String, ScopeLoaderError> {
-        let _yaml = serde_yaml::to_string(&serde_yaml::Mapping::new())
-            .map_err(|e| ScopeLoaderError::ScopeCreationFailed(format!("Failed to create YAML: {}", e)))?;
+    fn generate_rhema_yaml(
+        &self,
+        suggestion: &ScopeSuggestion,
+    ) -> Result<String, ScopeLoaderError> {
+        let _yaml = serde_yaml::to_string(&serde_yaml::Mapping::new()).map_err(|e| {
+            ScopeLoaderError::ScopeCreationFailed(format!("Failed to create YAML: {}", e))
+        })?;
 
         // Create a basic rhema.yaml structure
         let mut mapping = serde_yaml::Mapping::new();
-        
+
         // Add scope name
         mapping.insert(
             serde_yaml::Value::String("name".to_string()),
@@ -337,7 +400,8 @@ impl ScopeLoaderService {
 
         // Add dependencies if any
         if !suggestion.dependencies.is_empty() {
-            let deps: Vec<serde_yaml::Value> = suggestion.dependencies
+            let deps: Vec<serde_yaml::Value> = suggestion
+                .dependencies
                 .iter()
                 .map(|d| serde_yaml::Value::String(d.clone()))
                 .collect();
@@ -349,16 +413,21 @@ impl ScopeLoaderService {
 
         // Add metadata if any
         if !suggestion.metadata.is_empty() {
-            let metadata_value = serde_yaml::to_value(&suggestion.metadata)
-                .map_err(|e| ScopeLoaderError::ScopeCreationFailed(format!("Failed to serialize metadata: {}", e)))?;
+            let metadata_value = serde_yaml::to_value(&suggestion.metadata).map_err(|e| {
+                ScopeLoaderError::ScopeCreationFailed(format!(
+                    "Failed to serialize metadata: {}",
+                    e
+                ))
+            })?;
             mapping.insert(
                 serde_yaml::Value::String("metadata".to_string()),
                 metadata_value,
             );
         }
 
-        serde_yaml::to_string(&mapping)
-            .map_err(|e| ScopeLoaderError::ScopeCreationFailed(format!("Failed to serialize YAML: {}", e)))
+        serde_yaml::to_string(&mapping).map_err(|e| {
+            ScopeLoaderError::ScopeCreationFailed(format!("Failed to serialize YAML: {}", e))
+        })
     }
 
     /// Get the plugin registry

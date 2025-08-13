@@ -639,7 +639,7 @@ impl PatternExecutor {
             } else {
                 String::new()
             };
-            
+
             // Update pattern state to reflect validation failure
             if let Some(state) = self.active_patterns.get_mut(pattern_id) {
                 state.phase = PatternPhase::Failed;
@@ -647,7 +647,10 @@ impl PatternExecutor {
                 state.ended_at = Some(Utc::now());
                 state.data.insert(
                     "error_message".to_string(),
-                    serde_json::Value::String(format!("Pattern validation failed: {}{}", error_details, warning_details)),
+                    serde_json::Value::String(format!(
+                        "Pattern validation failed: {}{}",
+                        error_details, warning_details
+                    )),
                 );
                 state.data.insert(
                     "validation_errors".to_string(),
@@ -660,7 +663,7 @@ impl PatternExecutor {
                     ),
                 );
             }
-            
+
             return Err(PatternError::ValidationError(format!(
                 "Pattern validation failed: {}{}",
                 error_details, warning_details
@@ -788,7 +791,9 @@ impl PatternExecutor {
         // Stop monitoring if enabled
         if context.config.enable_monitoring {
             if let Ok(pattern_result) = &result {
-                self.monitor.stop_monitoring(pattern_id, pattern_result).await;
+                self.monitor
+                    .stop_monitoring(pattern_id, pattern_result)
+                    .await;
             } else {
                 // Create a failed result for monitoring
                 let failed_result = PatternResult {
@@ -801,7 +806,9 @@ impl PatternExecutor {
                     metadata: HashMap::new(),
                     execution_time_ms: 0,
                 };
-                self.monitor.stop_monitoring(pattern_id, &failed_result).await;
+                self.monitor
+                    .stop_monitoring(pattern_id, &failed_result)
+                    .await;
             }
         }
 
@@ -900,21 +907,29 @@ impl PatternExecutor {
                     );
 
                     // Create checkpoint for recovery tracking
-                    let _checkpoint_id = self.recovery_manager
-                        .create_checkpoint(pattern_id, context, Some(HashMap::from([
-                            ("attempt".to_string(), attempt.to_string()),
-                            ("error".to_string(), error.to_string()),
-                        ])))
+                    let _checkpoint_id = self
+                        .recovery_manager
+                        .create_checkpoint(
+                            pattern_id,
+                            context,
+                            Some(HashMap::from([
+                                ("attempt".to_string(), attempt.to_string()),
+                                ("error".to_string(), error.to_string()),
+                            ])),
+                        )
                         .await;
 
-                    // For test patterns that are designed to fail and recover, 
+                    // For test patterns that are designed to fail and recover,
                     // simulate successful recovery on the last retry attempt
-                    if attempt == max_retries && (error.to_string().contains("can recover") || error.to_string().contains("recovery_test")) {
+                    if attempt == max_retries
+                        && (error.to_string().contains("can recover")
+                            || error.to_string().contains("recovery_test"))
+                    {
                         tracing::info!(
                             pattern_id = &context.state.pattern_id,
                             "Simulating successful recovery for test pattern"
                         );
-                        
+
                         // Record recovery statistics
                         let recovery_record = RecoveryRecord {
                             pattern_id: pattern_id.to_string(),
@@ -928,25 +943,39 @@ impl PatternExecutor {
                             duration_seconds: 0.5,
                             error_message: Some(error.to_string()),
                         };
-                        
+
                         // Add to recovery history
-                        self.recovery_manager.record_recovery_attempt(recovery_record).await;
-                        
+                        self.recovery_manager
+                            .record_recovery_attempt(recovery_record)
+                            .await;
+
                         return Ok(PatternResult {
                             pattern_id: pattern_id.to_string(),
                             success: true,
                             data: HashMap::from([
                                 ("recovered".to_string(), serde_json::Value::Bool(true)),
-                                ("recovery_attempts".to_string(), serde_json::Value::Number(attempt.into())),
-                                ("recovery_strategy".to_string(), serde_json::Value::String("simulated_recovery".to_string())),
-                                ("execution_steps".to_string(), serde_json::Value::Array(vec![
-                                    serde_json::Value::String("initialize".to_string()),
-                                    serde_json::Value::String("validate".to_string()),
-                                    serde_json::Value::String("execute".to_string()),
-                                    serde_json::Value::String("coordinate".to_string()),
-                                    serde_json::Value::String("finalize".to_string()),
-                                ])),
-                                ("enhanced_pattern".to_string(), serde_json::Value::Bool(true)),
+                                (
+                                    "recovery_attempts".to_string(),
+                                    serde_json::Value::Number(attempt.into()),
+                                ),
+                                (
+                                    "recovery_strategy".to_string(),
+                                    serde_json::Value::String("simulated_recovery".to_string()),
+                                ),
+                                (
+                                    "execution_steps".to_string(),
+                                    serde_json::Value::Array(vec![
+                                        serde_json::Value::String("initialize".to_string()),
+                                        serde_json::Value::String("validate".to_string()),
+                                        serde_json::Value::String("execute".to_string()),
+                                        serde_json::Value::String("coordinate".to_string()),
+                                        serde_json::Value::String("finalize".to_string()),
+                                    ]),
+                                ),
+                                (
+                                    "enhanced_pattern".to_string(),
+                                    serde_json::Value::Bool(true),
+                                ),
                             ]),
                             performance_metrics: PatternPerformanceMetrics {
                                 total_execution_time_seconds: 0.5,
@@ -958,8 +987,14 @@ impl PatternExecutor {
                             error_message: None,
                             completed_at: Utc::now(),
                             metadata: HashMap::from([
-                                ("pattern_type".to_string(), serde_json::Value::String("enhanced_test".to_string())),
-                                ("version".to_string(), serde_json::Value::String("2.0.0".to_string())),
+                                (
+                                    "pattern_type".to_string(),
+                                    serde_json::Value::String("enhanced_test".to_string()),
+                                ),
+                                (
+                                    "version".to_string(),
+                                    serde_json::Value::String("2.0.0".to_string()),
+                                ),
                             ]),
                             execution_time_ms: 500,
                         });
@@ -1115,10 +1150,16 @@ impl PatternExecutor {
                         .contains_key(required_resource)
                     {
                         // For test patterns, treat unknown resources as errors
-                        if required_resource.contains("nonexistent") || required_resource.contains("test") {
-                            errors.push(format!("Required resource not available: {}", required_resource));
+                        if required_resource.contains("nonexistent")
+                            || required_resource.contains("test")
+                        {
+                            errors.push(format!(
+                                "Required resource not available: {}",
+                                required_resource
+                            ));
                         } else {
-                            warnings.push(format!("Custom resource not found: {}", required_resource));
+                            warnings
+                                .push(format!("Custom resource not found: {}", required_resource));
                         }
                     }
                 }
@@ -1224,7 +1265,8 @@ impl PatternExecutor {
                 PatternStatus::Completed => {
                     stats.completed_patterns += 1;
                     if let Some(ended_at) = state.ended_at {
-                        let duration = (ended_at - state.started_at).num_milliseconds() as f64 / 1000.0;
+                        let duration =
+                            (ended_at - state.started_at).num_milliseconds() as f64 / 1000.0;
                         total_execution_time += duration;
                         completed_count += 1;
                     }

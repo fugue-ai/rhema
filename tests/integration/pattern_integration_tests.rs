@@ -1772,8 +1772,6 @@ impl EnhancedIntegrationTestPattern {
         Ok("hierarchical".to_string())
     }
 
-
-
     async fn execute_workflow(&self, _context: &PatternContext) -> Result<bool, PatternError> {
         // Simulate workflow execution
         tokio::time::sleep(tokio::time::Duration::from_millis(40)).await;
@@ -2228,7 +2226,7 @@ async fn test_enhanced_integration_pattern_concurrent_execution() {
         // Create a new executor for concurrent testing
         let new_registry = PatternRegistry::new();
         let mut executor = PatternExecutor::new(new_registry);
-        
+
         // Register the pattern in the new executor
         let pattern = EnhancedIntegrationTestPattern::new(
             "concurrent_integration",
@@ -2237,7 +2235,7 @@ async fn test_enhanced_integration_pattern_concurrent_execution() {
         )
         .with_coordination_strategy(CoordinationStrategy::Parallel);
         executor.register_pattern(Box::new(pattern));
-        
+
         let context = fixture.context.clone();
         tokio::spawn(async move { executor.execute_pattern(pattern_id, context).await })
     })

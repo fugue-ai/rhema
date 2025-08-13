@@ -1308,7 +1308,11 @@ impl WorkflowManager {
 
         if let Some(customizations) = customizations {
             // Convert the template config to our local WorkflowConfig
-            let template_config = rhema_git_workflow_templates::WorkflowTemplateManager::apply_customization(&template, &customizations)?;
+            let template_config =
+                rhema_git_workflow_templates::WorkflowTemplateManager::apply_customization(
+                    &template,
+                    &customizations,
+                )?;
             Ok(Self::convert_template_config(template_config))
         } else {
             Ok(Self::convert_template_config(template.config))
@@ -1505,7 +1509,9 @@ impl WorkflowManager {
     }
 
     /// Convert template WorkflowConfig to local WorkflowConfig
-    fn convert_template_config(template_config: rhema_git_workflow_templates::WorkflowConfig) -> WorkflowConfig {
+    fn convert_template_config(
+        template_config: rhema_git_workflow_templates::WorkflowConfig,
+    ) -> WorkflowConfig {
         // Convert workflow type
         let workflow_type = match template_config.workflow_type {
             rhema_git_workflow_templates::WorkflowType::GitFlow => WorkflowType::GitFlow,
@@ -1530,22 +1536,41 @@ impl WorkflowManager {
             require_feature_validation: template_config.context_rules.require_feature_validation,
             require_release_validation: template_config.context_rules.require_release_validation,
             require_hotfix_validation: template_config.context_rules.require_hotfix_validation,
-            merge_strategies: template_config.context_rules.merge_strategies.into_iter()
+            merge_strategies: template_config
+                .context_rules
+                .merge_strategies
+                .into_iter()
                 .map(|(k, v)| {
                     let key = match k {
                         rhema_git_workflow_templates::FlowBranchType::Main => FlowBranchType::Main,
-                        rhema_git_workflow_templates::FlowBranchType::Develop => FlowBranchType::Develop,
-                        rhema_git_workflow_templates::FlowBranchType::Feature => FlowBranchType::Feature,
-                        rhema_git_workflow_templates::FlowBranchType::Release => FlowBranchType::Release,
-                        rhema_git_workflow_templates::FlowBranchType::Hotfix => FlowBranchType::Hotfix,
-                        rhema_git_workflow_templates::FlowBranchType::Support => FlowBranchType::Support,
+                        rhema_git_workflow_templates::FlowBranchType::Develop => {
+                            FlowBranchType::Develop
+                        }
+                        rhema_git_workflow_templates::FlowBranchType::Feature => {
+                            FlowBranchType::Feature
+                        }
+                        rhema_git_workflow_templates::FlowBranchType::Release => {
+                            FlowBranchType::Release
+                        }
+                        rhema_git_workflow_templates::FlowBranchType::Hotfix => {
+                            FlowBranchType::Hotfix
+                        }
+                        rhema_git_workflow_templates::FlowBranchType::Support => {
+                            FlowBranchType::Support
+                        }
                     };
                     (key, v)
                 })
                 .collect(),
             isolation_rules: IsolationRules {
-                isolate_feature: template_config.context_rules.isolation_rules.isolate_feature,
-                isolate_release: template_config.context_rules.isolation_rules.isolate_release,
+                isolate_feature: template_config
+                    .context_rules
+                    .isolation_rules
+                    .isolate_feature,
+                isolate_release: template_config
+                    .context_rules
+                    .isolation_rules
+                    .isolate_release,
                 isolate_hotfix: template_config.context_rules.isolation_rules.isolate_hotfix,
                 shared_files: template_config.context_rules.isolation_rules.shared_files,
             },
@@ -1554,35 +1579,77 @@ impl WorkflowManager {
         // Convert release management
         let release_management = ReleaseManagement {
             versioning: match template_config.release_management.versioning {
-                rhema_git_workflow_templates::VersioningStrategy::Semantic => VersioningStrategy::Semantic,
-                rhema_git_workflow_templates::VersioningStrategy::Calendar => VersioningStrategy::Calendar,
-                rhema_git_workflow_templates::VersioningStrategy::Custom(s) => VersioningStrategy::Custom(s),
+                rhema_git_workflow_templates::VersioningStrategy::Semantic => {
+                    VersioningStrategy::Semantic
+                }
+                rhema_git_workflow_templates::VersioningStrategy::Calendar => {
+                    VersioningStrategy::Calendar
+                }
+                rhema_git_workflow_templates::VersioningStrategy::Custom(s) => {
+                    VersioningStrategy::Custom(s)
+                }
             },
             branch_preparation: BranchPreparation {
-                prepare_context: template_config.release_management.branch_preparation.prepare_context,
-                update_version: template_config.release_management.branch_preparation.update_version,
-                generate_notes: template_config.release_management.branch_preparation.generate_notes,
-                validate_readiness: template_config.release_management.branch_preparation.validate_readiness,
+                prepare_context: template_config
+                    .release_management
+                    .branch_preparation
+                    .prepare_context,
+                update_version: template_config
+                    .release_management
+                    .branch_preparation
+                    .update_version,
+                generate_notes: template_config
+                    .release_management
+                    .branch_preparation
+                    .generate_notes,
+                validate_readiness: template_config
+                    .release_management
+                    .branch_preparation
+                    .validate_readiness,
             },
             validation: ReleaseValidation {
-                validate_context: template_config.release_management.validation.validate_context,
-                validate_dependencies: template_config.release_management.validation.validate_dependencies,
-                validate_breaking_changes: template_config.release_management.validation.validate_breaking_changes,
+                validate_context: template_config
+                    .release_management
+                    .validation
+                    .validate_context,
+                validate_dependencies: template_config
+                    .release_management
+                    .validation
+                    .validate_dependencies,
+                validate_breaking_changes: template_config
+                    .release_management
+                    .validation
+                    .validate_breaking_changes,
                 run_tests: template_config.release_management.validation.run_tests,
             },
             automation: ReleaseAutomation {
-                auto_create_branch: template_config.release_management.automation.auto_create_branch,
-                auto_version_bump: template_config.release_management.automation.auto_version_bump,
-                auto_release_notes: template_config.release_management.automation.auto_release_notes,
+                auto_create_branch: template_config
+                    .release_management
+                    .automation
+                    .auto_create_branch,
+                auto_version_bump: template_config
+                    .release_management
+                    .automation
+                    .auto_version_bump,
+                auto_release_notes: template_config
+                    .release_management
+                    .automation
+                    .auto_release_notes,
                 auto_deploy: template_config.release_management.automation.auto_deploy,
             },
         };
 
         // Convert pull request settings
         let pull_request_settings = PullRequestSettings {
-            require_context_analysis: template_config.pull_request_settings.require_context_analysis,
-            require_impact_analysis: template_config.pull_request_settings.require_impact_analysis,
-            require_dependency_review: template_config.pull_request_settings.require_dependency_review,
+            require_context_analysis: template_config
+                .pull_request_settings
+                .require_context_analysis,
+            require_impact_analysis: template_config
+                .pull_request_settings
+                .require_impact_analysis,
+            require_dependency_review: template_config
+                .pull_request_settings
+                .require_dependency_review,
             require_health_checks: template_config.pull_request_settings.require_health_checks,
             automated_checks: template_config.pull_request_settings.automated_checks,
         };
@@ -1599,9 +1666,15 @@ impl WorkflowManager {
         let advanced_features = AdvancedWorkflowFeatures {
             context_aware_branching: template_config.advanced_features.context_aware_branching,
             auto_context_sync: template_config.advanced_features.auto_context_sync,
-            context_conflict_resolution: template_config.advanced_features.context_conflict_resolution,
-            context_validation_workflows: template_config.advanced_features.context_validation_workflows,
-            context_evolution_tracking: template_config.advanced_features.context_evolution_tracking,
+            context_conflict_resolution: template_config
+                .advanced_features
+                .context_conflict_resolution,
+            context_validation_workflows: template_config
+                .advanced_features
+                .context_validation_workflows,
+            context_evolution_tracking: template_config
+                .advanced_features
+                .context_evolution_tracking,
             context_analytics: template_config.advanced_features.context_analytics,
             context_optimization: template_config.advanced_features.context_optimization,
             context_backup_workflows: template_config.advanced_features.context_backup_workflows,

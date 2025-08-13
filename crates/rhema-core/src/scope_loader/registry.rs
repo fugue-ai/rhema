@@ -22,7 +22,10 @@ impl PluginRegistry {
     }
 
     /// Register a plugin with the registry
-    pub fn register_plugin(&mut self, plugin: Box<dyn ScopeLoaderPlugin>) -> Result<(), RegistryError> {
+    pub fn register_plugin(
+        &mut self,
+        plugin: Box<dyn ScopeLoaderPlugin>,
+    ) -> Result<(), RegistryError> {
         let metadata = plugin.metadata();
         let plugin_name = metadata.name.clone();
 
@@ -31,23 +34,29 @@ impl PluginRegistry {
         }
 
         self.plugins.insert(plugin_name.clone(), plugin);
-        
+
         // Set default configuration if not already set
         if !self.plugin_configs.contains_key(&plugin_name) {
-            self.plugin_configs.insert(plugin_name, PluginConfig {
-                enabled: true,
-                priority: metadata.priority,
-                settings: HashMap::new(),
-            });
+            self.plugin_configs.insert(
+                plugin_name,
+                PluginConfig {
+                    enabled: true,
+                    priority: metadata.priority,
+                    settings: HashMap::new(),
+                },
+            );
         }
 
         Ok(())
     }
 
     /// Register a plugin factory
-    pub fn register_factory(&mut self, factory: Box<dyn super::plugin::PluginFactory>) -> Result<(), RegistryError> {
+    pub fn register_factory(
+        &mut self,
+        factory: Box<dyn super::plugin::PluginFactory>,
+    ) -> Result<(), RegistryError> {
         let factory_name = factory.plugin_name().to_string();
-        
+
         if self.plugin_factories.contains_key(&factory_name) {
             return Err(RegistryError::PluginAlreadyRegistered(factory_name));
         }
@@ -76,10 +85,14 @@ impl PluginRegistry {
 
         // Sort by priority (higher priority first)
         applicable_plugins.sort_by(|a, b| {
-            let a_priority = self.plugin_configs.get(&a.metadata().name)
+            let a_priority = self
+                .plugin_configs
+                .get(&a.metadata().name)
                 .map(|c| c.priority)
                 .unwrap_or(0);
-            let b_priority = self.plugin_configs.get(&b.metadata().name)
+            let b_priority = self
+                .plugin_configs
+                .get(&b.metadata().name)
                 .map(|c| c.priority)
                 .unwrap_or(0);
             b_priority.cmp(&a_priority)
@@ -91,7 +104,7 @@ impl PluginRegistry {
     /// Detect package boundaries using all applicable plugins
     pub fn detect_boundaries(&self, path: &Path) -> Result<Vec<PackageBoundary>, PluginError> {
         let plugins = self.get_plugins_for_path(path);
-        
+
         if plugins.is_empty() {
             return Err(PluginError::PluginNotFound(format!(
                 "No plugins found for path: {}",
@@ -108,8 +121,11 @@ impl PluginRegistry {
                 }
                 Err(e) => {
                     // Log error but continue with other plugins
-                    eprintln!("Plugin {} failed to detect boundaries: {}", 
-                             plugin.metadata().name, e);
+                    eprintln!(
+                        "Plugin {} failed to detect boundaries: {}",
+                        plugin.metadata().name,
+                        e
+                    );
                 }
             }
         }
@@ -121,7 +137,7 @@ impl PluginRegistry {
     pub fn suggest_scopes(&self, path: &Path) -> Result<Vec<ScopeSuggestion>, PluginError> {
         let boundaries = self.detect_boundaries(path)?;
         let plugins = self.get_plugins_for_path(path);
-        
+
         let mut all_suggestions = Vec::new();
 
         for plugin in plugins {
@@ -131,22 +147,33 @@ impl PluginRegistry {
                 }
                 Err(e) => {
                     // Log error but continue with other plugins
-                    eprintln!("Plugin {} failed to generate suggestions: {}", 
-                             plugin.metadata().name, e);
+                    eprintln!(
+                        "Plugin {} failed to generate suggestions: {}",
+                        plugin.metadata().name,
+                        e
+                    );
                 }
             }
         }
 
         // Sort suggestions by confidence (higher confidence first)
-        all_suggestions.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal));
+        all_suggestions.sort_by(|a, b| {
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Ok(all_suggestions)
     }
 
     /// Create scopes from suggestions using the best plugin
-    pub fn create_scopes(&self, path: &Path, suggestions: &[ScopeSuggestion]) -> Result<Vec<crate::scope::Scope>, PluginError> {
+    pub fn create_scopes(
+        &self,
+        path: &Path,
+        suggestions: &[ScopeSuggestion],
+    ) -> Result<Vec<crate::scope::Scope>, PluginError> {
         let plugins = self.get_plugins_for_path(path);
-        
+
         if plugins.is_empty() {
             return Err(PluginError::PluginNotFound(format!(
                 "No plugins found for path: {}",
@@ -156,7 +183,7 @@ impl PluginRegistry {
 
         // Use the highest priority plugin to create scopes
         let best_plugin = plugins.first().unwrap();
-        
+
         best_plugin.create_scopes(suggestions)
     }
 
@@ -166,7 +193,11 @@ impl PluginRegistry {
     }
 
     /// Update plugin configuration
-    pub fn update_plugin_config(&mut self, plugin_name: &str, config: PluginConfig) -> Result<(), RegistryError> {
+    pub fn update_plugin_config(
+        &mut self,
+        plugin_name: &str,
+        config: PluginConfig,
+    ) -> Result<(), RegistryError> {
         if !self.plugins.contains_key(plugin_name) {
             return Err(RegistryError::PluginNotFound(plugin_name.to_string()));
         }
@@ -271,19 +302,29 @@ impl PluginRegistryBuilder {
     }
 
     /// Add a plugin to the registry
-    pub fn with_plugin(mut self, plugin: Box<dyn ScopeLoaderPlugin>) -> Result<Self, RegistryError> {
+    pub fn with_plugin(
+        mut self,
+        plugin: Box<dyn ScopeLoaderPlugin>,
+    ) -> Result<Self, RegistryError> {
         self.registry.register_plugin(plugin)?;
         Ok(self)
     }
 
     /// Add a plugin factory to the registry
-    pub fn with_factory(mut self, factory: Box<dyn super::plugin::PluginFactory>) -> Result<Self, RegistryError> {
+    pub fn with_factory(
+        mut self,
+        factory: Box<dyn super::plugin::PluginFactory>,
+    ) -> Result<Self, RegistryError> {
         self.registry.register_factory(factory)?;
         Ok(self)
     }
 
     /// Configure a plugin
-    pub fn with_plugin_config(mut self, plugin_name: &str, config: PluginConfig) -> Result<Self, RegistryError> {
+    pub fn with_plugin_config(
+        mut self,
+        plugin_name: &str,
+        config: PluginConfig,
+    ) -> Result<Self, RegistryError> {
         self.registry.update_plugin_config(plugin_name, config)?;
         Ok(self)
     }

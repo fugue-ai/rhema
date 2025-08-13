@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+use crate::CliContext;
 use clap::Subcommand;
 use rhema_api::RhemaResult;
 use rhema_core::{Priority, TodoStatus};
-use crate::CliContext;
 
 #[derive(Subcommand)]
 pub enum TodoSubcommands {
@@ -168,10 +168,7 @@ pub fn handle_todo(
                     } else {
                         println!("📋 Found {} todos:", todos.len());
                         for todo in todos {
-                            println!(
-                                "  • {} - {} ({:?})",
-                                todo.id, todo.title, todo.status
-                            );
+                            println!("  • {} - {} ({:?})", todo.id, todo.title, todo.status);
                         }
                     }
                     Ok(())

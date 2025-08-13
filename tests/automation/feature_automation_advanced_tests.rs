@@ -358,8 +358,14 @@ feature:
     )?;
 
     // Commit context files
-    fixture.commit_file(".rhema/context/feature/test/config.json", "Add context config")?;
-    fixture.commit_file(".rhema/context/feature/test/context.yaml", "Add context yaml")?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/config.json",
+        "Add context config",
+    )?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/context.yaml",
+        "Add context yaml",
+    )?;
 
     let context = fixture
         .automation_manager
@@ -405,8 +411,14 @@ feature:
     )?;
 
     // Commit context files
-    fixture.commit_file(".rhema/context/feature/test/config.json", "Add context config")?;
-    fixture.commit_file(".rhema/context/feature/test/context.yaml", "Add context yaml")?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/config.json",
+        "Add context config",
+    )?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/context.yaml",
+        "Add context yaml",
+    )?;
 
     let context = fixture
         .automation_manager
@@ -452,8 +464,14 @@ feature:
     )?;
 
     // Commit context files
-    fixture.commit_file(".rhema/context/feature/test/config.json", "Add context config")?;
-    fixture.commit_file(".rhema/context/feature/test/context.yaml", "Add context yaml")?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/config.json",
+        "Add context config",
+    )?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/context.yaml",
+        "Add context yaml",
+    )?;
 
     let context = fixture
         .automation_manager
@@ -549,17 +567,46 @@ feature:
     fixture.commit_file("Cargo.toml", "Add valid Cargo.toml")?;
     fixture.commit_file("src/lib.rs", "Add lib.rs")?;
     fixture.commit_file("src/main.rs", "Add main.rs")?;
-    fixture.commit_file(".rhema/context/feature/test/config.json", "Add context config")?;
-    fixture.commit_file(".rhema/context/feature/test/context.yaml", "Add context yaml")?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/config.json",
+        "Add context config",
+    )?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/context.yaml",
+        "Add context yaml",
+    )?;
 
     // Debug: Check what files exist
     println!("Working directory: {:?}", std::env::current_dir()?);
     println!("Temp directory: {:?}", fixture.temp_dir.path());
-    println!("Cargo.toml exists: {}", fixture.temp_dir.path().join("Cargo.toml").exists());
-    println!("src/lib.rs exists: {}", fixture.temp_dir.path().join("src/lib.rs").exists());
-    println!("src/main.rs exists: {}", fixture.temp_dir.path().join("src/main.rs").exists());
-    println!("Context config exists: {}", fixture.temp_dir.path().join(".rhema/context/feature/test/config.json").exists());
-    println!("Context yaml exists: {}", fixture.temp_dir.path().join(".rhema/context/feature/test/context.yaml").exists());
+    println!(
+        "Cargo.toml exists: {}",
+        fixture.temp_dir.path().join("Cargo.toml").exists()
+    );
+    println!(
+        "src/lib.rs exists: {}",
+        fixture.temp_dir.path().join("src/lib.rs").exists()
+    );
+    println!(
+        "src/main.rs exists: {}",
+        fixture.temp_dir.path().join("src/main.rs").exists()
+    );
+    println!(
+        "Context config exists: {}",
+        fixture
+            .temp_dir
+            .path()
+            .join(".rhema/context/feature/test/config.json")
+            .exists()
+    );
+    println!(
+        "Context yaml exists: {}",
+        fixture
+            .temp_dir
+            .path()
+            .join(".rhema/context/feature/test/context.yaml")
+            .exists()
+    );
 
     let context = fixture
         .automation_manager
@@ -639,12 +686,15 @@ feature:
     fixture.commit_file("Cargo.toml", "Add Cargo.toml with placeholder version")?;
     fixture.commit_file("src/lib.rs", "Add lib.rs")?;
     fixture.commit_file("src/main.rs", "Add main.rs")?;
-    fixture.commit_file(".rhema/context/feature/test/context.yaml", "Add context yaml")?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/context.yaml",
+        "Add context yaml",
+    )?;
 
     // Verify that the Cargo.toml contains the placeholder version
     let cargo_toml_content = std::fs::read_to_string(fixture.temp_dir.path().join("Cargo.toml"))?;
     assert!(cargo_toml_content.contains("version = \"0.0.0\""));
-    
+
     // Verify that the dependency validation logic would detect this
     // (This is a unit test of the logic, not the full integration)
     assert!(cargo_toml_content.contains("version = \"0.0.0\""));
@@ -698,8 +748,14 @@ feature:
 
     // Commit all files
     fixture.commit_file("package.json", "Add valid package.json")?;
-    fixture.commit_file(".rhema/context/feature/test/config.json", "Add context config")?;
-    fixture.commit_file(".rhema/context/feature/test/context.yaml", "Add context yaml")?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/config.json",
+        "Add context config",
+    )?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/context.yaml",
+        "Add context yaml",
+    )?;
 
     let context = fixture
         .automation_manager
@@ -716,7 +772,8 @@ feature:
 
 #[test]
 #[ignore]
-fn test_dependency_validation_package_json_missing_fields() -> Result<(), Box<dyn std::error::Error>> {
+fn test_dependency_validation_package_json_missing_fields() -> Result<(), Box<dyn std::error::Error>>
+{
     let fixture = AdvancedFeatureAutomationTestFixture::new()?;
 
     // Create a feature branch
@@ -758,8 +815,14 @@ feature:
 
     // Commit all files
     fixture.commit_file("package.json", "Add package.json with missing fields")?;
-    fixture.commit_file(".rhema/context/feature/test/config.json", "Add context config")?;
-    fixture.commit_file(".rhema/context/feature/test/context.yaml", "Add context yaml")?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/config.json",
+        "Add context config",
+    )?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/context.yaml",
+        "Add context yaml",
+    )?;
 
     let context = fixture
         .automation_manager
@@ -815,8 +878,14 @@ feature:
     // Commit all files
     fixture.commit_file("package-lock.json", "Add package-lock.json")?;
     fixture.commit_file("yarn.lock", "Add yarn.lock")?;
-    fixture.commit_file(".rhema/context/feature/test/config.json", "Add context config")?;
-    fixture.commit_file(".rhema/context/feature/test/context.yaml", "Add context yaml")?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/config.json",
+        "Add context config",
+    )?;
+    fixture.commit_file(
+        ".rhema/context/feature/test/context.yaml",
+        "Add context yaml",
+    )?;
 
     let context = fixture
         .automation_manager
@@ -869,25 +938,28 @@ express@^4.17.1:
     // Test that both lock files exist
     let package_lock_path = fixture.temp_dir.path().join("package-lock.json");
     let yarn_lock_path = fixture.temp_dir.path().join("yarn.lock");
-    
+
     assert!(package_lock_path.exists(), "package-lock.json should exist");
     assert!(yarn_lock_path.exists(), "yarn.lock should exist");
-    
+
     // Verify package-lock.json content
     let package_lock_content = std::fs::read_to_string(&package_lock_path)?;
     let package_lock_json: serde_json::Value = serde_json::from_str(&package_lock_content)?;
     assert_eq!(package_lock_json["name"], "test-project");
     assert_eq!(package_lock_json["lockfileVersion"], 1);
-    
+
     // Verify yarn.lock content
     let yarn_lock_content = std::fs::read_to_string(&yarn_lock_path)?;
     assert!(yarn_lock_content.contains("# yarn lockfile v1"));
     assert!(yarn_lock_content.contains("express@^4.17.1:"));
-    
+
     // This simulates a dependency conflict scenario
     // In a real implementation, this would trigger a validation error
     let has_conflict = package_lock_path.exists() && yarn_lock_path.exists();
-    assert!(has_conflict, "Dependency conflict detected: both lock files exist");
+    assert!(
+        has_conflict,
+        "Dependency conflict detected: both lock files exist"
+    );
 
     Ok(())
 }
@@ -925,17 +997,17 @@ impl Config {
     // Test that the file exists and contains suspicious patterns
     let config_path = fixture.temp_dir.path().join("src/config.rs");
     let config_content = std::fs::read_to_string(&config_path)?;
-    
+
     // Define patterns that indicate hardcoded secrets
     let suspicious_patterns = [
-        "sk-",           // OpenAI API key pattern
-        "secretpassword", // Hardcoded password
+        "sk-",                                  // OpenAI API key pattern
+        "secretpassword",                       // Hardcoded password
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", // JWT token pattern
-        "password",      // Password field
-        "secret",        // Secret field
-        "token",         // Token field
+        "password",                             // Password field
+        "secret",                               // Secret field
+        "token",                                // Token field
     ];
-    
+
     // Check for suspicious patterns
     let mut found_patterns = Vec::new();
     for pattern in &suspicious_patterns {
@@ -943,13 +1015,25 @@ impl Config {
             found_patterns.push(*pattern);
         }
     }
-    
+
     // Verify that suspicious patterns were found
-    assert!(!found_patterns.is_empty(), "No suspicious patterns found in config file");
-    assert!(found_patterns.contains(&"sk-"), "API key pattern should be detected");
-    assert!(found_patterns.contains(&"secretpassword"), "Password pattern should be detected");
-    assert!(found_patterns.contains(&"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"), "JWT token pattern should be detected");
-    
+    assert!(
+        !found_patterns.is_empty(),
+        "No suspicious patterns found in config file"
+    );
+    assert!(
+        found_patterns.contains(&"sk-"),
+        "API key pattern should be detected"
+    );
+    assert!(
+        found_patterns.contains(&"secretpassword"),
+        "Password pattern should be detected"
+    );
+    assert!(
+        found_patterns.contains(&"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"),
+        "JWT token pattern should be detected"
+    );
+
     println!("Found suspicious patterns: {:?}", found_patterns);
 
     Ok(())
@@ -1594,7 +1678,7 @@ fn main() {
     // Test that the Cargo.toml can be parsed correctly
     let cargo_toml_path = fixture.temp_dir.path().join("Cargo.toml");
     let cargo_toml_content = std::fs::read_to_string(&cargo_toml_path)?;
-    
+
     // Verify the content contains expected sections
     assert!(cargo_toml_content.contains("[package]"));
     assert!(cargo_toml_content.contains("name = \"test-project\""));
@@ -1637,16 +1721,16 @@ fn test_package_json_parsing_direct() -> Result<(), Box<dyn std::error::Error>> 
     // Test that the package.json can be parsed correctly
     let package_json_path = fixture.temp_dir.path().join("package.json");
     let package_json_content = std::fs::read_to_string(&package_json_path)?;
-    
+
     // Parse as JSON to verify it's valid
     let parsed_json: serde_json::Value = serde_json::from_str(&package_json_content)?;
-    
+
     // Verify the content contains expected fields
     assert_eq!(parsed_json["name"], "test-project");
     assert_eq!(parsed_json["version"], "1.0.0");
     assert_eq!(parsed_json["description"], "A test project");
     assert_eq!(parsed_json["main"], "index.js");
-    
+
     // Verify dependencies exist
     assert!(parsed_json["dependencies"]["express"].is_string());
     assert!(parsed_json["dependencies"]["lodash"].is_string());
@@ -1670,18 +1754,24 @@ fn test_performance_validation_large_files_direct() -> Result<(), Box<dyn std::e
     // Test file size detection
     let large_file_path = fixture.temp_dir.path().join("large_file.txt");
     let normal_file_path = fixture.temp_dir.path().join("normal_file.txt");
-    
+
     let large_file_size = std::fs::metadata(&large_file_path)?.len();
     let normal_file_size = std::fs::metadata(&normal_file_path)?.len();
-    
+
     // Define size thresholds (in bytes)
     let large_file_threshold = 500 * 1024; // 500KB
     let huge_file_threshold = 10 * 1024 * 1024; // 10MB
-    
+
     // Verify file sizes
-    assert!(large_file_size > large_file_threshold, "Large file should be larger than threshold");
-    assert!(normal_file_size < large_file_threshold, "Normal file should be smaller than threshold");
-    
+    assert!(
+        large_file_size > large_file_threshold,
+        "Large file should be larger than threshold"
+    );
+    assert!(
+        normal_file_size < large_file_threshold,
+        "Normal file should be smaller than threshold"
+    );
+
     // Check for large files
     let large_files: Vec<_> = std::fs::read_dir(fixture.temp_dir.path())?
         .filter_map(|entry| entry.ok())
@@ -1693,13 +1783,22 @@ fn test_performance_validation_large_files_direct() -> Result<(), Box<dyn std::e
             }
         })
         .collect();
-    
+
     assert!(!large_files.is_empty(), "Should detect large files");
-    assert!(large_files.iter().any(|entry| entry.file_name() == "large_file.txt"), 
-            "Should detect the large file");
-    
-    println!("Large files found: {:?}", 
-             large_files.iter().map(|e| e.file_name()).collect::<Vec<_>>());
+    assert!(
+        large_files
+            .iter()
+            .any(|entry| entry.file_name() == "large_file.txt"),
+        "Should detect the large file"
+    );
+
+    println!(
+        "Large files found: {:?}",
+        large_files
+            .iter()
+            .map(|e| e.file_name())
+            .collect::<Vec<_>>()
+    );
     println!("Large file size: {} bytes", large_file_size);
     println!("Normal file size: {} bytes", normal_file_size);
 
@@ -1737,18 +1836,18 @@ function queryDatabase(userId) {
     // Test that the file exists and contains suspicious patterns
     let script_path = fixture.temp_dir.path().join("src/script.js");
     let script_content = std::fs::read_to_string(&script_path)?;
-    
+
     // Define patterns that indicate suspicious code
     let suspicious_patterns = [
-        "eval(",           // Dangerous eval usage
-        "exec(",           // Command execution
-        "rm -rf",          // Dangerous file deletion
-        "document.write(", // XSS vulnerability
-        "innerHTML",       // XSS vulnerability
-        "setTimeout(\"",   // Code injection
+        "eval(",                           // Dangerous eval usage
+        "exec(",                           // Command execution
+        "rm -rf",                          // Dangerous file deletion
+        "document.write(",                 // XSS vulnerability
+        "innerHTML",                       // XSS vulnerability
+        "setTimeout(\"",                   // Code injection
         "SELECT * FROM users WHERE id = ", // SQL injection pattern
     ];
-    
+
     // Check for suspicious patterns
     let mut found_patterns = Vec::new();
     for pattern in &suspicious_patterns {
@@ -1756,15 +1855,33 @@ function queryDatabase(userId) {
             found_patterns.push(*pattern);
         }
     }
-    
+
     // Verify that suspicious patterns were found
-    assert!(!found_patterns.is_empty(), "No suspicious patterns found in script file");
-    assert!(found_patterns.contains(&"eval("), "eval() usage should be detected");
-    assert!(found_patterns.contains(&"exec("), "exec() usage should be detected");
-    assert!(found_patterns.contains(&"rm -rf"), "Dangerous command should be detected");
-    assert!(found_patterns.contains(&"document.write("), "XSS vulnerability should be detected");
-    assert!(found_patterns.contains(&"innerHTML"), "XSS vulnerability should be detected");
-    
+    assert!(
+        !found_patterns.is_empty(),
+        "No suspicious patterns found in script file"
+    );
+    assert!(
+        found_patterns.contains(&"eval("),
+        "eval() usage should be detected"
+    );
+    assert!(
+        found_patterns.contains(&"exec("),
+        "exec() usage should be detected"
+    );
+    assert!(
+        found_patterns.contains(&"rm -rf"),
+        "Dangerous command should be detected"
+    );
+    assert!(
+        found_patterns.contains(&"document.write("),
+        "XSS vulnerability should be detected"
+    );
+    assert!(
+        found_patterns.contains(&"innerHTML"),
+        "XSS vulnerability should be detected"
+    );
+
     println!("Found suspicious patterns: {:?}", found_patterns);
 
     Ok(())
@@ -1839,38 +1956,57 @@ fn main() {
     // Test that the files exist and contain dependency information
     let package_json_path = fixture.temp_dir.path().join("package.json");
     let cargo_toml_path = fixture.temp_dir.path().join("Cargo.toml");
-    
+
     assert!(package_json_path.exists(), "package.json should exist");
     assert!(cargo_toml_path.exists(), "Cargo.toml should exist");
-    
+
     // Parse package.json to verify dependencies
     let package_json_content = std::fs::read_to_string(&package_json_path)?;
     let package_json: serde_json::Value = serde_json::from_str(&package_json_content)?;
-    
+
     // Check for known vulnerable dependencies
     let dependencies = package_json["dependencies"].as_object().unwrap();
     let dev_dependencies = package_json["devDependencies"].as_object().unwrap();
-    
+
     // Verify specific dependencies exist
-    assert!(dependencies.contains_key("lodash"), "lodash dependency should exist");
-    assert!(dependencies.contains_key("express"), "express dependency should exist");
-    assert!(dependencies.contains_key("moment"), "moment dependency should exist");
-    assert!(dev_dependencies.contains_key("webpack"), "webpack dev dependency should exist");
-    
+    assert!(
+        dependencies.contains_key("lodash"),
+        "lodash dependency should exist"
+    );
+    assert!(
+        dependencies.contains_key("express"),
+        "express dependency should exist"
+    );
+    assert!(
+        dependencies.contains_key("moment"),
+        "moment dependency should exist"
+    );
+    assert!(
+        dev_dependencies.contains_key("webpack"),
+        "webpack dev dependency should exist"
+    );
+
     // Check versions for potential vulnerabilities
     let lodash_version = dependencies["lodash"].as_str().unwrap();
     let express_version = dependencies["express"].as_str().unwrap();
-    
+
     // In a real implementation, this would check against a vulnerability database
-    let potentially_vulnerable_deps = vec![
-        ("lodash", lodash_version),
-        ("express", express_version),
-    ];
-    
-    assert!(!potentially_vulnerable_deps.is_empty(), "Should detect potentially vulnerable dependencies");
-    
-    println!("Detected dependencies: {:?}", dependencies.keys().collect::<Vec<_>>());
-    println!("Potentially vulnerable dependencies: {:?}", potentially_vulnerable_deps);
+    let potentially_vulnerable_deps =
+        vec![("lodash", lodash_version), ("express", express_version)];
+
+    assert!(
+        !potentially_vulnerable_deps.is_empty(),
+        "Should detect potentially vulnerable dependencies"
+    );
+
+    println!(
+        "Detected dependencies: {:?}",
+        dependencies.keys().collect::<Vec<_>>()
+    );
+    println!(
+        "Potentially vulnerable dependencies: {:?}",
+        potentially_vulnerable_deps
+    );
 
     Ok(())
 }
@@ -1943,17 +2079,17 @@ impl InefficientCode {
     // Test that the file exists and contains inefficient patterns
     let inefficient_path = fixture.temp_dir.path().join("src/inefficient.rs");
     let inefficient_content = std::fs::read_to_string(&inefficient_path)?;
-    
+
     // Define patterns that indicate inefficient code
     let inefficient_patterns = [
-        "for item in &self.data {",           // Nested loop pattern
-        "for other_item in &self.data {",     // Nested loop pattern
-        "result = result + item + \",\"",     // String concatenation in loop
-        "result.push(item.clone())",          // Unnecessary cloning
-        "map.contains_key(key)",              // Multiple HashMap lookups
-        "map.get(key).unwrap()",              // Double lookup pattern
+        "for item in &self.data {",       // Nested loop pattern
+        "for other_item in &self.data {", // Nested loop pattern
+        "result = result + item + \",\"", // String concatenation in loop
+        "result.push(item.clone())",      // Unnecessary cloning
+        "map.contains_key(key)",          // Multiple HashMap lookups
+        "map.get(key).unwrap()",          // Double lookup pattern
     ];
-    
+
     // Check for inefficient patterns
     let mut found_patterns = Vec::new();
     for pattern in &inefficient_patterns {
@@ -1961,14 +2097,31 @@ impl InefficientCode {
             found_patterns.push(*pattern);
         }
     }
-    
+
     // Verify that inefficient patterns were found
-    assert!(!found_patterns.is_empty(), "No inefficient patterns found in code");
-    assert!(found_patterns.iter().any(|p| p.contains("for item in")), "Nested loop pattern should be detected");
-    assert!(found_patterns.iter().any(|p| p.contains("result = result +")), "String concatenation pattern should be detected");
-    assert!(found_patterns.iter().any(|p| p.contains("item.clone()")), "Unnecessary cloning should be detected");
-    assert!(found_patterns.iter().any(|p| p.contains("contains_key")), "Multiple HashMap lookups should be detected");
-    
+    assert!(
+        !found_patterns.is_empty(),
+        "No inefficient patterns found in code"
+    );
+    assert!(
+        found_patterns.iter().any(|p| p.contains("for item in")),
+        "Nested loop pattern should be detected"
+    );
+    assert!(
+        found_patterns
+            .iter()
+            .any(|p| p.contains("result = result +")),
+        "String concatenation pattern should be detected"
+    );
+    assert!(
+        found_patterns.iter().any(|p| p.contains("item.clone()")),
+        "Unnecessary cloning should be detected"
+    );
+    assert!(
+        found_patterns.iter().any(|p| p.contains("contains_key")),
+        "Multiple HashMap lookups should be detected"
+    );
+
     println!("Found inefficient patterns: {:?}", found_patterns);
 
     Ok(())
@@ -2064,23 +2217,23 @@ impl AntiPatternCode {
     // Test that the file exists and contains anti-patterns
     let anti_patterns_path = fixture.temp_dir.path().join("src/anti_patterns.rs");
     let anti_patterns_content = std::fs::read_to_string(&anti_patterns_path)?;
-    
+
     // Define patterns that indicate anti-patterns
     let anti_patterns = [
-        "static_data: Arc<Mutex<String>>",     // Global mutable state
-        "god_object_method",                   // God object pattern
-        "42 * 7 + 13",                        // Magic numbers
-        "return 200",                          // Magic numbers
-        "if *item > 0 {",                      // Deep nesting start
-        "if *item < 100 {",                    // Deep nesting
-        "if *item % 2 == 0 {",                // Deep nesting
-        "if *item % 3 == 0 {",                // Deep nesting
-        "if *item % 5 == 0 {",                // Deep nesting
-        "let unused_variable = 42",            // Dead code
-        "if false {",                          // Dead code
+        "static_data: Arc<Mutex<String>>",       // Global mutable state
+        "god_object_method",                     // God object pattern
+        "42 * 7 + 13",                           // Magic numbers
+        "return 200",                            // Magic numbers
+        "if *item > 0 {",                        // Deep nesting start
+        "if *item < 100 {",                      // Deep nesting
+        "if *item % 2 == 0 {",                   // Deep nesting
+        "if *item % 3 == 0 {",                   // Deep nesting
+        "if *item % 5 == 0 {",                   // Deep nesting
+        "let unused_variable = 42",              // Dead code
+        "if false {",                            // Dead code
         "println!(\"This will never execute\")", // Dead code
     ];
-    
+
     // Check for anti-patterns
     let mut found_patterns = Vec::new();
     for pattern in &anti_patterns {
@@ -2088,15 +2241,32 @@ impl AntiPatternCode {
             found_patterns.push(*pattern);
         }
     }
-    
+
     // Verify that anti-patterns were found
     assert!(!found_patterns.is_empty(), "No anti-patterns found in code");
-    assert!(found_patterns.iter().any(|p| p.contains("Arc<Mutex")), "Global mutable state should be detected");
-    assert!(found_patterns.iter().any(|p| p.contains("god_object_method")), "God object pattern should be detected");
-    assert!(found_patterns.iter().any(|p| p.contains("42 * 7")), "Magic numbers should be detected");
-    assert!(found_patterns.iter().any(|p| p.contains("if *item > 0")), "Deep nesting should be detected");
-    assert!(found_patterns.iter().any(|p| p.contains("if false")), "Dead code should be detected");
-    
+    assert!(
+        found_patterns.iter().any(|p| p.contains("Arc<Mutex")),
+        "Global mutable state should be detected"
+    );
+    assert!(
+        found_patterns
+            .iter()
+            .any(|p| p.contains("god_object_method")),
+        "God object pattern should be detected"
+    );
+    assert!(
+        found_patterns.iter().any(|p| p.contains("42 * 7")),
+        "Magic numbers should be detected"
+    );
+    assert!(
+        found_patterns.iter().any(|p| p.contains("if *item > 0")),
+        "Deep nesting should be detected"
+    );
+    assert!(
+        found_patterns.iter().any(|p| p.contains("if false")),
+        "Dead code should be detected"
+    );
+
     println!("Found anti-patterns: {:?}", found_patterns);
 
     Ok(())
@@ -2108,7 +2278,7 @@ fn test_context_file_validation_direct() -> Result<(), Box<dyn std::error::Error
 
     // Create required context files
     fixture.setup_rhema_directories()?;
-    
+
     let feature_context_dir = fixture
         .temp_dir
         .path()
@@ -2116,7 +2286,7 @@ fn test_context_file_validation_direct() -> Result<(), Box<dyn std::error::Error
         .join("context")
         .join("feature/test");
     fs::create_dir_all(&feature_context_dir)?;
-    
+
     // Create valid context files
     fixture.create_test_file(
         ".rhema/context/feature/test/config.json",
@@ -2164,7 +2334,7 @@ context:
         .join("context")
         .join("feature/missing");
     fs::create_dir_all(&missing_context_dir)?;
-    
+
     // Only create config.json, missing context.yaml
     fixture.create_test_file(
         ".rhema/context/feature/missing/config.json",
@@ -2172,51 +2342,68 @@ context:
     )?;
 
     // Test that required context files exist
-    let config_path = fixture.temp_dir.path().join(".rhema/context/feature/test/config.json");
-    let context_yaml_path = fixture.temp_dir.path().join(".rhema/context/feature/test/context.yaml");
-    let missing_context_path = fixture.temp_dir.path().join(".rhema/context/feature/missing/context.yaml");
-    
+    let config_path = fixture
+        .temp_dir
+        .path()
+        .join(".rhema/context/feature/test/config.json");
+    let context_yaml_path = fixture
+        .temp_dir
+        .path()
+        .join(".rhema/context/feature/test/context.yaml");
+    let missing_context_path = fixture
+        .temp_dir
+        .path()
+        .join(".rhema/context/feature/missing/context.yaml");
+
     assert!(config_path.exists(), "config.json should exist");
     assert!(context_yaml_path.exists(), "context.yaml should exist");
-    assert!(!missing_context_path.exists(), "Missing context.yaml should not exist");
-    
+    assert!(
+        !missing_context_path.exists(),
+        "Missing context.yaml should not exist"
+    );
+
     // Validate config.json content
     let config_content = std::fs::read_to_string(&config_path)?;
     let config_json: serde_json::Value = serde_json::from_str(&config_content)?;
-    
+
     assert_eq!(config_json["context_type"], "feature");
     assert_eq!(config_json["feature_name"], "test");
-    assert!(config_json["validation_rules"]["run_tests"].as_bool().unwrap());
-    
+    assert!(config_json["validation_rules"]["run_tests"]
+        .as_bool()
+        .unwrap());
+
     // Validate context.yaml content
     let context_yaml_content = std::fs::read_to_string(&context_yaml_path)?;
-    
+
     assert!(context_yaml_content.contains("feature:"));
     assert!(context_yaml_content.contains("name: test"));
     assert!(context_yaml_content.contains("validation:"));
     assert!(context_yaml_content.contains("dependency_check"));
     assert!(context_yaml_content.contains("security_scan"));
-    
+
     // Test context file validation logic
-    let valid_context_files = vec![
-        config_path.clone(),
-        context_yaml_path.clone(),
-    ];
-    
-    let missing_context_files = vec![
-        missing_context_path,
-    ];
-    
+    let valid_context_files = vec![config_path.clone(), context_yaml_path.clone()];
+
+    let missing_context_files = vec![missing_context_path];
+
     // Verify all required files exist
     for file_path in &valid_context_files {
-        assert!(file_path.exists(), "Required context file should exist: {:?}", file_path);
+        assert!(
+            file_path.exists(),
+            "Required context file should exist: {:?}",
+            file_path
+        );
     }
-    
+
     // Verify missing files are detected
     for file_path in &missing_context_files {
-        assert!(!file_path.exists(), "Missing context file should not exist: {:?}", file_path);
+        assert!(
+            !file_path.exists(),
+            "Missing context file should not exist: {:?}",
+            file_path
+        );
     }
-    
+
     println!("Valid context files: {:?}", valid_context_files);
     println!("Missing context files: {:?}", missing_context_files);
 
@@ -2310,48 +2497,72 @@ fn test_healthy_code() {
     let repo = fixture.get_repo()?;
     let head = repo.head()?;
     let head_oid = head.target().unwrap();
-    
+
     // Get commit information
     let commit = repo.find_commit(head_oid)?;
     let commit_message = commit.message().unwrap().to_string();
     let commit_author = commit.author();
     let commit_time = commit.time();
-    
+
     // Validate commit health
-    assert!(!commit_message.is_empty(), "Commit message should not be empty");
-    assert!(commit_message.len() > 5, "Commit message should be descriptive");
-    assert!(!commit_author.name().unwrap().is_empty(), "Author name should not be empty");
-    assert!(!commit_author.email().unwrap().is_empty(), "Author email should not be empty");
-    
+    assert!(
+        !commit_message.is_empty(),
+        "Commit message should not be empty"
+    );
+    assert!(
+        commit_message.len() > 5,
+        "Commit message should be descriptive"
+    );
+    assert!(
+        !commit_author.name().unwrap().is_empty(),
+        "Author name should not be empty"
+    );
+    assert!(
+        !commit_author.email().unwrap().is_empty(),
+        "Author email should not be empty"
+    );
+
     // Check file structure health
     let healthy_code_path = fixture.temp_dir.path().join("src/healthy_code.rs");
     let readme_path = fixture.temp_dir.path().join("README.md");
     let test_path = fixture.temp_dir.path().join("tests/healthy_code_test.rs");
-    
+
     assert!(healthy_code_path.exists(), "Source code should exist");
     assert!(readme_path.exists(), "Documentation should exist");
     assert!(test_path.exists(), "Tests should exist");
-    
+
     // Validate code health metrics
     let healthy_code_content = std::fs::read_to_string(&healthy_code_path)?;
     let readme_content = std::fs::read_to_string(&readme_path)?;
     let test_content = std::fs::read_to_string(&test_path)?;
-    
+
     // Check for good practices
     let has_documentation = readme_content.contains("# Test Project");
     let has_tests = test_content.contains("#[test]");
     let has_clean_structure = healthy_code_content.contains("impl HealthyCode");
     let has_proper_naming = healthy_code_content.contains("pub struct HealthyCode");
-    
+
     // Calculate health score
     let mut health_score = 0;
-    if has_documentation { health_score += 25; }
-    if has_tests { health_score += 25; }
-    if has_clean_structure { health_score += 25; }
-    if has_proper_naming { health_score += 25; }
-    
-    assert!(health_score >= 75, "Branch health score should be at least 75, got {}", health_score);
-    
+    if has_documentation {
+        health_score += 25;
+    }
+    if has_tests {
+        health_score += 25;
+    }
+    if has_clean_structure {
+        health_score += 25;
+    }
+    if has_proper_naming {
+        health_score += 25;
+    }
+
+    assert!(
+        health_score >= 75,
+        "Branch health score should be at least 75, got {}",
+        health_score
+    );
+
     println!("Branch health metrics:");
     println!("- Has documentation: {}", has_documentation);
     println!("- Has tests: {}", has_tests);
@@ -2430,47 +2641,90 @@ impl MergeTest {
     // Test merge strategy validation
     let merge_config_path = fixture.temp_dir.path().join(".rhema/merge_config.json");
     let merge_test_path = fixture.temp_dir.path().join("src/merge_test.rs");
-    
+
     assert!(merge_config_path.exists(), "Merge config should exist");
     assert!(merge_test_path.exists(), "Merge test file should exist");
-    
+
     // Validate merge configuration
     let merge_config_content = std::fs::read_to_string(&merge_config_path)?;
     let merge_config: serde_json::Value = serde_json::from_str(&merge_config_content)?;
-    
+
     // Check for required merge strategies
     let strategies = merge_config["strategies"].as_object().unwrap();
-    assert!(strategies.contains_key("squash"), "Squash strategy should be defined");
-    assert!(strategies.contains_key("rebase"), "Rebase strategy should be defined");
-    assert!(strategies.contains_key("merge"), "Merge strategy should be defined");
-    
+    assert!(
+        strategies.contains_key("squash"),
+        "Squash strategy should be defined"
+    );
+    assert!(
+        strategies.contains_key("rebase"),
+        "Rebase strategy should be defined"
+    );
+    assert!(
+        strategies.contains_key("merge"),
+        "Merge strategy should be defined"
+    );
+
     // Validate strategy configurations
     let squash_config = &strategies["squash"];
     let rebase_config = &strategies["rebase"];
     let merge_config_strategy = &strategies["merge"];
-    
-    assert!(squash_config["enabled"].as_bool().unwrap(), "Squash strategy should be enabled");
-    assert!(rebase_config["enabled"].as_bool().unwrap(), "Rebase strategy should be enabled");
-    assert!(merge_config_strategy["enabled"].as_bool().unwrap(), "Merge strategy should be enabled");
-    
+
+    assert!(
+        squash_config["enabled"].as_bool().unwrap(),
+        "Squash strategy should be enabled"
+    );
+    assert!(
+        rebase_config["enabled"].as_bool().unwrap(),
+        "Rebase strategy should be enabled"
+    );
+    assert!(
+        merge_config_strategy["enabled"].as_bool().unwrap(),
+        "Merge strategy should be enabled"
+    );
+
     // Check default strategy
     let default_strategy = merge_config["default_strategy"].as_str().unwrap();
-    assert_eq!(default_strategy, "merge", "Default strategy should be merge");
-    
+    assert_eq!(
+        default_strategy, "merge",
+        "Default strategy should be merge"
+    );
+
     // Validate conflict resolution settings
     let conflict_resolution = &merge_config["conflict_resolution"];
-    assert!(conflict_resolution["auto_resolve"].as_bool().unwrap(), "Auto resolve should be enabled");
-    assert!(!conflict_resolution["manual_review"].as_bool().unwrap(), "Manual review should be disabled");
-    assert_eq!(conflict_resolution["timeout_seconds"].as_u64().unwrap(), 300, "Timeout should be 300 seconds");
-    
+    assert!(
+        conflict_resolution["auto_resolve"].as_bool().unwrap(),
+        "Auto resolve should be enabled"
+    );
+    assert!(
+        !conflict_resolution["manual_review"].as_bool().unwrap(),
+        "Manual review should be disabled"
+    );
+    assert_eq!(
+        conflict_resolution["timeout_seconds"].as_u64().unwrap(),
+        300,
+        "Timeout should be 300 seconds"
+    );
+
     // Test merge functionality
     let merge_test_content = std::fs::read_to_string(&merge_test_path)?;
-    assert!(merge_test_content.contains("merge_with"), "Merge functionality should be present");
-    assert!(merge_test_content.contains("MergeTest"), "MergeTest struct should be defined");
-    
-    println!("Merge strategies available: {:?}", strategies.keys().collect::<Vec<_>>());
+    assert!(
+        merge_test_content.contains("merge_with"),
+        "Merge functionality should be present"
+    );
+    assert!(
+        merge_test_content.contains("MergeTest"),
+        "MergeTest struct should be defined"
+    );
+
+    println!(
+        "Merge strategies available: {:?}",
+        strategies.keys().collect::<Vec<_>>()
+    );
     println!("Default strategy: {}", default_strategy);
-    println!("Auto resolve conflicts: {}", conflict_resolution["auto_resolve"]);
+    println!(
+        "Auto resolve conflicts: {}",
+        conflict_resolution["auto_resolve"]
+    );
 
     Ok(())
 }
@@ -2561,63 +2815,111 @@ impl ConflictResolver {
     )?;
 
     // Commit the files
-    fixture.commit_file("src/conflict_resolver.rs", "Add conflict resolution functionality")?;
-    fixture.commit_file(".rhema/conflict_resolution.json", "Add conflict resolution configuration")?;
+    fixture.commit_file(
+        "src/conflict_resolver.rs",
+        "Add conflict resolution functionality",
+    )?;
+    fixture.commit_file(
+        ".rhema/conflict_resolution.json",
+        "Add conflict resolution configuration",
+    )?;
 
     // Test conflict resolution validation
     let conflict_resolver_path = fixture.temp_dir.path().join("src/conflict_resolver.rs");
-    let conflict_config_path = fixture.temp_dir.path().join(".rhema/conflict_resolution.json");
-    
-    assert!(conflict_resolver_path.exists(), "Conflict resolver should exist");
-    assert!(conflict_config_path.exists(), "Conflict resolution config should exist");
-    
+    let conflict_config_path = fixture
+        .temp_dir
+        .path()
+        .join(".rhema/conflict_resolution.json");
+
+    assert!(
+        conflict_resolver_path.exists(),
+        "Conflict resolver should exist"
+    );
+    assert!(
+        conflict_config_path.exists(),
+        "Conflict resolution config should exist"
+    );
+
     // Validate conflict resolution configuration
     let conflict_config_content = std::fs::read_to_string(&conflict_config_path)?;
     let conflict_config: serde_json::Value = serde_json::from_str(&conflict_config_content)?;
-    
+
     // Check for required conflict types
     let strategies = conflict_config["strategies"].as_object().unwrap();
-    let required_conflicts = ["merge_conflict", "version_conflict", "dependency_conflict", "file_conflict"];
-    
+    let required_conflicts = [
+        "merge_conflict",
+        "version_conflict",
+        "dependency_conflict",
+        "file_conflict",
+    ];
+
     for conflict_type in &required_conflicts {
-        assert!(strategies.contains_key(*conflict_type), "Conflict type '{}' should be defined", conflict_type);
+        assert!(
+            strategies.contains_key(*conflict_type),
+            "Conflict type '{}' should be defined",
+            conflict_type
+        );
     }
-    
+
     // Validate strategy types
     assert_eq!(strategies["merge_conflict"]["type"], "auto_resolve");
     assert_eq!(strategies["version_conflict"]["type"], "manual_review");
     assert_eq!(strategies["dependency_conflict"]["type"], "skip");
     assert_eq!(strategies["file_conflict"]["type"], "abort");
-    
+
     // Validate priorities
     assert_eq!(strategies["merge_conflict"]["priority"], "high");
     assert_eq!(strategies["version_conflict"]["priority"], "medium");
     assert_eq!(strategies["dependency_conflict"]["priority"], "low");
     assert_eq!(strategies["file_conflict"]["priority"], "critical");
-    
+
     // Validate timeouts
     assert_eq!(strategies["merge_conflict"]["timeout_seconds"], 60);
     assert_eq!(strategies["version_conflict"]["timeout_seconds"], 300);
     assert_eq!(strategies["dependency_conflict"]["timeout_seconds"], 30);
     assert_eq!(strategies["file_conflict"]["timeout_seconds"], 10);
-    
+
     // Check global settings
     assert_eq!(conflict_config["default_strategy"], "manual_review");
     assert!(conflict_config["auto_resolve_enabled"].as_bool().unwrap());
     assert_eq!(conflict_config["max_retry_attempts"], 3);
-    
+
     // Test conflict resolver functionality
     let conflict_resolver_content = std::fs::read_to_string(&conflict_resolver_path)?;
-    assert!(conflict_resolver_content.contains("ConflictResolver"), "ConflictResolver struct should be defined");
-    assert!(conflict_resolver_content.contains("ConflictResolutionStrategy"), "ConflictResolutionStrategy enum should be defined");
-    assert!(conflict_resolver_content.contains("resolve_conflict"), "resolve_conflict method should be present");
-    assert!(conflict_resolver_content.contains("AutoResolve"), "AutoResolve strategy should be defined");
-    assert!(conflict_resolver_content.contains("ManualReview"), "ManualReview strategy should be defined");
-    
-    println!("Conflict types available: {:?}", strategies.keys().collect::<Vec<_>>());
+    assert!(
+        conflict_resolver_content.contains("ConflictResolver"),
+        "ConflictResolver struct should be defined"
+    );
+    assert!(
+        conflict_resolver_content.contains("ConflictResolutionStrategy"),
+        "ConflictResolutionStrategy enum should be defined"
+    );
+    assert!(
+        conflict_resolver_content.contains("resolve_conflict"),
+        "resolve_conflict method should be present"
+    );
+    assert!(
+        conflict_resolver_content.contains("AutoResolve"),
+        "AutoResolve strategy should be defined"
+    );
+    assert!(
+        conflict_resolver_content.contains("ManualReview"),
+        "ManualReview strategy should be defined"
+    );
+
+    println!(
+        "Conflict types available: {:?}",
+        strategies.keys().collect::<Vec<_>>()
+    );
     println!("Default strategy: {}", conflict_config["default_strategy"]);
-    println!("Auto resolve enabled: {}", conflict_config["auto_resolve_enabled"]);
-    println!("Max retry attempts: {}", conflict_config["max_retry_attempts"]);
+    println!(
+        "Auto resolve enabled: {}",
+        conflict_config["auto_resolve_enabled"]
+    );
+    println!(
+        "Max retry attempts: {}",
+        conflict_config["max_retry_attempts"]
+    );
 
     Ok(())
 }
@@ -2712,23 +3014,32 @@ impl BoundaryViolations {
     )?;
 
     // Commit the files
-    fixture.commit_file(".rhema/boundary_rules.json", "Add boundary rules configuration")?;
+    fixture.commit_file(
+        ".rhema/boundary_rules.json",
+        "Add boundary rules configuration",
+    )?;
     fixture.commit_file("src/boundary_compliant.rs", "Add boundary compliant code")?;
-    fixture.commit_file("src/boundary_violations.rs", "Add boundary violation examples")?;
+    fixture.commit_file(
+        "src/boundary_violations.rs",
+        "Add boundary violation examples",
+    )?;
 
     // Test boundary rules validation
     let boundary_rules_path = fixture.temp_dir.path().join(".rhema/boundary_rules.json");
     let compliant_path = fixture.temp_dir.path().join("src/boundary_compliant.rs");
     let violations_path = fixture.temp_dir.path().join("src/boundary_violations.rs");
-    
-    assert!(boundary_rules_path.exists(), "Boundary rules config should exist");
+
+    assert!(
+        boundary_rules_path.exists(),
+        "Boundary rules config should exist"
+    );
     assert!(compliant_path.exists(), "Compliant file should exist");
     assert!(violations_path.exists(), "Violations file should exist");
-    
+
     // Validate boundary rules configuration
     let boundary_rules_content = std::fs::read_to_string(&boundary_rules_path)?;
     let boundary_rules: serde_json::Value = serde_json::from_str(&boundary_rules_content)?;
-    
+
     // Validate file size limits
     let file_size_limits = &boundary_rules["file_size_limits"];
     assert_eq!(file_size_limits["max_file_size_mb"], 10);
@@ -2736,15 +3047,19 @@ impl BoundaryViolations {
     let excluded_extensions = file_size_limits["excluded_extensions"].as_array().unwrap();
     assert!(excluded_extensions.contains(&serde_json::Value::String(".git".to_string())));
     assert!(excluded_extensions.contains(&serde_json::Value::String(".lock".to_string())));
-    
+
     // Validate directory structure rules
     let directory_structure = &boundary_rules["directory_structure"];
-    let allowed_dirs = directory_structure["allowed_directories"].as_array().unwrap();
-    let forbidden_dirs = directory_structure["forbidden_directories"].as_array().unwrap();
+    let allowed_dirs = directory_structure["allowed_directories"]
+        .as_array()
+        .unwrap();
+    let forbidden_dirs = directory_structure["forbidden_directories"]
+        .as_array()
+        .unwrap();
     assert!(allowed_dirs.contains(&serde_json::Value::String("src".to_string())));
     assert!(forbidden_dirs.contains(&serde_json::Value::String("temp".to_string())));
     assert_eq!(directory_structure["max_depth"], 5);
-    
+
     // Validate naming conventions
     let naming_conventions = &boundary_rules["naming_conventions"];
     let file_patterns = naming_conventions["file_patterns"].as_array().unwrap();
@@ -2752,57 +3067,80 @@ impl BoundaryViolations {
     assert!(file_patterns.contains(&serde_json::Value::String("*.rs".to_string())));
     assert!(forbidden_patterns.contains(&serde_json::Value::String("*test*".to_string())));
     assert!(naming_conventions["case_sensitive"].as_bool().unwrap());
-    
+
     // Validate content restrictions
     let content_restrictions = &boundary_rules["content_restrictions"];
-    let forbidden_keywords = content_restrictions["forbidden_keywords"].as_array().unwrap();
+    let forbidden_keywords = content_restrictions["forbidden_keywords"]
+        .as_array()
+        .unwrap();
     assert!(forbidden_keywords.contains(&serde_json::Value::String("TODO".to_string())));
     assert!(forbidden_keywords.contains(&serde_json::Value::String("FIXME".to_string())));
     assert_eq!(content_restrictions["max_line_length"], 120);
-    assert!(content_restrictions["require_documentation"].as_bool().unwrap());
-    
+    assert!(content_restrictions["require_documentation"]
+        .as_bool()
+        .unwrap());
+
     // Validate dependency rules
     let dependencies = &boundary_rules["dependencies"];
     assert_eq!(dependencies["max_dependencies"], 50);
     let forbidden_deps = dependencies["forbidden_dependencies"].as_array().unwrap();
     assert!(forbidden_deps.contains(&serde_json::Value::String("unsafe-lib".to_string())));
     assert!(dependencies["require_version_pinning"].as_bool().unwrap());
-    
+
     // Test boundary rule violations detection
     let compliant_content = std::fs::read_to_string(&compliant_path)?;
     let violations_content = std::fs::read_to_string(&violations_path)?;
-    
+
     // Check for violations in the violations file
     let forbidden_keywords_list = ["TODO", "FIXME", "HACK", "XXX"];
     let mut found_violations = Vec::new();
-    
+
     for keyword in &forbidden_keywords_list {
         if violations_content.contains(keyword) {
             found_violations.push(*keyword);
         }
     }
-    
+
     // Check for long lines (over 120 characters)
     let lines: Vec<&str> = violations_content.lines().collect();
-    let long_lines: Vec<&str> = lines.iter()
+    let long_lines: Vec<&str> = lines
+        .iter()
         .filter(|line| line.len() > 120)
         .copied()
         .collect();
-    
+
     // Verify violations were found
-    assert!(!found_violations.is_empty(), "Should detect forbidden keywords");
+    assert!(
+        !found_violations.is_empty(),
+        "Should detect forbidden keywords"
+    );
     assert!(!long_lines.is_empty(), "Should detect long lines");
-    
+
     // Verify compliant file follows rules
-    assert!(!compliant_content.contains("TODO"), "Compliant file should not contain TODO");
-    assert!(!compliant_content.contains("FIXME"), "Compliant file should not contain FIXME");
-    assert!(compliant_content.contains("///"), "Compliant file should have documentation");
-    
+    assert!(
+        !compliant_content.contains("TODO"),
+        "Compliant file should not contain TODO"
+    );
+    assert!(
+        !compliant_content.contains("FIXME"),
+        "Compliant file should not contain FIXME"
+    );
+    assert!(
+        compliant_content.contains("///"),
+        "Compliant file should have documentation"
+    );
+
     println!("Boundary rules validation:");
     println!("- Forbidden keywords found: {:?}", found_violations);
     println!("- Long lines found: {}", long_lines.len());
-    println!("- Max file size: {}MB", file_size_limits["max_file_size_mb"]);
-    println!("- Max line length: {}", content_restrictions["max_line_length"]);
+    println!(
+        "- Max file size: {}MB",
+        file_size_limits["max_file_size_mb"]
+    );
+    println!(
+        "- Max line length: {}",
+        content_restrictions["max_line_length"]
+    );
 
     Ok(())
 }
@@ -2913,113 +3251,197 @@ impl InheritanceTest {
     )?;
 
     // Commit the files
-    fixture.commit_file(".rhema/inheritance/base_rules.json", "Add base inheritance rules")?;
-    fixture.commit_file(".rhema/inheritance/feature_rules.json", "Add feature inheritance rules")?;
-    fixture.commit_file(".rhema/inheritance_config.json", "Add inheritance configuration")?;
+    fixture.commit_file(
+        ".rhema/inheritance/base_rules.json",
+        "Add base inheritance rules",
+    )?;
+    fixture.commit_file(
+        ".rhema/inheritance/feature_rules.json",
+        "Add feature inheritance rules",
+    )?;
+    fixture.commit_file(
+        ".rhema/inheritance_config.json",
+        "Add inheritance configuration",
+    )?;
     fixture.commit_file("src/inheritance_test.rs", "Add inheritance test code")?;
 
     // Test inheritance rules validation
-    let base_rules_path = fixture.temp_dir.path().join(".rhema/inheritance/base_rules.json");
-    let feature_rules_path = fixture.temp_dir.path().join(".rhema/inheritance/feature_rules.json");
-    let inheritance_config_path = fixture.temp_dir.path().join(".rhema/inheritance_config.json");
+    let base_rules_path = fixture
+        .temp_dir
+        .path()
+        .join(".rhema/inheritance/base_rules.json");
+    let feature_rules_path = fixture
+        .temp_dir
+        .path()
+        .join(".rhema/inheritance/feature_rules.json");
+    let inheritance_config_path = fixture
+        .temp_dir
+        .path()
+        .join(".rhema/inheritance_config.json");
     let inheritance_test_path = fixture.temp_dir.path().join("src/inheritance_test.rs");
-    
+
     assert!(base_rules_path.exists(), "Base rules should exist");
     assert!(feature_rules_path.exists(), "Feature rules should exist");
-    assert!(inheritance_config_path.exists(), "Inheritance config should exist");
-    assert!(inheritance_test_path.exists(), "Inheritance test file should exist");
-    
+    assert!(
+        inheritance_config_path.exists(),
+        "Inheritance config should exist"
+    );
+    assert!(
+        inheritance_test_path.exists(),
+        "Inheritance test file should exist"
+    );
+
     // Validate base inheritance rules
     let base_rules_content = std::fs::read_to_string(&base_rules_path)?;
     let base_rules: serde_json::Value = serde_json::from_str(&base_rules_content)?;
-    
+
     // Validate base validation rules
     let base_validation_rules = &base_rules["validation_rules"];
     assert!(base_validation_rules["run_tests"].as_bool().unwrap());
-    assert!(base_validation_rules["validate_dependencies"].as_bool().unwrap());
+    assert!(base_validation_rules["validate_dependencies"]
+        .as_bool()
+        .unwrap());
     assert!(base_validation_rules["security_checks"].as_bool().unwrap());
-    assert!(base_validation_rules["performance_checks"].as_bool().unwrap());
-    
+    assert!(base_validation_rules["performance_checks"]
+        .as_bool()
+        .unwrap());
+
     // Validate base merge strategies
     let base_merge_strategies = &base_rules["merge_strategies"];
     assert_eq!(base_merge_strategies["default"], "merge");
-    assert!(base_merge_strategies["auto_resolve_conflicts"].as_bool().unwrap());
-    
+    assert!(base_merge_strategies["auto_resolve_conflicts"]
+        .as_bool()
+        .unwrap());
+
     // Validate base code standards
     let base_code_standards = &base_rules["code_standards"];
     assert_eq!(base_code_standards["max_line_length"], 120);
-    assert!(base_code_standards["require_documentation"].as_bool().unwrap());
-    let base_forbidden_keywords = base_code_standards["forbidden_keywords"].as_array().unwrap();
+    assert!(base_code_standards["require_documentation"]
+        .as_bool()
+        .unwrap());
+    let base_forbidden_keywords = base_code_standards["forbidden_keywords"]
+        .as_array()
+        .unwrap();
     assert!(base_forbidden_keywords.contains(&serde_json::Value::String("TODO".to_string())));
     assert!(base_forbidden_keywords.contains(&serde_json::Value::String("FIXME".to_string())));
-    
+
     // Validate feature inheritance rules
     let feature_rules_content = std::fs::read_to_string(&feature_rules_path)?;
     let feature_rules: serde_json::Value = serde_json::from_str(&feature_rules_content)?;
-    
+
     // Validate inheritance source
     assert_eq!(feature_rules["inherits_from"], "base_rules.json");
-    
+
     // Validate overrides
     let overrides = &feature_rules["overrides"];
     let feature_validation_rules = &overrides["validation_rules"];
     assert!(!feature_validation_rules["run_tests"].as_bool().unwrap());
-    assert!(feature_validation_rules["validate_dependencies"].as_bool().unwrap());
-    assert!(feature_validation_rules["security_checks"].as_bool().unwrap());
-    assert!(!feature_validation_rules["performance_checks"].as_bool().unwrap());
-    
+    assert!(feature_validation_rules["validate_dependencies"]
+        .as_bool()
+        .unwrap());
+    assert!(feature_validation_rules["security_checks"]
+        .as_bool()
+        .unwrap());
+    assert!(!feature_validation_rules["performance_checks"]
+        .as_bool()
+        .unwrap());
+
     // Validate feature code standards overrides
     let feature_code_standards = &overrides["code_standards"];
     assert_eq!(feature_code_standards["max_line_length"], 100);
-    assert!(feature_code_standards["require_documentation"].as_bool().unwrap());
-    let feature_forbidden_keywords = feature_code_standards["forbidden_keywords"].as_array().unwrap();
+    assert!(feature_code_standards["require_documentation"]
+        .as_bool()
+        .unwrap());
+    let feature_forbidden_keywords = feature_code_standards["forbidden_keywords"]
+        .as_array()
+        .unwrap();
     assert!(feature_forbidden_keywords.contains(&serde_json::Value::String("HACK".to_string())));
-    
+
     // Validate additional rules
     let additional_rules = &feature_rules["additional_rules"];
     let feature_specific = &additional_rules["feature_specific"];
-    assert!(feature_specific["require_feature_documentation"].as_bool().unwrap());
+    assert!(feature_specific["require_feature_documentation"]
+        .as_bool()
+        .unwrap());
     assert_eq!(feature_specific["max_feature_size_mb"], 5);
-    
+
     // Validate inheritance configuration
     let inheritance_config_content = std::fs::read_to_string(&inheritance_config_path)?;
     let inheritance_config: serde_json::Value = serde_json::from_str(&inheritance_config_content)?;
-    
+
     assert_eq!(inheritance_config["inheritance_strategy"], "merge");
-    assert_eq!(inheritance_config["base_rules_path"], ".rhema/inheritance/base_rules.json");
-    assert_eq!(inheritance_config["feature_rules_path"], ".rhema/inheritance/feature_rules.json");
+    assert_eq!(
+        inheritance_config["base_rules_path"],
+        ".rhema/inheritance/base_rules.json"
+    );
+    assert_eq!(
+        inheritance_config["feature_rules_path"],
+        ".rhema/inheritance/feature_rules.json"
+    );
     assert_eq!(inheritance_config["inheritance_depth_limit"], 3);
-    assert!(!inheritance_config["allow_circular_inheritance"].as_bool().unwrap());
-    
+    assert!(!inheritance_config["allow_circular_inheritance"]
+        .as_bool()
+        .unwrap());
+
     // Validate default inheritance
     let default_inheritance = &inheritance_config["default_inheritance"];
     let default_validation_rules = &default_inheritance["validation_rules"];
     assert!(default_validation_rules["run_tests"].as_bool().unwrap());
-    assert!(default_validation_rules["validate_dependencies"].as_bool().unwrap());
-    
+    assert!(default_validation_rules["validate_dependencies"]
+        .as_bool()
+        .unwrap());
+
     // Test inheritance compliance
     let inheritance_test_content = std::fs::read_to_string(&inheritance_test_path)?;
-    
+
     // Verify the test file follows inherited rules
-    assert!(inheritance_test_content.contains("///"), "Should have documentation as required by inherited rules");
-    assert!(!inheritance_test_content.contains("TODO"), "Should not contain forbidden keywords from base rules");
-    assert!(!inheritance_test_content.contains("FIXME"), "Should not contain forbidden keywords from base rules");
-    assert!(!inheritance_test_content.contains("HACK"), "Should not contain forbidden keywords from feature rules");
-    
+    assert!(
+        inheritance_test_content.contains("///"),
+        "Should have documentation as required by inherited rules"
+    );
+    assert!(
+        !inheritance_test_content.contains("TODO"),
+        "Should not contain forbidden keywords from base rules"
+    );
+    assert!(
+        !inheritance_test_content.contains("FIXME"),
+        "Should not contain forbidden keywords from base rules"
+    );
+    assert!(
+        !inheritance_test_content.contains("HACK"),
+        "Should not contain forbidden keywords from feature rules"
+    );
+
     // Check line lengths (should be under 100 as per feature rules)
     let lines: Vec<&str> = inheritance_test_content.lines().collect();
-    let long_lines: Vec<&str> = lines.iter()
+    let long_lines: Vec<&str> = lines
+        .iter()
         .filter(|line| line.len() > 100)
         .copied()
         .collect();
-    
-    assert!(long_lines.is_empty(), "Should not have lines longer than 100 characters as per feature rules");
-    
+
+    assert!(
+        long_lines.is_empty(),
+        "Should not have lines longer than 100 characters as per feature rules"
+    );
+
     println!("Inheritance rules validation:");
-    println!("- Base rules validation: {}", base_validation_rules["run_tests"]);
-    println!("- Feature rules validation: {}", feature_validation_rules["run_tests"]);
-    println!("- Inheritance strategy: {}", inheritance_config["inheritance_strategy"]);
-    println!("- Inheritance depth limit: {}", inheritance_config["inheritance_depth_limit"]);
+    println!(
+        "- Base rules validation: {}",
+        base_validation_rules["run_tests"]
+    );
+    println!(
+        "- Feature rules validation: {}",
+        feature_validation_rules["run_tests"]
+    );
+    println!(
+        "- Inheritance strategy: {}",
+        inheritance_config["inheritance_strategy"]
+    );
+    println!(
+        "- Inheritance depth limit: {}",
+        inheritance_config["inheritance_depth_limit"]
+    );
     println!("- Long lines found: {}", long_lines.len());
 
     Ok(())
@@ -3034,37 +3456,49 @@ fn test_edge_case_validation_direct() -> Result<(), Box<dyn std::error::Error>> 
 
     // Test edge case 1: Empty files
     fixture.create_test_file("src/empty_file.rs", "")?;
-    
+
     // Test edge case 2: Very large file names
     let long_filename = "a".repeat(200) + ".rs";
     fixture.create_test_file(&format!("src/{}", long_filename), "// Very long filename")?;
-    
+
     // Test edge case 3: Files with special characters
-    fixture.create_test_file("src/special-char@file.rs", "// Special characters in filename")?;
+    fixture.create_test_file(
+        "src/special-char@file.rs",
+        "// Special characters in filename",
+    )?;
     fixture.create_test_file("src/unicode_测试.rs", "// Unicode characters in filename")?;
-    
+
     // Test edge case 4: Deeply nested directories
-    fixture.create_test_file("src/very/deeply/nested/directory/file.rs", "// Deeply nested")?;
-    
+    fixture.create_test_file(
+        "src/very/deeply/nested/directory/file.rs",
+        "// Deeply nested",
+    )?;
+
     // Test edge case 5: Binary files (simulated)
     let binary_content = vec![0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD];
-    std::fs::write(fixture.temp_dir.path().join("src/binary_file.bin"), &binary_content)?;
-    
+    std::fs::write(
+        fixture.temp_dir.path().join("src/binary_file.bin"),
+        &binary_content,
+    )?;
+
     // Test edge case 6: Symlinks (simulated by creating a reference file)
     fixture.create_test_file("src/symlink_target.rs", "// Target file")?;
     fixture.create_test_file("src/symlink.rs", "// Symlink reference")?;
-    
+
     // Test edge case 7: Hidden files
     fixture.create_test_file(".hidden_file.rs", "// Hidden file")?;
     fixture.create_test_file("src/.hidden_in_src.rs", "// Hidden file in src")?;
-    
+
     // Test edge case 8: Files with unusual extensions
     fixture.create_test_file("src/unusual.extension", "// Unusual extension")?;
     fixture.create_test_file("src/no_extension", "// No extension")?;
-    
+
     // Test edge case 9: Files with control characters
-    fixture.create_test_file("src/control_chars.rs", "// File with \x00\x01\x02 control characters")?;
-    
+    fixture.create_test_file(
+        "src/control_chars.rs",
+        "// File with \x00\x01\x02 control characters",
+    )?;
+
     // Test edge case 10: Circular references (simulated)
     fixture.create_test_file("src/circular_a.rs", "// References circular_b")?;
     fixture.create_test_file("src/circular_b.rs", "// References circular_a")?;
@@ -3074,7 +3508,10 @@ fn test_edge_case_validation_direct() -> Result<(), Box<dyn std::error::Error>> 
     fixture.commit_file(&format!("src/{}", long_filename), "Add long filename")?;
     fixture.commit_file("src/special-char@file.rs", "Add special char file")?;
     fixture.commit_file("src/unicode_测试.rs", "Add unicode file")?;
-    fixture.commit_file("src/very/deeply/nested/directory/file.rs", "Add nested file")?;
+    fixture.commit_file(
+        "src/very/deeply/nested/directory/file.rs",
+        "Add nested file",
+    )?;
     fixture.commit_file("src/binary_file.bin", "Add binary file")?;
     fixture.commit_file("src/symlink_target.rs", "Add symlink target")?;
     fixture.commit_file("src/symlink.rs", "Add symlink")?;
@@ -3088,66 +3525,134 @@ fn test_edge_case_validation_direct() -> Result<(), Box<dyn std::error::Error>> 
 
     // Test edge case validation
     let temp_dir = fixture.temp_dir.path();
-    
+
     // Verify all files exist
-    assert!(temp_dir.join("src/empty_file.rs").exists(), "Empty file should exist");
-    assert!(temp_dir.join(&format!("src/{}", long_filename)).exists(), "Long filename should exist");
-    assert!(temp_dir.join("src/special-char@file.rs").exists(), "Special char file should exist");
-    assert!(temp_dir.join("src/unicode_测试.rs").exists(), "Unicode file should exist");
-    assert!(temp_dir.join("src/very/deeply/nested/directory/file.rs").exists(), "Nested file should exist");
-    assert!(temp_dir.join("src/binary_file.bin").exists(), "Binary file should exist");
-    assert!(temp_dir.join("src/symlink_target.rs").exists(), "Symlink target should exist");
-    assert!(temp_dir.join("src/symlink.rs").exists(), "Symlink should exist");
-    assert!(temp_dir.join(".hidden_file.rs").exists(), "Hidden file should exist");
-    assert!(temp_dir.join("src/.hidden_in_src.rs").exists(), "Hidden file in src should exist");
-    assert!(temp_dir.join("src/unusual.extension").exists(), "Unusual extension should exist");
-    assert!(temp_dir.join("src/no_extension").exists(), "No extension file should exist");
-    assert!(temp_dir.join("src/control_chars.rs").exists(), "Control chars file should exist");
-    assert!(temp_dir.join("src/circular_a.rs").exists(), "Circular A should exist");
-    assert!(temp_dir.join("src/circular_b.rs").exists(), "Circular B should exist");
-    
+    assert!(
+        temp_dir.join("src/empty_file.rs").exists(),
+        "Empty file should exist"
+    );
+    assert!(
+        temp_dir.join(&format!("src/{}", long_filename)).exists(),
+        "Long filename should exist"
+    );
+    assert!(
+        temp_dir.join("src/special-char@file.rs").exists(),
+        "Special char file should exist"
+    );
+    assert!(
+        temp_dir.join("src/unicode_测试.rs").exists(),
+        "Unicode file should exist"
+    );
+    assert!(
+        temp_dir
+            .join("src/very/deeply/nested/directory/file.rs")
+            .exists(),
+        "Nested file should exist"
+    );
+    assert!(
+        temp_dir.join("src/binary_file.bin").exists(),
+        "Binary file should exist"
+    );
+    assert!(
+        temp_dir.join("src/symlink_target.rs").exists(),
+        "Symlink target should exist"
+    );
+    assert!(
+        temp_dir.join("src/symlink.rs").exists(),
+        "Symlink should exist"
+    );
+    assert!(
+        temp_dir.join(".hidden_file.rs").exists(),
+        "Hidden file should exist"
+    );
+    assert!(
+        temp_dir.join("src/.hidden_in_src.rs").exists(),
+        "Hidden file in src should exist"
+    );
+    assert!(
+        temp_dir.join("src/unusual.extension").exists(),
+        "Unusual extension should exist"
+    );
+    assert!(
+        temp_dir.join("src/no_extension").exists(),
+        "No extension file should exist"
+    );
+    assert!(
+        temp_dir.join("src/control_chars.rs").exists(),
+        "Control chars file should exist"
+    );
+    assert!(
+        temp_dir.join("src/circular_a.rs").exists(),
+        "Circular A should exist"
+    );
+    assert!(
+        temp_dir.join("src/circular_b.rs").exists(),
+        "Circular B should exist"
+    );
+
     // Test file size edge cases
     let empty_file_size = std::fs::metadata(temp_dir.join("src/empty_file.rs"))?.len();
     assert_eq!(empty_file_size, 0, "Empty file should have size 0");
-    
+
     let binary_file_size = std::fs::metadata(temp_dir.join("src/binary_file.bin"))?.len();
     assert_eq!(binary_file_size, 7, "Binary file should have size 7");
-    
+
     // Test filename length edge case
     let long_filename_path = temp_dir.join(&format!("src/{}", long_filename));
     let long_filename_metadata = std::fs::metadata(&long_filename_path)?;
-    assert!(long_filename_metadata.is_file(), "Long filename should be a file");
-    
+    assert!(
+        long_filename_metadata.is_file(),
+        "Long filename should be a file"
+    );
+
     // Test directory depth edge case
     let nested_file_path = temp_dir.join("src/very/deeply/nested/directory/file.rs");
     let nested_file_metadata = std::fs::metadata(&nested_file_path)?;
-    assert!(nested_file_metadata.is_file(), "Nested file should be a file");
-    
+    assert!(
+        nested_file_metadata.is_file(),
+        "Nested file should be a file"
+    );
+
     // Test hidden file detection
     let hidden_files: Vec<_> = std::fs::read_dir(temp_dir)?
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_name().to_string_lossy().starts_with('.'))
         .collect();
     assert!(!hidden_files.is_empty(), "Should find hidden files");
-    
+
     // Test special character handling
     let special_char_content = std::fs::read_to_string(temp_dir.join("src/special-char@file.rs"))?;
-    assert!(special_char_content.contains("Special characters"), "Special char file content should be readable");
-    
+    assert!(
+        special_char_content.contains("Special characters"),
+        "Special char file content should be readable"
+    );
+
     // Test unicode handling
     let unicode_content = std::fs::read_to_string(temp_dir.join("src/unicode_测试.rs"))?;
-    assert!(unicode_content.contains("Unicode characters"), "Unicode file content should be readable");
-    
+    assert!(
+        unicode_content.contains("Unicode characters"),
+        "Unicode file content should be readable"
+    );
+
     // Test control character handling
     let control_chars_content = std::fs::read_to_string(temp_dir.join("src/control_chars.rs"))?;
-    assert!(control_chars_content.contains("control characters"), "Control chars file content should be readable");
-    
+    assert!(
+        control_chars_content.contains("control characters"),
+        "Control chars file content should be readable"
+    );
+
     // Test circular reference detection (simulated)
     let circular_a_content = std::fs::read_to_string(temp_dir.join("src/circular_a.rs"))?;
     let circular_b_content = std::fs::read_to_string(temp_dir.join("src/circular_b.rs"))?;
-    assert!(circular_a_content.contains("circular_b"), "Circular A should reference B");
-    assert!(circular_b_content.contains("circular_a"), "Circular B should reference A");
-    
+    assert!(
+        circular_a_content.contains("circular_b"),
+        "Circular A should reference B"
+    );
+    assert!(
+        circular_b_content.contains("circular_a"),
+        "Circular B should reference A"
+    );
+
     println!("Edge case validation:");
     println!("- Empty file size: {} bytes", empty_file_size);
     println!("- Binary file size: {} bytes", binary_file_size);
@@ -3171,14 +3676,14 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
 
     // Test edge case 1: Empty configuration files
     fixture.create_test_file(".rhema/empty_config.json", "")?;
-    
+
     // Test edge case 2: Malformed JSON
     fixture.create_test_file(".rhema/malformed_config.json", "{ invalid json }")?;
-    
+
     // Test edge case 3: Very large configuration
     let large_config = format!("{{\"key\": \"{}\"}}", "value".repeat(1000));
     fixture.create_test_file(".rhema/large_config.json", &large_config)?;
-    
+
     // Test edge case 4: Nested configuration with circular references (simulated)
     fixture.create_test_file(
         ".rhema/circular_config.json",
@@ -3190,7 +3695,7 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
             }
         }"#,
     )?;
-    
+
     // Test edge case 5: Configuration with special characters
     fixture.create_test_file(
         ".rhema/special_chars_config.json",
@@ -3201,7 +3706,7 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
             "tabs": "value\twith\ttabs"
         }"#,
     )?;
-    
+
     // Test edge case 6: Configuration with extreme values
     fixture.create_test_file(
         ".rhema/extreme_values_config.json",
@@ -3218,7 +3723,7 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
             "empty_object": {}
         }"#,
     )?;
-    
+
     // Test edge case 7: Configuration with deeply nested structures
     fixture.create_test_file(
         ".rhema/deep_nested_config.json",
@@ -3246,7 +3751,7 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
             }
         }"#,
     )?;
-    
+
     // Test edge case 8: Configuration with duplicate keys (should be handled gracefully)
     fixture.create_test_file(
         ".rhema/duplicate_keys_config.json",
@@ -3256,7 +3761,7 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
             "key": "third_value"
         }"#,
     )?;
-    
+
     // Test edge case 9: Configuration with comments (not valid JSON but should be handled)
     fixture.create_test_file(
         ".rhema/commented_config.json",
@@ -3267,7 +3772,7 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
             "another_key": "another_value"
         }"#,
     )?;
-    
+
     // Test edge case 10: Configuration with trailing commas (not valid JSON but should be handled)
     fixture.create_test_file(
         ".rhema/trailing_commas_config.json",
@@ -3283,88 +3788,207 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
     fixture.commit_file(".rhema/malformed_config.json", "Add malformed config")?;
     fixture.commit_file(".rhema/large_config.json", "Add large config")?;
     fixture.commit_file(".rhema/circular_config.json", "Add circular config")?;
-    fixture.commit_file(".rhema/special_chars_config.json", "Add special chars config")?;
-    fixture.commit_file(".rhema/extreme_values_config.json", "Add extreme values config")?;
+    fixture.commit_file(
+        ".rhema/special_chars_config.json",
+        "Add special chars config",
+    )?;
+    fixture.commit_file(
+        ".rhema/extreme_values_config.json",
+        "Add extreme values config",
+    )?;
     fixture.commit_file(".rhema/deep_nested_config.json", "Add deep nested config")?;
-    fixture.commit_file(".rhema/duplicate_keys_config.json", "Add duplicate keys config")?;
+    fixture.commit_file(
+        ".rhema/duplicate_keys_config.json",
+        "Add duplicate keys config",
+    )?;
     fixture.commit_file(".rhema/commented_config.json", "Add commented config")?;
-    fixture.commit_file(".rhema/trailing_commas_config.json", "Add trailing commas config")?;
+    fixture.commit_file(
+        ".rhema/trailing_commas_config.json",
+        "Add trailing commas config",
+    )?;
 
     // Test configuration validation edge cases
     let temp_dir = fixture.temp_dir.path();
-    
+
     // Verify all files exist
-    assert!(temp_dir.join(".rhema/empty_config.json").exists(), "Empty config should exist");
-    assert!(temp_dir.join(".rhema/malformed_config.json").exists(), "Malformed config should exist");
-    assert!(temp_dir.join(".rhema/large_config.json").exists(), "Large config should exist");
-    assert!(temp_dir.join(".rhema/circular_config.json").exists(), "Circular config should exist");
-    assert!(temp_dir.join(".rhema/special_chars_config.json").exists(), "Special chars config should exist");
-    assert!(temp_dir.join(".rhema/extreme_values_config.json").exists(), "Extreme values config should exist");
-    assert!(temp_dir.join(".rhema/deep_nested_config.json").exists(), "Deep nested config should exist");
-    assert!(temp_dir.join(".rhema/duplicate_keys_config.json").exists(), "Duplicate keys config should exist");
-    assert!(temp_dir.join(".rhema/commented_config.json").exists(), "Commented config should exist");
-    assert!(temp_dir.join(".rhema/trailing_commas_config.json").exists(), "Trailing commas config should exist");
-    
+    assert!(
+        temp_dir.join(".rhema/empty_config.json").exists(),
+        "Empty config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/malformed_config.json").exists(),
+        "Malformed config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/large_config.json").exists(),
+        "Large config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/circular_config.json").exists(),
+        "Circular config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/special_chars_config.json").exists(),
+        "Special chars config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/extreme_values_config.json").exists(),
+        "Extreme values config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/deep_nested_config.json").exists(),
+        "Deep nested config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/duplicate_keys_config.json").exists(),
+        "Duplicate keys config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/commented_config.json").exists(),
+        "Commented config should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/trailing_commas_config.json").exists(),
+        "Trailing commas config should exist"
+    );
+
     // Test empty configuration handling
     let empty_config_content = std::fs::read_to_string(temp_dir.join(".rhema/empty_config.json"))?;
     assert_eq!(empty_config_content, "", "Empty config should be empty");
-    
+
     // Test malformed JSON handling
-    let malformed_config_content = std::fs::read_to_string(temp_dir.join(".rhema/malformed_config.json"))?;
-    assert!(malformed_config_content.contains("invalid json"), "Malformed config should contain invalid JSON");
-    
+    let malformed_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/malformed_config.json"))?;
+    assert!(
+        malformed_config_content.contains("invalid json"),
+        "Malformed config should contain invalid JSON"
+    );
+
     // Test large configuration handling
     let large_config_content = std::fs::read_to_string(temp_dir.join(".rhema/large_config.json"))?;
-    assert!(large_config_content.len() > 1000, "Large config should be large");
-    
+    assert!(
+        large_config_content.len() > 1000,
+        "Large config should be large"
+    );
+
     // Test circular reference detection
-    let circular_config_content = std::fs::read_to_string(temp_dir.join(".rhema/circular_config.json"))?;
-    assert!(circular_config_content.contains("parent"), "Circular config should contain parent reference");
-    assert!(circular_config_content.contains("child"), "Circular config should contain child reference");
-    
+    let circular_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/circular_config.json"))?;
+    assert!(
+        circular_config_content.contains("parent"),
+        "Circular config should contain parent reference"
+    );
+    assert!(
+        circular_config_content.contains("child"),
+        "Circular config should contain child reference"
+    );
+
     // Test special characters handling
-    let special_chars_config_content = std::fs::read_to_string(temp_dir.join(".rhema/special_chars_config.json"))?;
-    assert!(special_chars_config_content.contains("@#$%^&*()"), "Special chars config should contain special characters");
-    assert!(special_chars_config_content.contains("测试"), "Special chars config should contain unicode");
-    assert!(special_chars_config_content.contains("\\n"), "Special chars config should contain newlines");
-    assert!(special_chars_config_content.contains("\\t"), "Special chars config should contain tabs");
-    
+    let special_chars_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/special_chars_config.json"))?;
+    assert!(
+        special_chars_config_content.contains("@#$%^&*()"),
+        "Special chars config should contain special characters"
+    );
+    assert!(
+        special_chars_config_content.contains("测试"),
+        "Special chars config should contain unicode"
+    );
+    assert!(
+        special_chars_config_content.contains("\\n"),
+        "Special chars config should contain newlines"
+    );
+    assert!(
+        special_chars_config_content.contains("\\t"),
+        "Special chars config should contain tabs"
+    );
+
     // Test extreme values handling
-    let extreme_values_config_content = std::fs::read_to_string(temp_dir.join(".rhema/extreme_values_config.json"))?;
-    assert!(extreme_values_config_content.contains("9223372036854775807"), "Extreme values config should contain max int");
-    assert!(extreme_values_config_content.contains("-9223372036854775808"), "Extreme values config should contain min int");
-    assert!(extreme_values_config_content.contains("null"), "Extreme values config should contain null");
-    assert!(extreme_values_config_content.contains("true"), "Extreme values config should contain true");
-    assert!(extreme_values_config_content.contains("false"), "Extreme values config should contain false");
-    
+    let extreme_values_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/extreme_values_config.json"))?;
+    assert!(
+        extreme_values_config_content.contains("9223372036854775807"),
+        "Extreme values config should contain max int"
+    );
+    assert!(
+        extreme_values_config_content.contains("-9223372036854775808"),
+        "Extreme values config should contain min int"
+    );
+    assert!(
+        extreme_values_config_content.contains("null"),
+        "Extreme values config should contain null"
+    );
+    assert!(
+        extreme_values_config_content.contains("true"),
+        "Extreme values config should contain true"
+    );
+    assert!(
+        extreme_values_config_content.contains("false"),
+        "Extreme values config should contain false"
+    );
+
     // Test deep nesting handling
-    let deep_nested_config_content = std::fs::read_to_string(temp_dir.join(".rhema/deep_nested_config.json"))?;
-    assert!(deep_nested_config_content.contains("level10"), "Deep nested config should contain level10");
-    assert!(deep_nested_config_content.contains("deeply nested"), "Deep nested config should contain nested value");
-    
+    let deep_nested_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/deep_nested_config.json"))?;
+    assert!(
+        deep_nested_config_content.contains("level10"),
+        "Deep nested config should contain level10"
+    );
+    assert!(
+        deep_nested_config_content.contains("deeply nested"),
+        "Deep nested config should contain nested value"
+    );
+
     // Test duplicate keys handling
-    let duplicate_keys_config_content = std::fs::read_to_string(temp_dir.join(".rhema/duplicate_keys_config.json"))?;
-    assert!(duplicate_keys_config_content.contains("first_value"), "Duplicate keys config should contain first value");
-    assert!(duplicate_keys_config_content.contains("second_value"), "Duplicate keys config should contain second value");
-    assert!(duplicate_keys_config_content.contains("third_value"), "Duplicate keys config should contain third value");
-    
+    let duplicate_keys_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/duplicate_keys_config.json"))?;
+    assert!(
+        duplicate_keys_config_content.contains("first_value"),
+        "Duplicate keys config should contain first value"
+    );
+    assert!(
+        duplicate_keys_config_content.contains("second_value"),
+        "Duplicate keys config should contain second value"
+    );
+    assert!(
+        duplicate_keys_config_content.contains("third_value"),
+        "Duplicate keys config should contain third value"
+    );
+
     // Test commented configuration handling
-    let commented_config_content = std::fs::read_to_string(temp_dir.join(".rhema/commented_config.json"))?;
-    assert!(commented_config_content.contains("// This is a comment"), "Commented config should contain comment");
-    assert!(commented_config_content.contains("/* This is another comment */"), "Commented config should contain block comment");
-    
+    let commented_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/commented_config.json"))?;
+    assert!(
+        commented_config_content.contains("// This is a comment"),
+        "Commented config should contain comment"
+    );
+    assert!(
+        commented_config_content.contains("/* This is another comment */"),
+        "Commented config should contain block comment"
+    );
+
     // Test trailing commas handling
-    let trailing_commas_config_content = std::fs::read_to_string(temp_dir.join(".rhema/trailing_commas_config.json"))?;
-    assert!(trailing_commas_config_content.contains("value3"), "Trailing commas config should contain value3");
-    assert!(trailing_commas_config_content.contains(","), "Trailing commas config should contain comma");
-    
+    let trailing_commas_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/trailing_commas_config.json"))?;
+    assert!(
+        trailing_commas_config_content.contains("value3"),
+        "Trailing commas config should contain value3"
+    );
+    assert!(
+        trailing_commas_config_content.contains(","),
+        "Trailing commas config should contain comma"
+    );
+
     // Test file size edge cases
     let empty_config_size = std::fs::metadata(temp_dir.join(".rhema/empty_config.json"))?.len();
     assert_eq!(empty_config_size, 0, "Empty config should have size 0");
-    
+
     let large_config_size = std::fs::metadata(temp_dir.join(".rhema/large_config.json"))?.len();
-    assert!(large_config_size > 1000, "Large config should have size > 1000");
-    
+    assert!(
+        large_config_size > 1000,
+        "Large config should have size > 1000"
+    );
+
     println!("Configuration validation edge cases:");
     println!("- Empty config size: {} bytes", empty_config_size);
     println!("- Large config size: {} bytes", large_config_size);
@@ -3649,84 +4273,210 @@ impl PerformanceWorkload {
     )?;
 
     // Commit all files
-    fixture.commit_file(".rhema/performance_benchmark.json", "Add performance benchmark config")?;
+    fixture.commit_file(
+        ".rhema/performance_benchmark.json",
+        "Add performance benchmark config",
+    )?;
     fixture.commit_file("src/performance_test.rs", "Add performance test framework")?;
-    fixture.commit_file("src/performance_workload.rs", "Add performance workload simulation")?;
+    fixture.commit_file(
+        "src/performance_workload.rs",
+        "Add performance workload simulation",
+    )?;
 
     // Test performance benchmarking validation
     let temp_dir = fixture.temp_dir.path();
-    
+
     // Verify all files exist
-    assert!(temp_dir.join(".rhema/performance_benchmark.json").exists(), "Performance benchmark config should exist");
-    assert!(temp_dir.join("src/performance_test.rs").exists(), "Performance test should exist");
-    assert!(temp_dir.join("src/performance_workload.rs").exists(), "Performance workload should exist");
-    
+    assert!(
+        temp_dir.join(".rhema/performance_benchmark.json").exists(),
+        "Performance benchmark config should exist"
+    );
+    assert!(
+        temp_dir.join("src/performance_test.rs").exists(),
+        "Performance test should exist"
+    );
+    assert!(
+        temp_dir.join("src/performance_workload.rs").exists(),
+        "Performance workload should exist"
+    );
+
     // Validate performance benchmark configuration
-    let benchmark_config_content = std::fs::read_to_string(temp_dir.join(".rhema/performance_benchmark.json"))?;
+    let benchmark_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/performance_benchmark.json"))?;
     let benchmark_config: serde_json::Value = serde_json::from_str(&benchmark_config_content)?;
-    
+
     // Validate benchmark types
     let benchmarks = benchmark_config["benchmarks"].as_object().unwrap();
-    assert!(benchmarks.contains_key("memory_usage"), "Memory usage benchmark should be defined");
-    assert!(benchmarks.contains_key("cpu_usage"), "CPU usage benchmark should be defined");
-    assert!(benchmarks.contains_key("disk_io"), "Disk I/O benchmark should be defined");
-    assert!(benchmarks.contains_key("network_io"), "Network I/O benchmark should be defined");
-    
+    assert!(
+        benchmarks.contains_key("memory_usage"),
+        "Memory usage benchmark should be defined"
+    );
+    assert!(
+        benchmarks.contains_key("cpu_usage"),
+        "CPU usage benchmark should be defined"
+    );
+    assert!(
+        benchmarks.contains_key("disk_io"),
+        "Disk I/O benchmark should be defined"
+    );
+    assert!(
+        benchmarks.contains_key("network_io"),
+        "Network I/O benchmark should be defined"
+    );
+
     // Validate memory usage benchmark configuration
     let memory_benchmark = &benchmarks["memory_usage"];
-    assert!(memory_benchmark["enabled"].as_bool().unwrap(), "Memory benchmark should be enabled");
-    assert_eq!(memory_benchmark["threshold_mb"], 100, "Memory threshold should be 100 MB");
-    assert_eq!(memory_benchmark["measurement_interval_ms"], 100, "Memory measurement interval should be 100ms");
-    assert_eq!(memory_benchmark["max_duration_seconds"], 30, "Memory max duration should be 30s");
-    
+    assert!(
+        memory_benchmark["enabled"].as_bool().unwrap(),
+        "Memory benchmark should be enabled"
+    );
+    assert_eq!(
+        memory_benchmark["threshold_mb"], 100,
+        "Memory threshold should be 100 MB"
+    );
+    assert_eq!(
+        memory_benchmark["measurement_interval_ms"], 100,
+        "Memory measurement interval should be 100ms"
+    );
+    assert_eq!(
+        memory_benchmark["max_duration_seconds"], 30,
+        "Memory max duration should be 30s"
+    );
+
     // Validate CPU usage benchmark configuration
     let cpu_benchmark = &benchmarks["cpu_usage"];
-    assert!(cpu_benchmark["enabled"].as_bool().unwrap(), "CPU benchmark should be enabled");
-    assert_eq!(cpu_benchmark["threshold_percent"], 80, "CPU threshold should be 80%");
-    assert_eq!(cpu_benchmark["measurement_interval_ms"], 50, "CPU measurement interval should be 50ms");
-    assert_eq!(cpu_benchmark["max_duration_seconds"], 60, "CPU max duration should be 60s");
-    
+    assert!(
+        cpu_benchmark["enabled"].as_bool().unwrap(),
+        "CPU benchmark should be enabled"
+    );
+    assert_eq!(
+        cpu_benchmark["threshold_percent"], 80,
+        "CPU threshold should be 80%"
+    );
+    assert_eq!(
+        cpu_benchmark["measurement_interval_ms"], 50,
+        "CPU measurement interval should be 50ms"
+    );
+    assert_eq!(
+        cpu_benchmark["max_duration_seconds"], 60,
+        "CPU max duration should be 60s"
+    );
+
     // Validate profiling configuration
     let profiling = &benchmark_config["profiling"];
-    assert!(profiling["enabled"].as_bool().unwrap(), "Profiling should be enabled");
-    assert_eq!(profiling["output_format"], "json", "Output format should be JSON");
-    assert!(profiling["include_stack_traces"].as_bool().unwrap(), "Stack traces should be included");
+    assert!(
+        profiling["enabled"].as_bool().unwrap(),
+        "Profiling should be enabled"
+    );
+    assert_eq!(
+        profiling["output_format"], "json",
+        "Output format should be JSON"
+    );
+    assert!(
+        profiling["include_stack_traces"].as_bool().unwrap(),
+        "Stack traces should be included"
+    );
     assert_eq!(profiling["sample_rate"], 0.1, "Sample rate should be 0.1");
-    
+
     // Validate alert thresholds
     let alerts = &benchmark_config["alerts"];
-    assert_eq!(alerts["memory_alert_threshold_mb"], 200, "Memory alert threshold should be 200 MB");
-    assert_eq!(alerts["cpu_alert_threshold_percent"], 90, "CPU alert threshold should be 90%");
-    assert_eq!(alerts["disk_alert_threshold_mb_per_sec"], 100, "Disk alert threshold should be 100 MB/s");
-    assert_eq!(alerts["network_alert_threshold_mb_per_sec"], 20, "Network alert threshold should be 20 MB/s");
-    
+    assert_eq!(
+        alerts["memory_alert_threshold_mb"], 200,
+        "Memory alert threshold should be 200 MB"
+    );
+    assert_eq!(
+        alerts["cpu_alert_threshold_percent"], 90,
+        "CPU alert threshold should be 90%"
+    );
+    assert_eq!(
+        alerts["disk_alert_threshold_mb_per_sec"], 100,
+        "Disk alert threshold should be 100 MB/s"
+    );
+    assert_eq!(
+        alerts["network_alert_threshold_mb_per_sec"], 20,
+        "Network alert threshold should be 20 MB/s"
+    );
+
     // Test performance test framework
-    let performance_test_content = std::fs::read_to_string(temp_dir.join("src/performance_test.rs"))?;
-    assert!(performance_test_content.contains("PerformanceTest"), "PerformanceTest struct should be defined");
-    assert!(performance_test_content.contains("Measurement"), "Measurement struct should be defined");
-    assert!(performance_test_content.contains("start_benchmark"), "start_benchmark method should be present");
-    assert!(performance_test_content.contains("record_measurement"), "record_measurement method should be present");
-    assert!(performance_test_content.contains("check_thresholds"), "check_thresholds method should be present");
-    assert!(performance_test_content.contains("generate_report"), "generate_report method should be present");
-    
+    let performance_test_content =
+        std::fs::read_to_string(temp_dir.join("src/performance_test.rs"))?;
+    assert!(
+        performance_test_content.contains("PerformanceTest"),
+        "PerformanceTest struct should be defined"
+    );
+    assert!(
+        performance_test_content.contains("Measurement"),
+        "Measurement struct should be defined"
+    );
+    assert!(
+        performance_test_content.contains("start_benchmark"),
+        "start_benchmark method should be present"
+    );
+    assert!(
+        performance_test_content.contains("record_measurement"),
+        "record_measurement method should be present"
+    );
+    assert!(
+        performance_test_content.contains("check_thresholds"),
+        "check_thresholds method should be present"
+    );
+    assert!(
+        performance_test_content.contains("generate_report"),
+        "generate_report method should be present"
+    );
+
     // Test performance workload simulation
-    let performance_workload_content = std::fs::read_to_string(temp_dir.join("src/performance_workload.rs"))?;
-    assert!(performance_workload_content.contains("PerformanceWorkload"), "PerformanceWorkload struct should be defined");
-    assert!(performance_workload_content.contains("run_cpu_intensive_workload"), "CPU intensive workload should be present");
-    assert!(performance_workload_content.contains("run_memory_intensive_workload"), "Memory intensive workload should be present");
-    assert!(performance_workload_content.contains("run_disk_io_workload"), "Disk I/O workload should be present");
-    assert!(performance_workload_content.contains("run_network_io_workload"), "Network I/O workload should be present");
-    
+    let performance_workload_content =
+        std::fs::read_to_string(temp_dir.join("src/performance_workload.rs"))?;
+    assert!(
+        performance_workload_content.contains("PerformanceWorkload"),
+        "PerformanceWorkload struct should be defined"
+    );
+    assert!(
+        performance_workload_content.contains("run_cpu_intensive_workload"),
+        "CPU intensive workload should be present"
+    );
+    assert!(
+        performance_workload_content.contains("run_memory_intensive_workload"),
+        "Memory intensive workload should be present"
+    );
+    assert!(
+        performance_workload_content.contains("run_disk_io_workload"),
+        "Disk I/O workload should be present"
+    );
+    assert!(
+        performance_workload_content.contains("run_network_io_workload"),
+        "Network I/O workload should be present"
+    );
+
     println!("Performance benchmarking validation:");
-    println!("- Memory benchmark enabled: {}", memory_benchmark["enabled"]);
+    println!(
+        "- Memory benchmark enabled: {}",
+        memory_benchmark["enabled"]
+    );
     println!("- CPU benchmark enabled: {}", cpu_benchmark["enabled"]);
-    println!("- Disk I/O benchmark enabled: {}", benchmarks["disk_io"]["enabled"]);
-    println!("- Network I/O benchmark enabled: {}", benchmarks["network_io"]["enabled"]);
+    println!(
+        "- Disk I/O benchmark enabled: {}",
+        benchmarks["disk_io"]["enabled"]
+    );
+    println!(
+        "- Network I/O benchmark enabled: {}",
+        benchmarks["network_io"]["enabled"]
+    );
     println!("- Profiling enabled: {}", profiling["enabled"]);
-    println!("- Memory threshold: {} MB", memory_benchmark["threshold_mb"]);
+    println!(
+        "- Memory threshold: {} MB",
+        memory_benchmark["threshold_mb"]
+    );
     println!("- CPU threshold: {}%", cpu_benchmark["threshold_percent"]);
-    println!("- Memory alert threshold: {} MB", alerts["memory_alert_threshold_mb"]);
-    println!("- CPU alert threshold: {}%", alerts["cpu_alert_threshold_percent"]);
+    println!(
+        "- Memory alert threshold: {} MB",
+        alerts["memory_alert_threshold_mb"]
+    );
+    println!(
+        "- CPU alert threshold: {}%",
+        alerts["cpu_alert_threshold_percent"]
+    );
     println!("- Sample rate: {}", profiling["sample_rate"]);
 
     Ok(())
@@ -3949,106 +4699,182 @@ impl GoodQualityCode {
 
     // Test code quality validation
     let temp_dir = fixture.temp_dir.path();
-    
+
     // Verify all files exist
-    assert!(temp_dir.join("src/poor_quality.rs").exists(), "Poor quality code should exist");
-    assert!(temp_dir.join("src/good_quality.rs").exists(), "Good quality code should exist");
-    assert!(temp_dir.join(".rhema/code_quality.json").exists(), "Code quality config should exist");
-    
+    assert!(
+        temp_dir.join("src/poor_quality.rs").exists(),
+        "Poor quality code should exist"
+    );
+    assert!(
+        temp_dir.join("src/good_quality.rs").exists(),
+        "Good quality code should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/code_quality.json").exists(),
+        "Code quality config should exist"
+    );
+
     // Validate code quality configuration
-    let quality_config_content = std::fs::read_to_string(temp_dir.join(".rhema/code_quality.json"))?;
+    let quality_config_content =
+        std::fs::read_to_string(temp_dir.join(".rhema/code_quality.json"))?;
     let quality_config: serde_json::Value = serde_json::from_str(&quality_config_content)?;
-    
+
     // Validate rules
     let rules = quality_config["rules"].as_object().unwrap();
-    assert_eq!(rules["max_function_parameters"], 5, "Max function parameters should be 5");
-    assert_eq!(rules["max_function_length"], 50, "Max function length should be 50");
-    assert_eq!(rules["max_line_length"], 120, "Max line length should be 120");
-    assert_eq!(rules["max_nesting_depth"], 4, "Max nesting depth should be 4");
-    assert!(rules["forbid_magic_numbers"].as_bool().unwrap(), "Magic numbers should be forbidden");
-    assert!(rules["forbid_unused_variables"].as_bool().unwrap(), "Unused variables should be forbidden");
-    assert!(rules["forbid_dead_code"].as_bool().unwrap(), "Dead code should be forbidden");
-    assert!(rules["forbid_duplicate_code"].as_bool().unwrap(), "Duplicate code should be forbidden");
-    assert!(rules["forbid_long_lines"].as_bool().unwrap(), "Long lines should be forbidden");
-    assert!(rules["forbid_inconsistent_naming"].as_bool().unwrap(), "Inconsistent naming should be forbidden");
-    
+    assert_eq!(
+        rules["max_function_parameters"], 5,
+        "Max function parameters should be 5"
+    );
+    assert_eq!(
+        rules["max_function_length"], 50,
+        "Max function length should be 50"
+    );
+    assert_eq!(
+        rules["max_line_length"], 120,
+        "Max line length should be 120"
+    );
+    assert_eq!(
+        rules["max_nesting_depth"], 4,
+        "Max nesting depth should be 4"
+    );
+    assert!(
+        rules["forbid_magic_numbers"].as_bool().unwrap(),
+        "Magic numbers should be forbidden"
+    );
+    assert!(
+        rules["forbid_unused_variables"].as_bool().unwrap(),
+        "Unused variables should be forbidden"
+    );
+    assert!(
+        rules["forbid_dead_code"].as_bool().unwrap(),
+        "Dead code should be forbidden"
+    );
+    assert!(
+        rules["forbid_duplicate_code"].as_bool().unwrap(),
+        "Duplicate code should be forbidden"
+    );
+    assert!(
+        rules["forbid_long_lines"].as_bool().unwrap(),
+        "Long lines should be forbidden"
+    );
+    assert!(
+        rules["forbid_inconsistent_naming"].as_bool().unwrap(),
+        "Inconsistent naming should be forbidden"
+    );
+
     // Validate thresholds
     let thresholds = quality_config["thresholds"].as_object().unwrap();
-    assert_eq!(thresholds["cyclomatic_complexity"], 10, "Cyclomatic complexity threshold should be 10");
-    assert_eq!(thresholds["maintainability_index"], 65, "Maintainability index threshold should be 65");
-    assert_eq!(thresholds["code_smell_density"], 0.1, "Code smell density threshold should be 0.1");
-    assert_eq!(thresholds["duplication_percentage"], 5.0, "Duplication percentage threshold should be 5.0");
-    
+    assert_eq!(
+        thresholds["cyclomatic_complexity"], 10,
+        "Cyclomatic complexity threshold should be 10"
+    );
+    assert_eq!(
+        thresholds["maintainability_index"], 65,
+        "Maintainability index threshold should be 65"
+    );
+    assert_eq!(
+        thresholds["code_smell_density"], 0.1,
+        "Code smell density threshold should be 0.1"
+    );
+    assert_eq!(
+        thresholds["duplication_percentage"], 5.0,
+        "Duplication percentage threshold should be 5.0"
+    );
+
     // Validate exclusions
     let exclusions = quality_config["exclusions"].as_array().unwrap();
     assert_eq!(exclusions.len(), 3, "Should have 3 exclusions");
-    assert!(exclusions.contains(&serde_json::Value::String("**/generated/**".to_string())), "Should exclude generated files");
-    assert!(exclusions.contains(&serde_json::Value::String("**/vendor/**".to_string())), "Should exclude vendor files");
-    assert!(exclusions.contains(&serde_json::Value::String("**/node_modules/**".to_string())), "Should exclude node_modules");
-    
+    assert!(
+        exclusions.contains(&serde_json::Value::String("**/generated/**".to_string())),
+        "Should exclude generated files"
+    );
+    assert!(
+        exclusions.contains(&serde_json::Value::String("**/vendor/**".to_string())),
+        "Should exclude vendor files"
+    );
+    assert!(
+        exclusions.contains(&serde_json::Value::String("**/node_modules/**".to_string())),
+        "Should exclude node_modules"
+    );
+
     // Test poor quality code detection
     let poor_quality_content = std::fs::read_to_string(temp_dir.join("src/poor_quality.rs"))?;
-    
+
     // Check for code quality issues
     let magic_numbers = ["42", "10", "20", "30", "40", "50", "100"];
-    let magic_number_count = magic_numbers.iter()
+    let magic_number_count = magic_numbers
+        .iter()
         .filter(|&&num| poor_quality_content.contains(num))
         .count();
     assert!(magic_number_count > 0, "Should detect magic numbers");
-    
-    let long_lines = poor_quality_content.lines()
+
+    let long_lines = poor_quality_content
+        .lines()
         .filter(|line| line.len() > 120)
         .count();
     assert!(long_lines > 0, "Should detect long lines");
-    
-    let deep_nesting = poor_quality_content.lines()
-        .filter(|line| line.contains("if param1.len() > 10") || 
-                       line.contains("if param2.len() > 20") || 
-                       line.contains("if param3.len() > 30") || 
-                       line.contains("if param4.len() > 40") || 
-                       line.contains("if param5.len() > 50"))
+
+    let deep_nesting = poor_quality_content
+        .lines()
+        .filter(|line| {
+            line.contains("if param1.len() > 10")
+                || line.contains("if param2.len() > 20")
+                || line.contains("if param3.len() > 30")
+                || line.contains("if param4.len() > 40")
+                || line.contains("if param5.len() > 50")
+        })
         .count();
     assert!(deep_nesting > 0, "Should detect deep nesting");
-    
-    let unused_variables = poor_quality_content.lines()
+
+    let unused_variables = poor_quality_content
+        .lines()
         .filter(|line| line.contains("unused_variable") || line.contains("unused_field"))
         .count();
     assert!(unused_variables > 0, "Should detect unused variables");
-    
-    let dead_code = poor_quality_content.lines()
+
+    let dead_code = poor_quality_content
+        .lines()
         .filter(|line| line.contains("if false"))
         .count();
     assert!(dead_code > 0, "Should detect dead code");
-    
-    let inconsistent_naming = poor_quality_content.lines()
+
+    let inconsistent_naming = poor_quality_content
+        .lines()
         .filter(|line| line.contains("VariableName") || line.contains("VARIABLE_NAME"))
         .count();
     assert!(inconsistent_naming > 0, "Should detect inconsistent naming");
-    
+
     // Test good quality code validation
     let good_quality_content = std::fs::read_to_string(temp_dir.join("src/good_quality.rs"))?;
-    
+
     // Check for good practices
-    let constants = good_quality_content.lines()
+    let constants = good_quality_content
+        .lines()
         .filter(|line| line.contains("const "))
         .count();
     assert!(constants > 0, "Should have constants defined");
-    
-    let error_handling = good_quality_content.lines()
+
+    let error_handling = good_quality_content
+        .lines()
         .filter(|line| line.contains("Result<") || line.contains("Err(") || line.contains("Ok("))
         .count();
     assert!(error_handling > 0, "Should have proper error handling");
-    
-    let meaningful_names = good_quality_content.lines()
+
+    let meaningful_names = good_quality_content
+        .lines()
         .filter(|line| line.contains("MAX_COUNTER_VALUE") || line.contains("DEFAULT_DATA_SIZE"))
         .count();
-    assert!(meaningful_names > 0, "Should have meaningful variable names");
-    
-    let small_functions = good_quality_content.lines()
+    assert!(
+        meaningful_names > 0,
+        "Should have meaningful variable names"
+    );
+
+    let small_functions = good_quality_content
+        .lines()
         .filter(|line| line.contains("fn ") && !line.contains("impl"))
         .count();
     assert!(small_functions > 0, "Should have small, focused functions");
-    
+
     println!("Code quality validation:");
     println!("- Magic numbers detected: {}", magic_number_count);
     println!("- Long lines detected: {}", long_lines);
@@ -4060,10 +4886,19 @@ impl GoodQualityCode {
     println!("- Error handling patterns: {}", error_handling);
     println!("- Meaningful names: {}", meaningful_names);
     println!("- Small functions: {}", small_functions);
-    println!("- Max function parameters: {}", rules["max_function_parameters"]);
+    println!(
+        "- Max function parameters: {}",
+        rules["max_function_parameters"]
+    );
     println!("- Max line length: {}", rules["max_line_length"]);
-    println!("- Cyclomatic complexity threshold: {}", thresholds["cyclomatic_complexity"]);
-    println!("- Maintainability index threshold: {}", thresholds["maintainability_index"]);
+    println!(
+        "- Cyclomatic complexity threshold: {}",
+        thresholds["cyclomatic_complexity"]
+    );
+    println!(
+        "- Maintainability index threshold: {}",
+        thresholds["maintainability_index"]
+    );
 
     Ok(())
 }
@@ -4536,138 +5371,220 @@ MIT License
 
     // Commit all files
     fixture.commit_file("src/well_documented.rs", "Add well documented code example")?;
-    fixture.commit_file("src/poorly_documented.rs", "Add poorly documented code example")?;
-    fixture.commit_file(".rhema/documentation.json", "Add documentation configuration")?;
+    fixture.commit_file(
+        "src/poorly_documented.rs",
+        "Add poorly documented code example",
+    )?;
+    fixture.commit_file(
+        ".rhema/documentation.json",
+        "Add documentation configuration",
+    )?;
     fixture.commit_file("README.md", "Add README documentation")?;
 
     // Test documentation validation
     let temp_dir = fixture.temp_dir.path();
-    
+
     // Verify all files exist
-    assert!(temp_dir.join("src/well_documented.rs").exists(), "Well documented code should exist");
-    assert!(temp_dir.join("src/poorly_documented.rs").exists(), "Poorly documented code should exist");
-    assert!(temp_dir.join(".rhema/documentation.json").exists(), "Documentation config should exist");
+    assert!(
+        temp_dir.join("src/well_documented.rs").exists(),
+        "Well documented code should exist"
+    );
+    assert!(
+        temp_dir.join("src/poorly_documented.rs").exists(),
+        "Poorly documented code should exist"
+    );
+    assert!(
+        temp_dir.join(".rhema/documentation.json").exists(),
+        "Documentation config should exist"
+    );
     assert!(temp_dir.join("README.md").exists(), "README should exist");
-    
+
     // Validate documentation configuration
     let doc_config_content = std::fs::read_to_string(temp_dir.join(".rhema/documentation.json"))?;
     let doc_config: serde_json::Value = serde_json::from_str(&doc_config_content)?;
-    
+
     // Validate rules
     let rules = doc_config["rules"].as_object().unwrap();
-    assert!(rules["require_module_documentation"].as_bool().unwrap(), "Module documentation should be required");
-    assert!(rules["require_function_documentation"].as_bool().unwrap(), "Function documentation should be required");
-    assert!(rules["require_struct_documentation"].as_bool().unwrap(), "Struct documentation should be required");
-    assert!(rules["require_examples"].as_bool().unwrap(), "Examples should be required");
-    assert!(rules["require_param_documentation"].as_bool().unwrap(), "Parameter documentation should be required");
-    assert!(rules["require_return_documentation"].as_bool().unwrap(), "Return documentation should be required");
-    
+    assert!(
+        rules["require_module_documentation"].as_bool().unwrap(),
+        "Module documentation should be required"
+    );
+    assert!(
+        rules["require_function_documentation"].as_bool().unwrap(),
+        "Function documentation should be required"
+    );
+    assert!(
+        rules["require_struct_documentation"].as_bool().unwrap(),
+        "Struct documentation should be required"
+    );
+    assert!(
+        rules["require_examples"].as_bool().unwrap(),
+        "Examples should be required"
+    );
+    assert!(
+        rules["require_param_documentation"].as_bool().unwrap(),
+        "Parameter documentation should be required"
+    );
+    assert!(
+        rules["require_return_documentation"].as_bool().unwrap(),
+        "Return documentation should be required"
+    );
+
     // Validate standards
     let standards = doc_config["standards"].as_object().unwrap();
-    assert!(standards["rust_doc_style"].as_bool().unwrap(), "Rust doc style should be required");
-    assert!(standards["markdown_formatting"].as_bool().unwrap(), "Markdown formatting should be required");
-    assert!(standards["code_examples"].as_bool().unwrap(), "Code examples should be required");
-    
+    assert!(
+        standards["rust_doc_style"].as_bool().unwrap(),
+        "Rust doc style should be required"
+    );
+    assert!(
+        standards["markdown_formatting"].as_bool().unwrap(),
+        "Markdown formatting should be required"
+    );
+    assert!(
+        standards["code_examples"].as_bool().unwrap(),
+        "Code examples should be required"
+    );
+
     // Validate coverage
     let coverage = doc_config["coverage"].as_object().unwrap();
-    assert_eq!(coverage["min_public_api_coverage"], 0.9, "Min public API coverage should be 0.9");
-    assert_eq!(coverage["min_private_api_coverage"], 0.5, "Min private API coverage should be 0.5");
-    assert_eq!(coverage["min_example_coverage"], 0.7, "Min example coverage should be 0.7");
-    
+    assert_eq!(
+        coverage["min_public_api_coverage"], 0.9,
+        "Min public API coverage should be 0.9"
+    );
+    assert_eq!(
+        coverage["min_private_api_coverage"], 0.5,
+        "Min private API coverage should be 0.5"
+    );
+    assert_eq!(
+        coverage["min_example_coverage"], 0.7,
+        "Min example coverage should be 0.7"
+    );
+
     // Validate quality
     let quality = doc_config["quality"].as_object().unwrap();
-    assert!(quality["spell_check"].as_bool().unwrap(), "Spell check should be enabled");
-    assert!(quality["grammar_check"].as_bool().unwrap(), "Grammar check should be enabled");
-    assert!(quality["link_validation"].as_bool().unwrap(), "Link validation should be enabled");
-    assert!(quality["example_validation"].as_bool().unwrap(), "Example validation should be enabled");
-    
+    assert!(
+        quality["spell_check"].as_bool().unwrap(),
+        "Spell check should be enabled"
+    );
+    assert!(
+        quality["grammar_check"].as_bool().unwrap(),
+        "Grammar check should be enabled"
+    );
+    assert!(
+        quality["link_validation"].as_bool().unwrap(),
+        "Link validation should be enabled"
+    );
+    assert!(
+        quality["example_validation"].as_bool().unwrap(),
+        "Example validation should be enabled"
+    );
+
     // Test well documented code validation
     let well_documented_content = std::fs::read_to_string(temp_dir.join("src/well_documented.rs"))?;
-    
+
     // Check for good documentation practices
-    let module_docs = well_documented_content.lines()
+    let module_docs = well_documented_content
+        .lines()
         .filter(|line| line.contains("//! #"))
         .count();
     assert!(module_docs > 0, "Should have module documentation");
-    
-    let function_docs = well_documented_content.lines()
+
+    let function_docs = well_documented_content
+        .lines()
         .filter(|line| line.contains("/// "))
         .count();
     assert!(function_docs > 0, "Should have function documentation");
-    
-    let examples = well_documented_content.lines()
+
+    let examples = well_documented_content
+        .lines()
         .filter(|line| line.contains("```"))
         .count();
     assert!(examples > 0, "Should have code examples");
-    
-    let param_docs = well_documented_content.lines()
+
+    let param_docs = well_documented_content
+        .lines()
         .filter(|line| line.contains("# Arguments"))
         .count();
     assert!(param_docs > 0, "Should have parameter documentation");
-    
-    let return_docs = well_documented_content.lines()
+
+    let return_docs = well_documented_content
+        .lines()
         .filter(|line| line.contains("# Returns"))
         .count();
     assert!(return_docs > 0, "Should have return documentation");
-    
-    let error_docs = well_documented_content.lines()
+
+    let error_docs = well_documented_content
+        .lines()
         .filter(|line| line.contains("# Errors"))
         .count();
     assert!(error_docs > 0, "Should have error documentation");
-    
-    let test_docs = well_documented_content.lines()
+
+    let test_docs = well_documented_content
+        .lines()
         .filter(|line| line.contains("# Examples"))
         .count();
     assert!(test_docs > 0, "Should have example documentation");
-    
+
     // Test poorly documented code validation
-    let poorly_documented_content = std::fs::read_to_string(temp_dir.join("src/poorly_documented.rs"))?;
-    
+    let poorly_documented_content =
+        std::fs::read_to_string(temp_dir.join("src/poorly_documented.rs"))?;
+
     // Check for missing documentation
-    let missing_docs = poorly_documented_content.lines()
+    let missing_docs = poorly_documented_content
+        .lines()
         .filter(|line| line.contains("pub fn ") || line.contains("pub struct "))
         .filter(|line| !line.contains("///"))
         .count();
     assert!(missing_docs > 0, "Should detect missing documentation");
-    
-    let no_examples = poorly_documented_content.lines()
+
+    let no_examples = poorly_documented_content
+        .lines()
         .filter(|line| line.contains("```"))
         .count();
-    assert_eq!(no_examples, 0, "Should have no examples in poorly documented code");
-    
-    let no_param_docs = poorly_documented_content.lines()
+    assert_eq!(
+        no_examples, 0,
+        "Should have no examples in poorly documented code"
+    );
+
+    let no_param_docs = poorly_documented_content
+        .lines()
         .filter(|line| line.contains("# Arguments"))
         .count();
     assert_eq!(no_param_docs, 0, "Should have no parameter documentation");
-    
-    let no_return_docs = poorly_documented_content.lines()
+
+    let no_return_docs = poorly_documented_content
+        .lines()
         .filter(|line| line.contains("# Returns"))
         .count();
     assert_eq!(no_return_docs, 0, "Should have no return documentation");
-    
+
     // Test README validation
     let readme_content = std::fs::read_to_string(temp_dir.join("README.md"))?;
-    
-    let readme_sections = readme_content.lines()
+
+    let readme_sections = readme_content
+        .lines()
         .filter(|line| line.starts_with("#"))
         .count();
     assert!(readme_sections > 0, "Should have README sections");
-    
-    let readme_examples = readme_content.lines()
+
+    let readme_examples = readme_content
+        .lines()
         .filter(|line| line.contains("```"))
         .count();
     assert!(readme_examples > 0, "Should have README examples");
-    
-    let readme_installation = readme_content.lines()
+
+    let readme_installation = readme_content
+        .lines()
         .filter(|line| line.contains("Installation"))
         .count();
     assert!(readme_installation > 0, "Should have installation section");
-    
-    let readme_usage = readme_content.lines()
+
+    let readme_usage = readme_content
+        .lines()
         .filter(|line| line.contains("Usage"))
         .count();
     assert!(readme_usage > 0, "Should have usage section");
-    
+
     println!("Documentation validation:");
     println!("- Module documentation: {}", module_docs);
     println!("- Function documentation: {}", function_docs);
@@ -4679,8 +5596,14 @@ MIT License
     println!("- Missing documentation: {}", missing_docs);
     println!("- README sections: {}", readme_sections);
     println!("- README examples: {}", readme_examples);
-    println!("- Min public API coverage: {}", coverage["min_public_api_coverage"]);
-    println!("- Min example coverage: {}", coverage["min_example_coverage"]);
+    println!(
+        "- Min public API coverage: {}",
+        coverage["min_public_api_coverage"]
+    );
+    println!(
+        "- Min example coverage: {}",
+        coverage["min_example_coverage"]
+    );
     println!("- Spell check enabled: {}", quality["spell_check"]);
     println!("- Grammar check enabled: {}", quality["grammar_check"]);
 

@@ -189,10 +189,10 @@ fn main() {
     pub fn create_test_env_with_rust_project() -> RhemaResult<(TempDir, Rhema)> {
         let (temp_dir, rhema) = Self::create_test_rhema()?;
         let repo_path = temp_dir.path().to_path_buf();
-        
+
         // Create minimal Rust project
         Self::create_minimal_rust_project(&repo_path)?;
-        
+
         Ok((temp_dir, rhema))
     }
 

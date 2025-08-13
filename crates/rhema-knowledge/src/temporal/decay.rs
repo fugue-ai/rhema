@@ -18,9 +18,9 @@ use chrono::{DateTime, Utc};
 use std::time::Duration;
 use tracing::{debug, trace};
 
+use super::types::{AccessType, AdaptiveDecayConfig, ContentAccess, DecayFunction};
+use super::{TemporalError, TemporalResult};
 use crate::types::ContentType;
-use super::types::{DecayFunction, AdaptiveDecayConfig, ContentAccess, AccessType};
-use super::{TemporalResult, TemporalError};
 
 /// Decay function calculator for temporal relevance
 pub struct DecayCalculator {
@@ -36,7 +36,9 @@ impl DecayCalculator {
     }
 
     /// Create a new decay calculator with custom functions
-    pub fn with_functions(decay_functions: std::collections::HashMap<ContentType, DecayFunction>) -> Self {
+    pub fn with_functions(
+        decay_functions: std::collections::HashMap<ContentType, DecayFunction>,
+    ) -> Self {
         Self { decay_functions }
     }
 
@@ -51,24 +53,26 @@ impl DecayCalculator {
         let age = query_time.signed_duration_since(*created_at);
         let age_duration = Duration::from_secs(age.num_seconds() as u64);
 
-        let decay_function = self.decay_functions
-            .get(content_type)
-            .ok_or_else(|| TemporalError::ConfigurationError(
-                format!("No decay function configured for content type: {:?}", content_type)
-            ))?;
+        let decay_function = self.decay_functions.get(content_type).ok_or_else(|| {
+            TemporalError::ConfigurationError(format!(
+                "No decay function configured for content type: {:?}",
+                content_type
+            ))
+        })?;
 
         let base_decay = decay_function.calculate_decay(age_duration)?;
 
         // Apply adaptive adjustments if access history is available
         if let Some(history) = access_history {
-            let adaptive_adjustment = self.calculate_adaptive_adjustment(decay_function, history)?;
+            let adaptive_adjustment =
+                self.calculate_adaptive_adjustment(decay_function, history)?;
             let final_decay = base_decay * adaptive_adjustment;
-            
+
             debug!(
                 "Decay calculation for {:?}: base={:.3}, adaptive={:.3}, final={:.3}",
                 content_type, base_decay, adaptive_adjustment, final_decay
             );
-            
+
             Ok(final_decay.min(1.0).max(0.0))
         } else {
             Ok(base_decay.min(1.0).max(0.0))
@@ -124,7 +128,8 @@ impl DecayCalculator {
         };
 
         // Calculate boost based on access frequency and relevance
-        let frequency_boost = (recent_accesses as f64 * config.access_boost_factor).min(config.max_boost);
+        let frequency_boost =
+            (recent_accesses as f64 * config.access_boost_factor).min(config.max_boost);
         let relevance_boost = if avg_relevance > config.relevance_threshold {
             (avg_relevance - config.relevance_threshold) * 2.0
         } else {
@@ -135,7 +140,9 @@ impl DecayCalculator {
 
         trace!(
             "Knowledge adaptive adjustment: accesses={}, avg_relevance={:.3}, boost={:.3}",
-            recent_accesses, avg_relevance, total_boost
+            recent_accesses,
+            avg_relevance,
+            total_boost
         );
 
         Ok(total_boost)
@@ -144,23 +151,62 @@ impl DecayCalculator {
     /// Get default decay functions for all content types
     fn default_decay_functions() -> std::collections::HashMap<ContentType, DecayFunction> {
         let mut functions = std::collections::HashMap::new();
-        
-        functions.insert(ContentType::Documentation, DecayFunction::Documentation { half_life_days: 365.0 });
-        functions.insert(ContentType::Code, DecayFunction::Code { half_life_hours: 168.0 });
-        functions.insert(ContentType::Decision, DecayFunction::Decisions { half_life_weeks: 52.0 });
-        functions.insert(ContentType::Knowledge, DecayFunction::Knowledge { 
-            adaptive_decay: AdaptiveDecayConfig::default() 
-        });
-        functions.insert(ContentType::Pattern, DecayFunction::Patterns { 
-            stable_period_days: 90.0, 
-            update_cycle_days: 30.0 
-        });
-        functions.insert(ContentType::Configuration, DecayFunction::Documentation { half_life_days: 180.0 });
-        functions.insert(ContentType::Todo, DecayFunction::Code { half_life_hours: 72.0 });
-        functions.insert(ContentType::Insight, DecayFunction::Knowledge { 
-            adaptive_decay: AdaptiveDecayConfig::default() 
-        });
-        functions.insert(ContentType::Unknown, DecayFunction::Documentation { half_life_days: 365.0 });
+
+        functions.insert(
+            ContentType::Documentation,
+            DecayFunction::Documentation {
+                half_life_days: 365.0,
+            },
+        );
+        functions.insert(
+            ContentType::Code,
+            DecayFunction::Code {
+                half_life_hours: 168.0,
+            },
+        );
+        functions.insert(
+            ContentType::Decision,
+            DecayFunction::Decisions {
+                half_life_weeks: 52.0,
+            },
+        );
+        functions.insert(
+            ContentType::Knowledge,
+            DecayFunction::Knowledge {
+                adaptive_decay: AdaptiveDecayConfig::default(),
+            },
+        );
+        functions.insert(
+            ContentType::Pattern,
+            DecayFunction::Patterns {
+                stable_period_days: 90.0,
+                update_cycle_days: 30.0,
+            },
+        );
+        functions.insert(
+            ContentType::Configuration,
+            DecayFunction::Documentation {
+                half_life_days: 180.0,
+            },
+        );
+        functions.insert(
+            ContentType::Todo,
+            DecayFunction::Code {
+                half_life_hours: 72.0,
+            },
+        );
+        functions.insert(
+            ContentType::Insight,
+            DecayFunction::Knowledge {
+                adaptive_decay: AdaptiveDecayConfig::default(),
+            },
+        );
+        functions.insert(
+            ContentType::Unknown,
+            DecayFunction::Documentation {
+                half_life_days: 365.0,
+            },
+        );
 
         functions
     }
@@ -179,29 +225,37 @@ impl DecayFunction {
             DecayFunction::Decisions { half_life_weeks } => {
                 self.calculate_exponential_decay(age, *half_life_weeks * 7.0 * 24.0 * 3600.0)
             }
-            DecayFunction::Knowledge { adaptive_decay } => {
-                self.calculate_exponential_decay(age, adaptive_decay.base_half_life_days * 24.0 * 3600.0)
-            }
-            DecayFunction::Patterns { stable_period_days, update_cycle_days } => {
-                self.calculate_pattern_decay(age, *stable_period_days, *update_cycle_days)
-            }
+            DecayFunction::Knowledge { adaptive_decay } => self.calculate_exponential_decay(
+                age,
+                adaptive_decay.base_half_life_days * 24.0 * 3600.0,
+            ),
+            DecayFunction::Patterns {
+                stable_period_days,
+                update_cycle_days,
+            } => self.calculate_pattern_decay(age, *stable_period_days, *update_cycle_days),
         }
     }
 
     /// Calculate exponential decay
-    fn calculate_exponential_decay(&self, age: Duration, half_life_seconds: f64) -> TemporalResult<f64> {
+    fn calculate_exponential_decay(
+        &self,
+        age: Duration,
+        half_life_seconds: f64,
+    ) -> TemporalResult<f64> {
         if half_life_seconds <= 0.0 {
             return Err(TemporalError::ConfigurationError(
-                "Half-life must be positive".to_string()
+                "Half-life must be positive".to_string(),
             ));
         }
 
         let age_seconds = age.as_secs_f64();
         let decay = (-age_seconds / half_life_seconds).exp();
-        
+
         trace!(
             "Exponential decay: age={:.1}s, half_life={:.1}s, decay={:.3}",
-            age_seconds, half_life_seconds, decay
+            age_seconds,
+            half_life_seconds,
+            decay
         );
 
         Ok(decay)
@@ -215,7 +269,7 @@ impl DecayFunction {
         update_cycle_days: f64,
     ) -> TemporalResult<f64> {
         let age_days = age.as_secs_f64() / (24.0 * 3600.0);
-        
+
         // During stable period, decay is minimal
         if age_days <= stable_period_days {
             let stability_factor = 1.0 - (age_days / stable_period_days) * 0.1;
@@ -225,10 +279,13 @@ impl DecayFunction {
         // After stable period, apply cyclical decay based on update cycles
         let cycles_since_stable = (age_days - stable_period_days) / update_cycle_days;
         let cycle_decay = (-cycles_since_stable * 0.5).exp();
-        
+
         trace!(
             "Pattern decay: age={:.1} days, stable_period={:.1}, cycles={:.1}, decay={:.3}",
-            age_days, stable_period_days, cycles_since_stable, cycle_decay
+            age_days,
+            stable_period_days,
+            cycles_since_stable,
+            cycle_decay
         );
 
         Ok(cycle_decay)
@@ -248,8 +305,10 @@ mod tests {
 
     #[test]
     fn test_exponential_decay() {
-        let decay_fn = DecayFunction::Documentation { half_life_days: 365.0 };
-        
+        let decay_fn = DecayFunction::Documentation {
+            half_life_days: 365.0,
+        };
+
         // Test at half-life
         let half_life_duration = Duration::from_secs((365 * 24 * 3600) as u64);
         let decay = decay_fn.calculate_decay(half_life_duration).unwrap();
@@ -263,9 +322,9 @@ mod tests {
 
     #[test]
     fn test_pattern_decay() {
-        let decay_fn = DecayFunction::Patterns { 
-            stable_period_days: 90.0, 
-            update_cycle_days: 30.0 
+        let decay_fn = DecayFunction::Patterns {
+            stable_period_days: 90.0,
+            update_cycle_days: 30.0,
         };
 
         // Test during stable period
@@ -285,12 +344,9 @@ mod tests {
         let now = Utc::now();
         let created_at = now - ChronoDuration::days(30);
 
-        let decay = calculator.calculate_decay(
-            &ContentType::Documentation,
-            &created_at,
-            &now,
-            None,
-        ).unwrap();
+        let decay = calculator
+            .calculate_decay(&ContentType::Documentation, &created_at, &now, None)
+            .unwrap();
 
         assert!(decay > 0.0 && decay < 1.0);
     }
@@ -320,12 +376,14 @@ mod tests {
             },
         ];
 
-        let decay = calculator.calculate_decay(
-            &ContentType::Knowledge,
-            &created_at,
-            &now,
-            Some(&access_history),
-        ).unwrap();
+        let decay = calculator
+            .calculate_decay(
+                &ContentType::Knowledge,
+                &created_at,
+                &now,
+                Some(&access_history),
+            )
+            .unwrap();
 
         assert!(decay > 0.0 && decay <= 1.0);
     }

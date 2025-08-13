@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use rhema_api::RhemaResult;
 use crate::CliContext;
+use rhema_api::RhemaResult;
 
 pub fn handle_init(
     context: &CliContext,
@@ -61,11 +61,14 @@ pub fn handle_query(
     println!("📚 Provenance: {}", provenance);
     println!("🔍 Field provenance: {}", field_provenance);
     println!("📈 Stats: {}", stats);
-    
+
     // Placeholder response
     match format.to_lowercase().as_str() {
         "json" => {
-            println!("{{\"query\": \"{}\", \"status\": \"not_implemented\"}}", query);
+            println!(
+                "{{\"query\": \"{}\", \"status\": \"not_implemented\"}}",
+                query
+            );
         }
         "yaml" => {
             println!("query: {}", query);

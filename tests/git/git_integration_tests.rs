@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-use git2::{Repository, Signature, BranchType};
+use git2::{BranchType, Repository, Signature};
 use rhema_cli::Rhema;
 use rhema_core::RhemaResult;
-use rhema_git::{
-    git::security::Operation,
-    git_hooks::HookType,
-    utils::AdvancedGitIntegration,
-};
+use rhema_git::{git::security::Operation, git_hooks::HookType, utils::AdvancedGitIntegration};
 use std::fs;
 use tempfile::TempDir;
 
@@ -211,11 +207,11 @@ fn test_context_history_tracking() -> RhemaResult<()> {
     index.add_path(std::path::Path::new("context/test.yaml"))?;
     let tree_id = index.write_tree()?;
     let tree = fixture.git_integration.repository().find_tree(tree_id)?;
-    
+
     // Get the current HEAD commit as parent
     let head = fixture.git_integration.repository().head()?;
     let parent_commit = head.peel_to_commit()?;
-    
+
     fixture.git_integration.repository().commit(
         Some("HEAD"),
         &signature,
@@ -345,11 +341,11 @@ fn test_context_conflict_detection() -> RhemaResult<()> {
     let tree_id = index.write_tree()?;
     {
         let tree = fixture.git_integration.repository().find_tree(tree_id)?;
-        
+
         // Get the current HEAD commit as parent
         let head = fixture.git_integration.repository().head()?;
         let parent_commit = head.peel_to_commit()?;
-        
+
         fixture.git_integration.repository().commit(
             Some("HEAD"),
             &signature,
@@ -381,10 +377,10 @@ fn test_context_conflict_detection() -> RhemaResult<()> {
         index.add_path(std::path::Path::new("context/conflict.yaml"))?;
         let tree_id = index.write_tree()?;
         let tree = fixture.git_integration.repository().find_tree(tree_id)?;
-        
+
         let head = fixture.git_integration.repository().head()?;
         let parent_commit = head.peel_to_commit()?;
-        
+
         fixture.git_integration.repository().commit(
             Some("HEAD"),
             &signature,
@@ -410,10 +406,10 @@ fn test_context_conflict_detection() -> RhemaResult<()> {
         index.add_path(std::path::Path::new("context/conflict.yaml"))?;
         let tree_id = index.write_tree()?;
         let tree = fixture.git_integration.repository().find_tree(tree_id)?;
-        
+
         let head = fixture.git_integration.repository().head()?;
         let parent_commit = head.peel_to_commit()?;
-        
+
         fixture.git_integration.repository().commit(
             Some("HEAD"),
             &signature,
@@ -601,13 +597,13 @@ changes:
     timestamp: "{}"
     author: "Test User"
 "#,
-            i, i, i, chrono::Utc::now().to_rfc3339()
+            i,
+            i,
+            i,
+            chrono::Utc::now().to_rfc3339()
         );
-        
-        fixture.create_context_file(
-            &format!("evolution-{}", i),
-            &content,
-        )?;
+
+        fixture.create_context_file(&format!("evolution-{}", i), &content)?;
 
         // Commit changes
         let signature = Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0))?;
@@ -618,11 +614,11 @@ changes:
         )))?;
         let tree_id = index.write_tree()?;
         let tree = fixture.git_integration.repository().find_tree(tree_id)?;
-        
+
         // Get the current HEAD commit as parent
         let head = fixture.git_integration.repository().head()?;
         let parent_commit = head.peel_to_commit()?;
-        
+
         fixture.git_integration.repository().commit(
             Some("HEAD"),
             &signature,
@@ -637,12 +633,15 @@ changes:
     let evolution = fixture
         .git_integration
         .track_context_evolution(".", Some(10))?;
-    
+
     // The evolution tracking returns Vec<ContextEvolution>, not ContextEvolution with entries
     // Since we're creating test commits, we should have at least some entries
     // If we don't have entries, it might be because the tracking isn't working properly
     // Let's be more lenient and just check that the method doesn't fail
-    println!("Evolution tracking returned {} entries", evolution.entries.len());
+    println!(
+        "Evolution tracking returned {} entries",
+        evolution.entries.len()
+    );
     // Don't fail the test if no entries found - just log it
     if evolution.entries.is_empty() {
         println!("Warning: No evolution entries found, but method completed successfully");
@@ -652,13 +651,15 @@ changes:
     let report = fixture
         .git_integration
         .generate_evolution_report(".", None)?;
-    
+
     // Adjust expectations based on actual behavior
     // The evolution tracking works (we saw 1 entry), but the report might not find commits
     // This is likely because the report generation looks for actual Git commits
-    println!("Evolution report: total_commits={}, changes_by_type={:?}", 
-             report.total_commits, report.changes_by_type);
-    
+    println!(
+        "Evolution report: total_commits={}, changes_by_type={:?}",
+        report.total_commits, report.changes_by_type
+    );
+
     // Don't fail the test if no commits found - just log it
     if report.total_commits == 0 {
         println!("Warning: No commits found in evolution report, but evolution tracking works");

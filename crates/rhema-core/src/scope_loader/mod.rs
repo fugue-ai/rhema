@@ -18,5 +18,10 @@ pub use registry::PluginRegistry;
 pub use service::ScopeLoaderService;
 
 // Re-export specific types to avoid ambiguity
-pub use config::{GlobalScopeLoaderConfig, ScopeLoaderConfigManager, PluginConfig as ConfigPluginConfig};
-pub use types::{PackageBoundary, PackageManager, ScopeSuggestion, ScopeType, PluginMetadata, PluginConfig as TypesPluginConfig, ScopeContext, PluginError, RegistryError, ScopeLoaderError};
+pub use config::{
+    GlobalScopeLoaderConfig, PluginConfig as ConfigPluginConfig, ScopeLoaderConfigManager,
+};
+pub use types::{
+    PackageBoundary, PackageManager, PluginConfig as TypesPluginConfig, PluginError,
+    PluginMetadata, RegistryError, ScopeContext, ScopeLoaderError, ScopeSuggestion, ScopeType,
+};

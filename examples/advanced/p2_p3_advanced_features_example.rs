@@ -1,12 +1,9 @@
 use rhema_core::schema::{
-    PromptPattern, PromptInjectionMethod, ContextRule, ContextInjectionMethod,
-    CompositionBlock, CompositionBlockType, AdvancedVariable, VariableType, VariableValidation,
-    TemplateValidationRule, ValidationRuleType, ValidationSeverity,
-    ContextCacheConfig, CacheInvalidationStrategy,
-    ContextOptimizationConfig, OptimizationAlgorithm,
-    ContextLearningConfig, LearningAlgorithm,
-    ContextQualityMetrics,
-    Prompts
+    AdvancedVariable, CacheInvalidationStrategy, CompositionBlock, CompositionBlockType,
+    ContextCacheConfig, ContextInjectionMethod, ContextLearningConfig, ContextOptimizationConfig,
+    ContextQualityMetrics, ContextRule, LearningAlgorithm, OptimizationAlgorithm,
+    PromptInjectionMethod, PromptPattern, Prompts, TemplateValidationRule, ValidationRuleType,
+    ValidationSeverity, VariableType, VariableValidation,
 };
 use std::collections::HashMap;
 
@@ -47,7 +44,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         block_type: CompositionBlockType::Loop,
         condition: None,
         loop_variable: Some("check_item".to_string()),
-        loop_items: Some(vec!["code quality".to_string(), "performance".to_string(), "documentation".to_string()]),
+        loop_items: Some(vec![
+            "code quality".to_string(),
+            "performance".to_string(),
+            "documentation".to_string(),
+        ]),
         content: "- Review {{check_item}}\n".to_string(),
         priority: Some(2),
         variables: None,
@@ -73,10 +74,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 2: Advanced Variables with Validation
     println!("2️⃣ Adding advanced variables with validation:");
-    
+
     let language_var = AdvancedVariable {
         name: "LANGUAGE".to_string(),
-        var_type: VariableType::Enum(vec!["Rust".to_string(), "Python".to_string(), "JavaScript".to_string()]),
+        var_type: VariableType::Enum(vec![
+            "Rust".to_string(),
+            "Python".to_string(),
+            "JavaScript".to_string(),
+        ]),
         default_value: Some("Rust".to_string()),
         validation: Some(VariableValidation {
             min_length: None,
@@ -93,7 +98,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let severity_var = AdvancedVariable {
         name: "SEVERITY".to_string(),
-        var_type: VariableType::Enum(vec!["low".to_string(), "medium".to_string(), "high".to_string(), "critical".to_string()]),
+        var_type: VariableType::Enum(vec![
+            "low".to_string(),
+            "medium".to_string(),
+            "high".to_string(),
+            "critical".to_string(),
+        ]),
         default_value: Some("medium".to_string()),
         validation: Some(VariableValidation {
             min_length: None,
@@ -133,7 +143,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 3: Template Validation Rules
     println!("3️⃣ Adding template validation rules:");
-    
+
     let required_rule = TemplateValidationRule {
         id: "required-language".to_string(),
         rule_type: ValidationRuleType::Required,
@@ -169,7 +179,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 4: Testing Advanced Variable Validation
     println!("4️⃣ Testing advanced variable validation:");
-    
+
     let mut test_variables = HashMap::new();
     test_variables.insert("LANGUAGE".to_string(), "Rust".to_string());
     test_variables.insert("SEVERITY".to_string(), "high".to_string());
@@ -202,12 +212,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 5: Testing Template Composition
     println!("5️⃣ Testing template composition:");
-    
+
     let context = "fn main() { println!(\"Hello, world!\"); }";
     let mut composition_vars = HashMap::new();
     composition_vars.insert("LANGUAGE".to_string(), "Rust".to_string());
-    composition_vars.insert("SECURITY_CHECKS".to_string(), "buffer overflows, memory leaks".to_string());
-    composition_vars.insert("VERIFICATION_POINTS".to_string(), "input validation, output encoding".to_string());
+    composition_vars.insert(
+        "SECURITY_CHECKS".to_string(),
+        "buffer overflows, memory leaks".to_string(),
+    );
+    composition_vars.insert(
+        "VERIFICATION_POINTS".to_string(),
+        "input validation, output encoding".to_string(),
+    );
 
     let composed_result = advanced_pattern.render_with_composition(context, &composition_vars);
     println!("Composed template result:");
@@ -221,10 +237,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 6: Context Caching Configuration
     println!("6️⃣ Configuring context caching:");
-    
+
     let cache_config = ContextCacheConfig {
         enabled: true,
-        ttl_seconds: 3600, // 1 hour
+        ttl_seconds: 3600,                 // 1 hour
         max_size_bytes: 100 * 1024 * 1024, // 100MB
         invalidation_strategy: CacheInvalidationStrategy::TimeBased,
         compression_enabled: true,
@@ -236,7 +252,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 7: Context Optimization Configuration
     println!("7️⃣ Configuring context optimization:");
-    
+
     let optimization_config = ContextOptimizationConfig {
         enabled: true,
         max_tokens: 4000,
@@ -252,7 +268,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 8: Context Learning Configuration
     println!("8️⃣ Configuring context learning:");
-    
+
     let learning_config = ContextLearningConfig {
         enabled: true,
         learning_rate: 0.1,
@@ -264,29 +280,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     advanced_pattern.configure_context_learning(learning_config);
-    println!("✅ Configured context learning (Rate: 0.1, Min samples: 10, Algorithm: Reinforcement)");
+    println!(
+        "✅ Configured context learning (Rate: 0.1, Min samples: 10, Algorithm: Reinforcement)"
+    );
 
     // Example 9: Performance Metrics Tracking
     println!("9️⃣ Tracking performance metrics:");
-    
+
     // Simulate multiple renders with different performance
-    advanced_pattern.update_performance_metrics(150.0, true);  // Cache hit
+    advanced_pattern.update_performance_metrics(150.0, true); // Cache hit
     advanced_pattern.update_performance_metrics(300.0, false); // Cache miss
-    advanced_pattern.update_performance_metrics(120.0, true);  // Cache hit
+    advanced_pattern.update_performance_metrics(120.0, true); // Cache hit
     advanced_pattern.update_performance_metrics(250.0, false); // Cache miss
-    advanced_pattern.update_performance_metrics(180.0, true);  // Cache hit
+    advanced_pattern.update_performance_metrics(180.0, true); // Cache hit
 
     if let Some(metrics) = &advanced_pattern.performance_metrics {
         println!("✅ Performance metrics:");
-        println!("   - Average rendering time: {:.1}ms", metrics.avg_rendering_time);
-        println!("   - Cache hit rate: {:.1}%", metrics.cache_hit_rate * 100.0);
+        println!(
+            "   - Average rendering time: {:.1}ms",
+            metrics.avg_rendering_time
+        );
+        println!(
+            "   - Cache hit rate: {:.1}%",
+            metrics.cache_hit_rate * 100.0
+        );
         println!("   - Total renders: {}", metrics.total_renders);
-        println!("   - Min/Max render time: {:.1}ms / {:.1}ms", metrics.min_rendering_time, metrics.max_rendering_time);
+        println!(
+            "   - Min/Max render time: {:.1}ms / {:.1}ms",
+            metrics.min_rendering_time, metrics.max_rendering_time
+        );
     }
 
     // Example 10: Context Quality Metrics
     println!("🔟 Setting context quality metrics:");
-    
+
     let quality_metrics = ContextQualityMetrics {
         relevance_score: 0.92,
         completeness_score: 0.88,
@@ -306,7 +333,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 11: Testing All Features Together
     println!("1️⃣1️⃣ Testing all features together:");
-    
+
     // Test template validation
     let template_errors = advanced_pattern.validate_template(context, &composition_vars);
     if template_errors.is_empty() {
@@ -320,15 +347,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test feature flags
     println!("✅ Feature status:");
-    println!("   - Context caching: {}", advanced_pattern.is_context_caching_enabled());
-    println!("   - Context optimization: {}", advanced_pattern.is_context_optimization_enabled());
-    println!("   - Context learning: {}", advanced_pattern.is_context_learning_enabled());
-    println!("   - Multi-file context: {}", advanced_pattern.supports_multi_file_context());
+    println!(
+        "   - Context caching: {}",
+        advanced_pattern.is_context_caching_enabled()
+    );
+    println!(
+        "   - Context optimization: {}",
+        advanced_pattern.is_context_optimization_enabled()
+    );
+    println!(
+        "   - Context learning: {}",
+        advanced_pattern.is_context_learning_enabled()
+    );
+    println!(
+        "   - Multi-file context: {}",
+        advanced_pattern.supports_multi_file_context()
+    );
 
     // Test composition blocks
-    let conditional_blocks = advanced_pattern.get_composition_blocks(Some(CompositionBlockType::Conditional));
+    let conditional_blocks =
+        advanced_pattern.get_composition_blocks(Some(CompositionBlockType::Conditional));
     let loop_blocks = advanced_pattern.get_composition_blocks(Some(CompositionBlockType::Loop));
-    let include_blocks = advanced_pattern.get_composition_blocks(Some(CompositionBlockType::Include));
+    let include_blocks =
+        advanced_pattern.get_composition_blocks(Some(CompositionBlockType::Include));
 
     println!("✅ Composition blocks:");
     println!("   - Conditional blocks: {}", conditional_blocks.len());
@@ -340,12 +381,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("✅ Advanced variable 'LANGUAGE':");
         println!("   - Type: {:?}", lang_var.var_type);
         println!("   - Required: {}", lang_var.required);
-        println!("   - Description: {}", lang_var.description.as_ref().unwrap_or(&"No description".to_string()));
+        println!(
+            "   - Description: {}",
+            lang_var
+                .description
+                .as_ref()
+                .unwrap_or(&"No description".to_string())
+        );
     }
 
     // Example 12: Creating a Complete Prompts Structure
     println!("1️⃣2️⃣ Creating a complete prompts.yaml structure:");
-    
+
     let mut prompts = Prompts {
         prompts: vec![advanced_pattern],
     };
@@ -361,7 +408,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Add basic context caching
     let simple_cache_config = ContextCacheConfig {
         enabled: true,
-        ttl_seconds: 1800, // 30 minutes
+        ttl_seconds: 1800,                // 30 minutes
         max_size_bytes: 50 * 1024 * 1024, // 50MB
         invalidation_strategy: CacheInvalidationStrategy::TimeBased,
         compression_enabled: false,
@@ -371,13 +418,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     prompts.prompts.push(simple_pattern);
 
-    println!("✅ Created prompts.yaml with {} patterns:", prompts.prompts.len());
+    println!(
+        "✅ Created prompts.yaml with {} patterns:",
+        prompts.prompts.len()
+    );
     for pattern in &prompts.prompts {
         println!("   - {} (ID: {})", pattern.name, pattern.id);
         println!("     Caching: {}", pattern.is_context_caching_enabled());
-        println!("     Optimization: {}", pattern.is_context_optimization_enabled());
+        println!(
+            "     Optimization: {}",
+            pattern.is_context_optimization_enabled()
+        );
         println!("     Learning: {}", pattern.is_context_learning_enabled());
-        
+
         if let Some(blocks) = &pattern.composition_blocks {
             println!("     Composition blocks: {}", blocks.len());
         }
@@ -391,7 +444,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 13: Serialization Test
     println!("1️⃣3️⃣ Testing serialization:");
-    
+
     let yaml = serde_yaml::to_string(&prompts)?;
     println!("✅ Generated YAML (first 800 chars):");
     println!("{}", &yaml[..yaml.len().min(800)]);
@@ -515,7 +568,7 @@ mod tests {
         // Test performance metrics
         pattern.update_performance_metrics(150.0, true);
         pattern.update_performance_metrics(200.0, false);
-        
+
         if let Some(metrics) = &pattern.performance_metrics {
             assert_eq!(metrics.total_renders, 2);
             assert!(metrics.cache_hit_rate > 0.0);
@@ -532,7 +585,7 @@ mod tests {
             improvement_suggestions: vec!["Test suggestion".to_string()],
         };
         pattern.update_context_quality(quality);
-        
+
         let score = pattern.get_context_quality_score();
         assert!(score.is_some());
         assert_eq!(score.unwrap(), 0.875);

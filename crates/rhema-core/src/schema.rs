@@ -690,8 +690,6 @@ pub enum ValidationSeverity {
     Info,
 }
 
-
-
 /// Context caching configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextCacheConfig {
@@ -825,10 +823,15 @@ impl ContextRule {
     }
 
     /// Check if this rule matches the given context
-    pub fn matches(&self, task_type: Option<&str>, file_type: Option<&str>, severity: Option<&str>) -> bool {
+    pub fn matches(
+        &self,
+        task_type: Option<&str>,
+        file_type: Option<&str>,
+        severity: Option<&str>,
+    ) -> bool {
         // Simple condition evaluation - in a real implementation, this would use a proper expression evaluator
         let condition = self.condition.to_lowercase();
-        
+
         if condition.contains("task_type") {
             if let Some(task) = task_type {
                 if !condition.contains(&format!("task_type == '{}'", task)) {
@@ -838,7 +841,7 @@ impl ContextRule {
                 return false;
             }
         }
-        
+
         if condition.contains("file_type") {
             if let Some(file) = file_type {
                 if !condition.contains(&format!("file_type == '{}'", file)) {
@@ -848,7 +851,7 @@ impl ContextRule {
                 return false;
             }
         }
-        
+
         if condition.contains("severity") {
             if let Some(sev) = severity {
                 if !condition.contains(&format!("severity == '{}'", sev)) {
@@ -858,7 +861,7 @@ impl ContextRule {
                 return false;
             }
         }
-        
+
         true
     }
 }
@@ -1108,9 +1111,14 @@ impl PromptPattern {
     }
 
     /// Get matching context rules for the given context
-    pub fn get_matching_rules(&self, task_type: Option<&str>, file_type: Option<&str>, severity: Option<&str>) -> Vec<&ContextRule> {
+    pub fn get_matching_rules(
+        &self,
+        task_type: Option<&str>,
+        file_type: Option<&str>,
+        severity: Option<&str>,
+    ) -> Vec<&ContextRule> {
         let mut matching_rules = Vec::new();
-        
+
         if let Some(rules) = &self.context_rules {
             for rule in rules {
                 if rule.matches(task_type, file_type, severity) {
@@ -1118,14 +1126,14 @@ impl PromptPattern {
                 }
             }
         }
-        
+
         // Sort by priority (higher priority first)
         matching_rules.sort_by(|a, b| {
             let a_priority = a.priority.unwrap_or(0);
             let b_priority = b.priority.unwrap_or(0);
             b_priority.cmp(&a_priority)
         });
-        
+
         matching_rules
     }
 
@@ -1142,10 +1150,10 @@ impl PromptPattern {
     /// Substitute variables in the template
     pub fn substitute_variables(&self, context: &str) -> String {
         let mut result = self.template.clone();
-        
+
         // Substitute {{CONTEXT}} variable
         result = result.replace("{{CONTEXT}}", context);
-        
+
         // Substitute custom variables
         if let Some(vars) = &self.variables {
             for (key, value) in vars {
@@ -1153,7 +1161,7 @@ impl PromptPattern {
                 result = result.replace(&placeholder, value);
             }
         }
-        
+
         result
     }
 
@@ -1178,19 +1186,24 @@ impl PromptPattern {
     }
 
     /// Get all context files that should be loaded for this pattern
-    pub fn get_context_files(&self, task_type: Option<&str>, file_type: Option<&str>, severity: Option<&str>) -> Vec<String> {
+    pub fn get_context_files(
+        &self,
+        task_type: Option<&str>,
+        file_type: Option<&str>,
+        severity: Option<&str>,
+    ) -> Vec<String> {
         let mut context_files = Vec::new();
-        
+
         // Get context files from matching rules
         let matching_rules = self.get_matching_rules(task_type, file_type, severity);
         for rule in matching_rules {
             context_files.extend(rule.context_files.clone());
         }
-        
+
         // Remove duplicates while preserving order
         let mut seen = std::collections::HashSet::new();
         context_files.retain(|file| seen.insert(file.clone()));
-        
+
         context_files
     }
 
@@ -1214,8 +1227,6 @@ impl PromptPattern {
         self.usage_analytics.successful_uses
     }
 
-
-
     // P2: Advanced Template Features
 
     /// Add a composition block to the pattern
@@ -1227,10 +1238,16 @@ impl PromptPattern {
     }
 
     /// Get composition blocks by type
-    pub fn get_composition_blocks(&self, block_type: Option<CompositionBlockType>) -> Vec<&CompositionBlock> {
+    pub fn get_composition_blocks(
+        &self,
+        block_type: Option<CompositionBlockType>,
+    ) -> Vec<&CompositionBlock> {
         if let Some(blocks) = &self.composition_blocks {
             if let Some(filter_type) = block_type {
-                blocks.iter().filter(|b| b.block_type == filter_type).collect()
+                blocks
+                    .iter()
+                    .filter(|b| b.block_type == filter_type)
+                    .collect()
             } else {
                 blocks.iter().collect()
             }
@@ -1259,7 +1276,7 @@ impl PromptPattern {
     /// Validate advanced variables against their rules
     pub fn validate_advanced_variables(&self, values: &HashMap<String, String>) -> Vec<String> {
         let mut errors = Vec::new();
-        
+
         if let Some(variables) = &self.advanced_variables {
             for variable in variables {
                 if let Some(value) = values.get(&variable.name) {
@@ -1273,12 +1290,18 @@ impl PromptPattern {
                         // Check length constraints
                         if let Some(min_len) = validation.min_length {
                             if value.len() < min_len {
-                                errors.push(format!("Variable '{}' must be at least {} characters", variable.name, min_len));
+                                errors.push(format!(
+                                    "Variable '{}' must be at least {} characters",
+                                    variable.name, min_len
+                                ));
                             }
                         }
                         if let Some(max_len) = validation.max_length {
                             if value.len() > max_len {
-                                errors.push(format!("Variable '{}' must be at most {} characters", variable.name, max_len));
+                                errors.push(format!(
+                                    "Variable '{}' must be at most {} characters",
+                                    variable.name, max_len
+                                ));
                             }
                         }
 
@@ -1286,12 +1309,18 @@ impl PromptPattern {
                         if let Ok(num_value) = value.parse::<f64>() {
                             if let Some(min_val) = validation.min_value {
                                 if num_value < min_val {
-                                    errors.push(format!("Variable '{}' must be at least {}", variable.name, min_val));
+                                    errors.push(format!(
+                                        "Variable '{}' must be at least {}",
+                                        variable.name, min_val
+                                    ));
                                 }
                             }
                             if let Some(max_val) = validation.max_value {
                                 if num_value > max_val {
-                                    errors.push(format!("Variable '{}' must be at most {}", variable.name, max_val));
+                                    errors.push(format!(
+                                        "Variable '{}' must be at most {}",
+                                        variable.name, max_val
+                                    ));
                                 }
                             }
                         }
@@ -1300,7 +1329,10 @@ impl PromptPattern {
                         if let Some(pattern) = &validation.pattern {
                             if let Ok(regex) = regex::Regex::new(pattern) {
                                 if !regex.is_match(value) {
-                                    errors.push(format!("Variable '{}' does not match pattern {}", variable.name, pattern));
+                                    errors.push(format!(
+                                        "Variable '{}' does not match pattern {}",
+                                        variable.name, pattern
+                                    ));
                                 }
                             }
                         }
@@ -1310,7 +1342,7 @@ impl PromptPattern {
                 }
             }
         }
-        
+
         errors
     }
 
@@ -1323,21 +1355,26 @@ impl PromptPattern {
     }
 
     /// Validate template against all rules
-    pub fn validate_template(&self, context: &str, variables: &HashMap<String, String>) -> Vec<String> {
+    pub fn validate_template(
+        &self,
+        context: &str,
+        variables: &HashMap<String, String>,
+    ) -> Vec<String> {
         let mut errors = Vec::new();
-        
+
         if let Some(rules) = &self.validation_rules {
             for rule in rules {
                 if rule.enabled {
                     // Simple condition evaluation (in real implementation, use proper expression evaluator)
-                    let condition_met = self.evaluate_condition(&rule.condition, context, variables);
+                    let condition_met =
+                        self.evaluate_condition(&rule.condition, context, variables);
                     if !condition_met {
                         errors.push(rule.error_message.clone());
                     }
                 }
             }
         }
-        
+
         errors
     }
 
@@ -1356,10 +1393,14 @@ impl PromptPattern {
         } else {
             let metrics = self.performance_metrics.as_mut().unwrap();
             metrics.total_renders += 1;
-            metrics.avg_rendering_time = (metrics.avg_rendering_time * (metrics.total_renders - 1) as f64 + rendering_time) / metrics.total_renders as f64;
+            metrics.avg_rendering_time =
+                (metrics.avg_rendering_time * (metrics.total_renders - 1) as f64 + rendering_time)
+                    / metrics.total_renders as f64;
             metrics.max_rendering_time = metrics.max_rendering_time.max(rendering_time);
             metrics.min_rendering_time = metrics.min_rendering_time.min(rendering_time);
-            metrics.cache_hit_rate = (metrics.cache_hit_rate * (metrics.total_renders - 1) as f64 + if cache_hit { 1.0 } else { 0.0 }) / metrics.total_renders as f64;
+            metrics.cache_hit_rate = (metrics.cache_hit_rate * (metrics.total_renders - 1) as f64
+                + if cache_hit { 1.0 } else { 0.0 })
+                / metrics.total_renders as f64;
             metrics.last_updated = chrono::Utc::now();
         }
     }
@@ -1373,7 +1414,10 @@ impl PromptPattern {
 
     /// Check if context caching is enabled
     pub fn is_context_caching_enabled(&self) -> bool {
-        self.context_cache.as_ref().map(|c| c.enabled).unwrap_or(false)
+        self.context_cache
+            .as_ref()
+            .map(|c| c.enabled)
+            .unwrap_or(false)
     }
 
     /// Configure context optimization
@@ -1383,7 +1427,10 @@ impl PromptPattern {
 
     /// Check if context optimization is enabled
     pub fn is_context_optimization_enabled(&self) -> bool {
-        self.context_optimization.as_ref().map(|c| c.enabled).unwrap_or(false)
+        self.context_optimization
+            .as_ref()
+            .map(|c| c.enabled)
+            .unwrap_or(false)
     }
 
     /// Configure context learning
@@ -1393,7 +1440,10 @@ impl PromptPattern {
 
     /// Check if context learning is enabled
     pub fn is_context_learning_enabled(&self) -> bool {
-        self.context_learning.as_ref().map(|c| c.enabled).unwrap_or(false)
+        self.context_learning
+            .as_ref()
+            .map(|c| c.enabled)
+            .unwrap_or(false)
     }
 
     /// Update context quality metrics
@@ -1432,76 +1482,98 @@ impl PromptPattern {
     }
 
     /// Render template with composition blocks
-    pub fn render_with_composition(&self, context: &str, variables: &HashMap<String, String>) -> String {
+    pub fn render_with_composition(
+        &self,
+        context: &str,
+        variables: &HashMap<String, String>,
+    ) -> String {
         let mut result = self.substitute_variables(context);
-        
+
         if let Some(blocks) = &self.composition_blocks {
             for block in blocks {
                 match block.block_type {
                     CompositionBlockType::Conditional => {
-                        if self.evaluate_condition(&block.condition.as_ref().unwrap_or(&String::new()), context, variables) {
-                            let block_content = self.substitute_variables_with_map(&block.content, variables);
+                        if self.evaluate_condition(
+                            &block.condition.as_ref().unwrap_or(&String::new()),
+                            context,
+                            variables,
+                        ) {
+                            let block_content =
+                                self.substitute_variables_with_map(&block.content, variables);
                             result.push_str(&block_content);
                         }
-                    },
+                    }
                     CompositionBlockType::Loop => {
-                        if let (Some(var_name), Some(items)) = (&block.loop_variable, &block.loop_items) {
+                        if let (Some(var_name), Some(items)) =
+                            (&block.loop_variable, &block.loop_items)
+                        {
                             for item in items {
                                 let mut loop_vars = variables.clone();
                                 loop_vars.insert(var_name.clone(), item.clone());
-                                let block_content = self.substitute_variables_with_map(&block.content, &loop_vars);
+                                let block_content =
+                                    self.substitute_variables_with_map(&block.content, &loop_vars);
                                 result.push_str(&block_content);
                             }
                         }
-                    },
+                    }
                     CompositionBlockType::Include => {
                         // Include block content directly
-                        let block_content = self.substitute_variables_with_map(&block.content, variables);
+                        let block_content =
+                            self.substitute_variables_with_map(&block.content, variables);
                         result.push_str(&block_content);
-                    },
+                    }
                     CompositionBlockType::Switch => {
                         // Simple switch implementation
                         if let Some(condition) = &block.condition {
-                            let block_content = self.substitute_variables_with_map(&block.content, variables);
+                            let block_content =
+                                self.substitute_variables_with_map(&block.content, variables);
                             result.push_str(&block_content);
                         }
-                    },
+                    }
                     CompositionBlockType::Fallback => {
                         // Fallback block - use if no other blocks rendered content
                         if result == self.substitute_variables(context) {
-                            let block_content = self.substitute_variables_with_map(&block.content, variables);
+                            let block_content =
+                                self.substitute_variables_with_map(&block.content, variables);
                             result.push_str(&block_content);
                         }
-                    },
+                    }
                 }
             }
         }
-        
+
         result
     }
 
     // Helper methods
 
     /// Evaluate a condition expression (simplified implementation)
-    fn evaluate_condition(&self, condition: &str, _context: &str, _variables: &HashMap<String, String>) -> bool {
+    fn evaluate_condition(
+        &self,
+        condition: &str,
+        _context: &str,
+        _variables: &HashMap<String, String>,
+    ) -> bool {
         // In a real implementation, this would use a proper expression evaluator
         // For now, return true for non-empty conditions
         !condition.is_empty()
     }
 
     /// Substitute variables with a specific variable map
-    fn substitute_variables_with_map(&self, template: &str, variables: &HashMap<String, String>) -> String {
+    fn substitute_variables_with_map(
+        &self,
+        template: &str,
+        variables: &HashMap<String, String>,
+    ) -> String {
         let mut result = template.to_string();
-        
+
         for (key, value) in variables {
             let placeholder = format!("{{{{{}}}}}", key);
             result = result.replace(&placeholder, value);
         }
-        
+
         result
     }
-
-
 }
 
 /// Top-level structure for workflows.yaml
@@ -3498,7 +3570,7 @@ mod tests {
 
         // Should match
         assert!(rule.matches(Some("code_review"), Some("rust"), None));
-        
+
         // Should not match
         assert!(!rule.matches(Some("bug_fix"), Some("rust"), None));
         assert!(!rule.matches(Some("code_review"), Some("python"), None));
@@ -3519,13 +3591,15 @@ mod tests {
             "task_type == 'code_review'",
             vec!["patterns.yaml".to_string()],
             ContextInjectionMethod::Prepend,
-        ).with_priority(1);
+        )
+        .with_priority(1);
 
         let rule2 = ContextRule::new(
             "task_type == 'code_review' && severity == 'high'",
             vec!["patterns.yaml".to_string(), "knowledge.yaml".to_string()],
             ContextInjectionMethod::Prepend,
-        ).with_priority(2);
+        )
+        .with_priority(2);
 
         pattern.add_context_rule(rule1);
         pattern.add_context_rule(rule2);
@@ -3533,7 +3607,7 @@ mod tests {
         // Test matching rules
         let matching_rules = pattern.get_matching_rules(Some("code_review"), None, Some("high"));
         assert_eq!(matching_rules.len(), 2);
-        
+
         // Higher priority rule should come first
         assert_eq!(matching_rules[0].priority, Some(2));
         assert_eq!(matching_rules[1].priority, Some(1));
@@ -3555,7 +3629,10 @@ mod tests {
 
         // Test variable substitution
         let result = pattern.substitute_variables("fn main() { println!(\"Hello, world!\"); }");
-        assert_eq!(result, "Review this Rust code: fn main() { println!(\"Hello, world!\"); }");
+        assert_eq!(
+            result,
+            "Review this Rust code: fn main() { println!(\"Hello, world!\"); }"
+        );
     }
 
     #[test]

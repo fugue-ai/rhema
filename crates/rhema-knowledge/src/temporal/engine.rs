@@ -18,10 +18,10 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use tracing::{debug, info, trace};
 
-use crate::types::ContentType;
-use super::{DecayFunction, Content, ContentAccess, TemporalWeights};
 use super::decay::DecayCalculator;
-use super::{TemporalResult, TemporalError};
+use super::{Content, ContentAccess, DecayFunction, TemporalWeights};
+use super::{TemporalError, TemporalResult};
+use crate::types::ContentType;
 
 /// Temporal relevance engine for calculating comprehensive temporal scores
 pub struct TemporalRelevanceEngine {
@@ -64,15 +64,21 @@ impl TemporalRelevanceEngine {
         info!("Calculating temporal relevance for content: {}", content.id);
 
         // 1. Calculate base decay score
-        let base_decay_score = self.calculate_base_decay_score(content, &query_time).await?;
+        let base_decay_score = self
+            .calculate_base_decay_score(content, &query_time)
+            .await?;
         trace!("Base decay score: {:.3}", base_decay_score);
 
         // 2. Calculate access pattern score
-        let access_pattern_score = self.calculate_access_pattern_score(content, &query_time).await?;
+        let access_pattern_score = self
+            .calculate_access_pattern_score(content, &query_time)
+            .await?;
         trace!("Access pattern score: {:.3}", access_pattern_score);
 
         // 3. Calculate content type relevance
-        let content_type_score = self.calculate_content_type_relevance(content, &query_time).await?;
+        let content_type_score = self
+            .calculate_content_type_relevance(content, &query_time)
+            .await?;
         trace!("Content type score: {:.3}", content_type_score);
 
         // 4. Calculate freshness score
@@ -128,7 +134,7 @@ impl TemporalRelevanceEngine {
         let access_frequency_score = if content.access_count > 0 {
             let days_since_creation = age.num_days() as f64;
             let accesses_per_day = content.access_count as f64 / days_since_creation.max(1.0);
-            
+
             // Normalize to 0-1 range, with diminishing returns
             (1.0_f64 - (-accesses_per_day * 0.1).exp()).min(0.95_f64)
         } else {
@@ -150,10 +156,12 @@ impl TemporalRelevanceEngine {
 
         // Combine frequency and recency
         let pattern_score = (access_frequency_score * 0.6 + recency_score * 0.4);
-        
+
         trace!(
             "Access pattern score: frequency={:.3}, recency={:.3}, combined={:.3}",
-            access_frequency_score, recency_score, pattern_score
+            access_frequency_score,
+            recency_score,
+            pattern_score
         );
 
         Ok(pattern_score)
@@ -261,7 +269,9 @@ impl TemporalRelevanceEngine {
 
         trace!(
             "Content type relevance for {:?}: age={:.1} days, score={:.3}",
-            content.content_type, age_days, type_score
+            content.content_type,
+            age_days,
+            type_score
         );
 
         Ok(type_score)
@@ -292,7 +302,8 @@ impl TemporalRelevanceEngine {
 
         trace!(
             "Freshness score: modification_age={:.1} days, score={:.3}",
-            modification_days, freshness_score
+            modification_days,
+            freshness_score
         );
 
         Ok(freshness_score)
@@ -306,16 +317,14 @@ impl TemporalRelevanceEngine {
         content_type_score: f64,
         freshness_score: f64,
     ) -> f64 {
-        let weighted_sum = 
-            base_decay_score * self.weights.base_decay_weight +
-            access_pattern_score * self.weights.relationship_weight +
-            content_type_score * self.weights.base_decay_weight +
-            freshness_score * self.weights.freshness_weight;
+        let weighted_sum = base_decay_score * self.weights.base_decay_weight
+            + access_pattern_score * self.weights.relationship_weight
+            + content_type_score * self.weights.base_decay_weight
+            + freshness_score * self.weights.freshness_weight;
 
-        let total_weight = 
-            self.weights.base_decay_weight +
-            self.weights.relationship_weight +
-            self.weights.freshness_weight;
+        let total_weight = self.weights.base_decay_weight
+            + self.weights.relationship_weight
+            + self.weights.freshness_weight;
 
         let normalized_score = if total_weight > 0.0 {
             weighted_sum / total_weight
@@ -378,7 +387,10 @@ mod tests {
         let content = create_test_content(ContentType::Code, 30);
         let query_time = Utc::now();
 
-        let relevance = engine.calculate_temporal_relevance(&content, query_time, None).await.unwrap();
+        let relevance = engine
+            .calculate_temporal_relevance(&content, query_time, None)
+            .await
+            .unwrap();
 
         assert!(relevance >= 0.0 && relevance <= 1.0);
         assert!(relevance > 0.1); // Should have some relevance
@@ -391,12 +403,18 @@ mod tests {
 
         // Test recent code
         let recent_code = create_test_content(ContentType::Code, 3);
-        let code_relevance = engine.calculate_content_type_relevance(&recent_code, &query_time).await.unwrap();
+        let code_relevance = engine
+            .calculate_content_type_relevance(&recent_code, &query_time)
+            .await
+            .unwrap();
         assert!(code_relevance > 0.8);
 
         // Test old documentation
         let old_docs = create_test_content(ContentType::Documentation, 200);
-        let docs_relevance = engine.calculate_content_type_relevance(&old_docs, &query_time).await.unwrap();
+        let docs_relevance = engine
+            .calculate_content_type_relevance(&old_docs, &query_time)
+            .await
+            .unwrap();
         assert!(docs_relevance > 0.6); // Documentation should remain relevant longer
     }
 
@@ -407,12 +425,18 @@ mod tests {
 
         // Test very recent content
         let recent_content = create_test_content(ContentType::Code, 1);
-        let recent_freshness = engine.calculate_freshness_score(&recent_content, &query_time).await.unwrap();
+        let recent_freshness = engine
+            .calculate_freshness_score(&recent_content, &query_time)
+            .await
+            .unwrap();
         assert!(recent_freshness > 0.9);
 
         // Test old content
         let old_content = create_test_content(ContentType::Code, 100);
-        let old_freshness = engine.calculate_freshness_score(&old_content, &query_time).await.unwrap();
+        let old_freshness = engine
+            .calculate_freshness_score(&old_content, &query_time)
+            .await
+            .unwrap();
         assert!(old_freshness < 0.5);
     }
 
@@ -422,7 +446,10 @@ mod tests {
         let query_time = Utc::now();
 
         let content = create_test_content(ContentType::Code, 30);
-        let pattern_score = engine.calculate_access_pattern_score(&content, &query_time).await.unwrap();
+        let pattern_score = engine
+            .calculate_access_pattern_score(&content, &query_time)
+            .await
+            .unwrap();
 
         assert!(pattern_score >= 0.0 && pattern_score <= 1.0);
     }

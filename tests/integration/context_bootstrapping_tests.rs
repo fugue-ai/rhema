@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+use git2;
 use rhema_api::Rhema;
 use rhema_core::{
     schema::{
@@ -24,8 +25,6 @@ use rhema_core::{
 };
 use std::fs;
 use tempfile::TempDir;
-use git2;
-
 
 // Mock implementations for commands module
 mod commands {
@@ -84,15 +83,24 @@ mod commands {
             });
 
             // Create primer.yaml
-            fs::write(scope_primer_dir.join("primer.yaml"), serde_yaml::to_string(&primer_data)?)?;
-            
+            fs::write(
+                scope_primer_dir.join("primer.yaml"),
+                serde_yaml::to_string(&primer_data)?,
+            )?;
+
             // Create primer.json
-            fs::write(scope_primer_dir.join("primer.json"), serde_json::to_string_pretty(&primer_data)?)?;
-            
+            fs::write(
+                scope_primer_dir.join("primer.json"),
+                serde_json::to_string_pretty(&primer_data)?,
+            )?;
+
             // Create primer.md
-            let primer_md = format!("# Primer for {}\n\nThis is a primer for the {} scope.", scope_path, scope_path);
+            let primer_md = format!(
+                "# Primer for {}\n\nThis is a primer for the {} scope.",
+                scope_path, scope_path
+            );
             fs::write(scope_primer_dir.join("primer.md"), primer_md)?;
-            
+
             // Create primer.txt
             let primer_txt = format!("Primer for {} scope.", scope_path);
             fs::write(scope_primer_dir.join("primer.txt"), primer_txt)?;
@@ -168,18 +176,27 @@ mod commands {
                         "best_practices": ["Code review", "Testing", "Documentation"]
                     }
                 });
-                fs::write(bootstrap_dir.join("bootstrap.json"), serde_json::to_string_pretty(&bootstrap_json)?)?;
+                fs::write(
+                    bootstrap_dir.join("bootstrap.json"),
+                    serde_json::to_string_pretty(&bootstrap_json)?,
+                )?;
 
                 // Create bootstrap.yaml
                 let bootstrap_yaml = serde_yaml::to_string(&bootstrap_json)?;
                 fs::write(bootstrap_dir.join("bootstrap.yaml"), bootstrap_yaml)?;
 
                 // Create bootstrap.md
-                let bootstrap_md = format!("# Bootstrap Context for {}\n\nThis is a bootstrap context for {} use case.", use_case, use_case);
+                let bootstrap_md = format!(
+                    "# Bootstrap Context for {}\n\nThis is a bootstrap context for {} use case.",
+                    use_case, use_case
+                );
                 fs::write(bootstrap_dir.join("bootstrap.md"), bootstrap_md)?;
 
                 // Create bootstrap.txt
-                let bootstrap_txt = format!("Bootstrap context for {} use case in {} format.", use_case, format);
+                let bootstrap_txt = format!(
+                    "Bootstrap context for {} use case in {} format.",
+                    use_case, format
+                );
                 fs::write(bootstrap_dir.join("bootstrap.txt"), bootstrap_txt)?;
 
                 // Create primer.md
@@ -201,15 +218,16 @@ mod commands {
             let scopes = rhema.discover_scopes()?;
             for scope in scopes {
                 let scope_path = rhema.scope_path(&scope.definition.name)?;
-                
+
                 if scope_path.join("rhema.yaml").exists() {
                     let content = fs::read_to_string(&scope_path.join("rhema.yaml"))?;
                     let mut scope_data: serde_yaml::Value = serde_yaml::from_str(&content)?;
-                    
+
                     // Add protocol info if it doesn't exist
                     if !scope_data.get("protocol_info").is_some() {
                         let protocol_info = create_test_protocol_info();
-                        scope_data["protocol_info"] = serde_yaml::from_str(&serde_json::to_string(&protocol_info)?)?;
+                        scope_data["protocol_info"] =
+                            serde_yaml::from_str(&serde_json::to_string(&protocol_info)?)?;
                         let updated_content = serde_yaml::to_string(&scope_data)?;
                         fs::write(&scope_path.join("rhema.yaml"), updated_content)?;
                     }

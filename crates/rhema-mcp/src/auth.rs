@@ -248,12 +248,14 @@ impl AuthManager {
         ));
 
         // Initialize JWT keys if JWT secret is provided
-        let jwt_encoding_key = config.jwt_secret.as_ref().map(|secret| {
-            jsonwebtoken::EncodingKey::from_secret(secret.as_ref())
-        });
-        let jwt_decoding_key = config.jwt_secret.as_ref().map(|secret| {
-            jsonwebtoken::DecodingKey::from_secret(secret.as_ref())
-        });
+        let jwt_encoding_key = config
+            .jwt_secret
+            .as_ref()
+            .map(|secret| jsonwebtoken::EncodingKey::from_secret(secret.as_ref()));
+        let jwt_decoding_key = config
+            .jwt_secret
+            .as_ref()
+            .map(|secret| jsonwebtoken::DecodingKey::from_secret(secret.as_ref()));
 
         Ok(Self {
             config: config.clone(),
@@ -689,10 +691,9 @@ impl AuthManager {
             }
 
             // Check for valid base64 characters (both standard and URL-safe)
-            if !part
-                .chars()
-                .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '-' || c == '_' || c == '=')
-            {
+            if !part.chars().all(|c| {
+                c.is_alphanumeric() || c == '+' || c == '/' || c == '-' || c == '_' || c == '='
+            }) {
                 return false;
             }
         }
@@ -1517,7 +1518,9 @@ impl AuthManager {
                                     user_id: None,
                                     permissions: vec![],
                                     token_id: None,
-                                    error: Some("Session invalidated due to IP address change".to_string()),
+                                    error: Some(
+                                        "Session invalidated due to IP address change".to_string(),
+                                    ),
                                     session_id: None,
                                 });
                             }

@@ -1,5 +1,5 @@
-use rhema_core::RhemaError;
 use colored::*;
+use rhema_core::RhemaError;
 use std::io::{self, Write};
 
 /// Error severity levels for CLI output
@@ -19,16 +19,16 @@ pub struct ErrorHandler {
 }
 
 impl ErrorHandler {
-            /// Create a new error handler
-        pub fn new(verbose: bool, quiet: bool) -> Self {
-            // For now, always enable colors. We can add terminal detection later
-            let color_enabled = true;
-            Self {
-                verbose,
-                quiet,
-                color_enabled,
-            }
+    /// Create a new error handler
+    pub fn new(verbose: bool, quiet: bool) -> Self {
+        // For now, always enable colors. We can add terminal detection later
+        let color_enabled = true;
+        Self {
+            verbose,
+            quiet,
+            color_enabled,
         }
+    }
 
     /// Display an error with appropriate formatting
     pub fn display_error(&self, error: &RhemaError) -> io::Result<()> {
@@ -38,14 +38,14 @@ impl ErrorHandler {
 
         let severity = self.classify_error(error);
         let message = self.format_error(error, severity);
-        
+
         let mut stderr = io::stderr();
         writeln!(stderr, "{}", message)?;
-        
+
         if self.verbose {
             self.display_error_context(error)?;
         }
-        
+
         Ok(())
     }
 
@@ -57,11 +57,11 @@ impl ErrorHandler {
 
         let mut stderr = io::stderr();
         writeln!(stderr, "{}", "Multiple errors occurred:".red().bold())?;
-        
+
         for (i, error) in errors.iter().enumerate() {
             writeln!(stderr, "  {}. {}", i + 1, error)?;
         }
-        
+
         Ok(())
     }
 
@@ -103,31 +103,31 @@ impl ErrorHandler {
     fn classify_error(&self, error: &RhemaError) -> ErrorSeverity {
         match error {
             // Fatal errors - should exit immediately
-            RhemaError::GitRepoNotFound(_) |
-            RhemaError::ConfigError(_) |
-            RhemaError::AuthenticationError(_) |
-            RhemaError::AuthorizationError(_) |
-            RhemaError::SafetyViolation(_) => ErrorSeverity::Fatal,
+            RhemaError::GitRepoNotFound(_)
+            | RhemaError::ConfigError(_)
+            | RhemaError::AuthenticationError(_)
+            | RhemaError::AuthorizationError(_)
+            | RhemaError::SafetyViolation(_) => ErrorSeverity::Fatal,
 
             // Errors - operation failed but may be recoverable
-            RhemaError::FileNotFound(_) |
-            RhemaError::ScopeNotFound(_) |
-            RhemaError::NotFound(_) |
-            RhemaError::Validation(_) |
-            RhemaError::InvalidQuery(_) |
-            RhemaError::SchemaValidation(_) |
-            RhemaError::IoError(_) |
-            RhemaError::YamlError(_) |
-            RhemaError::JsonError(_) |
-            RhemaError::ParseError(_) |
-            RhemaError::InvalidInput(_) |
-            RhemaError::NetworkError(_) |
-            RhemaError::ExternalServiceError(_) => ErrorSeverity::Error,
+            RhemaError::FileNotFound(_)
+            | RhemaError::ScopeNotFound(_)
+            | RhemaError::NotFound(_)
+            | RhemaError::Validation(_)
+            | RhemaError::InvalidQuery(_)
+            | RhemaError::SchemaValidation(_)
+            | RhemaError::IoError(_)
+            | RhemaError::YamlError(_)
+            | RhemaError::JsonError(_)
+            | RhemaError::ParseError(_)
+            | RhemaError::InvalidInput(_)
+            | RhemaError::NetworkError(_)
+            | RhemaError::ExternalServiceError(_) => ErrorSeverity::Error,
 
             // Warnings - operation succeeded but with issues
-            RhemaError::CircularDependency(_) |
-            RhemaError::ValidationError(_) |
-            RhemaError::PerformanceError(_) => ErrorSeverity::Warning,
+            RhemaError::CircularDependency(_)
+            | RhemaError::ValidationError(_)
+            | RhemaError::PerformanceError(_) => ErrorSeverity::Warning,
 
             // Info - general information
             _ => ErrorSeverity::Info,
@@ -144,7 +144,7 @@ impl ErrorHandler {
         };
 
         let message = error.to_string();
-        
+
         if self.color_enabled {
             match severity {
                 ErrorSeverity::Fatal => format!("{}: {}", prefix.red().bold(), message.red()),
@@ -160,7 +160,7 @@ impl ErrorHandler {
     /// Display additional error context and suggestions
     fn display_error_context(&self, error: &RhemaError) -> io::Result<()> {
         let mut stderr = io::stderr();
-        
+
         let context = match error {
             RhemaError::GitRepoNotFound(_) => {
                 "💡 Try running this command from a Git repository directory"
@@ -172,21 +172,15 @@ impl ErrorHandler {
                 writeln!(stderr, "📁 File path: {}", path)?;
                 "💡 Verify the file exists and you have read permissions"
             }
-            RhemaError::ScopeNotFound(_) => {
-                "💡 Run 'rhema scopes' to see available scopes"
-            }
+            RhemaError::ScopeNotFound(_) => "💡 Run 'rhema scopes' to see available scopes",
             RhemaError::Validation(_) => {
                 "💡 Check your input data and ensure it meets validation requirements"
             }
-            RhemaError::InvalidQuery(_) => {
-                "💡 Review the query syntax and ensure it's valid"
-            }
+            RhemaError::InvalidQuery(_) => "💡 Review the query syntax and ensure it's valid",
             RhemaError::AuthenticationError(_) => {
                 "💡 Check your authentication credentials and permissions"
             }
-            RhemaError::NetworkError(_) => {
-                "💡 Check your network connection and try again"
-            }
+            RhemaError::NetworkError(_) => "💡 Check your network connection and try again",
             _ => return Ok(()),
         };
 
@@ -195,7 +189,7 @@ impl ErrorHandler {
         } else {
             writeln!(stderr, "{}", context)?;
         }
-        
+
         Ok(())
     }
 

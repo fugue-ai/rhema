@@ -2,9 +2,9 @@ use chrono::Utc;
 use std::collections::HashMap;
 
 use rhema_coordination::agent::patterns::{
-    AgentInfo, AgentStatus, Constraint, ConstraintType, CpuAllocator, MemoryPool, MonitoringConfig, NetworkResources, PatternCategory, PatternConfig,
-    PatternMetadata, PatternPerformanceMetrics, PatternPhase, PatternState, PatternStatus,
-    RecoveryStrategy, ResourcePool, ValidationResult,
+    AgentInfo, AgentStatus, Constraint, ConstraintType, CpuAllocator, MemoryPool, MonitoringConfig,
+    NetworkResources, PatternCategory, PatternConfig, PatternMetadata, PatternPerformanceMetrics,
+    PatternPhase, PatternState, PatternStatus, RecoveryStrategy, ResourcePool, ValidationResult,
 };
 use rhema_coordination::agent::{
     CoordinationPattern, PatternContext, PatternError, PatternExecutor, PatternRegistry,
@@ -291,10 +291,7 @@ impl EnhancedTestFixture {
             parent_pattern_id: None,
         };
 
-        Self {
-            context,
-            executor,
-        }
+        Self { context, executor }
     }
 
     fn register_pattern(&mut self, pattern: EnhancedTestPattern) {
@@ -795,7 +792,8 @@ async fn test_enhanced_pattern_monitoring_configuration() {
                 name: "Test Agent".to_string(),
                 capabilities: vec!["test".to_string()],
                 status: AgentStatus::Idle,
-                performance_metrics: rhema_coordination::agent::patterns::AgentPerformanceMetrics::default(),
+                performance_metrics:
+                    rhema_coordination::agent::patterns::AgentPerformanceMetrics::default(),
                 current_workload: 0.0,
                 assigned_tasks: vec![],
             }],
