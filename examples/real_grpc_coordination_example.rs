@@ -89,21 +89,11 @@ async fn main() -> RhemaResult<()> {
         sleep(Duration::from_millis(100)).await;
     }
 
-    // Create a coordination session
-    println!("📋 Creating coordination session");
-    let session_id = manager
-        .create_session(
-            "code-review-session".to_string(),
-            agents.iter().map(|a| a.id.clone()).collect(),
-        )
-        .await?;
-
-    println!("✅ Created session: {}", session_id);
-
-    // Join the session with all agents
+    // Register all agents
+    println!("📋 Registering all agents");
     for agent in &agents {
-        println!("👥 Agent {} joining session", agent.name);
-        manager.join_session(&session_id, &agent.id).await?;
+        println!("👥 Registering agent: {}", agent.name);
+        manager.register_agent(agent.clone()).await?;
         sleep(Duration::from_millis(100)).await;
     }
 
@@ -132,8 +122,8 @@ async fn main() -> RhemaResult<()> {
         sleep(Duration::from_millis(200)).await;
     }
 
-    // Send session-specific messages
-    let session_messages = vec![
+    // Send additional messages
+    let additional_messages = vec![
         AgentMessage::new(
             agents[0].id.clone(),
             MessageType::TaskCompletion,
@@ -151,28 +141,15 @@ async fn main() -> RhemaResult<()> {
         ),
     ];
 
-    for message in &session_messages {
-        println!("📤 Sending session message: {:?}", message.message_type);
-        manager
-            .send_session_message(&session_id, message.clone())
-            .await?;
+    for message in &additional_messages {
+        println!("📤 Sending additional message: {:?}", message.message_type);
+        manager.send_message(message.clone()).await?;
         sleep(Duration::from_millis(200)).await;
-    }
-
-    // Get all registered agents
-    println!("📊 Retrieving all registered agents");
-    let all_agents = manager.get_all_agents().await?;
-    println!("Found {} agents:", all_agents.len());
-    for agent in &all_agents {
-        println!(
-            "  - {} ({}) - Status: {:?}",
-            agent.name, agent.agent_type, agent.status
-        );
     }
 
     // Get connection statistics
     println!("📈 Getting connection statistics");
-    let stats = manager.get_connection_stats().await?;
+    let stats = manager.get_connection_stats().await;
     println!("Connection Stats:");
     println!("  Connected: {}", stats.is_connected);
     println!("  Messages Sent: {}", stats.messages_sent);
@@ -182,23 +159,9 @@ async fn main() -> RhemaResult<()> {
         println!("  Average Latency: {}ms", latency);
     }
 
-    // Leave the session
-    for agent in &agents {
-        println!("👋 Agent {} leaving session", agent.name);
-        manager.leave_session(&session_id, &agent.id).await?;
-        sleep(Duration::from_millis(100)).await;
-    }
-
-    // Unregister agents
-    for agent in &agents {
-        println!("🗑️  Unregistering agent: {}", agent.name);
-        manager.unregister_agent(&agent.id).await?;
-        sleep(Duration::from_millis(100)).await;
-    }
-
     println!("✅ Real gRPC Coordination Example completed successfully!");
     println!("📊 Final Statistics:");
-    let final_stats = manager.get_connection_stats().await?;
+    let final_stats = manager.get_connection_stats().await;
     println!("  Total Messages Sent: {}", final_stats.messages_sent);
     println!(
         "  Total Messages Received: {}",

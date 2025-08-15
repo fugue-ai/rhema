@@ -35,7 +35,7 @@ async fn test_disabled_coordination() -> RhemaResult<()> {
         ..Default::default()
     };
 
-    let manager = create_coordination_manager(config).await?;
+    let mut manager = create_coordination_manager(config).await?;
     assert!(!manager.is_enabled());
 
     // Should not fail when coordination is disabled
@@ -206,7 +206,7 @@ async fn test_agent_registration_workflow() -> RhemaResult<()> {
         ..Default::default()
     };
 
-    let manager = create_coordination_manager(config).await?;
+    let mut manager = create_coordination_manager(config).await?;
 
     // Create multiple agents
     let agents = vec![
@@ -236,7 +236,7 @@ async fn test_message_sending_workflow() -> RhemaResult<()> {
         ..Default::default()
     };
 
-    let manager = create_coordination_manager(config).await?;
+    let mut manager = create_coordination_manager(config).await?;
 
     // Create messages
     let messages = vec![
@@ -383,7 +383,7 @@ async fn test_timestamp_handling() {
 /// Test mock coordination client creation
 #[tokio::test]
 async fn test_mock_coordination_client_creation() {
-    let client = MockCoordinationClient::new();
+    let mut client = MockCoordinationClient::new();
 
     // Test that the client is created successfully
     assert!(client.is_connected().await);

@@ -18,7 +18,7 @@ use rhema_config::{
     wizard::{
         ConfigWizard, QuestionType, StepType, ValidationRuleType, WizardProgress, WizardSettings,
     },
-    Config, ConfigIssue, ConfigIssueSeverity, ValidationResult,
+    Config, ConfigIssue, ConfigIssueSeverity, ValidationResult, GlobalConfig, ConfigEnvironment,
 };
 use serde_json::json;
 use std::collections::HashMap;
@@ -28,30 +28,29 @@ mod fixtures {
     use super::*;
 
     /// Create a test configuration with various issues
-    pub fn create_test_config_with_issues() -> Config {
-        let mut config = Config::default();
+    pub fn create_test_config_with_issues() -> GlobalConfig {
+        let mut config = GlobalConfig::new();
 
         // Add some configuration that would trigger suggestions
-        config.global.user.id = "test_user".to_string();
-        config.global.user.name = "Test User".to_string();
-        config.global.user.email = "test@example.com".to_string();
+        config.user.id = "test_user".to_string();
+        config.user.name = "Test User".to_string();
+        config.user.email = "test@example.com".to_string();
 
         config
     }
 
     /// Create a test configuration for documentation generation
-    pub fn create_test_config_for_docs() -> Config {
-        let mut config = Config::default();
+    pub fn create_test_config_for_docs() -> GlobalConfig {
+        let mut config = GlobalConfig::new();
 
-        config.global.user.id = "doc_user".to_string();
-        config.global.user.name = "Documentation User".to_string();
-        config.global.user.email = "docs@example.com".to_string();
+        config.user.id = "doc_user".to_string();
+        config.user.name = "Documentation User".to_string();
+        config.user.email = "docs@example.com".to_string();
 
-        config.global.application.name = "Documentation Test Project".to_string();
-        config.global.application.environment = "development".to_string();
+        config.application.name = "Documentation Test Project".to_string();
+        config.environment.current = ConfigEnvironment::Development;
 
-        config.repository.repository_type = "git".to_string();
-        config.repository.url = "https://github.com/example/docs-test".to_string();
+        // Note: repository fields don't exist in GlobalConfig, removing these lines
 
         config
     }
@@ -60,22 +59,22 @@ mod fixtures {
     pub fn create_test_validation_issues() -> Vec<ConfigIssue> {
         vec![
             ConfigIssue {
-                path: "global.user.id".to_string(),
-                message: "User ID is too short".to_string(),
                 severity: ConfigIssueSeverity::Error,
-                category: "validation".to_string(),
+                message: "User ID is too short".to_string(),
+                location: Some("global.user.id".to_string()),
+                suggestion: Some("Use a longer user ID".to_string()),
             },
             ConfigIssue {
-                path: "security.encryption.enabled".to_string(),
-                message: "Encryption is disabled".to_string(),
                 severity: ConfigIssueSeverity::Warning,
-                category: "security".to_string(),
+                message: "Encryption is disabled".to_string(),
+                location: Some("security.encryption.enabled".to_string()),
+                suggestion: Some("Enable encryption for security".to_string()),
             },
             ConfigIssue {
-                path: "backup.schedule".to_string(),
-                message: "No backup schedule configured".to_string(),
                 severity: ConfigIssueSeverity::Info,
-                category: "backup".to_string(),
+                message: "No backup schedule configured".to_string(),
+                location: Some("backup.schedule".to_string()),
+                suggestion: Some("Configure a backup schedule".to_string()),
             },
         ]
     }
@@ -87,7 +86,13 @@ async fn test_feedback_system_integration() {
     let config = fixtures::create_test_config_with_issues();
 
     // Test with valid configuration
-    let validation_result = ValidationResult::Valid;
+    let validation_result = ValidationResult {
+        valid: true,
+        issues: vec![],
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
         .await;
@@ -99,7 +104,13 @@ async fn test_feedback_system_integration() {
 
     // Test with invalid configuration
     let issues = fixtures::create_test_validation_issues();
-    let validation_result = ValidationResult::Invalid { issues };
+    let validation_result = ValidationResult {
+        valid: false,
+        issues,
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
         .await;
@@ -188,8 +199,14 @@ async fn test_feedback_templates() {
 
     // Test that templates are properly initialized
     // This would test the internal template initialization
-    let config = Config::default();
-    let validation_result = ValidationResult::Valid;
+    let config = GlobalConfig::new();
+    let validation_result = ValidationResult {
+        valid: true,
+        issues: vec![],
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
         .await;
@@ -274,7 +291,13 @@ async fn test_feedback_summary_calculation() {
     let config = fixtures::create_test_config_with_issues();
 
     // Test with no issues
-    let validation_result = ValidationResult::Valid;
+    let validation_result = ValidationResult {
+        valid: true,
+        issues: vec![],
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
         .await;
@@ -288,7 +311,13 @@ async fn test_feedback_summary_calculation() {
 
     // Test with issues
     let issues = fixtures::create_test_validation_issues();
-    let validation_result = ValidationResult::Invalid { issues };
+    let validation_result = ValidationResult {
+        valid: false,
+        issues,
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
         .await;
@@ -394,7 +423,13 @@ async fn test_integration_end_to_end() {
     let config = wizard_result.config;
 
     // 3. Validate configuration
-    let validation_result = ValidationResult::Valid; // In real scenario, this would use actual validation
+    let validation_result = ValidationResult {
+        valid: true,
+        issues: vec![],
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    }; // In real scenario, this would use actual validation
 
     // 4. Generate feedback
     let feedback_provider = ConfigFeedbackProvider::new();
@@ -426,12 +461,16 @@ async fn test_integration_end_to_end() {
 async fn test_error_handling() {
     // Test feedback provider with invalid data
     let provider = ConfigFeedbackProvider::new();
-    let config = Config::default();
+    let config = GlobalConfig::new();
 
     // Test with empty validation result
     let empty_issues = vec![];
-    let validation_result = ValidationResult::Invalid {
+    let validation_result = ValidationResult {
+        valid: false,
         issues: empty_issues,
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
     };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
@@ -468,7 +507,13 @@ async fn test_performance_metrics() {
     // Test feedback generation performance
     let provider = ConfigFeedbackProvider::new();
     let config = fixtures::create_test_config_with_issues();
-    let validation_result = ValidationResult::Valid;
+    let validation_result = ValidationResult {
+        valid: true,
+        issues: vec![],
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
         .await;

@@ -242,14 +242,14 @@ pub struct ContextChange {
     pub details: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ChangeType {
     Created,
     Updated,
     Deleted,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ResourceType {
     Knowledge,
     Todo,
@@ -257,6 +257,7 @@ pub enum ResourceType {
     Pattern,
     Convention,
     LockFile,
+    Scope,
 }
 
 // AI agent context types

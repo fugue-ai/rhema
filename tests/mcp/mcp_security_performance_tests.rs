@@ -522,8 +522,8 @@ async fn test_comprehensive_security_integration() {
     let cache_config = rhema_cli::cache::CacheConfig::default();
     let cache_manager_future = CacheManager::new(&cache_config);
     let cache_manager = Arc::new(cache_manager_future.await.unwrap());
-    let file_watcher_config = rhema_cli::FileWatcherConfig::default();
-    let file_watcher_future = FileWatcher::new(&file_watcher_config, repo_root);
+    let mcp_config = McpConfig::default();
+    let file_watcher_future = FileWatcher::new(&mcp_config.watcher, repo_root);
     let file_watcher = Arc::new(file_watcher_future.await.unwrap());
     let auth_manager = Arc::new(AuthManager::new(&config.auth).unwrap());
 
@@ -563,8 +563,8 @@ async fn test_performance_optimization_features() {
     let cache_config = rhema_cli::cache::CacheConfig::default();
     let cache_manager_future = CacheManager::new(&cache_config);
     let cache_manager = Arc::new(cache_manager_future.await.unwrap());
-    let file_watcher_config = rhema_cli::FileWatcherConfig::default();
-    let file_watcher_future = FileWatcher::new(&file_watcher_config, repo_root);
+    let mcp_config = McpConfig::default();
+    let file_watcher_future = FileWatcher::new(&mcp_config.watcher, repo_root);
     let file_watcher = Arc::new(file_watcher_future.await.unwrap());
     let auth_manager = Arc::new(AuthManager::new(&config.auth).unwrap());
 
