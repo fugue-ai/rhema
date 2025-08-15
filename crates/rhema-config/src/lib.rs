@@ -1,6 +1,8 @@
 pub mod backup;
 pub mod comprehensive_validator;
 pub mod config;
+pub mod documentation;
+pub mod feedback;
 pub mod global;
 pub mod invariants;
 pub mod lock;
@@ -16,6 +18,7 @@ pub mod types;
 pub mod validation;
 pub mod validation_rules;
 pub mod validator;
+pub mod wizard;
 
 // Re-export core types
 pub use rhema_core::{RhemaError, RhemaResult};
@@ -79,6 +82,26 @@ pub use validation_rules::{
     ActionType, ConditionOperator, CustomValidatorConfig, GlobalValidationSettings, RuleAction,
     RuleCondition, RuleEvaluationResult, RuleSet, RuleType, SchemaOverride, ValidationRule,
     ValidationRulesConfig, ValidationRulesManager, ValidationRulesStatistics,
+};
+
+// Re-export feedback types
+pub use feedback::{
+    ConfigFeedback, ConfigFeedbackProvider, ConfigurationSuggestion, FeedbackSummary,
+    FeedbackTemplate, SuggestionPattern, SuggestionPriority, ValidationFeedback,
+};
+
+// Re-export documentation types
+pub use documentation::{
+    ConfigDocumentation, ConfigDocumentationGenerator, DocumentationResult,
+    DocumentationSection, DocumentationStatistics, DocumentationSummary,
+    DocumentationTemplate, SectionType,
+};
+
+// Re-export wizard types
+pub use wizard::{
+    ConfigWizard, QuestionOption, QuestionType, QuestionValidationRule, StepType,
+    ValidationRule as WizardValidationRule, ValidationRuleType, WizardProgress, WizardQuestion,
+    WizardResult, WizardSettings, WizardStatistics, WizardStep,
 };
 
 // Error type conversions

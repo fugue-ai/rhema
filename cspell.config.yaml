@@ -12,6 +12,7 @@ words:
   - codegen
   - cpus
   - dashmap
+  - Datelike
   - dialoguer
   - flate
   - hnsw

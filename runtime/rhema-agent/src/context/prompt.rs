@@ -4,7 +4,7 @@ use rhema_coordination::context_injection::{EnhancedContextInjector, TaskType};
 use rhema_core::schema::{
     AdvancedVariable, CompositionBlock, CompositionBlockType, ContextCacheConfig,
     ContextLearningConfig, ContextOptimizationConfig, ContextQualityMetrics, ContextRule,
-    ContextInjectionMethod, PromptPattern, TemplatePerformanceMetrics, TemplateValidationRule,
+    ContextInjectionMethod, PromptPattern, Prompts, TemplatePerformanceMetrics, TemplateValidationRule,
     ValidationRuleType, ValidationSeverity, VariableConstraints, VariableType, VariableValidation,
 };
 use std::collections::HashMap;
@@ -885,8 +885,67 @@ fn add_prompt(
     extends: &Option<String>,
     variables: &Option<String>,
 ) -> RhemaResult<()> {
-    // TODO: Implement add prompt
+    let scope_path = rhema.get_current_scope_path()?;
+    let prompts_path = scope_path.join(".rhema").join("prompts.yaml");
+
+    // Create .rhema directory if it doesn't exist
+    if !scope_path.join(".rhema").exists() {
+        std::fs::create_dir_all(scope_path.join(".rhema"))?;
+    }
+
+    // Load existing prompts or create new ones
+    let mut prompts = if prompts_path.exists() {
+        load_prompts(&prompts_path)?
+    } else {
+        Prompts { prompts: Vec::new() }
+    };
+
+    // Generate unique ID
+    let id = format!("prompt-{}", chrono::Utc::now().timestamp());
+
+    // Parse injection method
+    let injection_method = if let Some(injection_str) = injection {
+        parse_injection_method(injection_str)?
+    } else {
+        ContextInjectionMethod::Prepend
+    };
+
+    // Parse tags
+    let tags_vec = if let Some(tags_str) = tags {
+        Some(tags_str.split(',').map(|s| s.trim().to_string()).collect())
+    } else {
+        None
+    };
+
+    // Parse variables
+    let variables_map = if let Some(vars_str) = variables {
+        let mut vars = HashMap::new();
+        for pair in vars_str.split(',') {
+            let parts: Vec<&str> = pair.split('=').collect();
+            if parts.len() == 2 {
+                vars.insert(parts[0].trim().to_string(), parts[1].trim().to_string());
+            }
+        }
+        Some(vars)
+    } else {
+        None
+    };
+
+    // Create new prompt pattern
+    let mut new_pattern = PromptPattern::new(&id, name, content, injection_method);
+    new_pattern.description = Some(description.to_string());
+    new_pattern.tags = tags_vec;
+    new_pattern.extends = extends.clone();
+    new_pattern.variables = variables_map;
+
+    // Add to prompts
+    prompts.prompts.push(new_pattern);
+
+    // Save to file
+    save_prompts(&prompts_path, &prompts)?;
+
     println!("✅ Added prompt: {}", name);
+    println!("   ID: {}", id);
     println!("   Description: {}", description);
     println!("   Content: {}", content);
     if let Some(cat) = category {
@@ -904,6 +963,8 @@ fn add_prompt(
     if let Some(vars) = variables {
         println!("   Variables: {}", vars);
     }
+    println!("   Saved to: {}", prompts_path.display());
+    
     Ok(())
 }
 
@@ -1415,14 +1476,121 @@ fn update_prompt(
     extends: &Option<String>,
     variables: &Option<String>,
 ) -> RhemaResult<()> {
-    // TODO: Implement update prompt
-    println!("Updating prompt: {}", id);
+    let scope_path = rhema.get_current_scope_path()?;
+    let prompts_path = scope_path.join(".rhema").join("prompts.yaml");
+
+    if !prompts_path.exists() {
+        return Err(RhemaError::InvalidCommand(
+            "No prompts.yaml found".to_string(),
+        ));
+    }
+
+    let mut prompts = load_prompts(&prompts_path)?;
+
+    // Find pattern by ID or name
+    let pattern_index = prompts
+        .prompts
+        .iter()
+        .position(|p| p.id == id || p.name == id)
+        .ok_or_else(|| RhemaError::InvalidCommand(format!("Pattern '{}' not found", id)))?;
+
+    let pattern = &mut prompts.prompts[pattern_index];
+
+    // Update fields if provided
+    if let Some(new_name) = name {
+        pattern.name = new_name.clone();
+    }
+
+    if let Some(new_description) = description {
+        pattern.description = Some(new_description.clone());
+    }
+
+    if let Some(new_content) = content {
+        pattern.template = new_content.clone();
+    }
+
+    if let Some(new_tags) = tags {
+        pattern.tags = Some(new_tags.split(',').map(|s| s.trim().to_string()).collect());
+    }
+
+    if let Some(new_injection) = injection {
+        pattern.injection = parse_injection_method(new_injection)?;
+    }
+
+    if let Some(new_extends) = extends {
+        pattern.extends = Some(new_extends.clone());
+    }
+
+    if let Some(new_variables) = variables {
+        let mut vars = HashMap::new();
+        for pair in new_variables.split(',') {
+            let parts: Vec<&str> = pair.split('=').collect();
+            if parts.len() == 2 {
+                vars.insert(parts[0].trim().to_string(), parts[1].trim().to_string());
+            }
+        }
+        pattern.variables = Some(vars);
+    }
+
+    // Update version timestamp
+    pattern.version.updated_at = chrono::Utc::now();
+
+    // Save updated prompts
+    save_prompts(&prompts_path, &prompts)?;
+
+    println!("✅ Updated prompt: {}", pattern.name);
+    println!("   ID: {}", pattern.id);
+    if let Some(desc) = &pattern.description {
+        println!("   Description: {}", desc);
+    }
+    println!("   Template: {}", pattern.template);
+    println!("   Injection: {:?}", pattern.injection);
+    if let Some(tags) = &pattern.tags {
+        println!("   Tags: {}", tags.join(", "));
+    }
+    if let Some(extends) = &pattern.extends {
+        println!("   Extends: {}", extends);
+    }
+    if let Some(vars) = &pattern.variables {
+        println!("   Variables: {:?}", vars);
+    }
+    println!("   Updated at: {}", pattern.version.updated_at.format("%Y-%m-%d %H:%M:%S"));
+    
     Ok(())
 }
 
 fn delete_prompt(rhema: &Rhema, id: &str) -> RhemaResult<()> {
-    // TODO: Implement delete prompt
-    println!("Deleting prompt: {}", id);
+    let scope_path = rhema.get_current_scope_path()?;
+    let prompts_path = scope_path.join(".rhema").join("prompts.yaml");
+
+    if !prompts_path.exists() {
+        return Err(RhemaError::InvalidCommand(
+            "No prompts.yaml found".to_string(),
+        ));
+    }
+
+    let mut prompts = load_prompts(&prompts_path)?;
+
+    // Find pattern by ID or name
+    let pattern_index = prompts
+        .prompts
+        .iter()
+        .position(|p| p.id == id || p.name == id)
+        .ok_or_else(|| RhemaError::InvalidCommand(format!("Pattern '{}' not found", id)))?;
+
+    let pattern_name = prompts.prompts[pattern_index].name.clone();
+    let pattern_id = prompts.prompts[pattern_index].id.clone();
+
+    // Remove the pattern
+    prompts.prompts.remove(pattern_index);
+
+    // Save updated prompts
+    save_prompts(&prompts_path, &prompts)?;
+
+    println!("✅ Deleted prompt: {}", pattern_name);
+    println!("   ID: {}", pattern_id);
+    println!("   Remaining patterns: {}", prompts.prompts.len());
+    
     Ok(())
 }
 
@@ -2474,3 +2642,5 @@ fn parse_validation_severity(severity: &str) -> RhemaResult<ValidationSeverity> 
         ))),
     }
 }
+
+

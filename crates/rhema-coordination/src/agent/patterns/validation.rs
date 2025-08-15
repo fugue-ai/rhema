@@ -273,7 +273,7 @@ impl ValidationRule for ConstraintValidationRule {
                 }
                 ConstraintType::Temporal => {
                     if let Some(max_duration) = constraint.parameters.get("max_duration_seconds") {
-                        if let Some(duration) = max_duration.as_u64() {
+                        if let Some(_duration) = max_duration.as_u64() {
                             // This would be checked during execution
                             constraint_warnings.push(
                                 "Temporal constraint will be validated during execution"
@@ -284,7 +284,7 @@ impl ValidationRule for ConstraintValidationRule {
                 }
                 ConstraintType::Performance => {
                     if let Some(min_efficiency) = constraint.parameters.get("min_efficiency") {
-                        if let Some(efficiency) = min_efficiency.as_f64() {
+                        if let Some(_efficiency) = min_efficiency.as_f64() {
                             // This would be checked during execution
                             constraint_warnings.push(
                                 "Performance constraint will be validated during execution"
@@ -959,6 +959,10 @@ pub struct ValidationStatistics {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent::patterns::{
+        AgentPerformanceMetrics, CpuAllocator, MemoryPool, NetworkResources, PatternCategory,
+        PatternConfig, PatternState, ResourcePool,
+    };
 
     #[tokio::test]
     async fn test_validation_engine_creation() {

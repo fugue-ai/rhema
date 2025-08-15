@@ -44,7 +44,7 @@ pub use official_sdk::{OfficialRhemaMcpServer, MCP_VERSION, SUPPORTED_VERSIONS};
 pub use sdk::{
     ContextProviderExt, Prompt, PromptSegment, Resource, RhemaMcpServer, Tool, ToolResult,
 };
-pub use watcher::{FileWatcher, WatcherConfig as FileWatcherConfig};
+pub use watcher::{FileWatcher, FileWatcherBuilder, WatcherConfig as FileWatcherConfig};
 
 /// Main MCP service that coordinates all components
 pub struct RhemaMcpService {

@@ -20,6 +20,7 @@ use tracing::{debug, info, trace};
 
 use super::{Content, ContentAccess, SeasonalConfig, SeasonalPattern, SeasonalPeriod};
 use super::{TemporalError, TemporalResult};
+use crate::AccessType;
 
 /// Seasonal pattern detector for identifying temporal patterns in content
 pub struct SeasonalPatternDetector {
@@ -363,7 +364,7 @@ mod tests {
         ContentAccess {
             content_id: "test_content".to_string(),
             access_time,
-            access_type: super::AccessType::Read,
+            access_type: AccessType::Read,
             user_id: Some("test_user".to_string()),
             session_id: Some("test_session".to_string()),
             relevance_score: Some(0.8),
@@ -405,14 +406,16 @@ mod tests {
         for i in 0..30 {
             let weekday = if i % 7 == 1 { 1 } else { 3 }; // Monday vs Wednesday
             let access_time = Utc::now() - ChronoDuration::days(i);
-            let access_time = access_time
-                .with_weekday(chrono::Weekday::try_from(weekday as u8).unwrap())
-                .unwrap();
+                    // Set the weekday by calculating the days to add/subtract
+            let current_weekday = access_time.weekday().num_days_from_monday();
+            let target_weekday = weekday - 1; // Convert to 0-based
+            let days_diff = (target_weekday as i32 - current_weekday as i32 + 7) % 7;
+            let access_time = access_time + ChronoDuration::days(days_diff as i64);
 
             history.push(ContentAccess {
                 content_id: "test".to_string(),
                 access_time,
-                access_type: super::AccessType::Read,
+                access_type: AccessType::Read,
                 user_id: Some("test_user".to_string()),
                 session_id: Some("test_session".to_string()),
                 relevance_score: Some(0.8),
@@ -442,8 +445,11 @@ mod tests {
             detected_at: Utc::now(),
         };
 
-        let monday = Utc::now().with_weekday(chrono::Weekday::Mon).unwrap();
-        let tuesday = Utc::now().with_weekday(chrono::Weekday::Tue).unwrap();
+        // Create Monday and Tuesday dates
+        let now = Utc::now();
+        let current_weekday = now.weekday().num_days_from_monday();
+        let monday = now + ChronoDuration::days(((0 - current_weekday as i32 + 7) % 7) as i64);
+        let tuesday = now + ChronoDuration::days(((1 - current_weekday as i32 + 7) % 7) as i64);
 
         assert!(detector.matches_pattern(&pattern, monday));
         assert!(!detector.matches_pattern(&pattern, tuesday));

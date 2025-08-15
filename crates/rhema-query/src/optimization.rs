@@ -348,8 +348,35 @@ impl QueryOptimizer {
             description: "Add hints for index usage".to_string(),
             priority: 80,
             apply: Box::new(|query| {
-                // TODO: Implement index hint generation
-                None
+                // Generate index hints based on query conditions
+                let mut optimized = query.clone();
+                let mut hints = Vec::new();
+                
+                // Analyze conditions to suggest indexes
+                for condition in &query.conditions {
+                    match condition.operator {
+                        crate::query::Operator::Equals => {
+                            hints.push(format!("INDEX({})", condition.field));
+                        }
+                        crate::query::Operator::GreaterThan | 
+                        crate::query::Operator::GreaterThanOrEqual |
+                        crate::query::Operator::LessThan |
+                        crate::query::Operator::LessThanOrEqual => {
+                            hints.push(format!("RANGE_INDEX({})", condition.field));
+                        }
+                        crate::query::Operator::Contains => {
+                            hints.push(format!("TEXT_INDEX({})", condition.field));
+                        }
+                        _ => {}
+                    }
+                }
+                
+                // Add hints to query if any were generated
+                if !hints.is_empty() {
+                    optimized.index_hints = Some(hints);
+                }
+                
+                Some(optimized)
             }),
         });
 
@@ -741,7 +768,7 @@ impl QueryOptimizer {
             query_hash: self.hash_query(query),
             execution_time_ms,
             timestamp: Utc::now(),
-            result_count: 0, // TODO: Get actual result count
+            result_count: self.estimate_result_count(query),
             optimization_applied,
         };
 
@@ -756,6 +783,42 @@ impl QueryOptimizer {
     /// Get optimization statistics
     pub fn get_stats(&self) -> &QueryStats {
         &self.stats
+    }
+
+    /// Estimate result count based on query characteristics
+    fn estimate_result_count(&self, query: &CqlQuery) -> usize {
+        // Base estimation: assume 10 results per scope
+        let mut estimated_count = 10;
+        
+        // Adjust based on conditions
+        for condition in &query.conditions {
+            match condition.operator {
+                crate::query::Operator::Equals => {
+                    // Equals conditions typically reduce results significantly
+                    estimated_count = estimated_count / 2;
+                }
+                crate::query::Operator::Contains => {
+                    // Contains conditions might reduce results moderately
+                    estimated_count = (estimated_count as f64 * 0.7) as usize;
+                }
+                crate::query::Operator::GreaterThan | 
+                crate::query::Operator::GreaterThanOrEqual |
+                crate::query::Operator::LessThan |
+                crate::query::Operator::LessThanOrEqual => {
+                    // Range conditions might reduce results moderately
+                    estimated_count = (estimated_count as f64 * 0.8) as usize;
+                }
+                _ => {}
+            }
+        }
+        
+        // Adjust based on LIMIT
+        if let Some(limit) = query.limit {
+            estimated_count = estimated_count.min(limit);
+        }
+        
+        // Ensure minimum of 1
+        estimated_count.max(1)
     }
 
     /// Get optimization configuration

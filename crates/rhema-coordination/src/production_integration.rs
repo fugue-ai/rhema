@@ -730,6 +730,7 @@ impl Default for ProductionConfig {
 mod tests {
     use super::*;
     use crate::ai_service::AIServiceConfig;
+    use crate::RealTimeCoordinationSystem;
 
     #[tokio::test]
     async fn test_production_integration_creation() {

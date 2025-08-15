@@ -36,6 +36,8 @@ walkdir = { workspace = true }
 regex = { workspace = true }
 tempfile = { workspace = true }
 dirs = { workspace = true }
+tar = "0.4"
+flate2 = "1.0"
 
 # Async and concurrency
 futures = { workspace = true }

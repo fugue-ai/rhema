@@ -46,6 +46,14 @@ The `rhema-coordination` crate provides a comprehensive AI-powered development p
 - **Advanced Features**: Message compression, encryption, and performance monitoring
 - **Health Monitoring**: Comprehensive health checks and system monitoring
 
+### 🔗 Syneidesis Integration ✅
+- **Real-time Coordination**: Integration with Syneidesis coordination library
+- **Agent Bridging**: Seamless agent registration and communication between Rhema and Syneidesis
+- **Message Synchronization**: Bidirectional message synchronization between systems
+- **Health Monitoring**: Integrated health monitoring with heartbeat support
+- **Task Tracking**: Comprehensive task creation and completion tracking
+- **Statistics Integration**: Unified statistics across both coordination systems
+
 ## 🎉 Recent Major Accomplishments
 
 ### ✅ ML-based Conflict Prediction System
@@ -190,6 +198,82 @@ for prediction in predictions {
         println!("High confidence conflict predicted: {:?}", prediction.conflict_type);
     }
 }
+```
+
+### Syneidesis Integration
+
+```rust
+use rhema_coordination::{
+    coordination_integration::{CoordinationConfig, CoordinationIntegration, SyneidesisConfig},
+    agent::real_time_coordination::{AgentInfo, AgentMessage, AgentStatus, MessageType, MessagePriority, RealTimeCoordinationSystem},
+};
+
+// Create Rhema coordination system
+let rhema_coordination = RealTimeCoordinationSystem::new();
+
+// Configure Syneidesis integration
+let syneidesis_config = SyneidesisConfig {
+    enabled: true,
+    server_address: Some("http://127.0.0.1:50051".to_string()),
+    auto_register_agents: true,
+    sync_messages: true,
+    enable_health_monitoring: true,
+    timeout_seconds: 30,
+    max_retries: 3,
+    enable_tls: false,
+    tls_cert_path: None,
+};
+
+let integration_config = CoordinationConfig {
+    run_local_server: true,
+    server_address: None,
+    auto_register_agents: true,
+    sync_messages: true,
+    sync_tasks: true,
+    enable_health_monitoring: true,
+    syneidesis: Some(syneidesis_config),
+};
+
+// Create coordination integration
+let integration = CoordinationIntegration::new(rhema_coordination, Some(integration_config))
+    .await?;
+
+// Register agent with both systems
+let agent = AgentInfo {
+    id: "test-agent-1".to_string(),
+    name: "Test Agent 1".to_string(),
+    agent_type: "verification".to_string(),
+    status: AgentStatus::Idle,
+    current_task_id: None,
+    assigned_scope: "default".to_string(),
+    capabilities: vec!["verification".to_string(), "testing".to_string()],
+    last_heartbeat: chrono::Utc::now(),
+    is_online: true,
+    performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+};
+
+integration.register_rhema_agent(&agent).await?;
+
+// Send message through integration
+let message = AgentMessage {
+    id: uuid::Uuid::new_v4().to_string(),
+    message_type: MessageType::TaskAssignment,
+    priority: MessagePriority::Normal,
+    sender_id: "system".to_string(),
+    recipient_ids: vec![agent.id.clone()],
+    content: "Please verify the test data".to_string(),
+    payload: None,
+    timestamp: chrono::Utc::now(),
+    requires_ack: false,
+    expires_at: None,
+};
+
+integration.send_message_with_coordination(message).await?;
+
+// Track tasks and get statistics
+integration.track_task_created().await;
+let stats = integration.get_integration_stats().await;
+println!("Integration stats: {:?}", stats);
 ```
 
 ### Agentic Development Service

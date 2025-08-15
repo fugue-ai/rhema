@@ -167,7 +167,7 @@ impl std::fmt::Display for ExecutionStrategy {
 impl CoordinationPattern for WorkflowOrchestrationPattern {
     async fn execute(&self, context: &PatternContext) -> Result<PatternResult, PatternError> {
         info!("Starting workflow orchestration pattern");
-        let start_time = Utc::now();
+        let start_time = std::time::Instant::now();
 
         // Initialize workflow state
         let mut workflow_state = WorkflowState {
@@ -180,7 +180,7 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
             dependencies: self.workflow_definition.dependencies.clone(),
             execution_order: vec![],
             status: WorkflowStatus::InProgress,
-            started_at: start_time,
+            started_at: Utc::now(),
             completed_at: None,
         };
 
@@ -225,10 +225,10 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
         workflow_state.completed_at = Some(Utc::now());
 
         // Calculate performance metrics
-        let execution_time = (Utc::now() - start_time).num_seconds() as f64;
+        let execution_time_seconds = start_time.elapsed().as_secs_f64();
         let performance_metrics = PatternPerformanceMetrics {
-            total_execution_time_seconds: execution_time,
-            coordination_overhead_seconds: execution_time * 0.08, // Estimate 8% overhead
+            total_execution_time_seconds: execution_time_seconds,
+            coordination_overhead_seconds: execution_time_seconds * 0.08, // Estimate 8% overhead
             resource_utilization: 0.85,
             agent_efficiency: 0.90,
             communication_overhead: workflow_state.steps.len() * 4, // Estimate 4 messages per step
@@ -250,15 +250,16 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
             ),
         ]);
 
+        let execution_time_ms = start_time.elapsed().as_millis() as u64;
+        
         Ok(PatternResult {
-            // TODO: Implement actual pattern execution logic
             pattern_id: "workflow-orchestration".to_string(),
             success: workflow_state.status == WorkflowStatus::Completed,
             data: result_data,
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
-            execution_time_ms: 0, // TODO: Calculate actual execution time
+            execution_time_ms: execution_time_ms,
             metadata: HashMap::new(),
         })
     }
@@ -310,7 +311,7 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
         })
     }
 
-    async fn rollback(&self, context: &PatternContext) -> Result<(), PatternError> {
+    async fn rollback(&self, _context: &PatternContext) -> Result<(), PatternError> {
         info!("Rolling back workflow orchestration pattern");
 
         // Workflow rollback would typically involve:
@@ -323,9 +324,7 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
     }
 
     fn metadata(&self) -> PatternMetadata {
-        // TODO: Implement actual metadata logic
         PatternMetadata {
-            // TODO: Implement actual metadata values
             name: "Workflow Orchestration Pattern".to_string(),
             description: "Coordinated execution of multi-step workflows with dependency management"
                 .to_string(),
@@ -759,7 +758,7 @@ impl std::fmt::Display for SyncStrategy {
 impl CoordinationPattern for StateSynchronizationPattern {
     async fn execute(&self, context: &PatternContext) -> Result<PatternResult, PatternError> {
         info!("Starting state synchronization pattern");
-        let start_time = Utc::now();
+        let start_time = std::time::Instant::now();
 
         // Initialize state synchronization
         let mut sync_state = StateSyncState {
@@ -770,7 +769,7 @@ impl CoordinationPattern for StateSynchronizationPattern {
             conflicts: vec![],
             sync_operations: vec![],
             status: StateSyncStatus::InProgress,
-            started_at: start_time,
+            started_at: Utc::now(),
             completed_at: None,
         };
 
@@ -816,7 +815,7 @@ impl CoordinationPattern for StateSynchronizationPattern {
         sync_state.completed_at = Some(Utc::now());
 
         // Calculate performance metrics
-        let execution_time = (Utc::now() - start_time).num_seconds() as f64;
+        let execution_time = start_time.elapsed().as_secs_f64();
         let performance_metrics = PatternPerformanceMetrics {
             total_execution_time_seconds: execution_time,
             coordination_overhead_seconds: execution_time * 0.12, // Estimate 12% overhead
@@ -842,14 +841,16 @@ impl CoordinationPattern for StateSynchronizationPattern {
             ),
         ]);
 
-        Ok(PatternResult { // TODO: Implement actual pattern execution logic
+        let execution_time_ms = start_time.elapsed().as_millis() as u64;
+        
+        Ok(PatternResult {
             pattern_id: "state-synchronization".to_string(),
             success: sync_state.status == StateSyncStatus::Completed,
             data: result_data,
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
-            execution_time_ms: 0, // TODO: Calculate actual execution time
+            execution_time_ms: execution_time_ms,
             metadata: HashMap::from([
                 ("id".to_string(), json!("state-synchronization")),
                 ("name".to_string(), json!("State Synchronization Pattern")),

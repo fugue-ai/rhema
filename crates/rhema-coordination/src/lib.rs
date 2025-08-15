@@ -50,7 +50,7 @@ pub use agent::task_scoring::{
 pub use coordination_integration::{CoordinationConfig, CoordinationIntegration, IntegrationStats};
 pub use distributed::{DistributedConfig, DistributedManager, NodeInfo, ServiceInfo};
 pub use grpc::{
-    GrpcClientConfig, GrpcCoordinationClient, GrpcCoordinationServer, GrpcServerConfig,
+    GrpcClientConfig, LocalGrpcCoordinationClient, GrpcCoordinationServer, GrpcServerConfig,
 };
 pub use persistence::{PersistenceConfig, PersistenceManager, StorageStats};
 pub use production_config::{ProductionAIService, ProductionConfig, ServiceHealth, ServiceStats};
@@ -323,7 +323,7 @@ impl AgenticDevelopmentService {
     pub async fn get_syneidesis_stats(&self) -> Option<IntegrationStats> {
         self.coordination_integration
             .as_ref()
-            .map(|integration| {
+            .map(|_integration| {
                 // This would need to be async, but we're returning Option<IntegrationStats>
                 // For now, return None if integration is not available
                 None

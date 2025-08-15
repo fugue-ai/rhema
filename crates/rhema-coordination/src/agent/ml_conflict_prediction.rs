@@ -514,7 +514,7 @@ impl MLConflictPredictionSystem {
     async fn generate_prevention_actions(
         &self,
         conflict_probability: f64,
-        confidence: f64,
+        _confidence: f64,
     ) -> RhemaResult<Vec<PreventionAction>> {
         let mut actions = Vec::new();
 

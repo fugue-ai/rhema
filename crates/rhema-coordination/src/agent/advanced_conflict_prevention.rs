@@ -453,8 +453,17 @@ impl AdvancedConflictPreventionSystem {
             enable_health_monitoring: true,
             timeout_seconds: 30,
             max_retries: 3,
+            retry_backoff_ms: 1000,
             enable_tls: false,
             tls_cert_path: None,
+            health_check_interval_seconds: 30,
+            connection_recovery_enabled: true,
+            max_reconnection_attempts: 5,
+            reconnection_backoff_ms: 5000,
+            enable_metrics: true,
+            log_level: "info".to_string(),
+            security: crate::grpc::SecurityConfig::default(),
+            performance: crate::grpc::PerformanceConfig::default(),
         };
 
         match SyneidesisCoordinationClient::new(syneidesis_config).await {

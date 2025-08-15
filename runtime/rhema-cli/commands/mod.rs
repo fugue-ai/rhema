@@ -20,6 +20,7 @@ pub mod core;
 pub mod decision;
 pub mod insight;
 pub mod pattern;
+pub mod scope_loader;
 pub mod todo;
 
 // Re-export command enums and handlers
@@ -28,4 +29,5 @@ pub use core::{handle_init, handle_query};
 pub use decision::{handle_decision, DecisionSubcommands};
 pub use insight::{handle_insight, InsightSubcommands};
 pub use pattern::{handle_pattern, PatternSubcommands};
+pub use scope_loader::{handle_scope_loader, ScopeLoaderSubcommands};
 pub use todo::{handle_todo, TodoSubcommands};

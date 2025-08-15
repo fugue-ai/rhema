@@ -26,6 +26,7 @@ pub mod synthesis;
 pub mod temporal;
 pub mod types;
 pub mod vector;
+pub mod visualization;
 
 // Re-export main types for convenience
 // Cache module exports

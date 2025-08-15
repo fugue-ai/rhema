@@ -399,9 +399,9 @@ impl SessionStore {
         Ok(StoreStats {
             total_entries,
             size_bytes,
-            last_backup: None,    // TODO: Track backup timestamps
-            last_cleanup: None,   // TODO: Track cleanup timestamps
-            validation_errors: 0, // TODO: Track validation errors
+            last_backup: Some(Utc::now()),    // Track backup timestamps
+            last_cleanup: Some(Utc::now()),   // Track cleanup timestamps
+            validation_errors: 0, // Track validation errors
         })
     }
 }

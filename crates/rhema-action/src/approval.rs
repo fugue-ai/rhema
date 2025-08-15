@@ -18,6 +18,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
+use serde_json;
 use tracing::{info, warn};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -292,9 +293,79 @@ impl ApprovalWorkflow {
     }
     
     /// Send email notification
-    async fn send_email_notification(&self, request: &ApprovalRequest, _intent: &ActionIntent) -> ActionResult<()> {
-        // TODO: Implement email notification
-        info!("Email notification would be sent for request: {}", request.id);
+    async fn send_email_notification(&self, request: &ApprovalRequest, intent: &ActionIntent) -> ActionResult<()> {
+        info!("Sending email notification for request: {}", request.id);
+        
+        // Create email content
+        let subject = format!("Approval Request: {}", intent.description);
+        let body = self.create_email_body(request, intent);
+        
+        // In a real implementation, this would use an email service like:
+        // - SMTP with libraries like lettre
+        // - Email service APIs (SendGrid, AWS SES, etc.)
+        // - Internal notification systems
+        
+        // For now, we'll simulate email sending with detailed logging
+        self.simulate_email_send(&subject, &body, &request.approvers).await?;
+        
+        info!("Email notification sent successfully for request: {}", request.id);
+        Ok(())
+    }
+    
+    /// Create email body content
+    fn create_email_body(&self, request: &ApprovalRequest, intent: &ActionIntent) -> String {
+        let mut body = String::new();
+        
+        body.push_str(&format!("Approval Request: {}\n", request.id));
+        body.push_str(&format!("Intent ID: {}\n", request.intent_id));
+        body.push_str(&format!("Description: {}\n", intent.description));
+        body.push_str(&format!("Action Type: {:?}\n", intent.action_type));
+        body.push_str(&format!("Safety Level: {:?}\n", intent.safety_level));
+        body.push_str(&format!("Requested By: {}\n", request.requested_by));
+        body.push_str(&format!("Requested At: {}\n", request.requested_at.format("%Y-%m-%d %H:%M:%S UTC")));
+        body.push_str(&format!("Expires At: {}\n", request.expires_at.format("%Y-%m-%d %H:%M:%S UTC")));
+        
+        if !intent.scope.is_empty() {
+            body.push_str(&format!("Scope: {}\n", intent.scope.join(", ")));
+        }
+        
+        body.push_str("\n=== APPROVAL INSTRUCTIONS ===\n");
+        body.push_str("Please review this action request and respond with your decision.\n");
+        body.push_str("You can approve, reject, or add comments to this request.\n");
+        body.push_str("If no response is received before the expiration time, the request will be automatically rejected.\n");
+        
+        body.push_str("\n=== RESPONSE FORMAT ===\n");
+        body.push_str("To approve: Reply with 'APPROVE' or 'YES'\n");
+        body.push_str("To reject: Reply with 'REJECT' or 'NO' followed by a reason\n");
+        body.push_str("To add a comment: Reply with 'COMMENT: <your comment>'\n");
+        
+        body.push_str("\n=== REQUEST DETAILS ===\n");
+        if let Some(metadata) = &intent.metadata {
+            for (key, value) in metadata {
+                body.push_str(&format!("{}: {}\n", key, value));
+            }
+        }
+        
+        body
+    }
+    
+    /// Simulate email sending (placeholder for real email implementation)
+    async fn simulate_email_send(&self, subject: &str, body: &str, recipients: &[String]) -> ActionResult<()> {
+        info!("=== EMAIL NOTIFICATION SIMULATION ===");
+        info!("To: {}", recipients.join(", "));
+        info!("Subject: {}", subject);
+        info!("Body:\n{}", body);
+        info!("=== END EMAIL SIMULATION ===");
+        
+        // In a real implementation, this would:
+        // 1. Use an email library like lettre for SMTP
+        // 2. Or use an email service API (SendGrid, AWS SES, etc.)
+        // 3. Handle email delivery status and retries
+        // 4. Log email delivery metrics
+        
+        // Simulate some processing time
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+        
         Ok(())
     }
     
@@ -854,27 +925,95 @@ mod tests {
     async fn test_cleanup_expired_requests() {
         let workflow = ApprovalWorkflow::new().await.unwrap();
         
-        // Create a request with very short timeout
-        let mut intent = ActionIntent::new(
-            "test-expired",
-            ActionType::Refactor,
-            "Test expired request",
-            vec!["src/".to_string()],
-            SafetyLevel::High,
-        );
+        // Create a request manually with a short expiration time
+        let request_id = Uuid::new_v4().simple().to_string();
+        let expires_at = Utc::now() - chrono::Duration::seconds(1); // Already expired
         
-        intent.add_approver("user1");
-        intent.approval_workflow.timeout = 1; // 1 second
+        let request = ApprovalRequest {
+            id: request_id.clone(),
+            intent_id: "test-expired".to_string(),
+            requested_by: "test-user".to_string(),
+            requested_at: Utc::now() - chrono::Duration::seconds(10),
+            approvers: vec!["user1".to_string()],
+            status: ApprovalStatus::Pending, // Keep it pending
+            comments: Vec::new(),
+            expires_at,
+        };
         
-        let _approved = workflow.request_approval(&intent).await.unwrap();
+        // Store the request directly
+        {
+            let mut requests = workflow.requests.write().await;
+            requests.insert(request_id.clone(), request);
+        }
         
-        // Wait for expiration
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        
+        // Run cleanup
         let expired_count = workflow.cleanup_expired_requests().await;
         assert!(expired_count.is_ok());
         
         let expired_count = expired_count.unwrap();
         assert!(expired_count > 0);
+        
+        // Verify the request was marked as expired
+        let updated_request = workflow.get_request(&request_id).await;
+        assert!(updated_request.is_some());
+        assert_eq!(updated_request.unwrap().status, ApprovalStatus::Expired);
+    }
+
+    #[tokio::test]
+    async fn test_email_notification() {
+        let workflow = ApprovalWorkflow::new().await.unwrap();
+        
+        let mut intent = ActionIntent::new(
+            "test-email",
+            ActionType::Refactor,
+            "Test email notification",
+            vec!["src/".to_string()],
+            SafetyLevel::High,
+        );
+        
+        intent.add_approver("user1@example.com");
+        intent.add_approver("user2@example.com");
+        
+        // Add some metadata to test email body generation
+        intent.metadata = Some(std::collections::HashMap::from([
+            ("priority".to_string(), serde_json::Value::String("high".to_string())),
+            ("team".to_string(), serde_json::Value::String("backend".to_string())),
+        ]));
+        
+        let approved = workflow.request_approval(&intent).await;
+        assert!(approved.is_ok());
+        
+        // The email notification should be sent as part of the approval process
+        // We can verify this by checking that the request was created
+        let requests = workflow.list_requests().await;
+        assert!(!requests.is_empty());
+        
+        // Find our test request
+        let test_request = requests.iter().find(|r| r.intent_id == "test-email");
+        assert!(test_request.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_enhanced_approval_with_policy() {
+        let workflow = ApprovalWorkflow::new().await.unwrap();
+        
+        let intent = ActionIntent::new(
+            "test-enhanced",
+            ActionType::Refactor,
+            "Test enhanced approval with policy",
+            vec!["src/".to_string()],
+            SafetyLevel::Low,
+        );
+        
+        let policies = workflow.get_default_policies().await;
+        let low_safety_policy = policies.iter().find(|p| p.id == "low_safety_policy").unwrap();
+        
+        let enhanced_request = workflow.create_enhanced_approval_request(&intent, low_safety_policy).await;
+        assert!(enhanced_request.is_ok());
+        
+        let enhanced_request = enhanced_request.unwrap();
+        assert_eq!(enhanced_request.intent_id, "test-enhanced");
+        assert!(enhanced_request.auto_approved);
+        assert_eq!(enhanced_request.status, ApprovalStatus::Approved);
     }
 } 

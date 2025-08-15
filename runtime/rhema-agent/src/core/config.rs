@@ -674,12 +674,21 @@ fn restore_config(
 
     let restore_report = match config_type {
         "global" => {
-            let _config: GlobalConfig = config_manager
+            let config: GlobalConfig = config_manager
                 .backup()
                 .restore_config("global", backup_file)?;
-            // TODO: Implement proper restore report
+            
+            // Create proper restore report
+            let restored_config = rhema_config::backup::RestoredConfig {
+                original_path: GlobalConfig::get_config_path()?,
+                backup_path: PathBuf::from(backup_file),
+                backup_timestamp: chrono::Utc::now(), // This would ideally come from backup metadata
+                restore_timestamp: chrono::Utc::now(),
+                success: true,
+            };
+            
             rhema_config::backup::RestoreReport {
-                restored_configs: vec![],
+                restored_configs: vec![restored_config],
                 restore_errors: vec![],
                 summary: rhema_config::backup::RestoreSummary {
                     total_configs: 1,
@@ -691,17 +700,26 @@ fn restore_config(
             }
         }
         "repository" => {
-            let _repo_path = path.ok_or_else(|| {
+            let repo_path = path.ok_or_else(|| {
                 crate::RhemaError::ConfigError(
                     "Repository path required for repository config".to_string(),
                 )
             })?;
-            let _config: RepositoryConfig = config_manager
+            let config: RepositoryConfig = config_manager
                 .backup()
                 .restore_config("repository", backup_file)?;
-            // TODO: Implement proper restore report
+            
+            // Create proper restore report
+            let restored_config = rhema_config::backup::RestoredConfig {
+                original_path: Path::new(repo_path).join(".rhema").join("config.yaml"),
+                backup_path: PathBuf::from(backup_file),
+                backup_timestamp: chrono::Utc::now(), // This would ideally come from backup metadata
+                restore_timestamp: chrono::Utc::now(),
+                success: true,
+            };
+            
             rhema_config::backup::RestoreReport {
-                restored_configs: vec![],
+                restored_configs: vec![restored_config],
                 restore_errors: vec![],
                 summary: rhema_config::backup::RestoreSummary {
                     total_configs: 1,
@@ -1266,13 +1284,10 @@ fn display_config_health(health: &rhema_config::ConfigHealth) -> RhemaResult<()>
 
     for issue in &health.issues {
         println!("    • Issue: {}", issue);
-        // TODO: Fix issue field access
     }
 
-    // TODO: Fix recommendations field access
-    // for recommendation in &health.recommendations {
-    //     println!("    • Recommendation: {}", recommendation);
-    // }
+    // Note: ConfigHealth doesn't have a recommendations field in the current implementation
+    // If recommendations are needed, they would need to be added to the ConfigHealth struct
 
     Ok(())
 }
@@ -1283,16 +1298,27 @@ fn display_audit_log(
 ) -> RhemaResult<()> {
     println!("Configuration Audit Log:");
     println!("  Total entries: {}", audit_log.entries.len());
-    // TODO: Fix audit log field access
-    // println!("  Created: {}", audit_log.created_at);
-    // println!("  Last updated: {}", audit_log.updated_at);
+    
+    // Note: ConfigAuditLog doesn't have created_at or updated_at fields in the current implementation
+    // If these fields are needed, they would need to be added to the ConfigAuditLog struct
 
-    let changes = if let Some(_since_str) = since {
+    let changes = if let Some(since_str) = since {
         // Parse since timestamp and filter changes
-        // This would need to be implemented
-        &audit_log.entries
+        // This would need to be implemented with proper timestamp parsing
+        match chrono::DateTime::parse_from_rfc3339(since_str) {
+            Ok(since_time) => {
+                audit_log.entries
+                    .iter()
+                    .filter(|entry| entry.timestamp >= since_time)
+                    .collect::<Vec<_>>()
+            }
+            Err(_) => {
+                println!("⚠️  Invalid timestamp format, showing all entries");
+                audit_log.entries.iter().collect::<Vec<_>>()
+            }
+        }
     } else {
-        &audit_log.entries
+        audit_log.entries.iter().collect::<Vec<_>>()
     };
 
     for change in changes.iter().take(10) {
@@ -1317,17 +1343,10 @@ fn display_config_stats(stats: &rhema_config::ConfigStats) -> RhemaResult<()> {
     println!("  Valid configs: {}", stats.valid_configs);
     println!("  Invalid configs: {}", stats.invalid_configs);
     println!("  Last updated: {}", stats.last_updated);
-    // TODO: Fix stats field access
-    // println!("  Global configs: {}", stats.global_configs);
-    // println!("  Repository configs: {}", stats.repository_configs);
-    // println!("  Scope configs: {}", stats.scope_configs);
-    // println!("  Encrypted configs: {}", stats.encrypted_configs);
-    // println!("  Backup count: {}", stats.backup_count);
-    // println!("  Validation errors: {}", stats.validation_errors);
-    // println!("  Migration pending: {}", stats.migration_pending);
-    // if let Some(last_backup) = stats.last_backup {
-    //     println!("  Last backup: {}", last_backup);
-    // }
+    
+    // Note: ConfigStats doesn't have the additional fields in the current implementation
+    // If these fields are needed, they would need to be added to the ConfigStats struct
+    // The current implementation only has: total_configs, valid_configs, invalid_configs, last_updated
 
     Ok(())
 }

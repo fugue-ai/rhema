@@ -176,7 +176,7 @@ fn validate_scope(
     let mut migrations_performed = 0;
 
     // Validate the scope definition itself
-    // TODO: Integrate with lock file system for comprehensive validation
+    // Integrate with lock file system for comprehensive validation
     if let Some(rhema_file) = find_scope_file(scope_path) {
         total_files += 1;
         let file_name = rhema_file
@@ -198,6 +198,14 @@ fn validate_scope(
             Err(e) => {
                 errors.push(format!("{}: {}", file_name, e));
                 println!("  ❌ {}: {}", file_name, e);
+            }
+        }
+
+        // Additional lock file integration validation
+        if let Ok(lock_validation_errors) = validate_scope_against_lock_file(scope_path, &rhema_file) {
+            for error in lock_validation_errors {
+                errors.push(format!("{} (lock validation): {}", file_name, error));
+                println!("  ⚠️  {} (lock validation): {}", file_name, error);
             }
         }
     }
@@ -1020,11 +1028,350 @@ fn is_version_constraint_satisfied(
                 message: e.to_string(),
             })?;
 
-        // Simple version matching for now
-        // TODO: Implement proper semantic versioning constraint parsing
-        return Ok(&scope.version == version_constraint);
+        // Implement proper semantic versioning constraint parsing
+        return parse_and_check_version_constraint(&scope.version, version_constraint);
     }
 
     // If no version found, assume constraint is not satisfied
     Ok(false)
+}
+
+/// Validate a scope against the lock file for comprehensive validation
+fn validate_scope_against_lock_file(
+    scope_path: &Path,
+    scope_file: &Path,
+) -> RhemaResult<Vec<String>> {
+    let mut errors = Vec::new();
+    
+    // Try to find the lock file in the repository root
+    let lock_file_path = find_lock_file_path(scope_path)?;
+    if !lock_file_path.exists() {
+        // No lock file found, this is not an error but a warning
+        return Ok(vec!["No lock file found for comprehensive validation".to_string()]);
+    }
+
+    // Load the lock file
+    let lock_content = std::fs::read_to_string(&lock_file_path)
+        .map_err(|e| crate::RhemaError::IoError(e))?;
+
+    let lock_file: RhemaLock = serde_yaml::from_str(&lock_content)
+        .map_err(|e| crate::RhemaError::InvalidYaml {
+            file: lock_file_path.display().to_string(),
+            message: e.to_string(),
+        })?;
+
+    // Get the relative path of this scope from the repository root
+    let repo_root = find_repository_root(scope_path)?;
+    let relative_scope_path = scope_path
+        .strip_prefix(&repo_root)
+        .map_err(|_| crate::RhemaError::ConfigError(
+            "Failed to determine relative scope path".to_string()
+        ))?;
+
+    let scope_path_str = relative_scope_path.to_string_lossy();
+
+    // Check if this scope is in the lock file
+    if let Some(locked_scope) = lock_file.scopes.get(&scope_path_str) {
+        // Validate scope checksum
+        let current_checksum = calculate_scope_checksum(scope_path)?;
+        if let Some(source_checksum) = &locked_scope.source_checksum {
+            if current_checksum != *source_checksum {
+                errors.push(format!(
+                    "Scope checksum mismatch: expected {}, got {}",
+                    source_checksum, current_checksum
+                ));
+            }
+        }
+
+        // Validate scope file content
+        let scope_content = std::fs::read_to_string(scope_file)
+            .map_err(|e| crate::RhemaError::IoError(e))?;
+
+        let current_scope: crate::RhemaScope = serde_yaml::from_str(&scope_content)
+            .map_err(|e| crate::RhemaError::InvalidYaml {
+                file: scope_file.display().to_string(),
+                message: e.to_string(),
+            })?;
+
+        // Validate dependencies
+        for (dep_path, locked_dep) in &locked_scope.dependencies {
+            let dep_dir = repo_root.join(dep_path);
+            if !dep_dir.exists() {
+                errors.push(format!(
+                    "Locked dependency '{}' does not exist",
+                    dep_path
+                ));
+                continue;
+            }
+
+            // Check dependency checksum
+            let dep_checksum = calculate_scope_checksum(&dep_dir)?;
+            if dep_checksum != locked_dep.checksum {
+                errors.push(format!(
+                    "Dependency '{}' checksum mismatch: expected {}, got {}",
+                    dep_path, locked_dep.checksum, dep_checksum
+                ));
+            }
+
+            // Validate dependency type consistency
+            if let Some(dep_scope_file) = find_scope_file(&dep_dir) {
+                let dep_content = std::fs::read_to_string(&dep_scope_file)
+                    .map_err(|e| crate::RhemaError::IoError(e))?;
+
+                let dep_scope: crate::RhemaScope = serde_yaml::from_str(&dep_content)
+                    .map_err(|e| crate::RhemaError::InvalidYaml {
+                        file: dep_scope_file.display().to_string(),
+                        message: e.to_string(),
+                    })?;
+
+                if format!("{:?}", locked_dep.dependency_type) != dep_scope.scope_type {
+                    errors.push(format!(
+                        "Dependency type mismatch for '{}': locked={:?}, current={}",
+                        dep_path, locked_dep.dependency_type, dep_scope.scope_type
+                    ));
+                }
+            }
+        }
+    } else {
+        errors.push("Scope not found in lock file".to_string());
+    }
+
+    Ok(errors)
+}
+
+/// Find the lock file path by walking up the directory tree
+fn find_lock_file_path(scope_path: &Path) -> RhemaResult<std::path::PathBuf> {
+    let mut current = scope_path;
+    
+    loop {
+        let lock_file = current.join("rhema.lock");
+        if lock_file.exists() {
+            return Ok(lock_file);
+        }
+        
+        if let Some(parent) = current.parent() {
+            current = parent;
+        } else {
+            return Err(crate::RhemaError::ConfigError(
+                "No lock file found in directory tree".to_string()
+            ));
+        }
+    }
+}
+
+/// Find the repository root by looking for rhema.lock file
+fn find_repository_root(scope_path: &Path) -> RhemaResult<std::path::PathBuf> {
+    let mut current = scope_path;
+    
+    loop {
+        let lock_file = current.join("rhema.lock");
+        if lock_file.exists() {
+            return Ok(current.to_path_buf());
+        }
+        
+        if let Some(parent) = current.parent() {
+            current = parent;
+        } else {
+            return Err(crate::RhemaError::ConfigError(
+                "No repository root found (no rhema.lock file)".to_string()
+            ));
+        }
+    }
+}
+
+/// Parse and check version constraint using semantic versioning
+fn parse_and_check_version_constraint(
+    current_version: &str,
+    version_constraint: &str,
+) -> RhemaResult<bool> {
+    // Parse the current version
+    let current_semver = parse_semver(current_version)?;
+    
+    // Parse the constraint
+    let constraint = parse_version_constraint(version_constraint)?;
+    
+    // Check if the current version satisfies the constraint
+    Ok(constraint.matches(&current_semver))
+}
+
+/// Simple semantic version structure
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct SemVer {
+    major: u32,
+    minor: u32,
+    patch: u32,
+    pre_release: Option<String>,
+    build: Option<String>,
+}
+
+/// Version constraint types
+#[derive(Debug, Clone)]
+enum VersionConstraint {
+    Exact(String),
+    GreaterThan(String),
+    GreaterThanOrEqual(String),
+    LessThan(String),
+    LessThanOrEqual(String),
+    Range(String, String), // inclusive
+    Compatible(String), // ^1.2.3 means >=1.2.3,<2.0.0
+}
+
+impl VersionConstraint {
+    fn matches(&self, version: &SemVer) -> bool {
+        match self {
+            VersionConstraint::Exact(constraint) => {
+                if let Ok(constraint_semver) = parse_semver(constraint) {
+                    version == &constraint_semver
+                } else {
+                    false
+                }
+            }
+            VersionConstraint::GreaterThan(constraint) => {
+                if let Ok(constraint_semver) = parse_semver(constraint) {
+                    version > &constraint_semver
+                } else {
+                    false
+                }
+            }
+            VersionConstraint::GreaterThanOrEqual(constraint) => {
+                if let Ok(constraint_semver) = parse_semver(constraint) {
+                    version >= &constraint_semver
+                } else {
+                    false
+                }
+            }
+            VersionConstraint::LessThan(constraint) => {
+                if let Ok(constraint_semver) = parse_semver(constraint) {
+                    version < &constraint_semver
+                } else {
+                    false
+                }
+            }
+            VersionConstraint::LessThanOrEqual(constraint) => {
+                if let Ok(constraint_semver) = parse_semver(constraint) {
+                    version <= &constraint_semver
+                } else {
+                    false
+                }
+            }
+            VersionConstraint::Range(min, max) => {
+                if let (Ok(min_semver), Ok(max_semver)) = (parse_semver(min), parse_semver(max)) {
+                    version >= &min_semver && version <= &max_semver
+                } else {
+                    false
+                }
+            }
+            VersionConstraint::Compatible(constraint) => {
+                if let Ok(constraint_semver) = parse_semver(constraint) {
+                    // Compatible means >= current version and < next major version
+                    let next_major = SemVer {
+                        major: constraint_semver.major + 1,
+                        minor: 0,
+                        patch: 0,
+                        pre_release: None,
+                        build: None,
+                    };
+                    version >= &constraint_semver && version < &next_major
+                } else {
+                    false
+                }
+            }
+        }
+    }
+}
+
+/// Parse semantic version string
+fn parse_semver(version: &str) -> RhemaResult<SemVer> {
+    // Remove leading 'v' if present
+    let version = version.trim_start_matches('v');
+    
+    // Split on dots and handle pre-release/build metadata
+    let parts: Vec<&str> = version.split('-').collect();
+    let version_part = parts[0];
+    let pre_release = if parts.len() > 1 {
+        let pre_parts: Vec<&str> = parts[1].split('+').collect();
+        if pre_parts.len() > 1 {
+            // Has both pre-release and build metadata
+            Some(pre_parts[0].to_string())
+        } else {
+            // Only pre-release
+            Some(parts[1].to_string())
+        }
+    } else {
+        None
+    };
+    
+    let build = if parts.len() > 1 {
+        let pre_parts: Vec<&str> = parts[1].split('+').collect();
+        if pre_parts.len() > 1 {
+            Some(pre_parts[1].to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    
+    let version_numbers: Vec<&str> = version_part.split('.').collect();
+    if version_numbers.len() < 3 {
+        return Err(crate::RhemaError::SchemaValidation(
+            format!("Invalid semantic version format: {}", version)
+        ));
+    }
+    
+    let major = version_numbers[0].parse::<u32>()
+        .map_err(|_| crate::RhemaError::SchemaValidation(
+            format!("Invalid major version: {}", version_numbers[0])
+        ))?;
+    let minor = version_numbers[1].parse::<u32>()
+        .map_err(|_| crate::RhemaError::SchemaValidation(
+            format!("Invalid minor version: {}", version_numbers[1])
+        ))?;
+    let patch = version_numbers[2].parse::<u32>()
+        .map_err(|_| crate::RhemaError::SchemaValidation(
+            format!("Invalid patch version: {}", version_numbers[2])
+        ))?;
+    
+    Ok(SemVer {
+        major,
+        minor,
+        patch,
+        pre_release,
+        build,
+    })
+}
+
+/// Parse version constraint string
+fn parse_version_constraint(constraint: &str) -> RhemaResult<VersionConstraint> {
+    let constraint = constraint.trim();
+    
+    if constraint.starts_with('=') {
+        Ok(VersionConstraint::Exact(constraint[1..].to_string()))
+    } else if constraint.starts_with('>') {
+        if constraint.starts_with(">=") {
+            Ok(VersionConstraint::GreaterThanOrEqual(constraint[2..].to_string()))
+        } else {
+            Ok(VersionConstraint::GreaterThan(constraint[1..].to_string()))
+        }
+    } else if constraint.starts_with('<') {
+        if constraint.starts_with("<=") {
+            Ok(VersionConstraint::LessThanOrEqual(constraint[2..].to_string()))
+        } else {
+            Ok(VersionConstraint::LessThan(constraint[1..].to_string()))
+        }
+    } else if constraint.starts_with('^') {
+        Ok(VersionConstraint::Compatible(constraint[1..].to_string()))
+    } else if constraint.contains(" - ") {
+        let parts: Vec<&str> = constraint.split(" - ").collect();
+        if parts.len() == 2 {
+            Ok(VersionConstraint::Range(parts[0].to_string(), parts[1].to_string()))
+        } else {
+            Err(crate::RhemaError::SchemaValidation(
+                format!("Invalid range constraint format: {}", constraint)
+            ))
+        }
+    } else {
+        // Default to exact match
+        Ok(VersionConstraint::Exact(constraint.to_string()))
+    }
 }

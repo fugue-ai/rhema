@@ -16,11 +16,29 @@
 
 pub mod coordination_client;
 pub mod coordination_service;
+pub mod monitoring;
+pub mod security;
 pub mod server;
 
+#[cfg(test)]
+mod security_tests;
+
 // Re-export main types
-pub use coordination_client::{GrpcClientConfig, GrpcCoordinationClient};
+pub use coordination_client::{
+    CoordinationError, ClientMetrics, ConnectionStatus, GrpcClientConfig, 
+    LocalGrpcCoordinationClient, SyneidesisCoordinationClient, SyneidesisConfig
+};
 pub use coordination_service::CoordinationService;
+pub use monitoring::{
+    Alert, AlertHandler, AlertSeverity, AlertType, CoordinationMonitor, 
+    HealthInfo, HealthStatus, LoggingAlertHandler, MonitoringConfig, 
+    PerformanceMetrics, PerformanceThresholds, HealthThresholds,
+    ConnectionDiagnostics, PrometheusExporter
+};
+pub use security::{
+    SecurityConfig, PerformanceConfig, SecurityManager, PerformanceManager, 
+    ConnectionPool, CompressionAlgorithm
+};
 pub use server::{GrpcCoordinationServer, GrpcServerConfig};
 
 // Temporarily comment out the protobuf module until we fix the dependencies
@@ -35,10 +53,13 @@ pub fn example_usage() {
     println!("gRPC coordination system example:");
     println!("1. Create coordination system");
     println!("2. Start gRPC server");
-    println!("3. Create gRPC client");
-    println!("4. Register agents");
-    println!("5. Send messages");
-    println!("6. Create sessions");
+    println!("3. Create gRPC client with security and performance");
+    println!("4. Configure TLS and authentication");
+    println!("5. Set up connection pooling and compression");
+    println!("6. Register agents");
+    println!("7. Send messages");
+    println!("8. Create sessions");
+    println!("9. Monitor health and performance");
 }
 
 /// Configuration for the gRPC coordination system
@@ -46,6 +67,7 @@ pub fn example_usage() {
 pub struct GrpcCoordinationConfig {
     pub server_config: GrpcServerConfig,
     pub client_config: GrpcClientConfig,
+    pub monitoring_config: MonitoringConfig,
     pub enable_health_checks: bool,
     pub enable_metrics: bool,
     pub enable_logging: bool,
@@ -56,6 +78,7 @@ impl Default for GrpcCoordinationConfig {
         Self {
             server_config: GrpcServerConfig::default(),
             client_config: GrpcClientConfig::default(),
+            monitoring_config: MonitoringConfig::default(),
             enable_health_checks: true,
             enable_metrics: true,
             enable_logging: true,
@@ -63,7 +86,7 @@ impl Default for GrpcCoordinationConfig {
     }
 }
 
-/// Example of creating a simple coordination setup
+/// Example of creating a simple coordination setup with monitoring
 pub async fn create_example_setup() -> Result<(), Box<dyn std::error::Error>> {
     use crate::agent::real_time_coordination::RealTimeCoordinationSystem;
 
@@ -83,9 +106,19 @@ pub async fn create_example_setup() -> Result<(), Box<dyn std::error::Error>> {
     let client_config = GrpcClientConfig::default();
 
     // Create client
-    let _client = GrpcCoordinationClient::new(client_config).await?;
+    let _client = LocalGrpcCoordinationClient::new(client_config).await?;
 
-    println!("✅ Example gRPC coordination setup created successfully");
+    // Create monitoring configuration
+    let monitoring_config = MonitoringConfig::default();
+
+    // Create monitoring instance
+    let _monitor = CoordinationMonitor::new(
+        monitoring_config,
+        std::sync::Arc::new(ClientMetrics::new()),
+        std::sync::Arc::new(tokio::sync::RwLock::new(ConnectionStatus::Disconnected)),
+    );
+
+    println!("✅ Example gRPC coordination setup with monitoring created successfully");
 
     Ok(())
 }

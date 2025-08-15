@@ -1,3 +1,4 @@
+pub mod comprehensive_tests;
 pub mod config_management_tests;
 pub mod lock_config_tests;
 pub mod scope_file_locations;

@@ -79,7 +79,8 @@ impl GrpcCoordinationServer {
         // For now, just log that we would start the server
         println!("Would start gRPC server on {}", addr);
 
-        // TODO: Implement actual server startup when dependencies are fixed
+        // Note: Actual server startup is commented out due to dependency issues
+        // When dependencies are resolved, uncomment the implementation below
         /*
         let service = CoordinationService::new(self.coordination_system.clone());
         let health_service = HealthService::new();
@@ -123,7 +124,8 @@ impl GrpcCoordinationServer {
 
     pub async fn stop(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Stopping gRPC server");
-        // TODO: Implement actual server shutdown when dependencies are fixed
+        // Note: Actual server shutdown is commented out due to dependency issues
+        // When dependencies are resolved, uncomment the implementation below
         Ok(())
     }
 }

@@ -27,9 +27,82 @@ use tracing::{debug, error, info, warn};
 
 use crate::types::{
     CacheTier, CompressionAlgorithm, ContentType, DistanceMetric, EvictionPolicy, KnowledgeResult,
-    SemanticCacheEntry, UnifiedCacheResult,
+    SemanticCacheEntry, UnifiedCacheResult, CacheEntryMetadata,
 };
 use crate::vector::VectorStoreWrapper;
+
+/// Extract content type from metadata and semantic tags
+fn extract_content_type_from_metadata(
+    metadata: &CacheEntryMetadata,
+    semantic_tags: &[String],
+) -> ContentType {
+    // First, try to extract from semantic tags
+    for tag in semantic_tags {
+        let tag_lower = tag.to_lowercase();
+        match tag_lower.as_str() {
+            "code" | "rust" | "python" | "javascript" | "typescript" | "go" | "java" | "cpp" | "c" => {
+                return ContentType::Code;
+            }
+            "documentation" | "docs" | "readme" | "guide" | "tutorial" => {
+                return ContentType::Documentation;
+            }
+            "configuration" | "config" | "yaml" | "toml" | "json" | "ini" => {
+                return ContentType::Configuration;
+            }
+            "knowledge" | "insight" | "learning" => {
+                return ContentType::Knowledge;
+            }
+            "decision" | "architecture" | "design" => {
+                return ContentType::Decision;
+            }
+            "pattern" | "template" | "boilerplate" => {
+                return ContentType::Pattern;
+            }
+            "todo" | "task" | "bug" | "feature" => {
+                return ContentType::Todo;
+            }
+            _ => {}
+        }
+    }
+
+    // Try to extract from scope path if available
+    if let Some(scope_path) = &metadata.scope_path {
+        let path_lower = scope_path.to_lowercase();
+        if path_lower.contains("src/") || path_lower.contains("lib/") || path_lower.contains("bin/") {
+            return ContentType::Code;
+        }
+        if path_lower.contains("docs/") || path_lower.contains("documentation/") || path_lower.contains("readme") {
+            return ContentType::Documentation;
+        }
+        if path_lower.contains("config/") || path_lower.contains("settings/") || path_lower.contains(".config") {
+            return ContentType::Configuration;
+        }
+        if path_lower.contains("decisions/") || path_lower.contains("architecture/") || path_lower.contains("design/") {
+            return ContentType::Decision;
+        }
+        if path_lower.contains("patterns/") || path_lower.contains("templates/") {
+            return ContentType::Pattern;
+        }
+        if path_lower.contains("todos/") || path_lower.contains("tasks/") || path_lower.contains("issues/") {
+            return ContentType::Todo;
+        }
+    }
+
+    // Try to extract from key name
+    let key_lower = metadata.key.to_lowercase();
+    if key_lower.contains(".rs") || key_lower.contains(".py") || key_lower.contains(".js") || key_lower.contains(".ts") {
+        return ContentType::Code;
+    }
+    if key_lower.contains(".md") || key_lower.contains(".txt") || key_lower.contains("readme") {
+        return ContentType::Documentation;
+    }
+    if key_lower.contains(".yaml") || key_lower.contains(".yml") || key_lower.contains(".toml") || key_lower.contains(".json") {
+        return ContentType::Configuration;
+    }
+
+    // Default to Unknown if we can't determine the type
+    ContentType::Unknown
+}
 
 /// Error types for cache operations
 #[derive(Error, Debug)]
@@ -492,13 +565,14 @@ impl SemanticMemoryCache {
             self.update_stats_hit().await;
 
             debug!("Memory cache hit for key: {}", key);
+            let content_type = extract_content_type_from_metadata(&entry.metadata, &entry.semantic_tags);
             return Ok(Some(UnifiedCacheResult {
                 data: entry.data,
                 metadata: entry.metadata,
                 semantic_info: Some(crate::types::SemanticInfo {
                     embedding: entry.embedding,
                     semantic_tags: entry.semantic_tags,
-                    content_type: ContentType::Unknown, // TODO: Extract from metadata
+                    content_type,
                     relevance_score: entry.access_patterns.semantic_relevance,
                     related_keys: vec![],
                     chunk_id: None,
@@ -580,13 +654,14 @@ impl SemanticMemoryCache {
                 for key in keys.iter().take(limit) {
                     if let Some(entry) = self.entries.get(key) {
                         let entry = entry.clone();
+                        let content_type = extract_content_type_from_metadata(&entry.metadata, &entry.semantic_tags);
                         results.push(UnifiedCacheResult {
                             data: entry.data,
                             metadata: entry.metadata,
                             semantic_info: Some(crate::types::SemanticInfo {
                                 embedding: entry.embedding,
                                 semantic_tags: entry.semantic_tags,
-                                content_type: ContentType::Unknown,
+                                content_type,
                                 relevance_score: entry.access_patterns.semantic_relevance,
                                 related_keys: vec![],
                                 chunk_id: None,
@@ -720,6 +795,8 @@ impl SemanticMemoryCache {
         stats.semantic_hit_count += 1;
         stats.last_updated = Instant::now();
     }
+
+
 }
 
 /// Semantic disk cache with vector storage integration
@@ -914,13 +991,14 @@ impl SemanticDiskCache {
         self.update_stats_hit().await;
 
         debug!("Disk cache hit for key: {}", key);
+        let content_type = extract_content_type_from_metadata(&entry.metadata, &entry.semantic_tags);
         Ok(Some(UnifiedCacheResult {
             data: entry.data,
             metadata: entry.metadata,
             semantic_info: Some(crate::types::SemanticInfo {
                 embedding: entry.embedding,
                 semantic_tags: entry.semantic_tags,
-                content_type: ContentType::Unknown,
+                content_type,
                 relevance_score: entry.access_patterns.semantic_relevance,
                 related_keys: vec![],
                 chunk_id: None,
@@ -2413,7 +2491,7 @@ impl CacheValidator {
         cache_manager: &UnifiedCacheManager,
     ) -> KnowledgeResult<Vec<ValidationResult>> {
         let mut results = Vec::new();
-        let failed_keys = Vec::new();
+        let mut failed_keys = Vec::new();
 
         if cache_manager.config.enable_memory_cache {
             let entries = cache_manager.memory_cache.entries.clone();
@@ -2422,15 +2500,14 @@ impl CacheValidator {
                 let entry_data = entry.value();
 
                 // Calculate current checksum
-                let _current_checksum = self.calculate_checksum(&entry_data.data);
+                let current_checksum = self.calculate_checksum(&entry_data.data);
 
                 // Check if checksum matches (if stored)
-                // TODO: Add checksum field to CacheEntryMetadata
-                // if let Some(stored_checksum) = &entry_data.metadata.checksum {
-                //     if current_checksum != *stored_checksum {
-                //         failed_keys.push(key.clone());
-                //     }
-                // }
+                if let Some(stored_checksum) = &entry_data.metadata.checksum {
+                    if current_checksum != *stored_checksum {
+                        failed_keys.push(key.clone());
+                    }
+                }
             }
         }
 

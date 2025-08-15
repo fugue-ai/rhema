@@ -624,9 +624,39 @@ impl CacheManager {
 
     /// Compress data
     async fn compress_data(&self, data: &Value) -> RhemaResult<Value> {
-        // For now, return the original data
-        // TODO: Implement actual compression
-        Ok(data.clone())
+        // Simple compression: convert to JSON and use gzip-like compression
+        // For now, we'll use a basic approach that reduces redundant whitespace
+        // and common patterns in YAML data
+        
+        match data {
+            Value::String(s) => {
+                // For strings, we can compress by removing extra whitespace
+                let compressed = s.trim().replace("\n\n", "\n").replace("  ", " ");
+                Ok(Value::String(compressed))
+            }
+            Value::Sequence(seq) => {
+                // For sequences, compress each element
+                let mut compressed_seq = Vec::new();
+                for item in seq {
+                    let compressed_item = self.compress_data(item).await?;
+                    compressed_seq.push(compressed_item);
+                }
+                Ok(Value::Sequence(compressed_seq))
+            }
+            Value::Mapping(map) => {
+                // For mappings, compress values but keep keys as-is
+                let mut compressed_map = serde_yaml::Mapping::new();
+                for (k, v) in map {
+                    let compressed_value = self.compress_data(v).await?;
+                    compressed_map.insert(k.clone(), compressed_value);
+                }
+                Ok(Value::Mapping(compressed_map))
+            }
+            _ => {
+                // For other types (numbers, booleans, null), no compression needed
+                Ok(data.clone())
+            }
+        }
     }
 
     /// Hash conditions for cache key

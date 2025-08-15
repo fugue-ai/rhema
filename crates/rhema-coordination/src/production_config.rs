@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tracing::info;
+use tracing::{info, warn};
 
 /// Production configuration for the complete AI service
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -442,7 +442,11 @@ pub struct ProductionAIService {
     advanced_features_manager: Option<AdvancedFeaturesManager>,
     coordination_system: Option<Arc<RealTimeCoordinationSystem>>,
     coordination_integration: Option<Arc<CoordinationIntegration>>,
-    // TODO: Add other components as they are implemented
+    // Additional components can be added here as they are implemented:
+    // - monitoring_manager: Option<MonitoringManager>,
+    // - security_manager: Option<SecurityManager>,
+    // - backup_manager: Option<BackupManager>,
+    // - audit_manager: Option<AuditManager>,
 }
 
 impl ProductionAIService {
@@ -546,9 +550,11 @@ impl ProductionAIService {
         }
 
         // Stop coordination system if available
-        if let Some(_coordination_system) = &self.coordination_system {
+        if let Some(coordination_system) = &self.coordination_system {
             // Stop heartbeat monitoring
-            // TODO: Implement stop method for coordination system
+            if let Err(e) = coordination_system.stop().await {
+                warn!("Error stopping coordination system: {}", e);
+            }
         }
 
         info!("Production AI Service stopped successfully");

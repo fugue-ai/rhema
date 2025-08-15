@@ -20,7 +20,7 @@ mod error_handler;
 use clap::{Parser, Subcommand};
 use commands::*;
 use error_handler::{display_error_and_exit, ErrorHandler};
-use rhema_api::{Rhema, RhemaResult};
+use rhema_api::{Rhema, RhemaResult, Validatable};
 use rhema_core::RhemaError;
 
 #[derive(Parser)]
@@ -158,6 +158,12 @@ enum Commands {
     Coordination {
         #[command(subcommand)]
         subcommand: CoordinationSubcommands,
+    },
+
+    /// Manage scope loading and discovery
+    ScopeLoader {
+        #[command(subcommand)]
+        subcommand: ScopeLoaderSubcommands,
     },
 }
 
@@ -349,27 +355,184 @@ async fn main() -> RhemaResult<()> {
                 context.display_info("Migrating schemas if needed")?;
             }
 
-            // TODO: Implement actual validation logic
-            context.display_info("Validation completed successfully!")?;
+            // Implement actual validation logic
+            let scopes = context.handle_error(context.rhema.discover_scopes())?;
+            let mut validation_errors = Vec::new();
+            let mut validation_warnings = Vec::new();
+            let mut validated_scopes = 0;
+
+            for scope in &scopes {
+                context.display_info(&format!("Validating scope: {}", scope.definition.name))?;
+                
+                match context.rhema.validate_scope(scope).await {
+                    Ok(_) => {
+                        validated_scopes += 1;
+                        if !context.quiet {
+                            println!("✅ Scope '{}' is valid", scope.definition.name);
+                        }
+                    }
+                    Err(e) => {
+                        validation_errors.push(format!("Scope '{}': {}", scope.definition.name, e));
+                        if !context.quiet {
+                            println!("❌ Scope '{}' validation failed: {}", scope.definition.name, e);
+                        }
+                    }
+                }
+
+                // Validate scope definition schema if json_schema is enabled
+                if *json_schema {
+                    match scope.definition.validate() {
+                        Ok(_) => {
+                            if !context.quiet {
+                                println!("  ✅ Schema validation passed");
+                            }
+                        }
+                        Err(e) => {
+                            validation_warnings.push(format!("Schema validation for '{}': {}", scope.definition.name, e));
+                            if !context.quiet {
+                                println!("  ⚠️  Schema validation warning: {}", e);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Display validation summary
+            if !context.quiet {
+                println!("\n📊 Validation Summary:");
+                println!("  Total scopes: {}", scopes.len());
+                println!("  Valid scopes: {}", validated_scopes);
+                println!("  Errors: {}", validation_errors.len());
+                println!("  Warnings: {}", validation_warnings.len());
+            }
+
+            if validation_errors.is_empty() {
+                context.display_info("✅ Repository validation completed successfully!")?;
+            } else {
+                context.display_warning(&format!("⚠️  Repository validation completed with {} errors", validation_errors.len()))?;
+            }
+
             Ok(())
         }
 
         Some(Commands::Health { scope }) => {
             context.display_info("Checking health...")?;
-            if let Some(scope_name) = scope {
+            if let Some(scope_name) = &scope {
                 context.display_info(&format!("For scope: {}", scope_name))?;
             }
 
-            // TODO: Implement actual health check logic
-            context.display_info("Health check completed successfully!")?;
+            // Implement actual health check logic
+            let scopes = context.handle_error(context.rhema.discover_scopes())?;
+            let mut healthy_scopes = 0;
+            let mut total_scopes = scopes.len();
+
+            for scope_item in &scopes {
+                // If a specific scope was requested, only check that scope
+                if let Some(scope_name) = &scope {
+                    if scope_item.definition.name != *scope_name {
+                        continue;
+                    }
+                }
+
+                context.display_info(&format!("Checking health for scope: {}", scope_item.definition.name))?;
+                
+                // Check if scope path exists
+                if !scope_item.path.exists() {
+                    if !context.quiet {
+                        println!("❌ Scope '{}' path does not exist: {}", scope_item.definition.name, scope_item.path.display());
+                    }
+                    continue;
+                }
+
+                // Check if required files exist
+                let mut missing_files = Vec::new();
+                for (filename, filepath) in &scope_item.files {
+                    if !filepath.exists() {
+                        missing_files.push(filename.clone());
+                    }
+                }
+
+                if missing_files.is_empty() {
+                    healthy_scopes += 1;
+                    if !context.quiet {
+                        println!("✅ Scope '{}' is healthy", scope_item.definition.name);
+                    }
+                } else {
+                    if !context.quiet {
+                        println!("⚠️  Scope '{}' has missing files: {}", scope_item.definition.name, missing_files.join(", "));
+                    }
+                }
+            }
+
+            // Display health summary
+            if !context.quiet {
+                println!("\n🏥 Health Summary:");
+                println!("  Total scopes: {}", total_scopes);
+                println!("  Healthy scopes: {}", healthy_scopes);
+                println!("  Health score: {:.1}%", (healthy_scopes as f64 / total_scopes as f64) * 100.0);
+            }
+
+            if healthy_scopes == total_scopes {
+                context.display_info("✅ All scopes are healthy!")?;
+            } else {
+                context.display_warning(&format!("⚠️  {} out of {} scopes are healthy", healthy_scopes, total_scopes))?;
+            }
+
             Ok(())
         }
 
         Some(Commands::Stats) => {
             context.display_info("Showing statistics...")?;
 
-            // TODO: Implement actual statistics logic
-            context.display_warning("Statistics feature not yet implemented")?;
+            // Implement actual statistics logic
+            let scopes = context.handle_error(context.rhema.discover_scopes())?;
+            
+            // Get cache statistics
+            let cache_stats = context.handle_error(context.rhema.get_cache_stats().await)?;
+            
+            // Get coordination statistics if available
+            let coordination_stats = context.rhema.get_coordination_stats().await;
+            
+            // Calculate scope statistics
+            let total_scopes = scopes.len();
+            let mut scope_types = std::collections::HashMap::new();
+            let mut total_files = 0;
+            
+            for scope in &scopes {
+                *scope_types.entry(&scope.definition.scope_type).or_insert(0) += 1;
+                total_files += scope.files.len();
+            }
+
+            // Display comprehensive statistics
+            if !context.quiet {
+                println!("\n📊 Repository Statistics:");
+                println!("  Total scopes: {}", total_scopes);
+                println!("  Total files: {}", total_files);
+                println!("  Average files per scope: {:.1}", if total_scopes > 0 { total_files as f64 / total_scopes as f64 } else { 0.0 });
+                
+                println!("\n📁 Scope Types:");
+                for (scope_type, count) in scope_types {
+                    println!("  {}: {}", scope_type, count);
+                }
+                
+                println!("\n💾 Cache Statistics:");
+                for (key, value) in &cache_stats {
+                    println!("  {}: {}", key, value);
+                }
+                
+                if let Ok(stats) = coordination_stats {
+                    println!("\n🤝 Coordination Statistics:");
+                    println!("  Active sessions: {}", stats.active_sessions);
+                    println!("  Total messages: {}", stats.total_messages);
+                    println!("  Active agents: {}", stats.active_agents);
+                }
+                
+                println!("\n📈 Performance Metrics:");
+                println!("  Repository size: {} scopes", total_scopes);
+                println!("  File density: {:.1} files/scope", if total_scopes > 0 { total_files as f64 / total_scopes as f64 } else { 0.0 });
+            }
+
+            context.display_info("✅ Statistics generated successfully!")?;
             Ok(())
         }
 
@@ -396,6 +559,11 @@ async fn main() -> RhemaResult<()> {
         Some(Commands::Coordination { subcommand }) => {
             context.display_info("Executing coordination command...")?;
             handle_coordination(&context, subcommand)
+        }
+
+        Some(Commands::ScopeLoader { subcommand }) => {
+            context.display_info("Executing scope loader command...")?;
+            handle_scope_loader(&context, subcommand.clone())
         }
 
         None => {

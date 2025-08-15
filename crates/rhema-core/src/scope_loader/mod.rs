@@ -1,6 +1,8 @@
 pub mod analytics;
 pub mod config;
 pub mod git_integration;
+pub mod ml_confidence;
+pub mod pattern_recognition;
 pub mod plugin;
 pub mod plugins;
 pub mod registry;

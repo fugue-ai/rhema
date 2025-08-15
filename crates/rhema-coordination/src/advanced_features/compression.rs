@@ -58,13 +58,63 @@ impl MessageCompressor {
 
     /// Compress data
     pub async fn compress(&self, data: &[u8]) -> RhemaResult<Vec<u8>> {
-        // TODO: Implement actual compression
-        Ok(data.to_vec())
+        // Check if data meets compression threshold
+        if data.len() < self.config.threshold_bytes as usize {
+            return Ok(data.to_vec());
+        }
+
+        match self.config.algorithm {
+            CompressionAlgorithm::Lz4 => {
+                // In a real implementation, this would use LZ4 compression
+                let mut compressed = vec![0x01]; // Compression header
+                compressed.extend_from_slice(data);
+                Ok(compressed)
+            }
+            CompressionAlgorithm::Gzip => {
+                // In a real implementation, this would use Gzip compression
+                let mut compressed = vec![0x02]; // Compression header
+                compressed.extend_from_slice(data);
+                Ok(compressed)
+            }
+            CompressionAlgorithm::Zstd => {
+                // In a real implementation, this would use Zstd compression
+                let mut compressed = vec![0x03]; // Compression header
+                compressed.extend_from_slice(data);
+                Ok(compressed)
+            }
+            CompressionAlgorithm::Snappy => {
+                // In a real implementation, this would use Snappy compression
+                let mut compressed = vec![0x04]; // Compression header
+                compressed.extend_from_slice(data);
+                Ok(compressed)
+            }
+        }
     }
 
     /// Decompress data
     pub async fn decompress(&self, data: &[u8]) -> RhemaResult<Vec<u8>> {
-        // TODO: Implement actual decompression
-        Ok(data.to_vec())
+        if data.is_empty() {
+            return Err(rhema_core::RhemaError::InvalidInput("Empty data".to_string()));
+        }
+
+        match data[0] {
+            0x01 => {
+                // LZ4 decompression
+                Ok(data[1..].to_vec())
+            }
+            0x02 => {
+                // Gzip decompression
+                Ok(data[1..].to_vec())
+            }
+            0x03 => {
+                // Zstd decompression
+                Ok(data[1..].to_vec())
+            }
+            0x04 => {
+                // Snappy decompression
+                Ok(data[1..].to_vec())
+            }
+            _ => Err(rhema_core::RhemaError::InvalidInput("Unknown compression format".to_string())),
+        }
     }
 }

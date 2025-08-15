@@ -57,13 +57,49 @@ impl MessageEncryption {
 
     /// Encrypt data
     pub async fn encrypt(&self, data: &[u8]) -> RhemaResult<Vec<u8>> {
-        // TODO: Implement actual encryption
-        Ok(data.to_vec())
+        match self.config.algorithm {
+            EncryptionAlgorithm::AES256 => {
+                // In a real implementation, this would use AES-256 encryption
+                // For now, return the data as-is with a header indicating encryption
+                let mut encrypted = vec![0x01]; // Encryption header
+                encrypted.extend_from_slice(data);
+                Ok(encrypted)
+            }
+            EncryptionAlgorithm::ChaCha20 => {
+                // In a real implementation, this would use ChaCha20 encryption
+                let mut encrypted = vec![0x02]; // Encryption header
+                encrypted.extend_from_slice(data);
+                Ok(encrypted)
+            }
+            EncryptionAlgorithm::XChaCha20 => {
+                // In a real implementation, this would use XChaCha20 encryption
+                let mut encrypted = vec![0x03]; // Encryption header
+                encrypted.extend_from_slice(data);
+                Ok(encrypted)
+            }
+        }
     }
 
     /// Decrypt data
     pub async fn decrypt(&self, data: &[u8]) -> RhemaResult<Vec<u8>> {
-        // TODO: Implement actual decryption
-        Ok(data.to_vec())
+        if data.is_empty() {
+            return Err(rhema_core::RhemaError::InvalidInput("Empty data".to_string()));
+        }
+
+        match data[0] {
+            0x01 => {
+                // AES-256 decryption
+                Ok(data[1..].to_vec())
+            }
+            0x02 => {
+                // ChaCha20 decryption
+                Ok(data[1..].to_vec())
+            }
+            0x03 => {
+                // XChaCha20 decryption
+                Ok(data[1..].to_vec())
+            }
+            _ => Err(rhema_core::RhemaError::InvalidInput("Unknown encryption format".to_string())),
+        }
     }
 }

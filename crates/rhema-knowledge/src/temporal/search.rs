@@ -29,6 +29,7 @@ use super::{
 };
 use super::{TemporalError, TemporalResult};
 use crate::types::ContentType;
+use super::{CacheInfo, CacheTier};
 
 /// Temporal search enhancer for applying temporal context to search results
 pub struct TemporalSearchEnhancer {
@@ -539,9 +540,9 @@ mod tests {
                 size_bytes: 1024,
                 chunk_id: None,
             },
-            cache_info: Some(super::types::CacheInfo {
+            cache_info: Some(CacheInfo {
                 is_cached: true,
-                cache_tier: super::types::CacheTier::Memory,
+                cache_tier: CacheTier::Memory,
                 access_count: 10,
                 last_accessed: created_at,
                 ttl_remaining: std::time::Duration::from_secs(3600),

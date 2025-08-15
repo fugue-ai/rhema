@@ -307,6 +307,31 @@ impl ActionError {
 /// Result type for Action Protocol operations
 pub type ActionResult<T> = Result<T, ActionError>;
 
+impl From<serde_json::Error> for ActionError {
+    fn from(err: serde_json::Error) -> Self {
+        Self::Serialization {
+            message: err.to_string(),
+        }
+    }
+}
+
+impl From<std::io::Error> for ActionError {
+    fn from(err: std::io::Error) -> Self {
+        Self::FileOperation {
+            path: PathBuf::new(),
+            message: err.to_string(),
+        }
+    }
+}
+
+impl From<std::string::FromUtf8Error> for ActionError {
+    fn from(err: std::string::FromUtf8Error) -> Self {
+        Self::Serialization {
+            message: format!("UTF-8 conversion error: {}", err),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

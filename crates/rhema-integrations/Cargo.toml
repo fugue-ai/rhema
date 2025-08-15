@@ -22,6 +22,7 @@ anyhow = { workspace = true }
 chrono = { workspace = true }
 async-trait = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
+base64 = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

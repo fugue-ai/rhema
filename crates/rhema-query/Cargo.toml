@@ -29,4 +29,16 @@ tracing = { workspace = true }
 [dev-dependencies]
 tempfile = { workspace = true }
 assert_fs = { workspace = true }
-predicates = { workspace = true } 
+predicates = { workspace = true }
+
+[[example]]
+name = "basic_queries"
+path = "examples/basic_queries.rs"
+
+[[example]]
+name = "search_examples"
+path = "examples/search_examples.rs"
+
+[[example]]
+name = "performance_examples"
+path = "examples/performance_examples.rs" 

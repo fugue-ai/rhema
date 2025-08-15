@@ -5,6 +5,7 @@ pub mod schema;
 pub mod scope;
 pub mod scope_loader;
 pub mod utils;
+pub mod coordination;
 
 pub use error::{RhemaError, RhemaResult};
 pub use lock::*;
@@ -15,3 +16,4 @@ pub use scope_loader::{
     PluginRegistry, RegistryError, ScopeContext, ScopeLoaderError, ScopeLoaderPlugin,
     ScopeLoaderService, ScopeSuggestion, ScopeType,
 };
+pub use coordination::*;

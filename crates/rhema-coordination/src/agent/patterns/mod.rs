@@ -616,7 +616,7 @@ impl PatternExecutor {
         })?;
 
         // Create initial pattern state for tracking
-        let mut pattern_state = PatternState {
+        let pattern_state = PatternState {
             pattern_id: pattern_id.to_string(),
             phase: PatternPhase::Initializing,
             started_at: Utc::now(),
@@ -741,7 +741,7 @@ impl PatternExecutor {
                 tracing::info!(pattern_id = pattern_id, error = %error, "Attempting pattern recovery");
 
                 if let Some(checkpoint_id) = &checkpoint_id {
-                    let recovery_strategy = RecoveryStrategy::Rollback {
+                    let _recovery_strategy = RecoveryStrategy::Rollback {
                         checkpoint_id: checkpoint_id.clone(),
                         restore_resources: true,
                         restore_agent_states: true,

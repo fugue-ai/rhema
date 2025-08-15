@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
+use super::ml_confidence::MLConfidenceEngine;
 use super::registry::PluginRegistry;
 use super::types::*;
 use crate::scope::Scope;
@@ -134,6 +135,7 @@ pub struct ScopeLoaderService {
     registry: PluginRegistry,
     cache: Arc<tokio::sync::RwLock<ScopeCache>>,
     config: ScopeLoaderConfig,
+    ml_engine: MLConfidenceEngine,
 }
 
 impl ScopeLoaderService {
@@ -143,6 +145,7 @@ impl ScopeLoaderService {
             registry,
             cache: Arc::new(tokio::sync::RwLock::new(ScopeCache::new())),
             config,
+            ml_engine: MLConfidenceEngine::new(),
         }
     }
 
@@ -284,7 +287,27 @@ impl ScopeLoaderService {
             if let Some(plugin) = self.registry.get_plugin(&plugin_info.name) {
                 match plugin.suggest_scopes(boundaries) {
                     Ok(suggestions) => {
-                        all_suggestions.extend(suggestions);
+                        // Apply ML confidence scoring to each suggestion
+                        let mut ml_suggestions = Vec::new();
+                        for mut suggestion in suggestions {
+                            // Calculate ML-based confidence
+                            match self.ml_engine.calculate_confidence(&suggestion, &suggestion.path) {
+                                Ok(ml_confidence) => {
+                                    // Blend original confidence with ML confidence
+                                    let blended_confidence = (suggestion.confidence * 0.3) + (ml_confidence * 0.7);
+                                    suggestion.confidence = blended_confidence;
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "Failed to calculate ML confidence for {}: {}",
+                                        suggestion.name, e
+                                    );
+                                    // Keep original confidence if ML calculation fails
+                                }
+                            }
+                            ml_suggestions.push(suggestion);
+                        }
+                        all_suggestions.extend(ml_suggestions);
                     }
                     Err(e) => {
                         eprintln!(
@@ -463,6 +486,29 @@ impl ScopeLoaderService {
             suggestions_count: cache.suggestions.len(),
             scopes_count: cache.scopes.len(),
         }
+    }
+
+    /// Get ML confidence statistics
+    pub fn ml_confidence_stats(&self) -> super::ml_confidence::ConfidenceStats {
+        self.ml_engine.get_confidence_stats()
+    }
+
+    /// Record a confidence prediction for learning
+    pub fn record_confidence_prediction(
+        &mut self,
+        features: super::ml_confidence::ConfidenceFeatures,
+        predicted_confidence: f64,
+        actual_confidence: f64,
+        scope_type: ScopeType,
+        success: bool,
+    ) {
+        self.ml_engine.record_prediction(
+            features,
+            predicted_confidence,
+            actual_confidence,
+            scope_type,
+            success,
+        );
     }
 }
 

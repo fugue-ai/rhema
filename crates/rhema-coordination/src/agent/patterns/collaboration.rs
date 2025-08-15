@@ -98,8 +98,8 @@ impl CoordinationPattern for CodeReviewWorkflow {
         let mut review_tasks = Vec::new();
 
         if self.config.enable_security_review {
-            let review_id = review_state.review_id.clone();
-            let file_paths = review_state.file_paths.clone();
+            let _review_id = review_state.review_id.clone();
+            let _file_paths = review_state.file_paths.clone();
             let security_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> =
                 tokio::spawn(async move {
                     // This is a placeholder - in a real implementation, this would call the actual method
@@ -117,8 +117,8 @@ impl CoordinationPattern for CodeReviewWorkflow {
         }
 
         if self.config.enable_performance_review {
-            let review_id = review_state.review_id.clone();
-            let file_paths = review_state.file_paths.clone();
+            let _review_id = review_state.review_id.clone();
+            let _file_paths = review_state.file_paths.clone();
             let performance_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> =
                 tokio::spawn(async move {
                     // This is a placeholder - in a real implementation, this would call the actual method
@@ -135,8 +135,8 @@ impl CoordinationPattern for CodeReviewWorkflow {
         }
 
         if self.config.enable_style_review {
-            let review_id = review_state.review_id.clone();
-            let file_paths = review_state.file_paths.clone();
+            let _review_id = review_state.review_id.clone();
+            let _file_paths = review_state.file_paths.clone();
             let style_task: tokio::task::JoinHandle<Result<ReviewResult, PatternError>> =
                 tokio::spawn(async move {
                     // This is a placeholder - in a real implementation, this would call the actual method
@@ -324,7 +324,7 @@ impl CodeReviewWorkflow {
     async fn start_security_review(
         &self,
         review_id: &str,
-        file_paths: &[String],
+        _file_paths: &[String],
     ) -> Result<ReviewResult, PatternError> {
         info!("Starting security review for review {}", review_id);
 
@@ -349,7 +349,7 @@ impl CodeReviewWorkflow {
     async fn start_performance_review(
         &self,
         review_id: &str,
-        file_paths: &[String],
+        _file_paths: &[String],
     ) -> Result<ReviewResult, PatternError> {
         info!("Starting performance review for review {}", review_id);
 
@@ -374,7 +374,7 @@ impl CodeReviewWorkflow {
     async fn start_style_review(
         &self,
         review_id: &str,
-        file_paths: &[String],
+        _file_paths: &[String],
     ) -> Result<ReviewResult, PatternError> {
         info!("Starting style review for review {}", review_id);
 
@@ -718,7 +718,7 @@ impl TestGenerationWorkflow {
 
     async fn generate_unit_tests(
         &self,
-        strategy: &TestStrategy,
+        _strategy: &TestStrategy,
     ) -> Result<Vec<UnitTest>, PatternError> {
         info!("Generating unit tests based on strategy");
 
@@ -739,7 +739,7 @@ impl TestGenerationWorkflow {
 
     async fn generate_integration_tests(
         &self,
-        strategy: &TestStrategy,
+        _strategy: &TestStrategy,
     ) -> Result<Vec<IntegrationTest>, PatternError> {
         info!("Generating integration tests based on strategy");
 
@@ -760,7 +760,7 @@ impl TestGenerationWorkflow {
 
     async fn generate_performance_tests(
         &self,
-        strategy: &TestStrategy,
+        _strategy: &TestStrategy,
     ) -> Result<Vec<PerformanceTest>, PatternError> {
         info!("Generating performance tests based on strategy");
 
@@ -784,7 +784,7 @@ impl TestGenerationWorkflow {
 
     async fn run_tests(
         &self,
-        test_state: &TestGenerationState,
+        _test_state: &TestGenerationState,
     ) -> Result<Vec<TestResult>, PatternError> {
         info!("Running generated tests");
 

@@ -39,8 +39,30 @@ prometheus = { workspace = true }
 sha2 = { workspace = true }
 tokio = { workspace = true, features = ["sync", "rt-multi-thread"] }
 async-trait = "0.1"
+tracing = { workspace = true }
+
+[features]
+default = []
+coordination = ["syneidesis-grpc"]
+
+[dependencies.syneidesis-grpc]
+path = "../syneidesis/grpc"
+optional = true
+
+[dependencies.prost-types]
+version = "0.12"
+optional = true
+
+[dependencies.prost]
+version = "0.12"
+optional = true
+
+[dependencies.syneidesis-config]
+path = "../syneidesis/config"
+optional = true
 
 [dev-dependencies]
 tempfile = { workspace = true }
 assert_fs = { workspace = true }
-predicates = { workspace = true } 
+predicates = { workspace = true }
+tracing-subscriber = "0.3" 

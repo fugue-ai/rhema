@@ -65,6 +65,7 @@ base64 = "0.21"
 dirs = "5.0"
 pathdiff = "0.2"
 similar = "2.2"
+rand = "0.8"
 
 # Performance monitoring
 prometheus = "0.13"

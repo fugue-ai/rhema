@@ -15,6 +15,7 @@ categories = ["development-tools"]
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 rhema-git-workflow-templates = { path = "../rhema-git-workflow-templates" }
+rhema-monitoring = { path = "../rhema-monitoring" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }

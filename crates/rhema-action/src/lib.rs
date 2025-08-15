@@ -21,6 +21,7 @@
 //! to include a comprehensive "action" layer with safety controls, validation pipelines,
 //! and human oversight.
 
+pub mod approval;
 pub mod cli;
 pub mod error;
 pub mod git;
@@ -40,6 +41,14 @@ pub use rhema_action_tool::{
 pub use error::ActionError as LocalActionError;
 pub use schema::{ActionIntent as ActionConfig, ActionType, ApprovalWorkflow as ActionContext};
 pub use tools::ToolRegistry;
+
+// Re-export approval types
+pub use approval::{
+    ApprovalWorkflow, ApprovalRequest, ApprovalStatus, ApprovalComment,
+    ApprovalPolicy, ApprovalCondition, EnhancedApprovalRequest,
+    Approver, ApproverStatus, ApproverResponse, ApprovalEvent, ApprovalEventType,
+    ApprovalStats
+};
 
 use anyhow::Result;
 

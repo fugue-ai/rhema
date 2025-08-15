@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
 use rhema_api::{Rhema, RhemaResult};
+use rhema_coordination::agent::real_time_coordination::{
+    AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority, AgentPerformanceMetrics,
+};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -114,11 +117,11 @@ enum Commands {
         #[command(subcommand)]
         subcommand: GitSubcommands,
     },
-    // /// Manage coordination between agents
-    // Coordination {
-    //     #[command(subcommand)]
-    //     subcommand: CoordinationSubcommands,
-    // },
+    /// Manage coordination between agents
+    Coordination {
+        #[command(subcommand)]
+        subcommand: CoordinationSubcommands,
+    },
 }
 
 #[derive(Subcommand, Clone)]
@@ -256,6 +259,185 @@ enum GitSubcommands {
         #[arg(long, default_value = "10")]
         limit: usize,
     },
+}
+
+#[derive(Subcommand, Clone)]
+enum CoordinationSubcommands {
+    /// Manage agents
+    Agent {
+        #[command(subcommand)]
+        subcommand: AgentSubcommands,
+    },
+
+    /// Manage coordination sessions
+    Session {
+        #[command(subcommand)]
+        subcommand: SessionSubcommands,
+    },
+
+    /// Manage coordination system
+    System {
+        #[command(subcommand)]
+        subcommand: SystemSubcommands,
+    },
+
+    /// Show coordination status and health
+    Status {
+        /// Show detailed status information
+        #[arg(long)]
+        verbose: bool,
+
+        /// Show metrics in Prometheus format
+        #[arg(long)]
+        prometheus: bool,
+    },
+}
+
+#[derive(Subcommand, Clone)]
+enum AgentSubcommands {
+    /// Register an agent with the coordination system
+    Register {
+        /// Agent ID
+        agent_id: String,
+
+        /// Agent name
+        #[arg(long)]
+        name: Option<String>,
+
+        /// Agent type
+        #[arg(long)]
+        agent_type: Option<String>,
+
+        /// Agent capabilities (comma-separated)
+        #[arg(long)]
+        capabilities: Option<String>,
+
+        /// Scope to assign the agent to
+        #[arg(long)]
+        scope: Option<String>,
+    },
+
+    /// Unregister an agent from the coordination system
+    Unregister {
+        /// Agent ID
+        agent_id: String,
+    },
+
+    /// Show agent information
+    Info {
+        /// Agent ID
+        agent_id: String,
+    },
+
+    /// List all registered agents
+    List {
+        /// Show detailed information
+        #[arg(long)]
+        verbose: bool,
+    },
+
+    /// Update agent status
+    Status {
+        /// Agent ID
+        agent_id: String,
+
+        /// New status (idle, busy, working, blocked, collaborating, offline)
+        status: String,
+    },
+}
+
+#[derive(Subcommand, Clone)]
+enum SessionSubcommands {
+    /// Create a new coordination session
+    Create {
+        /// Session topic
+        topic: String,
+
+        /// Participant agent IDs (comma-separated)
+        #[arg(long)]
+        participants: Option<String>,
+    },
+
+    /// Join an existing coordination session
+    Join {
+        /// Session ID
+        session_id: String,
+
+        /// Agent ID to join with
+        agent_id: String,
+    },
+
+    /// Leave a coordination session
+    Leave {
+        /// Session ID
+        session_id: String,
+
+        /// Agent ID to leave
+        agent_id: String,
+    },
+
+    /// Send a message to a session
+    Message {
+        /// Session ID
+        session_id: String,
+
+        /// Message content
+        content: String,
+
+        /// Sender agent ID
+        #[arg(long)]
+        sender: String,
+
+        /// Message priority (low, normal, high, critical, emergency)
+        #[arg(long, default_value = "normal")]
+        priority: String,
+    },
+
+    /// List active sessions
+    List {
+        /// Show detailed information
+        #[arg(long)]
+        verbose: bool,
+    },
+}
+
+#[derive(Subcommand, Clone)]
+enum SystemSubcommands {
+    /// Initialize the coordination system
+    Init {
+        /// Enable Syneidesis integration
+        #[arg(long)]
+        syneidesis: bool,
+
+        /// Syneidesis server address
+        #[arg(long)]
+        server_address: Option<String>,
+
+        /// Enable TLS for secure communication
+        #[arg(long)]
+        tls: bool,
+    },
+
+    /// Show system health and metrics
+    Health {
+        /// Show detailed health information
+        #[arg(long)]
+        verbose: bool,
+    },
+
+    /// Show coordination metrics
+    Metrics {
+        /// Export metrics in Prometheus format
+        #[arg(long)]
+        prometheus: bool,
+
+        /// Show performance summary
+        #[arg(long)]
+        performance: bool,
+    },
+
+    /// Shutdown the coordination system
+    Shutdown,
 }
 
 async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaResult<()> {
@@ -812,6 +994,429 @@ async fn handle_git_commands(subcommand: GitSubcommands) -> RhemaResult<()> {
     Ok(())
 }
 
+async fn handle_coordination_commands(
+    rhema: &Rhema,
+    subcommand: CoordinationSubcommands,
+) -> RhemaResult<()> {
+    match subcommand {
+        CoordinationSubcommands::Agent { subcommand } => {
+            handle_agent_commands(rhema, subcommand).await
+        }
+        CoordinationSubcommands::Session { subcommand } => {
+            handle_session_commands(rhema, subcommand).await
+        }
+        CoordinationSubcommands::System { subcommand } => {
+            handle_system_commands(rhema, subcommand).await
+        }
+        CoordinationSubcommands::Status { verbose, prometheus } => {
+            handle_coordination_status(rhema, verbose, prometheus).await
+        }
+    }
+}
+
+async fn handle_agent_commands(rhema: &Rhema, subcommand: AgentSubcommands) -> RhemaResult<()> {
+    match subcommand {
+        AgentSubcommands::Register {
+            agent_id,
+            name,
+            agent_type,
+            capabilities,
+            scope,
+        } => {
+            println!("Registering agent: {}", agent_id);
+
+            let agent_info = rhema_coordination::agent::real_time_coordination::AgentInfo {
+                id: agent_id,
+                name: name.unwrap_or_else(|| "Unnamed Agent".to_string()),
+                agent_type: agent_type.unwrap_or_else(|| "generic".to_string()),
+                status: rhema_coordination::agent::real_time_coordination::AgentStatus::Idle,
+                current_task_id: None,
+                assigned_scope: scope.unwrap_or_else(|| "default".to_string()),
+                capabilities: capabilities
+                    .map(|c| c.split(',').map(|s| s.trim().to_string()).collect())
+                    .unwrap_or_default(),
+                last_heartbeat: chrono::Utc::now(),
+                is_online: true,
+                performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+            };
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                integration.register_rhema_agent(&agent_info).await?;
+                println!("✅ Agent registered successfully");
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        AgentSubcommands::Unregister { agent_id } => {
+            println!("Unregistering agent: {}", agent_id);
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                integration.unregister_rhema_agent(&agent_id).await?;
+                println!("✅ Agent unregistered successfully");
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        AgentSubcommands::Info { agent_id } => {
+            println!("Getting agent info: {}", agent_id);
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                match integration.get_rhema_agent_info(&agent_id).await? {
+                    Some(agent) => {
+                        println!("Agent ID: {}", agent.id);
+                        println!("Name: {}", agent.name);
+                        println!("Type: {}", agent.agent_type);
+                        println!("Status: {:?}", agent.status);
+                        println!("Scope: {}", agent.assigned_scope);
+                        println!("Capabilities: {:?}", agent.capabilities);
+                        println!("Online: {}", agent.is_online);
+                    }
+                    None => {
+                        println!("❌ Agent '{}' not found", agent_id);
+                    }
+                }
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        AgentSubcommands::List { verbose } => {
+            println!("Listing registered agents");
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                let agents = integration.list_rhema_agents().await?;
+                println!("Found {} registered agents:", agents.len());
+                
+                for agent in agents {
+                    if verbose {
+                        println!("  - {} ({}) - {:?} - {}", agent.id, agent.name, agent.status, agent.agent_type);
+                    } else {
+                        println!("  - {} ({})", agent.id, agent.name);
+                    }
+                }
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        AgentSubcommands::Status { agent_id, status } => {
+            println!("Updating agent status: {} -> {}", agent_id, status);
+
+            let agent_status = match status.as_str() {
+                "idle" => AgentStatus::Idle,
+                "busy" => AgentStatus::Busy,
+                "working" => AgentStatus::Working,
+                "blocked" => AgentStatus::Blocked,
+                "collaborating" => AgentStatus::Collaborating,
+                "offline" => AgentStatus::Offline,
+                _ => {
+                    return Err(rhema_api::RhemaError::SystemError(
+                        format!("Invalid status: {}. Valid statuses: idle, busy, working, blocked, collaborating, offline", status)
+                    ));
+                }
+            };
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                integration.update_rhema_agent_status(&agent_id, agent_status).await?;
+                println!("✅ Agent status updated successfully");
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+    }
+}
+
+async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) -> RhemaResult<()> {
+    match subcommand {
+        SessionSubcommands::Create { topic, participants } => {
+            println!("Creating coordination session: {}", topic);
+
+            let participant_list = participants
+                .map(|p| p.split(',').map(|s| s.trim().to_string()).collect())
+                .unwrap_or_default();
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                let session_id = integration.create_rhema_session(topic, participant_list).await?;
+                println!("✅ Session created successfully with ID: {}", session_id);
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        SessionSubcommands::Join {
+            session_id,
+            agent_id,
+        } => {
+            println!("Joining session: {} with agent: {}", session_id, agent_id);
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                integration.join_rhema_session(&session_id, &agent_id).await?;
+                println!("✅ Agent joined session successfully");
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        SessionSubcommands::Leave {
+            session_id,
+            agent_id,
+        } => {
+            println!("Leaving session: {} with agent: {}", session_id, agent_id);
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                integration.leave_rhema_session(&session_id, &agent_id).await?;
+                println!("✅ Agent left session successfully");
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        SessionSubcommands::Message {
+            session_id,
+            content,
+            sender,
+            priority,
+        } => {
+            println!("Sending message to session: {}", session_id);
+
+            let message = AgentMessage {
+                id: uuid::Uuid::new_v4().to_string(),
+                message_type: MessageType::SessionMessage,
+                priority: match priority.as_str() {
+                    "low" => MessagePriority::Low,
+                    "high" => MessagePriority::High,
+                    "critical" => MessagePriority::Critical,
+                    "emergency" => MessagePriority::Emergency,
+                    _ => MessagePriority::Normal,
+                },
+                sender_id: sender,
+                recipient_ids: vec![],
+                content,
+                payload: None,
+                timestamp: chrono::Utc::now(),
+                requires_ack: false,
+                expires_at: None,
+                metadata: std::collections::HashMap::new(),
+            };
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                integration.send_rhema_session_message(&session_id, &message).await?;
+                println!("✅ Message sent to session successfully");
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        SessionSubcommands::List { verbose } => {
+            println!("Listing active sessions");
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                let sessions = integration.list_rhema_sessions().await?;
+                println!("Found {} active sessions:", sessions.len());
+                
+                for session_id in sessions {
+                    if verbose {
+                        println!("  - Session ID: {}", session_id);
+                    } else {
+                        println!("  - {}", session_id);
+                    }
+                }
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+    }
+}
+
+async fn handle_system_commands(rhema: &Rhema, subcommand: SystemSubcommands) -> RhemaResult<()> {
+    match subcommand {
+        SystemSubcommands::Init {
+            syneidesis,
+            server_address,
+            tls,
+        } => {
+            println!("Initializing coordination system");
+
+            if syneidesis {
+                println!("Enabling Syneidesis integration");
+                let server_addr = server_address.unwrap_or_else(|| "http://127.0.0.1:50051".to_string());
+                println!("Server address: {}", server_addr);
+
+                let coordination_config = rhema_coordination::coordination_integration::CoordinationConfig {
+                    enabled: true,
+                    server_address: Some(server_addr),
+                    auto_register_agents: true,
+                    sync_messages: true,
+                    enable_health_monitoring: true,
+                    timeout_seconds: 30,
+                    max_retries: 3,
+                    enable_tls: tls,
+                    tls_cert_path: None,
+                };
+
+                rhema.init_coordination_integration(Some(coordination_config)).await?;
+                println!("✅ Coordination system initialized with Syneidesis integration");
+            } else {
+                println!("Initializing basic coordination system");
+                let coordination_config = rhema_coordination::agent::real_time_coordination::CoordinationConfig {
+                    max_message_history: 1000,
+                    message_timeout_seconds: 30,
+                    heartbeat_interval_seconds: 10,
+                    agent_timeout_seconds: 60,
+                    max_session_participants: 10,
+                    enable_encryption: false,
+                    enable_compression: true,
+                };
+
+                rhema.init_coordination(Some(coordination_config)).await?;
+                println!("✅ Basic coordination system initialized");
+            }
+
+            Ok(())
+        }
+
+        SystemSubcommands::Health { verbose } => {
+            println!("Checking coordination system health");
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                let health = integration.get_health_status().await?;
+                println!("Coordination System Health:");
+                println!("  Rhema Agents: {}", health.rhema_agents);
+                println!("  Syneidesis Agents: {}", health.syneidesis_agents);
+                println!("  Bridge Messages Sent: {}", health.bridge_messages_sent);
+                
+                if verbose {
+                    println!("  Integration Status: Active");
+                    println!("  Message Sync: {}", if rhema.has_coordination_integration() { "Enabled" } else { "Disabled" });
+                }
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        SystemSubcommands::Metrics { prometheus, performance } => {
+            println!("Showing coordination metrics");
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                let metrics = integration.get_metrics().await?;
+                
+                if prometheus {
+                    println!("Prometheus Metrics:");
+                    println!("{}", metrics);
+                } else {
+                    println!("Coordination Metrics:");
+                    println!("{}", metrics);
+                }
+                
+                if performance {
+                    println!("Performance Summary:");
+                    println!("  System is operational and ready for coordination");
+                }
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+
+        SystemSubcommands::Shutdown => {
+            println!("Shutting down coordination system");
+
+            if let Some(integration) = rhema.get_coordination_integration() {
+                integration.shutdown().await?;
+                println!("✅ Coordination system shut down successfully");
+            } else {
+                return Err(rhema_api::RhemaError::SystemError(
+                    "Coordination system not initialized".to_string(),
+                ));
+            }
+
+            Ok(())
+        }
+    }
+}
+
+async fn handle_coordination_status(
+    rhema: &Rhema,
+    verbose: bool,
+    prometheus: bool,
+) -> RhemaResult<()> {
+    println!("Coordination System Status");
+    println!("=========================");
+
+    if rhema.has_coordination() {
+        println!("✅ Basic coordination system: Initialized");
+    } else {
+        println!("❌ Basic coordination system: Not initialized");
+    }
+
+    if rhema.has_coordination_integration() {
+        println!("✅ Coordination integration: Initialized");
+    } else {
+        println!("❌ Coordination integration: Not initialized");
+    }
+
+    if verbose {
+        println!("\nDetailed Status:");
+        // Add more detailed status information here
+    }
+
+    if prometheus {
+        println!("\nPrometheus Metrics:");
+        // Add Prometheus metrics export here
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> RhemaResult<()> {
     let cli = Cli::parse();
@@ -952,23 +1557,9 @@ async fn main() -> RhemaResult<()> {
         }
         Some(Commands::Config { subcommand }) => handle_config_commands(subcommand.clone()).await,
         Some(Commands::Git { subcommand }) => handle_git_commands(subcommand.clone()).await,
-
-        // Some(Commands::Coordination { subcommand }) => {
-        //     println!("Executing coordination command...");
-        //     let manager = CoordinationManager::new();
-        //
-        //     match subcommand {
-        //         CoordinationSubcommands::Agent { subcommand } => {
-        //             manager.execute_agent_command(subcommand).await
-        //         }
-        //         CoordinationSubcommands::Session { subcommand } => {
-        //             manager.execute_session_command(subcommand).await
-        //         }
-        //         CoordinationSubcommands::System { subcommand } => {
-        //             manager.execute_system_command(subcommand).await
-        //         }
-        //     }
-        // }
+        Some(Commands::Coordination { subcommand }) => {
+            handle_coordination_commands(&rhema, subcommand.clone()).await
+        }
         None => {
             println!("Welcome to Rhema CLI!");
             println!("Use --help to see available commands");

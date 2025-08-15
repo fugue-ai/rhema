@@ -560,7 +560,7 @@ impl PatternMonitor {
     pub async fn get_monitoring_statistics(&self) -> MonitoringStatistics {
         let events = self.events.read().await;
         let metrics = self.metrics.read().await;
-        let profiles = self.performance_profiles.read().await;
+        let _profiles = self.performance_profiles.read().await;
 
         // Count unique patterns from events
         let mut unique_patterns = std::collections::HashSet::new();

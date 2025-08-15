@@ -29,8 +29,31 @@ clap = { workspace = true }
 dashmap = "5.5"
 
 # gRPC dependencies
-tonic = "0.10"
+tonic = { version = "0.10", features = ["tls", "tls-roots", "prost"] }
 prost = "0.12"
+prost-types = "0.12"
+
+# Security and performance
+rustls = "0.21"
+rustls-pemfile = "1.0"
+webpki-roots = "0.25"
+flate2 = "1.0"
+brotli = "3.4"
+zstd = "0.12"
+
+# Authentication and authorization
+jsonwebtoken = "9.2"
+base64 = "0.21"
+
+# Error handling and resilience
+rand = "0.8"
+
+# Syneidesis dependencies
+syneidesis-coordination = { path = "../syneidesis/coordination" }
+syneidesis-grpc = { path = "../syneidesis/grpc" }
+syneidesis-core = { path = "../syneidesis/core" }
+syneidesis-agent = { path = "../syneidesis/agent" }
+syneidesis-config = { path = "../syneidesis/config" }
 
 [build-dependencies]
 tonic-build = "0.10"

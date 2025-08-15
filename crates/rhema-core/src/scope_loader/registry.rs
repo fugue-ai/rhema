@@ -281,7 +281,7 @@ impl Default for PluginRegistry {
 }
 
 /// Information about a registered plugin
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PluginInfo {
     pub name: String,
     pub metadata: PluginMetadata,

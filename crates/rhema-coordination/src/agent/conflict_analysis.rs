@@ -1098,7 +1098,7 @@ impl ConflictAnalysisSystem {
     /// Analyze learning insights
     async fn analyze_learning_insights(
         &self,
-        period: &AnalysisPeriod,
+        _period: &AnalysisPeriod,
     ) -> RhemaResult<LearningInsights> {
         let ml_stats = self.ml_prediction_stats.read().await;
 
@@ -1240,7 +1240,7 @@ impl ConflictAnalysisSystem {
     /// Analyze trends over time
     async fn analyze_trends(&self, period: &AnalysisPeriod) -> RhemaResult<TrendAnalysis> {
         let conflicts = self.get_conflicts_in_period(period).await?;
-        let resolutions = self.get_resolutions_in_period(period).await?;
+        let _resolutions = self.get_resolutions_in_period(period).await?;
 
         // Generate time series data for conflicts
         let mut conflict_counts_by_day = HashMap::new();

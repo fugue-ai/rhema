@@ -22,6 +22,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, instrument, warn};
+use chrono::Timelike;
 
 use crate::types::{
     AgentSessionContext, ContentType, ContextSuggestion, KnowledgeResult, Priority,
@@ -93,7 +94,7 @@ impl Default for ProactiveConfig {
 pub struct FileWatcher {
     watched_files: Arc<RwLock<HashMap<PathBuf, FileWatchInfo>>>,
     config: FileWatcherConfig,
-    watcher: Option<notify::RecommendedWatcher>,
+    watcher: Arc<RwLock<Option<notify::RecommendedWatcher>>>,
     event_sender: Option<tokio::sync::mpsc::UnboundedSender<notify::Event>>,
 }
 
@@ -573,7 +574,7 @@ impl FileWatcher {
         Self {
             watched_files: Arc::new(RwLock::new(HashMap::new())),
             config,
-            watcher: None,
+            watcher: Arc::new(RwLock::new(None)),
             event_sender: None,
         }
     }
@@ -600,7 +601,8 @@ impl FileWatcher {
             }
         }
 
-        self.watcher = Some(watcher);
+        let mut watcher_guard = self.watcher.write().await;
+        *watcher_guard = Some(watcher);
         self.event_sender = Some(event_sender);
 
         // Spawn event processing task
@@ -641,27 +643,46 @@ impl FileWatcher {
         watched_files.insert(file_path.clone(), file_info);
 
         // Add to file system watcher if available
-        // TODO: Implement file system watching when we have proper mutable access
-        // if let Some(watcher) = &mut self.watcher {
-        //     if let Some(parent) = file_path.parent() {
-        //         if let Err(e) = watcher.watch(parent, RecursiveMode::NonRecursive) {
-        //             warn!("Failed to watch file {}: {}", file_path.display(), e);
-        //         }
-        //     }
-        // }
+        let mut watcher_guard = self.watcher.write().await;
+        if let Some(watcher) = watcher_guard.as_mut() {
+            if let Some(parent) = file_path.parent() {
+                if let Err(e) = watcher.watch(parent, RecursiveMode::NonRecursive) {
+                    warn!("Failed to watch file {}: {}", file_path.display(), e);
+                }
+            }
+        }
 
         Ok(())
     }
 
     /// Watch an entire directory recursively
     pub async fn watch_directory(&self, dir_path: PathBuf) -> KnowledgeResult<()> {
-        // TODO: Implement directory watching when we have proper mutable access
-        // For now, just scan directory for existing files
+        // Add directory to file system watcher if available
+        let mut watcher_guard = self.watcher.write().await;
+        if let Some(watcher) = watcher_guard.as_mut() {
+            if let Err(e) = watcher.watch(&dir_path, RecursiveMode::Recursive) {
+                warn!("Failed to watch directory {}: {}", dir_path.display(), e);
+            }
+        }
+
+        // Scan directory for existing files and add them to watched_files
         if let Ok(entries) = std::fs::read_dir(&dir_path) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if self.should_watch_file(&path) {
-                    // TODO: Add file to watched_files
+                    // Add file to watched_files
+                    let mut watched_files = self.watched_files.write().await;
+                    if watched_files.len() < self.config.max_watched_files {
+                        let content_hash = self.calculate_file_hash(&path).await?;
+                        let file_info = FileWatchInfo {
+                            path: path.clone(),
+                            last_modified: chrono::Utc::now(),
+                            content_hash,
+                            change_count: 0,
+                            last_accessed: chrono::Utc::now(),
+                        };
+                        watched_files.insert(path, file_info);
+                    }
                 }
             }
         }
@@ -994,8 +1015,43 @@ impl SuggestionEngine {
                         return Ok(true);
                     }
                 }
-                _ => {
-                    // TODO: Implement other trigger conditions
+                SuggestionTrigger::WorkflowType(workflow_type) => {
+                    let workflow_str = workflow_type.to_string();
+                    if context.contains(&workflow_str) {
+                        return Ok(true);
+                    }
+                }
+                SuggestionTrigger::AgentSession(agent_id) => {
+                    if context.contains(agent_id) {
+                        return Ok(true);
+                    }
+                }
+                SuggestionTrigger::TimeOfDay(hour, minute) => {
+                    let now = chrono::Utc::now();
+                    let current_hour = now.hour() as u8;
+                    let current_minute = now.minute() as u8;
+                    
+                    // Check if current time matches the specified time (with some tolerance)
+                    let time_tolerance = 30; // 30 minutes tolerance
+                    let current_time_minutes = current_hour * 60 + current_minute;
+                    let target_time_minutes = hour * 60 + minute;
+                    let time_diff = if current_time_minutes >= target_time_minutes {
+                        current_time_minutes - target_time_minutes
+                    } else {
+                        target_time_minutes - current_time_minutes
+                    };
+                    
+                    if time_diff <= time_tolerance {
+                        return Ok(true);
+                    }
+                }
+                SuggestionTrigger::Frequency(min_frequency) => {
+                    // For frequency-based triggers, we would need to track usage patterns
+                    // For now, we'll use a simple heuristic based on context length
+                    // A longer context might indicate more frequent usage
+                    if context.len() > (*min_frequency as usize * 10) {
+                        return Ok(true);
+                    }
                 }
             }
         }

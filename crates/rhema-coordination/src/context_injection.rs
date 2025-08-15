@@ -1499,6 +1499,18 @@ mod tests {
             usage_analytics: rhema_core::UsageAnalytics::new(),
             version: rhema_core::PromptVersion::new("1.0.0"),
             tags: Some(vec!["test".to_string()]),
+            context_rules: None,
+            variables: None,
+            extends: None,
+            multi_file_context: None,
+            composition_blocks: None,
+            advanced_variables: None,
+            validation_rules: None,
+            performance_metrics: None,
+            context_cache: None,
+            context_optimization: None,
+            context_learning: None,
+            context_quality: None,
         };
 
         // Test dynamic context injection

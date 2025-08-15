@@ -663,18 +663,141 @@ impl PerformanceMonitor {
             total_errors,
             error_rate_percent: error_rate,
             common_errors,
-            error_trends: Vec::new(), // TODO: Implement error trends
+            error_trends: self.generate_error_trends(records, start_time, end_time),
+        }
+    }
+
+    /// Generate error trends over time
+    fn generate_error_trends(&self, records: &[QueryPerformanceRecord], start_time: DateTime<Utc>, end_time: DateTime<Utc>) -> Vec<ErrorTrend> {
+        let mut trends = Vec::new();
+        
+        // Group records by time periods (e.g., hourly)
+        let time_periods = self.group_records_by_time_period(records, start_time, end_time);
+        
+        for (period_start, period_records) in time_periods {
+            let error_count = period_records.iter()
+                .filter(|record| record.error_type.is_some())
+                .count();
+            
+            let total_count = period_records.len();
+            let error_rate = if total_count > 0 {
+                error_count as f64 / total_count as f64
+            } else {
+                0.0
+            };
+            
+            trends.push(ErrorTrend {
+                period_start,
+                period_end: period_start + chrono::Duration::hours(1),
+                error_count,
+                total_count,
+                error_rate,
+                trend_direction: self.calculate_trend_direction(&trends, error_rate),
+            });
+        }
+        
+        trends
+    }
+
+    /// Group records by time periods
+    fn group_records_by_time_period(&self, records: &[QueryPerformanceRecord], start_time: DateTime<Utc>, end_time: DateTime<Utc>) -> Vec<(DateTime<Utc>, Vec<&QueryPerformanceRecord>)> {
+        let mut periods = Vec::new();
+        let mut current_time = start_time;
+        
+        while current_time < end_time {
+            let period_end = current_time + chrono::Duration::hours(1);
+            let period_records: Vec<&QueryPerformanceRecord> = records.iter()
+                .filter(|record| record.timestamp >= current_time && record.timestamp < period_end)
+                .collect();
+            
+            periods.push((current_time, period_records));
+            current_time = period_end;
+        }
+        
+        periods
+    }
+
+    /// Calculate trend direction
+    fn calculate_trend_direction(&self, previous_trends: &[ErrorTrend], current_rate: f64) -> TrendDirection {
+        if previous_trends.is_empty() {
+            return TrendDirection::Stable;
+        }
+        
+        let recent_trends: Vec<&ErrorTrend> = previous_trends.iter()
+            .rev()
+            .take(3)
+            .collect();
+        
+        if recent_trends.is_empty() {
+            return TrendDirection::Stable;
+        }
+        
+        let avg_previous_rate = recent_trends.iter()
+            .map(|t| t.error_rate)
+            .sum::<f64>() / recent_trends.len() as f64;
+        
+        let difference = current_rate - avg_previous_rate;
+        
+        if difference > 0.1 {
+            TrendDirection::Increasing
+        } else if difference < -0.1 {
+            TrendDirection::Decreasing
+        } else {
+            TrendDirection::Stable
         }
     }
 
     /// Generate performance trends
     fn generate_trends(&self, records: &[QueryPerformanceRecord], start_time: DateTime<Utc>, end_time: DateTime<Utc>) -> PerformanceTrends {
-        // TODO: Implement trend generation
+        let time_periods = self.group_records_by_time_period(records, start_time, end_time);
+        
+        let mut execution_time_trend = Vec::new();
+        let mut memory_usage_trend = Vec::new();
+        let mut query_volume_trend = Vec::new();
+        let mut cache_hit_rate_trend = Vec::new();
+        
+        for (period_start, period_records) in time_periods {
+            if !period_records.is_empty() {
+                // Execution time trend
+                let avg_execution_time = period_records.iter()
+                    .map(|r| r.execution_time_ms as f64)
+                    .sum::<f64>() / period_records.len() as f64;
+                execution_time_trend.push(avg_execution_time);
+                
+                // Query volume trend
+                query_volume_trend.push(period_records.len() as f64);
+                
+                // Memory usage trend (estimated based on result count)
+                let total_results = period_records.iter()
+                    .map(|r| r.result_count)
+                    .sum::<usize>();
+                let estimated_memory = total_results as f64 * 1024.0; // Rough estimate: 1KB per result
+                memory_usage_trend.push(estimated_memory);
+                
+                // Cache hit rate trend (simplified - would need cache data)
+                let cache_hits = period_records.iter()
+                    .filter(|r| r.optimization_applied.as_ref().map_or(false, |opt| opt.contains("cache")))
+                    .count();
+                let cache_hit_rate = if period_records.is_empty() {
+                    0.0
+                } else {
+                    cache_hits as f64 / period_records.len() as f64
+                };
+                cache_hit_rate_trend.push(cache_hit_rate);
+            } else {
+                // No records in this period
+                execution_time_trend.push(0.0);
+                query_volume_trend.push(0.0);
+                memory_usage_trend.push(0.0);
+                cache_hit_rate_trend.push(0.0);
+            }
+        }
+        
         PerformanceTrends {
-            execution_time_trend: Vec::new(),
-            memory_usage_trend: Vec::new(),
-            query_volume_trend: Vec::new(),
-            cache_hit_rate_trend: Vec::new(),
+            execution_time_trend,
+            memory_usage_trend,
+            query_volume_trend,
+            cache_hit_rate_trend,
         }
     }
 

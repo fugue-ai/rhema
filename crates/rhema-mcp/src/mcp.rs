@@ -26,8 +26,7 @@ use crate::context::ContextProvider;
 use crate::http_server::HttpServer;
 use crate::official_sdk::OfficialRhemaMcpServer;
 use crate::sdk::{
-    ContextProviderExt, Prompt as SdkPrompt, Resource as SdkResource, RhemaMcpServer,
-    Tool as SdkTool, ToolResult as SdkToolResult,
+    ContextProviderExt, RhemaMcpServer,
 };
 use crate::watcher::FileWatcher;
 
@@ -36,7 +35,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{error, info, warn};
 
@@ -408,7 +407,7 @@ impl McpDaemon {
             health: HealthConfig::default(),
         };
 
-        let watcher_config = super::FileWatcherConfig {
+        let watcher_config = WatcherConfig {
             enabled: config.watcher.enabled,
             watch_dirs: config.watcher.watch_dirs.clone(),
             file_patterns: config.watcher.file_patterns.clone(),

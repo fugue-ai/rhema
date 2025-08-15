@@ -814,32 +814,197 @@ impl VectorStore for QdrantVectorStore {
     }
 
     async fn delete(&self, id: &str) -> KnowledgeResult<()> {
-        let point_id = qdrant_client::qdrant::PointId {
-            point_id_options: Some(qdrant_client::qdrant::point_id::PointIdOptions::Uuid(
-                id.to_string(),
-            )),
+        let delete_request = qdrant_client::qdrant::DeletePoints {
+            collection_name: self.config.collection_name.clone(),
+            points: Some(qdrant_client::qdrant::PointsSelector {
+                points_selector_one_of: Some(
+                    qdrant_client::qdrant::points_selector::PointsSelectorOneOf::Points(
+                        qdrant_client::qdrant::PointsIdsList {
+                            ids: vec![qdrant_client::qdrant::PointId {
+                                point_id_options: Some(
+                                    qdrant_client::qdrant::point_id::PointIdOptions::Uuid(
+                                        id.to_string(),
+                                    ),
+                                ),
+                            }],
+                        },
+                    ),
+                ),
+            }),
+            ..Default::default()
         };
 
-        // For now, just return success since the delete method is not available in the current API
-        // TODO: Implement proper delete functionality when the API is available
+        self.client
+            .delete_points(delete_request)
+            .await
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::DeletionError(format!(
+                    "Failed to delete vector: {}",
+                    e
+                )))
+            })?;
+
         Ok(())
     }
 
     async fn get(&self, id: &str) -> KnowledgeResult<Option<VectorRecord>> {
-        // For now, just return None since the retrieve method is not available in the current API
-        // TODO: Implement proper retrieve functionality when the API is available
-        Ok(None)
+        let get_request = qdrant_client::qdrant::GetPoints {
+            collection_name: self.config.collection_name.clone(),
+            ids: vec![qdrant_client::qdrant::PointId {
+                point_id_options: Some(
+                    qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id.to_string()),
+                ),
+            }],
+            with_payload: Some(qdrant_client::qdrant::WithPayloadSelector {
+                selector_options: Some(
+                    qdrant_client::qdrant::with_payload_selector::SelectorOptions::Enable(true),
+                ),
+            }),
+            with_vectors: Some(qdrant_client::qdrant::WithVectorsSelector {
+                selector_options: Some(
+                    qdrant_client::qdrant::with_vectors_selector::SelectorOptions::Enable(true),
+                ),
+            }),
+            ..Default::default()
+        };
+
+        let response = self
+            .client
+            .get_points(get_request)
+            .await
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to get vector: {}",
+                    e
+                )))
+            })?;
+
+        if let Some(point) = response.result.first() {
+            let payload = &point.payload;
+            let content = payload.get("content").and_then(|v| match &v.kind {
+                Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => Some(s.clone()),
+                _ => None,
+            });
+
+            let metadata = if payload.contains_key("source_type") {
+                Some(SearchResultMetadata {
+                    source_type: payload
+                        .get("source_type")
+                        .and_then(|v| match &v.kind {
+                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                                ContentType::from_str(&s)
+                            }
+                            _ => None,
+                        })
+                        .unwrap_or(ContentType::Documentation),
+                    scope_path: payload.get("scope_path").and_then(|v| match &v.kind {
+                        Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                            Some(s.clone())
+                        }
+                        _ => None,
+                    }),
+                    created_at: payload
+                        .get("created_at")
+                        .and_then(|v| match &v.kind {
+                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                                DateTime::parse_from_rfc3339(&s).ok()
+                            }
+                            _ => None,
+                        })
+                        .map(|dt| dt.with_timezone(&Utc))
+                        .unwrap_or_else(Utc::now),
+                    last_modified: payload
+                        .get("last_modified")
+                        .and_then(|v| match &v.kind {
+                            Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                                DateTime::parse_from_rfc3339(s).ok()
+                            }
+                            _ => None,
+                        })
+                        .map(|dt| dt.with_timezone(&Utc))
+                        .unwrap_or_else(Utc::now),
+                    size_bytes: payload
+                        .get("size_bytes")
+                        .and_then(|v| match &v.kind {
+                            Some(qdrant_client::qdrant::value::Kind::IntegerValue(i)) => {
+                                Some(*i as u64)
+                            }
+                            _ => None,
+                        })
+                        .unwrap_or(0),
+                    chunk_id: payload.get("chunk_id").and_then(|v| match &v.kind {
+                        Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
+                            Some(s.clone())
+                        }
+                        _ => None,
+                    }),
+                })
+            } else {
+                None
+            };
+
+            Ok(Some(VectorRecord {
+                id: match point.id.as_ref().unwrap().point_id_options.as_ref().unwrap() {
+                    qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id) => id.clone(),
+                    qdrant_client::qdrant::point_id::PointIdOptions::Num(id) => id.to_string(),
+                },
+                embedding: match point.vectors.as_ref().unwrap().vectors_options.as_ref().unwrap() {
+                    qdrant_client::qdrant::vectors_output::VectorsOptions::Vector(v) => v.data.clone(),
+                    _ => vec![],
+                },
+                content,
+                metadata,
+                created_at: Utc::now(),
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn collection_info(&self) -> KnowledgeResult<VectorCollectionInfo> {
-        // For now, just return a default collection info since the get_collection method is not available
-        // TODO: Implement proper get_collection functionality when the API is available
+        let request = qdrant_client::qdrant::GetCollectionInfoRequest {
+            collection_name: self.config.collection_name.clone(),
+        };
+
+        let response = self
+            .client
+            .collection_info(request)
+            .await
+            .map_err(|e| {
+                KnowledgeError::VectorError(VectorError::StoreError(format!(
+                    "Failed to get collection info: {}",
+                    e
+                )))
+            })?;
+
+        let info = response.result.unwrap();
+        let config = info.config.unwrap();
+        let params = config.params.unwrap();
+
+        let vectors_config = params.vectors_config.unwrap();
+        let dimension = match vectors_config.config.as_ref().unwrap() {
+            qdrant_client::qdrant::vectors_config::Config::Params(params) => params.size as usize,
+            _ => self.config.dimension,
+        };
+
+        let distance_metric = match vectors_config.config.as_ref().unwrap() {
+            qdrant_client::qdrant::vectors_config::Config::Params(params) => {
+                match params.distance {
+                    1 => DistanceMetric::Cosine,
+                    2 => DistanceMetric::Euclidean,
+                    3 => DistanceMetric::DotProduct,
+                    _ => self.config.distance_metric.clone(),
+                }
+            }
+            _ => self.config.distance_metric.clone(),
+        };
+
         Ok(VectorCollectionInfo {
             name: self.config.collection_name.clone(),
-            vector_count: 0,
-            dimension: self.config.dimension,
-            distance_metric: self.config.distance_metric.clone(),
-            size_bytes: 0,
+            vector_count: info.points_count.unwrap_or(0) as usize,
+            dimension,
+            distance_metric,
+            size_bytes: info.points_count.unwrap_or(0) * dimension as u64 * 4, // Rough estimate: 4 bytes per float
         })
     }
 

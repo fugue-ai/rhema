@@ -700,10 +700,88 @@ impl ConstraintSystem {
     /// Check dependency constraint
     async fn check_dependency_constraint(
         &self,
-        _constraint: &Constraint,
-        _context: &ConstraintContext,
+        constraint: &Constraint,
+        context: &ConstraintContext,
     ) -> Result<(), ConstraintViolation> {
-        // TODO: Implement dependency constraint checking
+        // In a real implementation, this would:
+        // 1. Parse dependency specifications from constraint parameters
+        // 2. Check if required dependencies are available
+        // 3. Verify dependency versions and compatibility
+        // 4. Check for circular dependencies
+        // 5. Validate dependency constraints against current context
+        
+        // For now, implement basic dependency checking using custom_data
+        if let Some(dependencies) = constraint.parameters.custom.get("dependencies") {
+            if let Some(deps_array) = dependencies.as_array() {
+                for dep in deps_array {
+                    if let Some(dep_obj) = dep.as_object() {
+                        if let Some(dep_name) = dep_obj.get("name").and_then(|v| v.as_str()) {
+                            // Check if dependency is available in context custom_data
+                            if let Some(available_resources) = context.custom_data.get("available_resources") {
+                                if let Some(resources_array) = available_resources.as_array() {
+                                    let is_available = resources_array.iter().any(|r| {
+                                        r.as_str().map(|s| s == dep_name).unwrap_or(false)
+                                    });
+                                    
+                                    if !is_available {
+                                        return Err(ConstraintViolation {
+                                            id: format!("violation-{}", constraint.id),
+                                            constraint_id: constraint.id.clone(),
+                                            description: format!("Missing dependency: {}", dep_name),
+                                            severity: ConstraintSeverity::Error,
+                                            timestamp: Utc::now(),
+                                            context: {
+                                                let mut ctx = HashMap::new();
+                                                ctx.insert("missing_dependency".to_string(), serde_json::Value::String(dep_name.to_string()));
+                                                ctx.insert("constraint_type".to_string(), serde_json::Value::String("dependency".to_string()));
+                                                ctx
+                                            },
+                                            resolved: false,
+                                            resolved_at: None,
+                                            resolution_notes: None,
+                                        });
+                                    }
+                                }
+                            }
+                            
+                            // Check version constraints if specified
+                            if let Some(required_version) = dep_obj.get("version").and_then(|v| v.as_str()) {
+                                if let Some(resource_versions) = context.custom_data.get("resource_versions") {
+                                    if let Some(versions_obj) = resource_versions.as_object() {
+                                        if let Some(available_version) = versions_obj.get(dep_name).and_then(|v| v.as_str()) {
+                                            if available_version != required_version {
+                                                return Err(ConstraintViolation {
+                                                    id: format!("violation-{}", constraint.id),
+                                                    constraint_id: constraint.id.clone(),
+                                                    description: format!(
+                                                        "Version mismatch for dependency {}: required {}, available {}",
+                                                        dep_name, required_version, available_version
+                                                    ),
+                                                    severity: ConstraintSeverity::Warning,
+                                                    timestamp: Utc::now(),
+                                                    context: {
+                                                        let mut ctx = HashMap::new();
+                                                        ctx.insert("dependency_name".to_string(), serde_json::Value::String(dep_name.to_string()));
+                                                        ctx.insert("required_version".to_string(), serde_json::Value::String(required_version.to_string()));
+                                                        ctx.insert("available_version".to_string(), serde_json::Value::String(available_version.to_string()));
+                                                        ctx.insert("constraint_type".to_string(), serde_json::Value::String("dependency".to_string()));
+                                                        ctx
+                                                    },
+                                                    resolved: false,
+                                                    resolved_at: None,
+                                                    resolution_notes: None,
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         Ok(())
     }
 

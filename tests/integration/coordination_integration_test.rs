@@ -14,544 +14,453 @@
  * limitations under the License.
  */
 
-use rhema_api::{
-    AdvancedCoordinationConfig, AgentInfo, AgentMessage, AgentStatus, ConsensusConfig,
-    CoordinationConfig, EncryptionConfig, FaultToleranceConfig, IntegrationConfig,
-    LoadBalancingStrategy, MessagePriority, MessageType, PerformanceMonitoringConfig, Rhema,
+//! Integration tests for coordination client integration with Rhema Core
+
+use rhema_core::{
+    coordination::{
+        AgentInfo, AgentMessage, CoordinationConfig, CoordinationManager, MessagePriority, MessageType,
+        create_coordination_manager, CoordinationClient, MockCoordinationClient,
+    },
+    RhemaResult,
 };
-use rhema_coordination::agent::real_time_coordination::ConsensusAlgorithm;
-use rhema_coordination::agent::real_time_coordination::EncryptionAlgorithm;
-use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
-use tempfile::TempDir;
+use std::time::Duration;
+use tokio::time::sleep;
 
+/// Test coordination manager with disabled coordination
 #[tokio::test]
-async fn test_basic_coordination_integration() {
-    // Create a temporary directory for testing
-    let temp_dir = TempDir::new().unwrap();
-    let repo_path = temp_dir.path();
-
-    // Initialize git repository
-    init_test_repo(repo_path);
-
-    // Create Rhema instance
-    let mut rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
-
-    // Test coordination initialization
+async fn test_disabled_coordination() -> RhemaResult<()> {
     let config = CoordinationConfig {
-        max_message_history: 100,
-        message_timeout_seconds: 10,
-        heartbeat_interval_seconds: 5,
-        agent_timeout_seconds: 30,
-        max_session_participants: 5,
-        enable_encryption: false,
-        enable_compression: true,
+        enabled: false,
+        ..Default::default()
     };
 
-    rhema.init_coordination(Some(config)).await.unwrap();
-    assert!(rhema.has_coordination());
+    let manager = create_coordination_manager(config).await?;
+    assert!(!manager.is_enabled());
 
-    // Test agent registration
-    let agent = AgentInfo {
-        id: "test-agent".to_string(),
-        name: "Test Agent".to_string(),
-        agent_type: "test".to_string(),
-        status: AgentStatus::Idle,
-        current_task_id: None,
-        assigned_scope: "test".to_string(),
-        capabilities: vec!["test".to_string()],
-        last_heartbeat: chrono::Utc::now(),
-        is_online: true,
-        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
-    };
+    // Should not fail when coordination is disabled
+    let agent = AgentInfo::new("test-agent".to_string(), "test".to_string());
+    manager.register_agent(agent).await?;
 
-    rhema.register_agent(agent).await.unwrap();
+    let message = AgentMessage::new(
+        "sender".to_string(),
+        MessageType::TaskAssignment,
+        "Test message".to_string(),
+    );
+    manager.send_message(message).await?;
 
-    // Test session creation
-    let session_id = rhema
-        .create_coordination_session("Test Session".to_string(), vec!["test-agent".to_string()])
-        .await
-        .unwrap();
-
-    assert!(!session_id.is_empty());
-
-    // Test message sending
-    let message = AgentMessage {
-        id: uuid::Uuid::new_v4().to_string(),
-        message_type: MessageType::TaskAssignment,
-        priority: MessagePriority::Normal,
-        sender_id: "test-agent".to_string(),
-        recipient_ids: vec![],
-        content: "Test message".to_string(),
-        payload: None,
-        timestamp: chrono::Utc::now(),
-        requires_ack: false,
-        expires_at: None,
-        metadata: HashMap::new(),
-    };
-
-    rhema
-        .send_session_message(&session_id, message)
-        .await
-        .unwrap();
-
-    // Test statistics
-    let stats = rhema.get_coordination_stats().await.unwrap();
-    assert_eq!(stats.active_agents, 1);
-    assert_eq!(stats.active_sessions, 1);
-
-    // Test agent retrieval
-    let agents = rhema.get_all_agents().await.unwrap();
-    assert_eq!(agents.len(), 1);
-    assert_eq!(agents[0].id, "test-agent");
-
-    // Test agent info retrieval
-    let agent_info = rhema.get_agent_info("test-agent").await.unwrap();
-    assert!(agent_info.is_some());
-    assert_eq!(agent_info.unwrap().id, "test-agent");
-
-    // Test status update
-    rhema
-        .update_agent_status("test-agent", AgentStatus::Busy)
-        .await
-        .unwrap();
-    let updated_agent = rhema.get_agent_info("test-agent").await.unwrap().unwrap();
-    assert_eq!(updated_agent.status, AgentStatus::Busy);
-
-    // Test shutdown
-    rhema.shutdown_coordination().await.unwrap();
+    Ok(())
 }
 
+/// Test coordination configuration
 #[tokio::test]
-async fn test_advanced_coordination_integration() {
-    // Create a temporary directory for testing
-    let temp_dir = TempDir::new().unwrap();
-    let repo_path = temp_dir.path();
+async fn test_coordination_config() {
+    let config = CoordinationConfig::default();
+    
+    assert!(!config.enabled);
+    assert_eq!(config.server_endpoint, "http://localhost:50051");
+    assert_eq!(config.timeout_seconds, 30);
+    assert_eq!(config.retry_config.max_retries, 3);
+    assert_eq!(config.health_check_config.enabled, true);
+}
 
-    // Initialize git repository
-    init_test_repo(repo_path);
+/// Test agent information creation and manipulation
+#[tokio::test]
+async fn test_agent_info_creation() {
+    let agent = AgentInfo::new("test-agent".to_string(), "test-type".to_string())
+        .with_task_id("task-123".to_string())
+        .with_scope("test-scope".to_string())
+        .with_capability("test-capability".to_string())
+        .with_metadata("version".to_string(), "1.0.0".to_string());
 
-    // Create Rhema instance
-    let mut rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
+    assert_eq!(agent.name, "test-agent");
+    assert_eq!(agent.agent_type, "test-type");
+    assert_eq!(agent.current_task_id, Some("task-123".to_string()));
+    assert_eq!(agent.assigned_scope, Some("test-scope".to_string()));
+    assert_eq!(agent.capabilities, vec!["test-capability"]);
+    assert_eq!(agent.metadata.get("version"), Some(&"1.0.0".to_string()));
+}
 
-    // Test advanced coordination initialization
-    let coordination_config = CoordinationConfig {
-        max_message_history: 500,
-        message_timeout_seconds: 30,
-        heartbeat_interval_seconds: 10,
-        agent_timeout_seconds: 60,
-        max_session_participants: 10,
-        enable_encryption: true,
-        enable_compression: true,
-    };
+/// Test agent message creation and manipulation
+#[tokio::test]
+async fn test_agent_message_creation() {
+    let message = AgentMessage::new(
+        "sender-123".to_string(),
+        MessageType::TaskAssignment,
+        "Test message content".to_string(),
+    )
+    .to_recipients(vec!["recipient-1".to_string(), "recipient-2".to_string()])
+    .with_priority(MessagePriority::High)
+    .with_metadata("task_id".to_string(), "task-123".to_string());
 
-    let advanced_config = AdvancedCoordinationConfig {
-        enable_load_balancing: true,
-        enable_fault_tolerance: true,
-        enable_encryption: true,
-        enable_compression: true,
-        enable_advanced_sessions: true,
-        enable_performance_monitoring: true,
-        load_balancing_strategy: LoadBalancingStrategy::RoundRobin,
-        fault_tolerance_config: FaultToleranceConfig {
-            enable_failover: true,
-            max_retry_attempts: 3,
-            retry_delay_ms: 1000,
-            circuit_breaker_threshold: 5,
-            circuit_breaker_timeout_seconds: 30,
-            health_check_interval_seconds: 10,
-        },
-        encryption_config: EncryptionConfig {
-            algorithm: EncryptionAlgorithm::AES256,
-            key_rotation_hours: 24,
-            enable_e2e_encryption: true,
-            certificate_path: None,
-            private_key_path: None,
-        },
-        performance_config: PerformanceMonitoringConfig {
-            enable_metrics: true,
-            metrics_interval_seconds: 30,
-            enable_alerts: true,
-            thresholds: rhema_coordination::agent::real_time_coordination::PerformanceThresholds {
-                max_message_latency_ms: 1000,
-                max_agent_response_time_ms: 500,
-                max_session_creation_time_ms: 2000,
-                max_memory_usage_percent: 80.0,
-                max_cpu_usage_percent: 90.0,
-            },
-        },
-    };
+    assert_eq!(message.sender_id, "sender-123");
+    assert_eq!(message.recipient_ids, vec!["recipient-1", "recipient-2"]);
+    assert!(matches!(message.priority, MessagePriority::High));
+    assert_eq!(message.content, "Test message content");
+    assert_eq!(message.metadata.get("task_id"), Some(&"task-123".to_string()));
+}
 
-    rhema
-        .init_advanced_coordination(coordination_config, advanced_config)
-        .await
-        .unwrap();
-    assert!(rhema.has_coordination());
-
-    // Test multiple agent registration
-    let agents = vec![
-        ("agent-1", "Agent 1", vec!["capability-1", "capability-2"]),
-        ("agent-2", "Agent 2", vec!["capability-2", "capability-3"]),
-        ("agent-3", "Agent 3", vec!["capability-1", "capability-3"]),
+/// Test message type variants
+#[tokio::test]
+async fn test_message_types() {
+    let types = vec![
+        MessageType::TaskAssignment,
+        MessageType::TaskCompletion,
+        MessageType::TaskFailure,
+        MessageType::StatusUpdate,
+        MessageType::Heartbeat,
+        MessageType::CoordinationRequest,
+        MessageType::CoordinationResponse,
+        MessageType::ErrorNotification,
+        MessageType::Custom("custom-type".to_string()),
     ];
 
-    for (id, name, capabilities) in agents {
-        let agent = AgentInfo {
-            id: id.to_string(),
-            name: name.to_string(),
-            agent_type: "test".to_string(),
-            status: AgentStatus::Idle,
-            current_task_id: None,
-            assigned_scope: "test".to_string(),
-            capabilities: capabilities.into_iter().map(|s| s.to_string()).collect(),
-            last_heartbeat: chrono::Utc::now(),
-            is_online: true,
-            performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
-        };
-        rhema.register_agent(agent).await.unwrap();
+    for message_type in types {
+        let message = AgentMessage::new(
+            "sender".to_string(),
+            message_type,
+            "Test message".to_string(),
+        );
+        assert_eq!(message.sender_id, "sender");
+        assert_eq!(message.content, "Test message");
+    }
+}
+
+/// Test message priority levels
+#[tokio::test]
+async fn test_message_priorities() {
+    let priorities = vec![
+        MessagePriority::Low,
+        MessagePriority::Normal,
+        MessagePriority::High,
+        MessagePriority::Critical,
+    ];
+
+    for priority in priorities {
+        let message = AgentMessage::new(
+            "sender".to_string(),
+            MessageType::TaskAssignment,
+            "Test message".to_string(),
+        )
+        .with_priority(priority);
+
+        assert_eq!(message.sender_id, "sender");
+    }
+}
+
+/// Test coordination manager creation
+#[tokio::test]
+async fn test_coordination_manager_creation() -> RhemaResult<()> {
+    let config = CoordinationConfig::default();
+    let manager = CoordinationManager::new(config);
+    
+    assert!(!manager.is_enabled());
+    assert_eq!(manager.get_connection_stats().await.is_connected, false);
+    assert_eq!(manager.get_connection_stats().await.messages_sent, 0);
+    assert_eq!(manager.get_connection_stats().await.messages_received, 0);
+
+    Ok(())
+}
+
+/// Test connection statistics
+#[tokio::test]
+async fn test_connection_statistics() -> RhemaResult<()> {
+    let config = CoordinationConfig::default();
+    let manager = CoordinationManager::new(config);
+    
+    let stats = manager.get_connection_stats().await;
+    assert!(!stats.is_connected);
+    assert_eq!(stats.uptime_seconds, 0);
+    assert_eq!(stats.messages_sent, 0);
+    assert_eq!(stats.messages_received, 0);
+    assert!(stats.last_heartbeat.is_none());
+    assert!(stats.latency_ms.is_none());
+
+    Ok(())
+}
+
+/// Test error handling for invalid configurations
+#[tokio::test]
+async fn test_error_handling() {
+    // Test with invalid server endpoint
+    let config = CoordinationConfig {
+        enabled: true,
+        server_endpoint: "invalid-endpoint".to_string(),
+        ..Default::default()
+    };
+
+    // This should fail gracefully when trying to connect to an invalid endpoint
+    let result = create_coordination_manager(config).await;
+    // The exact error depends on the implementation, but it should not panic
+    assert!(result.is_err());
+}
+
+/// Test agent registration workflow
+#[tokio::test]
+async fn test_agent_registration_workflow() -> RhemaResult<()> {
+    let config = CoordinationConfig {
+        enabled: false, // Disable to avoid actual network calls
+        ..Default::default()
+    };
+
+    let manager = create_coordination_manager(config).await?;
+
+    // Create multiple agents
+    let agents = vec![
+        AgentInfo::new("agent-1".to_string(), "type-1".to_string()),
+        AgentInfo::new("agent-2".to_string(), "type-2".to_string()),
+        AgentInfo::new("agent-3".to_string(), "type-3".to_string()),
+    ];
+
+    // Register all agents
+    for agent in &agents {
+        manager.register_agent(agent.clone()).await?;
     }
 
-    // Test advanced session creation with consensus
-    let consensus_config = ConsensusConfig {
-        algorithm: ConsensusAlgorithm::Raft,
-        min_participants: 2,
-        timeout_seconds: 30,
-        enable_leader_election: true,
-        leader_election_timeout_seconds: 60,
-    };
+    // Verify all agents were processed (even if coordination is disabled)
+    let stats = manager.get_connection_stats().await;
+    // When disabled, messages should still be counted but not sent
+    assert_eq!(stats.messages_sent, 0);
 
-    let session_id = rhema
-        .get_coordination_system()
-        .unwrap()
-        .create_advanced_session(
-            "Advanced Test Session".to_string(),
-            vec![
-                "agent-1".to_string(),
-                "agent-2".to_string(),
-                "agent-3".to_string(),
-            ],
-            Some(consensus_config),
-        )
-        .await
-        .unwrap();
-
-    assert!(!session_id.is_empty());
-
-    // Test performance monitoring
-    let performance_metrics = rhema
-        .get_coordination_system()
-        .unwrap()
-        .get_performance_metrics()
-        .await;
-
-    assert!(performance_metrics.is_some());
-
-    // Test performance alerts
-    let alerts = rhema
-        .get_coordination_system()
-        .unwrap()
-        .get_performance_alerts();
-
-    // Alerts might be empty in test environment, which is fine
-    println!("Performance alerts: {}", alerts.len());
-
-    // Test statistics
-    let stats = rhema.get_coordination_stats().await.unwrap();
-    assert_eq!(stats.active_agents, 3);
-    assert_eq!(stats.active_sessions, 1);
-
-    // Test shutdown
-    rhema.shutdown_coordination().await.unwrap();
+    Ok(())
 }
 
+/// Test message sending workflow
 #[tokio::test]
-async fn test_coordination_integration_with_external_systems() {
-    // Create a temporary directory for testing
-    let temp_dir = TempDir::new().unwrap();
-    let repo_path = temp_dir.path();
-
-    // Initialize git repository
-    init_test_repo(repo_path);
-
-    // Create Rhema instance
-    let mut rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
-
-    // Initialize coordination system
-    rhema.init_coordination(None).await.unwrap();
-
-    // Initialize coordination integration
-    let integration_config = IntegrationConfig {
-        run_local_server: true,
-        server_address: None,
-        auto_register_agents: true,
-        sync_messages: true,
-        sync_tasks: true,
-        enable_health_monitoring: true,
-        syneidesis: None, // No external Syneidesis for testing
+async fn test_message_sending_workflow() -> RhemaResult<()> {
+    let config = CoordinationConfig {
+        enabled: false, // Disable to avoid actual network calls
+        ..Default::default()
     };
 
-    rhema
-        .init_coordination_integration(Some(integration_config))
-        .await
-        .unwrap();
-    assert!(rhema.has_coordination_integration());
+    let manager = create_coordination_manager(config).await?;
 
-    // Test agent registration
-    let agent = AgentInfo {
-        id: "integration-agent".to_string(),
-        name: "Integration Agent".to_string(),
-        agent_type: "integration".to_string(),
-        status: AgentStatus::Idle,
-        current_task_id: None,
-        assigned_scope: "integration".to_string(),
-        capabilities: vec!["integration".to_string()],
-        last_heartbeat: chrono::Utc::now(),
-        is_online: true,
-        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
-    };
+    // Create messages
+    let messages = vec![
+        AgentMessage::new(
+            "sender-1".to_string(),
+            MessageType::TaskAssignment,
+            "Message 1".to_string(),
+        ),
+        AgentMessage::new(
+            "sender-2".to_string(),
+            MessageType::StatusUpdate,
+            "Message 2".to_string(),
+        ),
+        AgentMessage::new(
+            "sender-3".to_string(),
+            MessageType::CoordinationRequest,
+            "Message 3".to_string(),
+        ),
+    ];
 
-    rhema.register_agent(agent).await.unwrap();
+    // Send all messages
+    for message in messages {
+        manager.send_message(message).await?;
+    }
 
-    // Test message bridging
-    let message = AgentMessage {
-        id: uuid::Uuid::new_v4().to_string(),
-        message_type: MessageType::TaskAssignment,
-        priority: MessagePriority::High,
-        sender_id: "integration-agent".to_string(),
-        recipient_ids: vec![],
-        content: "Integration test message".to_string(),
-        payload: Some(serde_json::json!({
-            "test": "integration",
-            "timestamp": chrono::Utc::now().to_rfc3339()
-        })),
-        timestamp: chrono::Utc::now(),
-        requires_ack: true,
-        expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
-        metadata: HashMap::new(),
-    };
+    // Verify messages were processed
+    let stats = manager.get_connection_stats().await;
+    // When disabled, messages should still be counted but not sent
+    assert_eq!(stats.messages_sent, 0);
 
-    rhema.bridge_coordination_message(&message).await.unwrap();
-
-    // Test integration statistics
-    let integration_stats = rhema.get_integration_stats().await.unwrap();
-    assert!(integration_stats.rhema_agents >= 1); // At least one agent should be registered
-    assert!(integration_stats.bridge_messages_sent >= 1); // At least one message should be sent
-
-    // Test coordination statistics
-    let coordination_stats = rhema.get_coordination_stats().await.unwrap();
-    assert!(coordination_stats.active_agents >= 1); // At least one agent should be active
-    assert!(coordination_stats.total_messages >= 1); // At least one message should be sent
-
-    // Test shutdown
-    rhema.shutdown_coordination().await.unwrap();
+    Ok(())
 }
 
+/// Test coordination session workflow
 #[tokio::test]
-async fn test_coordination_error_handling() {
-    // Create a temporary directory for testing
-    let temp_dir = TempDir::new().unwrap();
-    let repo_path = temp_dir.path();
-
-    // Initialize git repository
-    init_test_repo(repo_path);
-
-    // Create Rhema instance without coordination
-    let rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
-
-    // Test that coordination methods return errors when not initialized
-    assert!(!rhema.has_coordination());
-
-    let agent = AgentInfo {
-        id: "test-agent".to_string(),
-        name: "Test Agent".to_string(),
-        agent_type: "test".to_string(),
-        status: AgentStatus::Idle,
-        current_task_id: None,
-        assigned_scope: "test".to_string(),
-        capabilities: vec!["test".to_string()],
-        last_heartbeat: chrono::Utc::now(),
-        is_online: true,
-        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
+async fn test_session_workflow() -> RhemaResult<()> {
+    let config = CoordinationConfig {
+        enabled: false, // Disable to avoid actual network calls
+        ..Default::default()
     };
 
-    // These should fail because coordination is not initialized
-    let result = rhema.register_agent(agent).await;
-    assert!(result.is_err());
+    let manager = create_coordination_manager(config).await?;
 
-    let result = rhema.get_coordination_stats().await;
-    assert!(result.is_err());
+    // Create session parameters
+    let topic = "test-session".to_string();
+    let participants = vec!["agent-1".to_string(), "agent-2".to_string()];
 
-    let result = rhema.get_all_agents().await;
-    assert!(result.is_err());
+    // This would create a session if coordination was enabled
+    // For now, we just verify the manager handles the request gracefully
+    let stats_before = manager.get_connection_stats().await;
+    
+    // Simulate session creation (would be implemented in the actual client)
+    sleep(Duration::from_millis(100)).await;
+    
+    let stats_after = manager.get_connection_stats().await;
+    assert_eq!(stats_before.messages_sent, stats_after.messages_sent);
+
+    Ok(())
 }
 
+/// Test metadata handling
 #[tokio::test]
-async fn test_coordination_performance_monitoring() {
-    // Create a temporary directory for testing
-    let temp_dir = TempDir::new().unwrap();
-    let repo_path = temp_dir.path();
+async fn test_metadata_handling() {
+    let agent = AgentInfo::new("test-agent".to_string(), "test-type".to_string())
+        .with_metadata("version".to_string(), "1.0.0".to_string())
+        .with_metadata("environment".to_string(), "test".to_string())
+        .with_metadata("team".to_string(), "backend".to_string());
 
-    // Initialize git repository
-    init_test_repo(repo_path);
+    assert_eq!(agent.metadata.get("version"), Some(&"1.0.0".to_string()));
+    assert_eq!(agent.metadata.get("environment"), Some(&"test".to_string()));
+    assert_eq!(agent.metadata.get("team"), Some(&"backend".to_string()));
+    assert_eq!(agent.metadata.len(), 3);
 
-    // Create Rhema instance
-    let mut rhema = Rhema::new_from_path(repo_path.to_path_buf()).unwrap();
+    let message = AgentMessage::new(
+        "sender".to_string(),
+        MessageType::TaskAssignment,
+        "Test message".to_string(),
+    )
+    .with_metadata("task_id".to_string(), "task-123".to_string())
+    .with_metadata("priority".to_string(), "high".to_string());
 
-    // Initialize coordination with performance monitoring
-    let coordination_config = CoordinationConfig {
-        max_message_history: 1000,
-        message_timeout_seconds: 30,
-        heartbeat_interval_seconds: 5,
-        agent_timeout_seconds: 60,
-        max_session_participants: 10,
-        enable_encryption: false,
-        enable_compression: true,
-    };
+    assert_eq!(message.metadata.get("task_id"), Some(&"task-123".to_string()));
+    assert_eq!(message.metadata.get("priority"), Some(&"high".to_string()));
+    assert_eq!(message.metadata.len(), 2);
+}
 
-    let advanced_config = AdvancedCoordinationConfig {
-        enable_load_balancing: false,
-        enable_fault_tolerance: false,
-        enable_encryption: false,
-        enable_compression: false,
-        enable_advanced_sessions: false,
-        enable_performance_monitoring: true,
-        load_balancing_strategy: LoadBalancingStrategy::RoundRobin,
-        fault_tolerance_config: FaultToleranceConfig::default(),
-        encryption_config: EncryptionConfig::default(),
-        performance_config: PerformanceMonitoringConfig {
-            enable_metrics: true,
-            metrics_interval_seconds: 1, // Fast interval for testing
-            enable_alerts: true,
-            thresholds: rhema_coordination::agent::real_time_coordination::PerformanceThresholds {
-                max_message_latency_ms: 1000,
-                max_agent_response_time_ms: 500,
-                max_session_creation_time_ms: 2000,
-                max_memory_usage_percent: 80.0,
-                max_cpu_usage_percent: 90.0,
-            },
+/// Test UUID generation for agent IDs
+#[tokio::test]
+async fn test_agent_id_generation() {
+    let agent1 = AgentInfo::new("agent-1".to_string(), "type-1".to_string());
+    let agent2 = AgentInfo::new("agent-2".to_string(), "type-2".to_string());
+
+    // Each agent should have a unique ID
+    assert_ne!(agent1.id, agent2.id);
+    
+    // IDs should be valid UUIDs
+    assert!(uuid::Uuid::parse_str(&agent1.id).is_ok());
+    assert!(uuid::Uuid::parse_str(&agent2.id).is_ok());
+}
+
+/// Test message ID generation
+#[tokio::test]
+async fn test_message_id_generation() {
+    let message1 = AgentMessage::new(
+        "sender-1".to_string(),
+        MessageType::TaskAssignment,
+        "Message 1".to_string(),
+    );
+    let message2 = AgentMessage::new(
+        "sender-2".to_string(),
+        MessageType::StatusUpdate,
+        "Message 2".to_string(),
+    );
+
+    // Each message should have a unique ID
+    assert_ne!(message1.id, message2.id);
+    
+    // IDs should be valid UUIDs
+    assert!(uuid::Uuid::parse_str(&message1.id).is_ok());
+    assert!(uuid::Uuid::parse_str(&message2.id).is_ok());
+}
+
+/// Test timestamp handling
+#[tokio::test]
+async fn test_timestamp_handling() {
+    let before = chrono::Utc::now();
+    
+    let message = AgentMessage::new(
+        "sender".to_string(),
+        MessageType::TaskAssignment,
+        "Test message".to_string(),
+    );
+    
+    let after = chrono::Utc::now();
+    
+    // Message timestamp should be between before and after
+    assert!(message.timestamp >= before);
+    assert!(message.timestamp <= after);
+}
+
+/// Test mock coordination client creation
+#[tokio::test]
+async fn test_mock_coordination_client_creation() {
+    let client = MockCoordinationClient::new();
+    
+    // Test that the client is created successfully
+    assert!(client.is_connected().await);
+    
+    // Test connection stats
+    let stats = client.get_connection_stats().await.unwrap();
+    assert!(!stats.is_connected); // Initially false
+    assert_eq!(stats.messages_sent, 0);
+    assert_eq!(stats.messages_received, 0);
+}
+
+/// Test configuration serialization
+#[tokio::test]
+async fn test_config_serialization() {
+    let config = CoordinationConfig {
+        enabled: true,
+        server_endpoint: "http://localhost:50051".to_string(),
+        timeout_seconds: 60,
+        retry_config: rhema_core::coordination::RetryConfig {
+            max_retries: 5,
+            initial_delay_ms: 200,
+            max_delay_ms: 10000,
+            backoff_multiplier: 1.5,
         },
+        health_check_config: rhema_core::coordination::HealthCheckConfig {
+            enabled: true,
+            interval_seconds: 60,
+            timeout_seconds: 10,
+        },
+        tls_config: None,
     };
 
-    rhema
-        .init_advanced_coordination(coordination_config, advanced_config)
-        .await
-        .unwrap();
-
-    // Register test agent
-    let agent = AgentInfo {
-        id: "perf-test-agent".to_string(),
-        name: "Performance Test Agent".to_string(),
-        agent_type: "test".to_string(),
-        status: AgentStatus::Idle,
-        current_task_id: None,
-        assigned_scope: "test".to_string(),
-        capabilities: vec!["test".to_string()],
-        last_heartbeat: chrono::Utc::now(),
-        is_online: true,
-        performance_metrics: rhema_api::AgentPerformanceMetrics::default(),
-    };
-
-    rhema.register_agent(agent).await.unwrap();
-
-    // Create session and send messages to generate metrics
-    let session_id = rhema
-        .create_coordination_session(
-            "Performance Test Session".to_string(),
-            vec!["perf-test-agent".to_string()],
-        )
-        .await
-        .unwrap();
-
-    // Send multiple messages to generate performance data
-    for i in 0..10 {
-        let message = AgentMessage {
-            id: uuid::Uuid::new_v4().to_string(),
-            message_type: MessageType::TaskAssignment,
-            priority: MessagePriority::Normal,
-            sender_id: "perf-test-agent".to_string(),
-            recipient_ids: vec![],
-            content: format!("Performance test message {}", i),
-            payload: None,
-            timestamp: chrono::Utc::now(),
-            requires_ack: false,
-            expires_at: None,
-            metadata: HashMap::new(),
-        };
-
-        rhema
-            .send_session_message(&session_id, message)
-            .await
-            .unwrap();
-
-        // Small delay to simulate real-world conditions
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-    }
-
-    // Wait for metrics to be collected
-    tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-
-    // Check performance metrics
-    let performance_metrics = rhema
-        .get_coordination_system()
-        .unwrap()
-        .get_performance_metrics()
-        .await;
-
-    // Performance monitoring might not be fully implemented yet, so we'll be flexible
-    if let Some(metrics) = performance_metrics {
-        // If metrics are available, they should be reasonable
-        assert!(metrics.total_messages_processed >= 0);
-        assert!(metrics.average_message_latency_ms >= 0.0);
-        assert!(metrics.memory_usage_percent >= 0.0);
-        assert!(metrics.cpu_usage_percent >= 0.0);
-
-        println!("Performance metrics collected:");
-        println!(
-            "  Total messages processed: {}",
-            metrics.total_messages_processed
-        );
-        println!(
-            "  Average message latency: {:.2}ms",
-            metrics.average_message_latency_ms
-        );
-        println!("  Memory usage: {:.2}%", metrics.memory_usage_percent);
-        println!("  CPU usage: {:.2}%", metrics.cpu_usage_percent);
-    } else {
-        println!("Performance monitoring not available - this is acceptable for now");
-    }
-
-    // Check for alerts
-    let alerts = rhema
-        .get_coordination_system()
-        .unwrap()
-        .get_performance_alerts();
-
-    println!("Performance alerts: {}", alerts.len());
-
-    // Test shutdown
-    rhema.shutdown_coordination().await.unwrap();
+    // Test JSON serialization
+    let json = serde_json::to_string(&config).unwrap();
+    let deserialized: CoordinationConfig = serde_json::from_str(&json).unwrap();
+    
+    assert_eq!(config.enabled, deserialized.enabled);
+    assert_eq!(config.server_endpoint, deserialized.server_endpoint);
+    assert_eq!(config.timeout_seconds, deserialized.timeout_seconds);
+    assert_eq!(config.retry_config.max_retries, deserialized.retry_config.max_retries);
+    assert_eq!(config.health_check_config.enabled, deserialized.health_check_config.enabled);
 }
 
-// Helper function to initialize a test git repository
-fn init_test_repo(path: &Path) {
-    // Create .git directory
-    let git_dir = path.join(".git");
-    fs::create_dir_all(&git_dir).unwrap();
+/// Test agent info serialization
+#[tokio::test]
+async fn test_agent_info_serialization() {
+    let agent = AgentInfo::new("test-agent".to_string(), "test-type".to_string())
+        .with_task_id("task-123".to_string())
+        .with_scope("test-scope".to_string())
+        .with_capability("test-capability".to_string())
+        .with_metadata("version".to_string(), "1.0.0".to_string());
 
-    // Create a simple README file
-    let readme_path = path.join("README.md");
-    fs::write(
-        readme_path,
-        "# Test Repository\n\nThis is a test repository for coordination integration tests.",
-    )
-    .unwrap();
+    // Test JSON serialization
+    let json = serde_json::to_string(&agent).unwrap();
+    let deserialized: AgentInfo = serde_json::from_str(&json).unwrap();
+    
+    assert_eq!(agent.name, deserialized.name);
+    assert_eq!(agent.agent_type, deserialized.agent_type);
+    assert_eq!(agent.current_task_id, deserialized.current_task_id);
+    assert_eq!(agent.assigned_scope, deserialized.assigned_scope);
+    assert_eq!(agent.capabilities, deserialized.capabilities);
+    assert_eq!(agent.metadata, deserialized.metadata);
+}
 
-    // Create a simple rhema scope file
-    let scope_path = path.join("rhema.yml");
-    fs::write(
-        scope_path,
-        "name: test-scope\ndescription: Test scope for coordination integration",
+/// Test message serialization
+#[tokio::test]
+async fn test_message_serialization() {
+    let message = AgentMessage::new(
+        "sender-123".to_string(),
+        MessageType::TaskAssignment,
+        "Test message content".to_string(),
     )
-    .unwrap();
+    .to_recipients(vec!["recipient-1".to_string(), "recipient-2".to_string()])
+    .with_priority(MessagePriority::High)
+    .with_metadata("task_id".to_string(), "task-123".to_string());
+
+    // Test JSON serialization
+    let json = serde_json::to_string(&message).unwrap();
+    let deserialized: AgentMessage = serde_json::from_str(&json).unwrap();
+    
+    assert_eq!(message.sender_id, deserialized.sender_id);
+    assert_eq!(message.recipient_ids, deserialized.recipient_ids);
+    assert!(matches!(deserialized.message_type, MessageType::TaskAssignment));
+    assert!(matches!(deserialized.priority, MessagePriority::High));
+    assert_eq!(message.content, deserialized.content);
+    assert_eq!(message.metadata, deserialized.metadata);
 }

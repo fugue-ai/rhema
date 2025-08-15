@@ -3,7 +3,8 @@ use crate::{Rhema, RhemaError, RhemaResult};
 use chrono::Utc;
 use clap::Subcommand;
 use colored::Colorize;
-use rhema_core::schema::{ChainMetadata, ChainStep, ChainUsageStats, PromptChain, Workflows};
+use rhema_core::schema::{ChainMetadata, ChainStep, ChainUsageStats, PromptChain, Workflows, PromptPattern, PromptInjectionMethod, PromptVersion, UsageAnalytics};
+use rhema_coordination::context_injection::{EnhancedContextInjector, TaskType};
 use std::collections::HashMap;
 use std::time::Instant;
 use uuid::Uuid;
@@ -404,10 +405,57 @@ fn execute_workflow(
         println!("   Required: {}", step.required);
 
         if !dry_run {
-            // Execute the step (simulate for now)
+            // Execute the step with context injection
             println!("   Executing...");
-            // TODO: Actually execute the prompt pattern with context injection
-            step_results.insert(step.id.clone(), "Success".to_string());
+            
+            // Parse task type if specified
+            let task_type = if let Some(task_str) = &step.task_type {
+                parse_task_type(task_str)?
+            } else {
+                TaskType::Custom("workflow_step".to_string())
+            };
+            
+            // Create prompt pattern from step with variable substitution
+            let mut template = step.prompt_pattern.clone();
+            
+            // Substitute variables if any are defined
+            if let Some(variables) = &step.variables {
+                for (key, value) in variables {
+                    let placeholder = format!("{{{{{}}}}}", key);
+                    template = template.replace(&placeholder, value);
+                }
+            }
+            
+            let prompt_pattern = PromptPattern {
+                id: step.id.clone(),
+                name: step.name.clone(),
+                description: step.description.clone(),
+                template,
+                injection: PromptInjectionMethod::TemplateVariable,
+                usage_analytics: UsageAnalytics::new(),
+                version: PromptVersion::new("1.0.0"),
+                tags: None,
+            };
+            
+            // Create context injector
+            let injector = EnhancedContextInjector::new(scope_path.clone());
+            
+            // Inject context into the prompt
+            let final_prompt = injector.inject_context(&prompt_pattern, Some(task_type))?;
+            
+            // Execute the prompt (for now, just display it)
+            println!("   📝 Executed prompt with context injection:");
+            println!("   Task Type: {:?}", task_type);
+            if let Some(variables) = &step.variables {
+                println!("   Variables: {:?}", variables);
+            }
+            println!("   {}", "-".repeat(50));
+            println!("   {}", final_prompt);
+            println!("   {}", "-".repeat(50));
+            
+            // TODO: In a real implementation, this would send the prompt to an AI service
+            // and return the response. For now, we'll simulate success.
+            step_results.insert(step.id.clone(), "Success (Context Injected)".to_string());
         } else {
             println!(
                 "   [DRY RUN] Would execute prompt pattern: {}",
@@ -619,4 +667,21 @@ fn record_execution(
     );
 
     Ok(())
+}
+
+/// Parse task type string into TaskType enum
+fn parse_task_type(task_str: &str) -> RhemaResult<TaskType> {
+    match task_str.to_lowercase().as_str() {
+        "code_review" | "review" => Ok(TaskType::CodeReview),
+        "bug_fix" | "fix" | "bug" => Ok(TaskType::BugFix),
+        "feature" | "feature_development" | "feat" => Ok(TaskType::FeatureDevelopment),
+        "testing" | "test" => Ok(TaskType::Testing),
+        "documentation" | "docs" => Ok(TaskType::Documentation),
+        "refactoring" | "refactor" => Ok(TaskType::Refactoring),
+        "security" | "security_review" => Ok(TaskType::SecurityReview),
+        "performance" | "perf" | "optimization" => Ok(TaskType::PerformanceOptimization),
+        "dependency" | "deps" | "update" => Ok(TaskType::DependencyUpdate),
+        "deployment" | "deploy" => Ok(TaskType::Deployment),
+        _ => Ok(TaskType::Custom(task_str.to_string())),
+    }
 }

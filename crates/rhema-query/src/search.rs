@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use glob::Pattern;
 use rayon::prelude::*;
 use regex::Regex;
@@ -376,7 +376,7 @@ impl SearchEngine {
                         let document = IndexedDocument {
                             id: doc_id.clone(),
                             content: content.clone(),
-                            metadata: HashMap::new(), // TODO: Add metadata support
+                            metadata: self.extract_file_metadata(&full_path)?,
                             path: file_name.clone(),
                             size_bytes: content.len(),
                             indexed_at: Utc::now(),
@@ -459,6 +459,50 @@ impl SearchEngine {
                 }
             }
         }
+    }
+
+    /// Extract file metadata including modification time
+    fn extract_file_metadata(&self, file_path: &Path) -> RhemaResult<HashMap<String, Value>> {
+        let mut metadata = HashMap::new();
+        
+        // Get file modification time
+        if let Ok(metadata_info) = std::fs::metadata(file_path) {
+            if let Ok(modified_time) = metadata_info.modified() {
+                if let Ok(datetime) = modified_time.duration_since(std::time::UNIX_EPOCH) {
+                    let timestamp = datetime.as_secs() as i64;
+                    metadata.insert("last_modified".to_string(), Value::Number(timestamp.into()));
+                }
+            }
+            
+            // Add file size
+            metadata.insert("size_bytes".to_string(), Value::Number(metadata_info.len().into()));
+            
+            // Add file permissions
+            let readonly = metadata_info.permissions().readonly();
+            metadata.insert("readonly".to_string(), Value::Bool(readonly));
+        }
+        
+        // Add file extension
+        if let Some(extension) = file_path.extension() {
+            if let Some(ext_str) = extension.to_str() {
+                metadata.insert("extension".to_string(), Value::String(ext_str.to_string()));
+            }
+        }
+        
+        Ok(metadata)
+    }
+
+    /// Get file modification time from metadata
+    fn get_file_modification_time(&self, file_path: &str) -> Option<DateTime<Utc>> {
+        if let Ok(metadata_info) = std::fs::metadata(file_path) {
+            if let Ok(modified_time) = metadata_info.modified() {
+                if let Ok(datetime) = modified_time.duration_since(std::time::UNIX_EPOCH) {
+                    let secs = datetime.as_secs() as i64;
+                    return Some(Utc.timestamp_opt(secs, 0).single().unwrap_or_else(|| Utc::now()));
+                }
+            }
+        }
+        None
     }
 
     /// Detect language from content (basic implementation)
@@ -574,7 +618,7 @@ impl SearchEngine {
                         relevance_explanation: Some(format!("TF-IDF score: {:.3}", score)),
                         doc_type: doc.doc_type.clone(),
                         file_size: doc.size_bytes,
-                        last_modified: None, // TODO: Add file modification time
+                        last_modified: self.get_file_modification_time(&doc.path),
                     })
                 } else {
                     None

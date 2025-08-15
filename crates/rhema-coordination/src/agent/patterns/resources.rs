@@ -72,7 +72,7 @@ impl std::fmt::Display for ResourceAllocationStrategy {
 impl CoordinationPattern for ResourceManagementPattern {
     async fn execute(&self, context: &PatternContext) -> Result<PatternResult, PatternError> {
         info!("Starting resource management pattern");
-        let start_time = Utc::now();
+        let start_time = std::time::Instant::now();
 
         // Initialize resource management state
         let mut resource_state = ResourceManagementState {
@@ -84,7 +84,7 @@ impl CoordinationPattern for ResourceManagementPattern {
             resource_releases: vec![],
             conflicts: vec![],
             status: ResourceManagementStatus::InProgress,
-            started_at: start_time,
+            started_at: Utc::now(),
             completed_at: None,
         };
 
@@ -123,7 +123,7 @@ impl CoordinationPattern for ResourceManagementPattern {
         resource_state.completed_at = Some(Utc::now());
 
         // Calculate performance metrics
-        let execution_time = (Utc::now() - start_time).num_seconds() as f64;
+        let execution_time = start_time.elapsed().as_secs_f64();
         let performance_metrics = PatternPerformanceMetrics {
             total_execution_time_seconds: execution_time,
             coordination_overhead_seconds: execution_time * 0.05, // Estimate 5% overhead
@@ -152,15 +152,16 @@ impl CoordinationPattern for ResourceManagementPattern {
             ),
         ]);
 
+        let execution_time_ms = start_time.elapsed().as_millis() as u64;
+        
         Ok(PatternResult {
-            // TODO: Implement actual pattern execution logic
             pattern_id: "resource-management".to_string(),
             success: resource_state.status == ResourceManagementStatus::Completed,
             data: result_data,
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
-            execution_time_ms: 0, // TODO: Calculate actual execution time
+            execution_time_ms: execution_time_ms,
             metadata: HashMap::new(),
         })
     }
@@ -200,7 +201,7 @@ impl CoordinationPattern for ResourceManagementPattern {
         })
     }
 
-    async fn rollback(&self, context: &PatternContext) -> Result<(), PatternError> {
+    async fn rollback(&self, _context: &PatternContext) -> Result<(), PatternError> {
         info!("Rolling back resource management pattern");
 
         // Release all allocated resources
@@ -214,9 +215,7 @@ impl CoordinationPattern for ResourceManagementPattern {
     }
 
     fn metadata(&self) -> PatternMetadata {
-        // TODO: Implement actual metadata logic
         PatternMetadata {
-            // TODO: Implement actual metadata values
             id: "resource-management".to_string(),
             name: "Resource Management Pattern".to_string(),
             description: "Coordinated resource allocation and management across multiple agents"
@@ -692,7 +691,7 @@ pub struct FileLockManagementPattern {
 impl CoordinationPattern for FileLockManagementPattern {
     async fn execute(&self, context: &PatternContext) -> Result<PatternResult, PatternError> {
         info!("Starting file lock management pattern");
-        let start_time = Utc::now();
+        let start_time = std::time::Instant::now();
 
         // Initialize lock management state
         let mut lock_state = FileLockState {
@@ -703,7 +702,7 @@ impl CoordinationPattern for FileLockManagementPattern {
             lock_releases: vec![],
             deadlocks: vec![],
             status: LockManagementStatus::InProgress,
-            started_at: start_time,
+            started_at: Utc::now(),
             completed_at: None,
         };
 
@@ -738,7 +737,7 @@ impl CoordinationPattern for FileLockManagementPattern {
         lock_state.completed_at = Some(Utc::now());
 
         // Calculate performance metrics
-        let execution_time = (Utc::now() - start_time).num_seconds() as f64;
+        let execution_time = start_time.elapsed().as_secs_f64();
         let performance_metrics = PatternPerformanceMetrics {
             total_execution_time_seconds: execution_time,
             coordination_overhead_seconds: execution_time * 0.03, // Estimate 3% overhead
@@ -757,15 +756,16 @@ impl CoordinationPattern for FileLockManagementPattern {
             ("deadlocks".to_string(), json!(lock_state.deadlocks.len())),
         ]);
 
+        let execution_time_ms = start_time.elapsed().as_millis() as u64;
+        
         Ok(PatternResult {
-            // TODO: Implement actual pattern execution logic
             pattern_id: "file-lock-management".to_string(),
             success: lock_state.status == LockManagementStatus::Completed,
             data: result_data,
             performance_metrics,
             error_message: None,
             completed_at: Utc::now(),
-            execution_time_ms: 0, // TODO: Calculate actual execution time
+            execution_time_ms: execution_time_ms,
             metadata: HashMap::new(),
         })
     }
@@ -803,9 +803,7 @@ impl CoordinationPattern for FileLockManagementPattern {
     }
 
     fn metadata(&self) -> PatternMetadata {
-        // TODO: Implement actual metadata logic
         PatternMetadata {
-            // TODO: Implement actual metadata values
             id: "file-lock-management".to_string(),
             name: "File Lock Management Pattern".to_string(),
             description: "Coordinated file locking with deadlock detection and resolution"

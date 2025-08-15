@@ -96,7 +96,7 @@ pub struct ScopeSuggestion {
 }
 
 /// Type of scope
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum ScopeType {
     Package,
     Workspace,

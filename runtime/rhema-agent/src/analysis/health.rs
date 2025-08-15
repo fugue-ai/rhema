@@ -14,6 +14,21 @@
  * limitations under the License.
  */
 
+//! Health analysis module for Rhema scopes
+//! 
+//! This module provides comprehensive health checking for Rhema scopes, including:
+//! - Scope structure validation
+//! - Dependency validation with lock file integration
+//! - Lock file health checks
+//! - Scope relationship validation
+//! 
+//! The lock file integration provides deterministic dependency validation by:
+//! - Validating dependency versions against locked versions
+//! - Checking dependency type consistency
+//! - Verifying dependency checksums for integrity
+//! - Detecting stale dependencies
+//! - Ensuring all declared dependencies are locked
+
 use crate::scope::{get_scope, validate_scope_relationships};
 use crate::{Rhema, RhemaResult};
 use colored::*;
@@ -398,6 +413,115 @@ pub fn calculate_scope_checksum(scope_dir: &Path) -> RhemaResult<String> {
     Ok(format!("{:x}", result))
 }
 
+/// Validate dependencies against lock file for deterministic validation
+fn validate_dependencies_against_lock_file(
+    scope: &rhema_core::scope::Scope,
+    lock_data: &RhemaLock,
+    repo_root: &Path,
+) -> RhemaResult<Vec<String>> {
+    let mut issues = Vec::new();
+    
+    let scope_path = scope.path.strip_prefix(repo_root)
+        .unwrap_or(&scope.path)
+        .to_string_lossy()
+        .to_string();
+    
+    // Get locked scope information
+    if let Some(locked_scope) = lock_data.scopes.get(&scope_path) {
+        if let Some(dependencies) = &scope.definition.dependencies {
+            // Validate each dependency against lock file
+            for dep in dependencies {
+                if dep.path.is_empty() {
+                    issues.push("Dependency path is empty".to_string());
+                    continue;
+                }
+
+                if dep.dependency_type.is_empty() {
+                    issues.push("Dependency type is empty".to_string());
+                    continue;
+                }
+
+                // Check if dependency is locked
+                if let Some(locked_dep) = locked_scope.dependencies.get(&dep.path) {
+                    // Validate dependency version consistency
+                    if locked_dep.version != scope.definition.version {
+                        issues.push(format!(
+                            "Dependency version mismatch for {}: locked={}, current={}",
+                            dep.path, locked_dep.version, scope.definition.version
+                        ));
+                    }
+
+                    // Validate dependency type consistency
+                    if format!("{:?}", locked_dep.dependency_type) != dep.dependency_type {
+                        issues.push(format!(
+                            "Dependency type mismatch for {}: locked={:?}, current={}",
+                            dep.path, locked_dep.dependency_type, dep.dependency_type
+                        ));
+                    }
+
+                    // Validate dependency path exists and matches lock file
+                    let dep_path = if dep.path.starts_with('/') {
+                        PathBuf::from(&dep.path)
+                    } else {
+                        repo_root.join(&dep.path)
+                    };
+
+                    if !dep_path.exists() {
+                        issues.push(format!("Locked dependency path does not exist: {}", dep.path));
+                    } else {
+                        // Validate checksum if available
+                        if locked_dep.checksum.is_empty() {
+                            issues.push(format!("Dependency {} has empty checksum in lock file", dep.path));
+                        } else {
+                            let current_checksum = calculate_scope_checksum(&dep_path)?;
+                            if current_checksum != locked_dep.checksum {
+                                issues.push(format!(
+                                    "Dependency checksum mismatch for {}: expected={}, current={}",
+                                    dep.path, locked_dep.checksum, current_checksum
+                                ));
+                            }
+                        }
+                    }
+
+                    // Check for stale dependencies (resolved too long ago)
+                    let dep_age = Utc::now() - locked_dep.resolved_at;
+                    if dep_age > Duration::days(90) {
+                        issues.push(format!(
+                            "Dependency {} was resolved {} days ago - consider updating",
+                            dep.path, dep_age.num_days()
+                        ));
+                    }
+                } else {
+                    // Dependency not found in lock file
+                    issues.push(format!("Dependency not locked: {}", dep.path));
+                }
+            }
+
+            // Check for locked dependencies that are no longer declared
+            for (dep_path, _) in &locked_scope.dependencies {
+                let mut found = false;
+                for dep in dependencies {
+                    if dep.path == *dep_path {
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    issues.push(format!(
+                        "Locked dependency no longer declared: {}",
+                        dep_path
+                    ));
+                }
+            }
+        }
+    } else {
+        // Scope not found in lock file
+        issues.push(format!("Scope {} not found in lock file", scope_path));
+    }
+    
+    Ok(issues)
+}
+
 fn check_scope_health(
     scope: &rhema_core::scope::Scope,
     repo_root: &std::path::Path,
@@ -433,33 +557,46 @@ fn check_scope_health(
         issues.push("Scope version is empty".to_string());
     }
 
-    // Check dependencies
-    // TODO: Integrate with lock file system for deterministic dependency validation
-    if let Some(dependencies) = &scope.definition.dependencies {
-        for dep in dependencies {
-            if dep.path.is_empty() {
-                issues.push("Dependency path is empty".to_string());
+    // Check dependencies using lock file system for deterministic validation
+    let lock_file_path = repo_root.join("rhema.lock");
+    if let Some(_dependencies) = &scope.definition.dependencies {
+        // Try to read lock file for deterministic validation
+        match rhema_core::lock::LockFileOps::read_lock_file(&lock_file_path) {
+            Ok(lock_data) => {
+                // Use the helper function for comprehensive lock file validation
+                let lock_validation_issues = validate_dependencies_against_lock_file(scope, &lock_data, repo_root)?;
+                issues.extend(lock_validation_issues);
             }
+            Err(_) => {
+                // Lock file not available - fall back to basic validation
+                if let Some(dependencies) = &scope.definition.dependencies {
+                    for dep in dependencies {
+                        if dep.path.is_empty() {
+                            issues.push("Dependency path is empty".to_string());
+                        }
 
-            if dep.dependency_type.is_empty() {
-                issues.push("Dependency type is empty".to_string());
-            }
+                        if dep.dependency_type.is_empty() {
+                            issues.push("Dependency type is empty".to_string());
+                        }
 
-            // Check if dependency scope exists
-            let dep_path = if dep.path.starts_with('/') {
-                std::path::PathBuf::from(&dep.path)
-            } else {
-                repo_root.join(&dep.path)
-            };
+                        // Check if dependency scope exists
+                        let dep_path = if dep.path.starts_with('/') {
+                            std::path::PathBuf::from(&dep.path)
+                        } else {
+                            repo_root.join(&dep.path)
+                        };
 
-            let rhema_path = if dep_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
-                dep_path
-            } else {
-                dep_path.join(".rhema")
-            };
+                        let rhema_path = if dep_path.file_name().and_then(|s| s.to_str()) == Some(".rhema") {
+                            dep_path
+                        } else {
+                            dep_path.join(".rhema")
+                        };
 
-            if !rhema_path.exists() {
-                issues.push(format!("Dependency scope not found: {}", dep.path));
+                        if !rhema_path.exists() {
+                            issues.push(format!("Dependency scope not found: {}", dep.path));
+                        }
+                    }
+                }
             }
         }
     }
