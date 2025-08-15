@@ -2,6 +2,6 @@ packages:
   - docs
   - runtime/editor-plugins/vscode
   - runtime/language-server
-
+modulesDir: 'target/node_modules'
 onlyBuiltDependencies:
   - unrs-resolver

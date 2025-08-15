@@ -17,10 +17,14 @@
 pub mod cache;
 pub mod embedding;
 pub mod engine;
+pub mod error_handling;
 pub mod indexing;
 pub mod integration;
+pub mod monitoring;
+pub mod pattern_service;
 pub mod proactive;
 pub mod search;
+pub mod security;
 pub mod storage;
 pub mod synthesis;
 pub mod temporal;
@@ -47,12 +51,11 @@ pub use types::{
     CacheInfo, CacheMetrics as TypesCacheMetrics, CacheTier, CompressionAlgorithm,
     CompressionPreference, ContentType, ContextRequirement, ContextRequirementType,
     ContextSuggestion, DiskConfig, DistanceMetric, EvictionPolicy, KnowledgeError, KnowledgeResult,
-    KnowledgeSynthesis, LifecycleConfig, MemoryConfig, MonitoringConfig, NetworkConfig,
-    PerformanceConfig, PerformanceMetrics, Priority, ProactiveConfig, ProactiveMetrics, RAGConfig,
-    SearchMetrics, SearchResultMetadata, SemanticInfo, SemanticSearchConfig, SuggestionAction,
-    SynthesisMetadata, SynthesisMethod, SynthesisMetrics, TemporalPattern, UnifiedCacheResult,
-    UnifiedEngineConfig, UnifiedMetrics, VectorStoreConfig, VectorStoreType, WorkflowContext,
-    WorkflowType,
+    KnowledgeSynthesis, LifecycleConfig, MemoryConfig, NetworkConfig, PerformanceConfig,
+    PerformanceMetrics, Priority, ProactiveConfig, ProactiveMetrics, RAGConfig, SearchMetrics,
+    SearchResultMetadata, SemanticInfo, SemanticSearchConfig, SuggestionAction, SynthesisMetadata,
+    SynthesisMethod, SynthesisMetrics, TemporalPattern, UnifiedCacheResult, UnifiedEngineConfig,
+    UnifiedMetrics, VectorStoreConfig, VectorStoreType, WorkflowContext, WorkflowType,
 };
 
 // Search module exports
@@ -64,6 +67,12 @@ pub use proactive::{
     ProactiveConfig as ProactiveEngineConfig, ProactiveContextManager as ProactiveManager,
     SuggestionEngine as ProactiveSuggestionEngine,
     SuggestionEngineConfig as ProactiveSuggestionConfig, UsageAnalyzer as ProactiveUsageAnalyzer,
+};
+
+// Pattern service exports
+pub use pattern_service::{
+    ImplementationEffort, PatternDiscoveryResult, PatternQualityMetrics, PatternRecommendation,
+    PatternService, PatternServiceConfig,
 };
 
 // Synthesis module exports
@@ -78,9 +87,9 @@ pub use synthesis::KnowledgeSynthesizer;
 
 // Storage module exports
 pub use storage::{
-    CleanupResult, CompressionResult, DeduplicationResult, EncryptionAlgorithm, StorageConfig,
-    StorageEntry, StorageManager, StorageMetadata, StorageOptimizationConfig,
-    StorageOptimizationResult, StorageValidationResult,
+    CleanupResult, CompressionResult, DeduplicationResult, StorageConfig, StorageEntry,
+    StorageManager, StorageMetadata, StorageOptimizationConfig, StorageOptimizationResult,
+    StorageValidationResult,
 };
 
 // AI Integration module exports
@@ -100,6 +109,28 @@ pub use temporal::{
     TemporalRelationshipDetector, TemporalRelationshipType, TemporalRelevanceBreakdown,
     TemporalRelevanceEngine, TemporalSearchEnhancer, TemporalSearchQuery, TemporalWeights,
     TimeRange, TimezoneAwareContextManager, TimezoneContext,
+};
+
+// Error handling module exports
+pub use error_handling::{
+    utils as error_utils, DefaultErrorLogger, DefaultErrorReporter, ErrorCategory, ErrorContext,
+    ErrorHandler, ErrorHandlerConfig, ErrorLogger, ErrorLoggingConfig, ErrorReporter,
+    ErrorReportingConfig, ErrorResult, ErrorSeverity, ErrorStatistics, RecoveryStrategy,
+};
+
+// Security module exports
+pub use security::{
+    AccessControlEntry, AuditAction, AuditLogEntry, EncryptionAlgorithm, Permission,
+    SecureCommunication, SecurityConfig, SecurityError, SecurityManager, SecurityStatistics,
+    SessionInfo, UserRole, ValidationRule, ValidationRuleType,
+};
+
+// Monitoring module exports
+pub use monitoring::{
+    Alert, AlertManager, AlertSeverity, AlertingThresholds, DashboardConfig, DashboardManager,
+    DistributedTracer, HealthCheck, HealthChecker, HealthState, HealthStatus, MetricType,
+    MetricValue, MetricsCollector, MonitoringConfig, MonitoringError, MonitoringManager,
+    MonitoringStatistics, TraceInfo, TraceStatus, TracingConfig,
 };
 
 // Error type conversions

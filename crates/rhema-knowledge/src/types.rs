@@ -80,6 +80,18 @@ pub enum KnowledgeError {
 
     #[error("Anyhow error: {0}")]
     AnyhowError(#[from] anyhow::Error),
+
+    #[error("Security error: {0}")]
+    SecurityError(String),
+
+    #[error("Monitoring error: {0}")]
+    MonitoringError(String),
+
+    #[error("Temporary error: {0}")]
+    TemporaryError(String),
+
+    #[error("Resource error: {0}")]
+    ResourceError(String),
 }
 
 /// Result type for knowledge operations

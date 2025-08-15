@@ -814,16 +814,50 @@ async fn initialize_logging(config: &LoggingConfig, log_file: Option<&PathBuf>) 
 
     // Configure log file if specified
     if let Some(log_file) = log_file {
-        let _file_appender = tracing_appender::rolling::RollingFileAppender::builder()
+        // Ensure log directory exists
+        if let Some(parent) = log_file.parent() {
+            fs::create_dir_all(parent).map_err(|e| {
+                RhemaError::SystemError(format!("Failed to create log directory: {}", e))
+            })?;
+        }
+
+        // Create rolling file appender
+        let file_appender = tracing_appender::rolling::RollingFileAppender::builder()
             .rotation(tracing_appender::rolling::Rotation::DAILY)
             .filename_prefix("rhema-mcp")
             .filename_suffix("log")
+            .max_files(30) // Keep 30 days of logs
             .build(&log_file.parent().unwrap_or(&PathBuf::from(".")))
             .map_err(|e| RhemaError::SystemError(format!("Failed to create log file appender: {}", e)))?;
+
+        // Create non-blocking writer
+        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
         
-        // For now, just use console output since file logging setup is complex
-        // TODO: Implement proper file logging setup
-        builder = builder.with_ansi(false);
+        // Set up both console and file output
+        let console_layer = tracing_subscriber::fmt::layer()
+            .with_ansi(true)
+            .with_target(false)
+            .with_thread_ids(false)
+            .with_thread_names(false);
+
+        let file_layer = tracing_subscriber::fmt::layer()
+            .with_ansi(false)
+            .with_target(true)
+            .with_thread_ids(true)
+            .with_thread_names(true)
+            .with_file(true)
+            .with_line_number(true)
+            .with_writer(non_blocking);
+
+        // Initialize with both layers
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(console_layer)
+            .with(file_layer)
+            .init();
+
+        info!("File logging initialized: {:?}", log_file);
+        return Ok(());
     }
 
     if config.structured {

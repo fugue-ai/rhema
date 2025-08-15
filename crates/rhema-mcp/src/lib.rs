@@ -17,10 +17,8 @@
 pub mod auth;
 pub mod cache;
 pub mod context;
-pub mod http_server;
 pub mod mcp;
-pub mod official_sdk;
-pub mod sdk;
+pub mod runtime;
 pub mod watcher;
 
 // Re-export configuration types
@@ -36,13 +34,11 @@ pub use auth::{
 };
 pub use cache::{CacheManager, CacheStatistics};
 pub use context::ContextProvider;
-pub use http_server::{
-    ConnectionGuard, ConnectionPool, ConnectionPoolStats, EnhancedConnectionGuard,
-    EnhancedConnectionPool, HttpServer, PerformanceMetrics, StringCache,
-};
-pub use official_sdk::{OfficialRhemaMcpServer, MCP_VERSION, SUPPORTED_VERSIONS};
-pub use sdk::{
-    ContextProviderExt, Prompt, PromptSegment, Resource, RhemaMcpServer, Tool, ToolResult,
+pub use runtime::{
+    ConnectionGuard, ConnectionPool, ConnectionPoolStats, ContextProviderExt,
+    EnhancedConnectionGuard, EnhancedConnectionPool, HttpServer, OfficialRhemaMcpServer,
+    PerformanceMetrics, Prompt, PromptSegment, Resource, RhemaMcpServer, StringCache, Tool,
+    ToolResult, MCP_VERSION, SUPPORTED_VERSIONS,
 };
 pub use watcher::{FileWatcher, FileWatcherBuilder, WatcherConfig as FileWatcherConfig};
 

@@ -1,4 +1,41 @@
-# Patterns
-# This file documents design patterns and architectural patterns used in this scope
-
-patterns: []
+patterns:
+- id: 6b6280cc-798c-490c-bb82-a01229bfd82b
+  name: Repository Pattern
+  description: Data access abstraction pattern for domain-driven design
+  pattern_type: architectural
+  usage: recommended
+  effectiveness: 9
+  examples:
+  - User repository
+  - Product repository
+  - Order repository
+  anti_patterns:
+  - Direct database access
+  - Active Record in domain
+  related_patterns: null
+  category: data-access
+  maturity: mature
+  complexity: 6
+  maintenance_effort: null
+  performance_impact: null
+  security_implications: null
+  testing_requirements: null
+  documentation_requirements: null
+  dependencies: null
+  applicable_contexts: null
+  version: '1.0'
+  author: Team Lead
+  review_status: null
+  last_reviewed: null
+  reviewers: null
+  usage_stats:
+    usage_count: 0
+    success_count: 0
+    success_rate: 0.0
+    avg_implementation_time: null
+    last_used: null
+    common_use_cases: null
+    reported_issues: null
+    satisfaction_rating: null
+  created_at: 2025-08-15T15:16:27.049042Z
+  updated_at: null

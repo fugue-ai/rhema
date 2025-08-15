@@ -19,6 +19,11 @@ use crate::{Rhema, RhemaError, RhemaResult};
 use colored::*;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use rustyline::completion::{Completer, Candidate};
+use rustyline::hint::Hinter;
+use rustyline::highlight::Highlighter;
+use rustyline::validate::Validator;
+use rustyline::Helper;
 use std::collections::HashMap;
 use std::io::Write;
 // use std::path::PathBuf;
@@ -82,16 +87,239 @@ pub struct AdvancedInteractiveSession {
     context_cache: HashMap<String, serde_yaml::Value>,
     variables: HashMap<String, String>,
     workflows: HashMap<String, Vec<String>>,
-    editor: Editor<(), rustyline::history::DefaultHistory>,
+    editor: Editor<RhemaHelper, rustyline::history::DefaultHistory>,
 }
 
-// RhemaHelper removed due to rustyline trait issues
-// TODO: Re-implement when rustyline traits become public
+// RhemaHelper implementation for rustyline integration
+#[derive(Debug)]
+pub struct RhemaHelper {
+    config: AdvancedInteractiveConfig,
+}
+
+impl RhemaHelper {
+    pub fn new(config: AdvancedInteractiveConfig) -> Self {
+        Self { config }
+    }
+
+    pub fn get_completions(&self, input: &str) -> Vec<String> {
+        let mut completions = vec![
+            "init".to_string(),
+            "scopes".to_string(),
+            "scope".to_string(),
+            "tree".to_string(),
+            "show".to_string(),
+            "query".to_string(),
+            "search".to_string(),
+            "validate".to_string(),
+            "migrate".to_string(),
+            "schema".to_string(),
+            "health".to_string(),
+            "stats".to_string(),
+            "todo".to_string(),
+            "insight".to_string(),
+            "pattern".to_string(),
+            "decision".to_string(),
+            "dependencies".to_string(),
+            "impact".to_string(),
+            "sync".to_string(),
+            "git".to_string(),
+            "export".to_string(),
+            "primer".to_string(),
+            "readme".to_string(),
+            "bootstrap".to_string(),
+            "daemon".to_string(),
+            "set".to_string(),
+            "get".to_string(),
+            "workflow".to_string(),
+            "plugin".to_string(),
+            "visualize".to_string(),
+            "debug".to_string(),
+            "profile".to_string(),
+            "context".to_string(),
+            "navigate".to_string(),
+            "cache".to_string(),
+            "explore".to_string(),
+            "builder".to_string(),
+            "help".to_string(),
+            "clear".to_string(),
+            "history".to_string(),
+            "config".to_string(),
+            "variables".to_string(),
+            "workflows".to_string(),
+            "exit".to_string(),
+            "quit".to_string(),
+        ];
+
+        // Add plugin-specific completions
+        for plugin in &self.config.plugins {
+            completions.push(format!("plugin {}", plugin));
+        }
+
+        // Filter completions based on input
+        if !input.is_empty() {
+            completions.retain(|c| c.starts_with(input));
+        }
+
+        completions
+    }
+
+    pub fn get_suggestions(&self, input: &str) -> Vec<String> {
+        let mut suggestions = vec![
+            "help".to_string(),
+            "scopes".to_string(),
+            "init".to_string(),
+            "SELECT * FROM scopes".to_string(),
+            "SELECT name, description FROM scopes".to_string(),
+            "search <term>".to_string(),
+            "search <term> --regex".to_string(),
+            "query SELECT * FROM todos".to_string(),
+            "query SELECT * FROM insights".to_string(),
+            "query SELECT * FROM patterns".to_string(),
+            "query SELECT * FROM decisions".to_string(),
+            "validate --recursive".to_string(),
+            "migrate --dry-run".to_string(),
+            "schema todos".to_string(),
+            "health".to_string(),
+            "stats".to_string(),
+            "todo list".to_string(),
+            "todo add".to_string(),
+            "insight list".to_string(),
+            "insight record".to_string(),
+            "pattern list".to_string(),
+            "pattern add".to_string(),
+            "decision list".to_string(),
+            "decision record".to_string(),
+            "dependencies".to_string(),
+            "impact <file>".to_string(),
+            "sync".to_string(),
+            "git status".to_string(),
+            "export --format json".to_string(),
+            "primer --scope-name <name>".to_string(),
+            "readme --include-context".to_string(),
+            "bootstrap --use-case code_review".to_string(),
+            "set <key> <value>".to_string(),
+            "get <key>".to_string(),
+            "workflow create <name> <commands>".to_string(),
+            "workflow run <name>".to_string(),
+            "plugin list".to_string(),
+            "plugin info <name>".to_string(),
+            "plugin enable <name>".to_string(),
+            "plugin disable <name>".to_string(),
+            "visualize scopes".to_string(),
+            "visualize dependencies".to_string(),
+            "visualize stats".to_string(),
+            "debug context".to_string(),
+            "debug cache".to_string(),
+            "debug performance".to_string(),
+            "profile <command>".to_string(),
+            "context explore".to_string(),
+            "context navigate <scope>".to_string(),
+            "context cache".to_string(),
+            "navigate <scope>".to_string(),
+            "cache clear".to_string(),
+            "cache show".to_string(),
+            "explore".to_string(),
+            "builder todo".to_string(),
+            "builder insight".to_string(),
+            "builder pattern".to_string(),
+            "builder decision".to_string(),
+            "builder query".to_string(),
+            "builder prompt".to_string(),
+        ];
+
+        // Filter suggestions based on input
+        if !input.is_empty() {
+            suggestions.retain(|s| s.to_lowercase().contains(&input.to_lowercase()));
+        }
+
+        suggestions
+    }
+}
+
+// Implement rustyline traits for RhemaHelper
+impl Completer for RhemaHelper {
+    type Candidate = String;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<String>)> {
+        let completions = self.get_completions(line);
+        Ok((pos, completions))
+    }
+}
+
+impl Hinter for RhemaHelper {
+    type Hint = String;
+
+    fn hint(&self, line: &str, _pos: usize, _ctx: &rustyline::Context<'_>) -> Option<String> {
+        if !self.config.show_suggestions {
+            return None;
+        }
+
+        let suggestions = self.get_suggestions(line);
+        suggestions.first().cloned()
+    }
+}
+
+impl Highlighter for RhemaHelper {
+    fn highlight<'l>(&self, line: &'l str, _pos: usize) -> std::borrow::Cow<'l, str> {
+        if !self.config.syntax_highlighting {
+            return std::borrow::Cow::Borrowed(line);
+        }
+
+        // Simple syntax highlighting for Rhema commands
+        let highlighted = line
+            .replace("init", &"init".cyan().to_string())
+            .replace("scopes", &"scopes".green().to_string())
+            .replace("query", &"query".yellow().to_string())
+            .replace("search", &"search".blue().to_string())
+            .replace("validate", &"validate".magenta().to_string())
+            .replace("migrate", &"migrate".red().to_string())
+            .replace("help", &"help".bold().to_string());
+
+        std::borrow::Cow::Owned(highlighted)
+    }
+
+    fn highlight_prompt<'b, 's: 'b, 'p: 'b>(
+        &'s self,
+        prompt: &'p str,
+        _default: bool,
+    ) -> std::borrow::Cow<'b, str> {
+        std::borrow::Cow::Borrowed(prompt)
+    }
+
+    fn highlight_char(&self, _line: &str, _pos: usize) -> bool {
+        self.config.syntax_highlighting
+    }
+}
+
+impl Validator for RhemaHelper {
+    fn validate(&self, _ctx: &mut rustyline::validate::ValidationContext) -> rustyline::Result<()> {
+        Ok(())
+    }
+
+    fn validate_while_typing(&self) -> bool {
+        false
+    }
+}
+
+impl Helper for RhemaHelper {}
 
 #[allow(dead_code)]
 impl AdvancedInteractiveSession {
     pub fn new(rhema: Rhema, config: AdvancedInteractiveConfig) -> RhemaResult<Self> {
-        let mut editor = Editor::new()?;
+        let helper = RhemaHelper::new(config.clone());
+        let mut editor = Editor::with_config(
+            rustyline::Config::builder()
+                .auto_add_history(true)
+                .completion_type(rustyline::config::CompletionType::List)
+                .build()
+        )?;
+        
+        editor.set_helper(Some(helper));
 
         // Load history if configured
         if let Some(history_file) = &config.history_file {
@@ -329,7 +557,10 @@ impl AdvancedInteractiveSession {
                     ("set", "Set a variable"),
                     ("get", "Get a variable"),
                     ("workflow", "Manage workflows"),
-                    ("plugin", "Manage plugins"),
+                    ("plugin list", "List available plugins"),
+                    ("plugin info <name>", "Show plugin information"),
+                    ("plugin enable <name>", "Enable a plugin"),
+                    ("plugin disable <name>", "Disable a plugin"),
                     ("visualize", "Interactive data visualization"),
                     ("debug", "Debug mode"),
                     ("profile", "Performance profiling"),
@@ -1835,23 +2066,118 @@ impl AdvancedInteractiveSession {
 
         match subcommand {
             "list" => {
-                // TODO: Implement list_plugins
-                println!("{}", "Plugin listing not implemented yet".yellow());
+                self.list_plugins_enhanced();
             }
             "info" => {
-                let _name = parser.next().ok_or_else(|| {
+                let name = parser.next().ok_or_else(|| {
                     RhemaError::InvalidCommand("plugin info requires a name".to_string())
                 })?;
 
-                // TODO: Implement find_plugin
-                println!("{}", "Plugin finding not implemented yet".yellow());
-                println!("{}", "Plugin not found".yellow());
+                self.show_plugin_info(&name);
+            }
+            "enable" => {
+                let name = parser.next().ok_or_else(|| {
+                    RhemaError::InvalidCommand("plugin enable requires a name".to_string())
+                })?;
+
+                self.enable_plugin(&name)?;
+            }
+            "disable" => {
+                let name = parser.next().ok_or_else(|| {
+                    RhemaError::InvalidCommand("plugin disable requires a name".to_string())
+                })?;
+
+                self.disable_plugin(&name)?;
             }
             _ => {
                 return Err(RhemaError::InvalidCommand(
                     "Unknown plugin subcommand".to_string(),
                 ));
             }
+        }
+        Ok(())
+    }
+
+    fn list_plugins_enhanced(&self) {
+        println!("{}", "Available Plugins:".bold().green());
+        println!();
+        
+        for plugin in &self.config.plugins {
+            println!("  {} {}", "•".green(), plugin.cyan());
+            
+            // Show plugin description
+            match plugin.as_str() {
+                "context" => {
+                    println!("    Context management and exploration");
+                    println!("    Commands: context explore, context navigate, context cache");
+                }
+                "visualization" => {
+                    println!("    Data visualization and charts");
+                    println!("    Commands: visualize scopes, visualize dependencies, visualize stats");
+                }
+                _ => {
+                    println!("    Custom plugin");
+                }
+            }
+            println!();
+        }
+        
+        println!("Total plugins: {}", self.config.plugins.len());
+    }
+
+    fn show_plugin_info(&self, name: &str) {
+        if self.config.plugins.contains(&name.to_string()) {
+            println!("{}", "Plugin Information:".bold().green());
+            println!("Name: {}", name.cyan());
+            println!("Status: {}", "Loaded".green());
+            println!("Type: {}", "Built-in".blue());
+            
+            // Provide plugin-specific information
+            match name {
+                "context" => {
+                    println!("Description: Context management and exploration");
+                    println!("Version: 1.0.0");
+                    println!("Commands:");
+                    println!("  context explore - Interactive context exploration");
+                    println!("  context navigate <scope> - Navigate to a specific scope");
+                    println!("  context cache - Show cache information");
+                }
+                "visualization" => {
+                    println!("Description: Data visualization and charts");
+                    println!("Version: 1.0.0");
+                    println!("Commands:");
+                    println!("  visualize scopes - Show scope hierarchy");
+                    println!("  visualize dependencies - Show dependency graph");
+                    println!("  visualize stats - Show statistics charts");
+                }
+                _ => {
+                    println!("Description: Custom plugin");
+                    println!("Version: 1.0.0");
+                    println!("Commands: Plugin-specific commands");
+                }
+            }
+        } else {
+            println!("{}", "Plugin not found".yellow());
+            println!("Available plugins: {}", self.config.plugins.join(", ").cyan());
+        }
+    }
+
+    fn enable_plugin(&mut self, name: &str) -> RhemaResult<()> {
+        if !self.config.plugins.contains(&name.to_string()) {
+            self.config.plugins.push(name.to_string());
+            println!("{}", format!("Plugin '{}' enabled", name).green());
+        } else {
+            println!("{}", format!("Plugin '{}' is already enabled", name).yellow());
+        }
+        Ok(())
+    }
+
+    fn disable_plugin(&mut self, name: &str) -> RhemaResult<()> {
+        if let Some(pos) = self.config.plugins.iter().position(|p| p == name) {
+            self.config.plugins.remove(pos);
+            println!("{}", format!("Plugin '{}' disabled", name).green());
+        } else {
+            println!("{}", format!("Plugin '{}' is not enabled", name).yellow());
         }
         Ok(())
     }
@@ -2124,4 +2450,84 @@ pub fn run_advanced_interactive_with_config(
 
     let mut session = AdvancedInteractiveSession::new(rhema, config)?;
     session.start_repl()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rhema_helper_completions() {
+        let config = AdvancedInteractiveConfig::default();
+        let helper = RhemaHelper::new(config);
+        
+        let completions = helper.get_completions("");
+        assert!(completions.contains(&"init".to_string()));
+        assert!(completions.contains(&"scopes".to_string()));
+        assert!(completions.contains(&"plugin".to_string()));
+        
+        let filtered = helper.get_completions("pl");
+        assert!(filtered.contains(&"plugin".to_string()));
+        assert!(!filtered.contains(&"init".to_string()));
+    }
+
+    #[test]
+    fn test_rhema_helper_suggestions() {
+        let config = AdvancedInteractiveConfig::default();
+        let helper = RhemaHelper::new(config);
+        
+        let suggestions = helper.get_suggestions("");
+        assert!(suggestions.contains(&"help".to_string()));
+        assert!(suggestions.contains(&"plugin list".to_string()));
+        
+        let filtered = helper.get_suggestions("plugin");
+        assert!(filtered.contains(&"plugin list".to_string()));
+        assert!(filtered.contains(&"plugin info <name>".to_string()));
+    }
+
+    #[test]
+    fn test_rustyline_traits_implementation() {
+        let config = AdvancedInteractiveConfig::default();
+        let helper = RhemaHelper::new(config);
+        
+        // Test Completer trait
+        let ctx = rustyline::Context::new();
+        let result = helper.complete("init", 4, &ctx);
+        assert!(result.is_ok());
+        
+        // Test Hinter trait
+        let hint = helper.hint("hel", 3, &ctx);
+        assert!(hint.is_some());
+        
+        // Test Highlighter trait
+        let highlighted = helper.highlight("init scopes", 0);
+        assert!(highlighted.contains("init"));
+        
+        // Test Validator trait
+        let mut validation_ctx = rustyline::validate::ValidationContext::new("test", 0);
+        let result = helper.validate(&mut validation_ctx);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_plugin_management() {
+        let mut config = AdvancedInteractiveConfig::default();
+        let mut session = AdvancedInteractiveSession::new(
+            Rhema::new(std::env::current_dir().unwrap()).unwrap(),
+            config.clone()
+        ).unwrap();
+        
+        // Test list plugins
+        session.list_plugins_enhanced();
+        
+        // Test show plugin info
+        session.show_plugin_info("context");
+        
+        // Test enable/disable plugins
+        session.enable_plugin("test-plugin").unwrap();
+        assert!(session.config.plugins.contains(&"test-plugin".to_string()));
+        
+        session.disable_plugin("test-plugin").unwrap();
+        assert!(!session.config.plugins.contains(&"test-plugin".to_string()));
+    }
 }

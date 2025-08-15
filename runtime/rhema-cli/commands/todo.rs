@@ -122,13 +122,17 @@ pub fn handle_todo(
             assignee,
             due_date,
         } => {
-            match rhema_core::file_ops::add_todo(
+            match rhema_core::fileops::add_todo_entry(
                 &scope.path,
-                title.to_string(),
-                description.clone(),
+                title,
+                description.as_deref(),
                 priority.clone(),
-                assignee.clone(),
-                due_date.clone(),
+                assignee.as_deref(),
+                due_date.as_ref().and_then(|d| {
+                    chrono::DateTime::parse_from_rfc3339(d)
+                        .ok()
+                        .map(|dt| dt.with_timezone(&chrono::Utc))
+                }),
             ) {
                 Ok(id) => {
                     println!("✅ Todo added successfully with ID: {}", id);
@@ -156,11 +160,11 @@ pub fn handle_todo(
             priority,
             assignee,
         } => {
-            match rhema_core::file_ops::list_todos(
+            match rhema_core::fileops::get_todo_entries(
                 &scope.path,
                 status.clone(),
                 priority.clone(),
-                assignee.clone(),
+                assignee.as_deref(),
             ) {
                 Ok(todos) => {
                     if todos.is_empty() {
@@ -180,7 +184,17 @@ pub fn handle_todo(
             }
         }
         TodoSubcommands::Complete { id, outcome } => {
-            match rhema_core::file_ops::complete_todo(&scope.path, id, outcome.clone()) {
+            match rhema_core::fileops::update_todo_entry(
+                &scope.path,
+                id,
+                None,
+                None,
+                Some(rhema_core::schema::TodoStatus::Completed),
+                None,
+                None,
+                None,
+                outcome.clone(),
+            ) {
                 Ok(()) => {
                     println!("✅ Todo {} completed successfully!", id);
                     if let Some(out) = outcome {
@@ -203,7 +217,7 @@ pub fn handle_todo(
             assignee,
             due_date,
         } => {
-            match rhema_core::file_ops::update_todo(
+            match rhema_core::fileops::update_todo_entry(
                 &scope.path,
                 id,
                 title.clone(),
@@ -211,7 +225,12 @@ pub fn handle_todo(
                 status.clone(),
                 priority.clone(),
                 assignee.clone(),
-                due_date.clone(),
+                due_date.as_ref().and_then(|d| {
+                    chrono::DateTime::parse_from_rfc3339(d)
+                        .ok()
+                        .map(|dt| dt.with_timezone(&chrono::Utc))
+                }),
+                None,
             ) {
                 Ok(()) => {
                     println!("✅ Todo {} updated successfully!", id);
@@ -224,7 +243,7 @@ pub fn handle_todo(
             }
         }
         TodoSubcommands::Delete { id } => {
-            match rhema_core::file_ops::delete_todo(&scope.path, id) {
+            match rhema_core::fileops::delete_todo_entry(&scope.path, id) {
                 Ok(()) => {
                     println!("🗑️  Todo {} deleted successfully!", id);
                     Ok(())

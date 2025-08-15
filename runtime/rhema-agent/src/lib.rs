@@ -1,31 +1,47 @@
 // Core functionality modules are now organized in subdirectories
 // and re-exported through the main mod.rs file
 
+// Enhanced features module
+pub mod enhanced_features;
+
 // Re-export types from other crates for convenience
 pub use rhema_config::{Config, GlobalConfig, RepositoryConfig};
 pub use rhema_coordination::context_injection::{
     ContextInjectionRule, EnhancedContextInjector, TaskType,
 };
-pub use rhema_core::{
-    file_ops, schema::*, scope, JsonSchema, RhemaError, RhemaResult, SchemaMigratable, Validatable,
+pub use rhema_core::{JsonSchema, RhemaError, RhemaResult, SchemaMigratable, Validatable};
+// Re-export specific schema types to avoid conflicts
+pub use rhema_core::schema::{
+    Conventions, DecisionEntry, DecisionStatus, Decisions, Knowledge, KnowledgeEntry, PatternEntry,
+    Patterns, Priority, TodoEntry, TodoStatus, Todos,
 };
-pub use rhema_mcp::*;
+// Re-export specific MCP types to avoid conflicts
+pub use rhema_mcp::{AuditEventType, AuthManager, CacheManager, SecurityEventType};
 // pub use rhema_monitoring::{
 //     PerformanceConfig, PerformanceMonitor, PerformanceReport, ReportPeriod, UsageData, UxData,
 // };
 pub use rhema_query::repo_analysis::RepoAnalysis;
 
-// Re-export core functionality
-pub use core::*;
+// Re-export core functionality (excluding schema and MCP to avoid conflicts)
+pub use rhema_core::{cache, coordination, fileops, lock, scope, scope_loader, utils};
 
 // Define Rhema struct for CLI use
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::time::Instant;
 
 /// Main Rhema context manager for CLI
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Rhema {
     repo_root: PathBuf,
+}
+
+impl Clone for Rhema {
+    fn clone(&self) -> Self {
+        Self {
+            repo_root: self.repo_root.clone(),
+        }
+    }
 }
 
 impl Rhema {
@@ -432,120 +448,78 @@ impl ConfigManager {
         })
     }
 
-    pub fn validate_all(&mut self) -> RhemaResult<rhema_config::validation::ValidationReport> {
-        // For now, return a basic validation report since the actual validation is async
-        // TODO: Make this method async and use proper validation
-        let mut results = std::collections::HashMap::new();
+    pub async fn validate_all(
+        &mut self,
+    ) -> RhemaResult<rhema_config::validation::ValidationReport> {
+        let start_time = Instant::now();
 
-        // Create a basic validation result for global config
-        let global_result = rhema_config::validation::ValidationResult {
-            valid: true,
-            issues: Vec::new(),
-            warnings: Vec::new(),
-            timestamp: chrono::Utc::now(),
-            duration_ms: 0,
-        };
-        results.insert(std::path::PathBuf::from("global"), global_result);
+        // Get the validation manager and perform actual validation
+        let validation_manager = self.validation();
 
-        // Create basic validation results for repository configs
-        for (path, _config) in &self.repository_configs {
-            let repo_result = rhema_config::validation::ValidationResult {
-                valid: true,
-                issues: Vec::new(),
-                warnings: Vec::new(),
-                timestamp: chrono::Utc::now(),
-                duration_ms: 0,
-            };
-            results.insert(path.clone(), repo_result);
-        }
+        // Create scope configs map for validation (empty for now since we don't have scope configs)
+        let scope_configs = HashMap::new();
 
-        // Create validation summary
-        let total_configs = results.len();
-        let valid_configs = results.values().filter(|r| r.valid).count();
-        let invalid_configs = total_configs - valid_configs;
+        // Perform actual validation using the validation manager
+        let validation_report = validation_manager
+            .validate_all(
+                &self.global_config,
+                &self.repository_configs,
+                &scope_configs,
+            )
+            .await?;
 
-        let mut total_issues = 0;
-        let mut critical_issues = 0;
-        let mut error_issues = 0;
-        let mut warning_issues = 0;
-        let mut info_issues = 0;
+        let duration_ms = start_time.elapsed().as_millis() as u64;
 
-        for result in results.values() {
-            for issue in &result.issues {
-                total_issues += 1;
-                match issue.severity {
-                    rhema_config::ConfigIssueSeverity::Critical => critical_issues += 1,
-                    rhema_config::ConfigIssueSeverity::Error => error_issues += 1,
-                    rhema_config::ConfigIssueSeverity::Warning => warning_issues += 1,
-                    rhema_config::ConfigIssueSeverity::Info => info_issues += 1,
-                }
-            }
-        }
-
-        let overall_valid = critical_issues == 0 && error_issues == 0;
-
+        // Create a new report with actual timing
         Ok(rhema_config::validation::ValidationReport {
-            overall_valid,
-            results,
-            summary: rhema_config::validation::ValidationSummary {
-                total_configs,
-                valid_configs,
-                invalid_configs,
-                total_issues,
-                critical_issues,
-                error_issues,
-                warning_issues,
-                info_issues,
-            },
-            timestamp: chrono::Utc::now(),
-            duration_ms: 0, // TODO: Add actual timing
+            overall_valid: validation_report.overall_valid,
+            results: validation_report.results,
+            summary: validation_report.summary,
+            timestamp: validation_report.timestamp,
+            duration_ms,
         })
     }
 
-    pub fn backup_all(&mut self) -> RhemaResult<rhema_config::backup::BackupReport> {
-        // For now, return a basic backup report since the actual backup is async
-        // TODO: Make this method async and use proper backup functionality
+    pub async fn backup_all(&mut self) -> RhemaResult<rhema_config::backup::BackupReport> {
+        let start_time = Instant::now();
+
+        // Get the backup manager and perform actual backup
+        let mut backup_manager = self.backup_mut();
+
         let mut backups_created = Vec::new();
         let mut backups_failed = Vec::new();
 
-        // Create basic backup records for demonstration
-        let global_backup = rhema_config::backup::BackupRecord {
-            backup_id: "global-backup-1".to_string(),
-            original_path: std::path::PathBuf::from("global"),
-            backup_path: std::path::PathBuf::from("/tmp/backup/global.yaml"),
-            timestamp: chrono::Utc::now(),
-            format: rhema_config::backup::BackupFormat::YAML,
-            size_bytes: 1024,
-            checksum: "abc123".to_string(),
-            compression_enabled: true,
-            encryption_enabled: false,
-            description: Some("Global configuration backup".to_string()),
-            tags: vec!["global".to_string(), "config".to_string()],
-        };
-        backups_created.push(global_backup);
+        // Create backup for global config
+        match backup_manager.backup_config(&self.global_config, "global-backup") {
+            Ok(backup_record) => {
+                backups_created.push(backup_record);
+            }
+            Err(e) => {
+                let failed_backup = rhema_config::backup::BackupError {
+                    path: std::path::PathBuf::from("global"),
+                    error: e.to_string(),
+                    timestamp: chrono::Utc::now(),
+                };
+                backups_failed.push(failed_backup);
+            }
+        }
 
-        // Create basic backup records for repository configs
-        for (path, _config) in &self.repository_configs {
-            let repo_backup = rhema_config::backup::BackupRecord {
-                backup_id: format!("repo-backup-{}", path.display()),
-                original_path: path.clone(),
-                backup_path: std::path::PathBuf::from(format!(
-                    "/tmp/backup/repo-{}.yaml",
-                    path.display()
-                )),
-                timestamp: chrono::Utc::now(),
-                format: rhema_config::backup::BackupFormat::YAML,
-                size_bytes: 512,
-                checksum: "def456".to_string(),
-                compression_enabled: true,
-                encryption_enabled: false,
-                description: Some(format!(
-                    "Repository configuration backup for {}",
-                    path.display()
-                )),
-                tags: vec!["repository".to_string(), "config".to_string()],
-            };
-            backups_created.push(repo_backup);
+        // Create backups for repository configs
+        for (path, config) in &self.repository_configs {
+            let backup_name = format!("repo-backup-{}", path.display());
+            match backup_manager.backup_config(config, &backup_name) {
+                Ok(backup_record) => {
+                    backups_created.push(backup_record);
+                }
+                Err(e) => {
+                    let failed_backup = rhema_config::backup::BackupError {
+                        path: path.clone(),
+                        error: e.to_string(),
+                        timestamp: chrono::Utc::now(),
+                    };
+                    backups_failed.push(failed_backup);
+                }
+            }
         }
 
         // Calculate summary statistics
@@ -562,6 +536,8 @@ impl ConfigManager {
             0.0
         };
 
+        let duration_ms = start_time.elapsed().as_millis() as u64;
+
         Ok(rhema_config::backup::BackupReport {
             backups_created,
             backups_failed,
@@ -573,75 +549,36 @@ impl ConfigManager {
                 compression_ratio,
             },
             timestamp: chrono::Utc::now(),
-            duration_ms: 0, // TODO: Add actual timing
+            duration_ms,
         })
     }
 
-    pub fn migrate_all(&mut self) -> RhemaResult<rhema_config::migration::MigrationReport> {
-        // For now, return a basic migration report since the actual migration is complex
-        // TODO: Make this method async and use proper migration functionality
-        let mut migrations_applied = Vec::new();
-        let mut migrations_skipped = Vec::new();
-        let mut migrations_failed = Vec::new();
+    pub async fn migrate_all(&mut self) -> RhemaResult<rhema_config::migration::MigrationReport> {
+        let start_time = Instant::now();
 
-        // Create basic migration records for demonstration
-        let global_migration = rhema_config::migration::MigrationRecord {
-            migration_name: "global_config_upgrade".to_string(),
-            from_version: "1.0.0".to_string(),
-            to_version: "1.1.0".to_string(),
-            timestamp: chrono::Utc::now(),
-            success: true,
-            error_message: None,
-            changes: vec![rhema_config::ConfigChange {
-                timestamp: chrono::Utc::now(),
-                change_type: rhema_config::ConfigChangeType::Created,
-                description: "Added new feature flag".to_string(),
-                user: "system".to_string(),
-            }],
-        };
-        migrations_applied.push(global_migration);
+        // Get the migration manager and perform actual migration
+        let migration_manager = self.migration();
 
-        // Create basic migration records for repository configs
-        for (path, _config) in &self.repository_configs {
-            let repo_migration = rhema_config::migration::MigrationRecord {
-                migration_name: "repository_config_upgrade".to_string(),
-                from_version: "1.0.0".to_string(),
-                to_version: "1.1.0".to_string(),
-                timestamp: chrono::Utc::now(),
-                success: true,
-                error_message: None,
-                changes: vec![rhema_config::ConfigChange {
-                    timestamp: chrono::Utc::now(),
-                    change_type: rhema_config::ConfigChangeType::Updated,
-                    description: "Updated version to latest".to_string(),
-                    user: "system".to_string(),
-                }],
-            };
-            migrations_applied.push(repo_migration);
-        }
+        // Create scope configs map for migration (empty for now since we don't have scope configs)
+        let scope_configs = HashMap::new();
 
-        // Calculate summary statistics
-        let total_migrations =
-            migrations_applied.len() + migrations_skipped.len() + migrations_failed.len();
-        let successful_migrations = migrations_applied.len();
-        let failed_migrations = migrations_failed.len();
-        let skipped_migrations = migrations_skipped.len();
+        // Perform actual migration using the migration manager
+        let migration_report = migration_manager.migrate_all(
+            &self.global_config,
+            &self.repository_configs,
+            &scope_configs,
+        )?;
 
-        let total_changes = migrations_applied.iter().map(|r| r.changes.len()).sum();
+        let duration_ms = start_time.elapsed().as_millis() as u64;
 
+        // Create a new report with actual timing
         Ok(rhema_config::migration::MigrationReport {
-            migrations_applied,
-            migrations_skipped,
-            migrations_failed,
-            summary: rhema_config::migration::MigrationSummary {
-                total_migrations,
-                successful_migrations,
-                failed_migrations,
-                skipped_migrations,
-                total_changes,
-            },
-            timestamp: chrono::Utc::now(),
-            duration_ms: 0, // TODO: Add actual timing
+            migrations_applied: migration_report.migrations_applied,
+            migrations_skipped: migration_report.migrations_skipped,
+            migrations_failed: migration_report.migrations_failed,
+            summary: migration_report.summary,
+            timestamp: migration_report.timestamp,
+            duration_ms,
         })
     }
 }

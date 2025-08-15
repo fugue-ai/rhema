@@ -197,11 +197,11 @@ async fn test_error_handling() {
     let result = create_coordination_manager(config).await;
     // The mock client should handle invalid endpoints gracefully
     assert!(result.is_ok());
-    
+
     // Verify that the manager was created successfully
     let mut manager = result.unwrap();
     assert!(manager.is_enabled());
-    
+
     // Test that the manager can still perform operations even with invalid endpoint
     let agent_info = AgentInfo::new("test-agent".to_string(), "test-type".to_string());
     let result = manager.register_agent(agent_info).await;

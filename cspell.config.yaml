@@ -4,16 +4,20 @@ dictionaryDefinitions: []
 dictionaries: []
 words:
   - actix
+  - allkeys
   - appender
+  - appendonly
   - beforeunload
   - catthehacker
   - checkpointing
   - chrono
+  - clippy
   - codegen
   - cpus
   - dashmap
   - Datelike
   - dialoguer
+  - fileops
   - flate
   - hnsw
   - iconify
@@ -22,16 +26,19 @@ words:
   - kitdocs
   - LOCOMO
   - mathjax
+  - maxmemory
   - metadatas
   - minmax
   - mockall
   - nocapture
   - onclick
+  - promtail
   - proptest
   - prost
   - Qdrant
   - quickcheck
   - reqwest
+  - RMCP
   - rstest
   - rustyline
   - Segoe
@@ -48,6 +55,7 @@ words:
   - tungstenite
   - unplugin
   - unrs
+  - Validatable
   - Verdana
   - vite
   - vitest

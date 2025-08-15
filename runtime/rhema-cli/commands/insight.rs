@@ -106,13 +106,14 @@ pub fn handle_insight(
             category,
             tags,
         } => {
-            match rhema_core::file_ops::add_knowledge(
+            match rhema_core::fileops::add_knowledge_entry(
                 &scope.path,
-                title.to_string(),
-                content.to_string(),
+                title,
+                content,
+                category.as_deref(),
+                tags.as_ref().map(|t| vec![t.clone()]),
                 *confidence,
-                category.clone(),
-                tags.clone(),
+                None,
             ) {
                 Ok(id) => {
                     println!("💡 Insight recorded successfully with ID: {}", id);
@@ -140,11 +141,10 @@ pub fn handle_insight(
             tag,
             min_confidence,
         } => {
-            match rhema_core::file_ops::list_knowledge(
+            match rhema_core::fileops::get_knowledge_entries(
                 &scope.path,
-                category.clone(),
-                tag.clone(),
-                *min_confidence,
+                category.as_deref(),
+                tag.as_deref(),
             ) {
                 Ok(insights) => {
                     if insights.is_empty() {
@@ -176,14 +176,14 @@ pub fn handle_insight(
             category,
             tags,
         } => {
-            match rhema_core::file_ops::update_knowledge(
+            match rhema_core::fileops::update_knowledge_entry(
                 &scope.path,
                 id,
                 title.clone(),
                 content.clone(),
-                *confidence,
                 category.clone(),
-                tags.clone(),
+                tags.as_ref().map(|t| vec![t.clone()]),
+                *confidence,
             ) {
                 Ok(()) => {
                     println!("✅ Insight {} updated successfully!", id);
@@ -196,7 +196,7 @@ pub fn handle_insight(
             }
         }
         InsightSubcommands::Delete { id } => {
-            match rhema_core::file_ops::delete_knowledge(&scope.path, id) {
+            match rhema_core::fileops::delete_knowledge_entry(&scope.path, id) {
                 Ok(()) => {
                     println!("🗑️  Insight {} deleted successfully!", id);
                     Ok(())

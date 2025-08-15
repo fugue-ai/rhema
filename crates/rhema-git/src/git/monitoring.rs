@@ -1285,16 +1285,137 @@ impl MetricsCollector {
 
     /// Collect Git metrics
     pub fn collect_git_metrics(&mut self) {
-        // TODO: Implement Git metrics collection
-        // For now, we'll collect basic metrics without repository access
-        // This is a placeholder implementation
+        // This method is called periodically to collect Git metrics
+        // Since we don't have direct repository access here, we'll collect
+        // metrics that can be gathered from the monitoring system itself
+
+        // Collect basic monitoring metrics
+        let current_time = Utc::now();
+
+        // Record the collection timestamp
+        self.metrics.insert(
+            "metrics_collection_timestamp".to_string(),
+            MetricValue {
+                name: "metrics_collection_timestamp".to_string(),
+                value: current_time.timestamp() as f64,
+                timestamp: current_time,
+                tags: HashMap::new(),
+            },
+        );
+
+        // Record the number of metrics currently stored
+        self.metrics.insert(
+            "total_metrics_count".to_string(),
+            MetricValue {
+                name: "total_metrics_count".to_string(),
+                value: self.metrics.len() as f64,
+                timestamp: current_time,
+                tags: HashMap::new(),
+            },
+        );
+
+        // Record memory usage of metrics storage (approximate)
+        let estimated_memory = self.metrics.len() * 256; // Rough estimate of bytes per metric
+        self.metrics.insert(
+            "metrics_memory_usage_bytes".to_string(),
+            MetricValue {
+                name: "metrics_memory_usage_bytes".to_string(),
+                value: estimated_memory as f64,
+                timestamp: current_time,
+                tags: HashMap::new(),
+            },
+        );
     }
 
-    fn collect_commit_metrics(&mut self, _repo: &git2::Repository) {
-        // TODO: Implement commit metrics collection
-        // For now, we'll use placeholder values
-        let commit_count = 0;
-        let author_count = 0;
+    fn collect_commit_metrics(&mut self, repo: &git2::Repository) {
+        // Collect commit-related metrics from the repository
+        let mut commit_count = 0;
+        let mut author_count = 0;
+        let mut unique_authors = std::collections::HashSet::new();
+        let mut total_lines_added = 0;
+        let mut total_lines_deleted = 0;
+        let mut recent_commits = 0;
+        let now = Utc::now();
+        let thirty_days_ago = now - Duration::days(30);
+
+        // Walk through the commit history
+        if let Ok(head) = repo.head() {
+            if let Ok(commit) = head.peel_to_commit() {
+                let mut revwalk = match repo.revwalk() {
+                    Ok(revwalk) => revwalk,
+                    Err(_) => {
+                        eprintln!("Failed to create revwalk");
+                        return;
+                    }
+                };
+
+                if let Err(_) = revwalk.push(commit.id()) {
+                    eprintln!("Failed to push commit to revwalk");
+                    return;
+                }
+
+                // Iterate through commits
+                for commit_id in revwalk {
+                    if let Ok(commit_id) = commit_id {
+                        if let Ok(commit) = repo.find_commit(commit_id) {
+                            commit_count += 1;
+
+                            // Count unique authors
+                            let author_name =
+                                commit.author().name().unwrap_or("unknown").to_string();
+                            unique_authors.insert(author_name);
+
+                            // Check if commit is recent (within 30 days)
+                            let commit_time =
+                                DateTime::from_timestamp(commit.author().when().seconds(), 0)
+                                    .unwrap_or_else(|| Utc::now());
+
+                            if commit_time >= thirty_days_ago {
+                                recent_commits += 1;
+                            }
+
+                            // Calculate lines changed (if we have parent)
+                            if let Ok(parent) = commit.parent(0) {
+                                let parent_tree = match parent.tree() {
+                                    Ok(tree) => tree,
+                                    Err(_) => {
+                                        eprintln!("Failed to get parent tree");
+                                        continue;
+                                    }
+                                };
+
+                                let commit_tree = match commit.tree() {
+                                    Ok(tree) => tree,
+                                    Err(_) => {
+                                        eprintln!("Failed to get commit tree");
+                                        continue;
+                                    }
+                                };
+
+                                if let Ok(diff) = repo.diff_tree_to_tree(
+                                    Some(&parent_tree),
+                                    Some(&commit_tree),
+                                    None,
+                                ) {
+                                    let mut lines_added = 0;
+                                    let mut lines_deleted = 0;
+
+                                    if let Ok(stats) = diff.stats() {
+                                        lines_added = stats.insertions();
+                                        lines_deleted = stats.deletions();
+                                    }
+
+                                    total_lines_added += lines_added;
+                                    total_lines_deleted += lines_deleted;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        author_count = unique_authors.len();
 
         // Store metrics
         self.metrics.insert(
@@ -1312,6 +1433,36 @@ impl MetricsCollector {
             MetricValue {
                 name: "unique_authors".to_string(),
                 value: author_count as f64,
+                timestamp: Utc::now(),
+                tags: HashMap::new(),
+            },
+        );
+
+        self.metrics.insert(
+            "recent_commits_30_days".to_string(),
+            MetricValue {
+                name: "recent_commits_30_days".to_string(),
+                value: recent_commits as f64,
+                timestamp: Utc::now(),
+                tags: HashMap::new(),
+            },
+        );
+
+        self.metrics.insert(
+            "total_lines_added".to_string(),
+            MetricValue {
+                name: "total_lines_added".to_string(),
+                value: total_lines_added as f64,
+                timestamp: Utc::now(),
+                tags: HashMap::new(),
+            },
+        );
+
+        self.metrics.insert(
+            "total_lines_deleted".to_string(),
+            MetricValue {
+                name: "total_lines_deleted".to_string(),
+                value: total_lines_deleted as f64,
                 timestamp: Utc::now(),
                 tags: HashMap::new(),
             },
@@ -1374,11 +1525,96 @@ impl MetricsCollector {
                     let mut file_count = 0;
                     let mut total_size = 0u64;
 
-                    // TODO: Implement tree walking
-                    // For now, we'll skip this implementation
-                    let _tree = tree;
+                    // Implement tree walking to count files and calculate total size
+                    let mut file_count = 0;
+                    let mut total_size = 0u64;
+                    let mut directory_count = 0;
+                    let mut largest_file_size = 0u64;
+                    let mut largest_file_path = String::new();
+                    let mut file_extensions = std::collections::HashMap::new();
 
-                    // Store metrics
+                    // Recursive function to walk the tree
+                    fn walk_tree(
+                        tree: &git2::Tree,
+                        repo: &git2::Repository,
+                        path: &str,
+                        file_count: &mut u32,
+                        total_size: &mut u64,
+                        directory_count: &mut u32,
+                        largest_file_size: &mut u64,
+                        largest_file_path: &mut String,
+                        file_extensions: &mut std::collections::HashMap<String, u32>,
+                    ) -> Result<(), git2::Error> {
+                        for entry in tree.iter() {
+                            let entry_path = if path.is_empty() {
+                                entry.name().unwrap_or("unknown").to_string()
+                            } else {
+                                format!("{}/{}", path, entry.name().unwrap_or("unknown"))
+                            };
+
+                            match entry.kind() {
+                                Some(git2::ObjectType::Tree) => {
+                                    *directory_count += 1;
+                                    if let Ok(subtree) = entry.to_object(repo)?.peel_to_tree() {
+                                        walk_tree(
+                                            &subtree,
+                                            repo,
+                                            &entry_path,
+                                            file_count,
+                                            total_size,
+                                            directory_count,
+                                            largest_file_size,
+                                            largest_file_path,
+                                            file_extensions,
+                                        )?;
+                                    }
+                                }
+                                Some(git2::ObjectType::Blob) => {
+                                    *file_count += 1;
+                                    let size = entry.id().as_bytes().len() as u64;
+                                    *total_size += size;
+
+                                    // Track largest file
+                                    if size > *largest_file_size {
+                                        *largest_file_size = size;
+                                        *largest_file_path = entry_path.clone();
+                                    }
+
+                                    // Count file extensions
+                                    if let Some(name) = entry.name() {
+                                        if let Some(extension) =
+                                            std::path::Path::new(name).extension()
+                                        {
+                                            if let Some(ext_str) = extension.to_str() {
+                                                *file_extensions
+                                                    .entry(ext_str.to_lowercase())
+                                                    .or_insert(0) += 1;
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    // Skip other object types (commits, tags, etc.)
+                                }
+                            }
+                        }
+                        Ok(())
+                    }
+
+                    // Walk the tree
+                    if let Err(e) = walk_tree(
+                        &tree,
+                        repo,
+                        "",
+                        &mut file_count,
+                        &mut total_size,
+                        &mut directory_count,
+                        &mut largest_file_size,
+                        &mut largest_file_path,
+                        &mut file_extensions,
+                    ) {
+                        eprintln!("Error walking tree: {}", e);
+                    }
 
                     // Store metrics
                     self.metrics.insert(
@@ -1400,6 +1636,42 @@ impl MetricsCollector {
                             tags: HashMap::new(),
                         },
                     );
+
+                    self.metrics.insert(
+                        "directory_count".to_string(),
+                        MetricValue {
+                            name: "directory_count".to_string(),
+                            value: directory_count as f64,
+                            timestamp: Utc::now(),
+                            tags: HashMap::new(),
+                        },
+                    );
+
+                    self.metrics.insert(
+                        "largest_file_size".to_string(),
+                        MetricValue {
+                            name: "largest_file_size".to_string(),
+                            value: largest_file_size as f64,
+                            timestamp: Utc::now(),
+                            tags: HashMap::new(),
+                        },
+                    );
+
+                    // Store file extension metrics
+                    for (extension, count) in file_extensions {
+                        let mut tags = HashMap::new();
+                        tags.insert("extension".to_string(), extension.clone());
+
+                        self.metrics.insert(
+                            format!("file_extension_{}", extension),
+                            MetricValue {
+                                name: "file_extension_count".to_string(),
+                                value: count as f64,
+                                timestamp: Utc::now(),
+                                tags,
+                            },
+                        );
+                    }
                 }
             }
         }

@@ -17,7 +17,7 @@
 use chrono::Utc;
 use rhema_core::{
     scope::Scope, Conventions, Decisions, Knowledge, Patterns, RhemaError, RhemaLock, RhemaResult,
-    TodoStatus, Todos, Validatable,
+    ScopeDependency, TodoStatus, Todos, Validatable,
 };
 use rhema_query::QueryResult;
 use serde_json::Value;
@@ -335,10 +335,21 @@ impl ContextProvider {
 
         if let Some(lock) = lock_file {
             if let Some(locked_scope) = lock.scopes.get(scope_path) {
+                // Convert LockedDependency to ScopeDependency
+                let mut dependencies = HashMap::new();
+                for (dep_name, locked_dep) in &locked_scope.dependencies {
+                    let scope_dep = ScopeDependency {
+                        path: locked_dep.path.clone(),
+                        dependency_type: format!("{:?}", locked_dep.dependency_type),
+                        version: Some(locked_dep.version.clone()),
+                    };
+                    dependencies.insert(dep_name.clone(), scope_dep);
+                }
+
                 return Ok(Some(LockScopeContext {
                     scope_path: scope_path.to_string(),
                     version: locked_scope.version.clone(),
-                    dependencies: HashMap::new(), // TODO: Convert LockedDependency to ScopeDependency
+                    dependencies,
                     has_circular_dependencies: locked_scope.has_circular_dependencies,
                     resolved_at: Some(locked_scope.resolved_at.clone()),
                     source_checksum: locked_scope.source_checksum.clone(),
@@ -2016,10 +2027,13 @@ impl ContextProvider {
 
     /// Load scopes from the repository
     async fn load_scopes(&self) -> RhemaResult<()> {
-        // TODO: Implement scope loading
-        // For now, just create an empty vector
+        // Use the scope discovery functionality from rhema_core
+        let discovered_scopes = rhema_core::scope::discover_scopes(&self.repo_root)?;
+
+        // Update the scopes cache
         let mut scopes_guard = self.scopes.write().await;
-        *scopes_guard = Vec::new();
+        *scopes_guard = discovered_scopes;
+
         Ok(())
     }
 
@@ -2037,63 +2051,240 @@ impl ContextProvider {
 
     /// Load context data for a specific scope
     async fn load_scope_context(&self, scope_path: &str) -> RhemaResult<()> {
-        // TODO: Implement context loading
-        // For now, just create empty data structures
-        let mut knowledge_cache = self.knowledge_cache.write().await;
-        knowledge_cache.insert(
-            scope_path.to_string(),
+        // Get the scope to determine the actual file path
+        let scope = rhema_core::scope::get_scope(&self.repo_root, scope_path)?;
+        let scope_dir = &scope.path;
+
+        // Load knowledge data
+        let knowledge_path = scope_dir.join("knowledge.yaml");
+        let knowledge = if knowledge_path.exists() {
+            match tokio::fs::read_to_string(&knowledge_path).await {
+                Ok(content) => match serde_yaml::from_str(&content) {
+                    Ok(knowledge) => knowledge,
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to parse knowledge.yaml for scope {}: {}",
+                            scope_path,
+                            e
+                        );
+                        Knowledge {
+                            entries: Vec::new(),
+                            categories: None,
+                            custom: HashMap::new(),
+                        }
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read knowledge.yaml for scope {}: {}",
+                        scope_path,
+                        e
+                    );
+                    Knowledge {
+                        entries: Vec::new(),
+                        categories: None,
+                        custom: HashMap::new(),
+                    }
+                }
+            }
+        } else {
             Knowledge {
                 entries: Vec::new(),
                 categories: None,
                 custom: HashMap::new(),
-            },
-        );
+            }
+        };
 
-        let mut todos_cache = self.todos_cache.write().await;
-        todos_cache.insert(
-            scope_path.to_string(),
+        // Load todos data
+        let todos_path = scope_dir.join("todos.yaml");
+        let todos = if todos_path.exists() {
+            match tokio::fs::read_to_string(&todos_path).await {
+                Ok(content) => match serde_yaml::from_str(&content) {
+                    Ok(todos) => todos,
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to parse todos.yaml for scope {}: {}",
+                            scope_path,
+                            e
+                        );
+                        Todos {
+                            todos: Vec::new(),
+                            custom: HashMap::new(),
+                        }
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("Failed to read todos.yaml for scope {}: {}", scope_path, e);
+                    Todos {
+                        todos: Vec::new(),
+                        custom: HashMap::new(),
+                    }
+                }
+            }
+        } else {
             Todos {
                 todos: Vec::new(),
                 custom: HashMap::new(),
-            },
-        );
+            }
+        };
 
-        let mut decisions_cache = self.decisions_cache.write().await;
-        decisions_cache.insert(
-            scope_path.to_string(),
+        // Load decisions data
+        let decisions_path = scope_dir.join("decisions.yaml");
+        let decisions = if decisions_path.exists() {
+            match tokio::fs::read_to_string(&decisions_path).await {
+                Ok(content) => match serde_yaml::from_str(&content) {
+                    Ok(decisions) => decisions,
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to parse decisions.yaml for scope {}: {}",
+                            scope_path,
+                            e
+                        );
+                        Decisions {
+                            decisions: Vec::new(),
+                            custom: HashMap::new(),
+                        }
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read decisions.yaml for scope {}: {}",
+                        scope_path,
+                        e
+                    );
+                    Decisions {
+                        decisions: Vec::new(),
+                        custom: HashMap::new(),
+                    }
+                }
+            }
+        } else {
             Decisions {
                 decisions: Vec::new(),
                 custom: HashMap::new(),
-            },
-        );
+            }
+        };
 
-        let mut patterns_cache = self.patterns_cache.write().await;
-        patterns_cache.insert(
-            scope_path.to_string(),
+        // Load patterns data
+        let patterns_path = scope_dir.join("patterns.yaml");
+        let patterns = if patterns_path.exists() {
+            match tokio::fs::read_to_string(&patterns_path).await {
+                Ok(content) => match serde_yaml::from_str(&content) {
+                    Ok(patterns) => patterns,
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to parse patterns.yaml for scope {}: {}",
+                            scope_path,
+                            e
+                        );
+                        Patterns {
+                            patterns: Vec::new(),
+                            custom: HashMap::new(),
+                        }
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read patterns.yaml for scope {}: {}",
+                        scope_path,
+                        e
+                    );
+                    Patterns {
+                        patterns: Vec::new(),
+                        custom: HashMap::new(),
+                    }
+                }
+            }
+        } else {
             Patterns {
                 patterns: Vec::new(),
                 custom: HashMap::new(),
-            },
-        );
+            }
+        };
 
-        let mut conventions_cache = self.conventions_cache.write().await;
-        conventions_cache.insert(
-            scope_path.to_string(),
+        // Load conventions data
+        let conventions_path = scope_dir.join("conventions.yaml");
+        let conventions = if conventions_path.exists() {
+            match tokio::fs::read_to_string(&conventions_path).await {
+                Ok(content) => match serde_yaml::from_str(&content) {
+                    Ok(conventions) => conventions,
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to parse conventions.yaml for scope {}: {}",
+                            scope_path,
+                            e
+                        );
+                        Conventions {
+                            conventions: Vec::new(),
+                            custom: HashMap::new(),
+                        }
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read conventions.yaml for scope {}: {}",
+                        scope_path,
+                        e
+                    );
+                    Conventions {
+                        conventions: Vec::new(),
+                        custom: HashMap::new(),
+                    }
+                }
+            }
+        } else {
             Conventions {
                 conventions: Vec::new(),
                 custom: HashMap::new(),
-            },
-        );
+            }
+        };
+
+        // Update all caches
+        let mut knowledge_cache = self.knowledge_cache.write().await;
+        knowledge_cache.insert(scope_path.to_string(), knowledge);
+
+        let mut todos_cache = self.todos_cache.write().await;
+        todos_cache.insert(scope_path.to_string(), todos);
+
+        let mut decisions_cache = self.decisions_cache.write().await;
+        decisions_cache.insert(scope_path.to_string(), decisions);
+
+        let mut patterns_cache = self.patterns_cache.write().await;
+        patterns_cache.insert(scope_path.to_string(), patterns);
+
+        let mut conventions_cache = self.conventions_cache.write().await;
+        conventions_cache.insert(scope_path.to_string(), conventions);
 
         Ok(())
     }
 
     /// Load lock file data
     async fn load_lock_file(&self) -> RhemaResult<()> {
-        // TODO: Implement lock file loading
-        // For now, just create an empty lock file
-        let mut lock_cache = self.lock_file_cache.write().await;
-        *lock_cache = Some(rhema_core::schema::RhemaLock::new("context_provider"));
+        // Look for lock file in repository root
+        let lock_file_path = self.repo_root.join("rhema.lock");
+
+        if lock_file_path.exists() {
+            // Use the lock file operations from rhema_core
+            match rhema_core::lock::LockFileOps::read_lock_file(&lock_file_path) {
+                Ok(lock_data) => {
+                    let mut lock_cache = self.lock_file_cache.write().await;
+                    *lock_cache = Some(lock_data);
+                    tracing::info!("Successfully loaded lock file from {:?}", lock_file_path);
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to load lock file from {:?}: {}", lock_file_path, e);
+                    // Create a new lock file as fallback
+                    let mut lock_cache = self.lock_file_cache.write().await;
+                    *lock_cache = Some(rhema_core::schema::RhemaLock::new("context_provider"));
+                }
+            }
+        } else {
+            // No lock file exists, create a new one
+            tracing::info!("No lock file found, creating new one");
+            let mut lock_cache = self.lock_file_cache.write().await;
+            *lock_cache = Some(rhema_core::schema::RhemaLock::new("context_provider"));
+        }
+
         Ok(())
     }
 

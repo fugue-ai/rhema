@@ -320,12 +320,12 @@ impl InteractiveSession {
             "profile" => self.handle_profile(args),
             _ => {
                 // Try plugin commands
-                if let Some(_plugin) = self.find_plugin(command) {
-                    let _args_vec: Vec<String> = args.iter().map(|s| s.to_string()).collect();
-                    // TODO: Fix borrow checker issue
-                    // plugin.execute(self, &args_vec)
-                    println!("Plugin execution not implemented yet");
-                    Ok(())
+                if let Some(plugin) = self.find_plugin(command) {
+                    let args_vec: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+                    // Clone the plugin name to avoid borrow checker issues
+                    let plugin_name = plugin.name().to_string();
+                    // Use a different approach to avoid double mutable borrow
+                    self.execute_plugin_command(&plugin_name, &args_vec)
                 } else {
                     Err(RhemaError::InvalidCommand(command.to_string()))
                 }
@@ -567,6 +567,15 @@ impl InteractiveSession {
 
     fn find_plugin(&self, name: &str) -> Option<&Box<dyn InteractivePlugin>> {
         self.plugins.iter().find(|p| p.name() == name)
+    }
+
+    fn execute_plugin_command(&mut self, plugin_name: &str, args: &[String]) -> RhemaResult<()> {
+        // Find the plugin by name and execute it
+        if let Some(plugin) = self.plugins.iter().find(|p| p.name() == plugin_name) {
+            plugin.execute(self, args)
+        } else {
+            Err(RhemaError::InvalidCommand(format!("Plugin '{}' not found", plugin_name)))
+        }
     }
 
     fn update_config(&mut self, config: InteractiveConfig) {

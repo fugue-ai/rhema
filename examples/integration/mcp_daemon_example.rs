@@ -19,7 +19,9 @@ use rhema_mcp::{
     RateLimitConfig, StartupConfig,
 };
 use std::path::PathBuf;
+use std::time::Duration;
 use tokio::signal;
+use tokio::stream::StreamExt;
 use tracing::{info, warn, error};
 
 #[tokio::main]
@@ -246,9 +248,94 @@ async fn example_websocket_client() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // TODO: Implement WebSocket message handling
-    info!("WebSocket connection established");
+    // Send subscription request
+    let subscription_message = Message::Text(serde_json::to_string(&subscription_request)?);
+    write.send(subscription_message).await?;
+    info!("WebSocket connection established and subscription sent");
 
+    // Handle incoming messages
+    let mut read_stream = read;
+    let mut write_stream = write;
+
+    loop {
+        tokio::select! {
+            // Handle incoming messages
+            message = read_stream.next() => {
+                match message {
+                    Some(Ok(Message::Text(text))) => {
+                        info!("Received WebSocket message: {}", text);
+                        
+                        // Parse JSON-RPC message
+                        if let Ok(json_message) = serde_json::from_str::<serde_json::Value>(&text) {
+                            if let Some(method) = json_message.get("method").and_then(|m| m.as_str()) {
+                                match method {
+                                    "resources/notify" => {
+                                        info!("Resource notification received: {:?}", json_message);
+                                    }
+                                    "system/health" => {
+                                        info!("Health check received: {:?}", json_message);
+                                    }
+                                    _ => {
+                                        info!("Unknown method received: {}", method);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Some(Ok(Message::Close(_))) => {
+                        info!("WebSocket connection closed by server");
+                        break;
+                    }
+                    Some(Ok(Message::Ping(data))) => {
+                        // Respond with pong
+                        let pong = Message::Pong(data);
+                        if let Err(e) = write_stream.send(pong).await {
+                            error!("Failed to send pong: {}", e);
+                            break;
+                        }
+                    }
+                    Some(Ok(Message::Pong(_))) => {
+                        // Handle pong (usually no action needed)
+                    }
+                    Some(Ok(Message::Binary(_))) => {
+                        info!("Received binary message (not supported)");
+                    }
+                    Some(Ok(Message::Frame(_))) => {
+                        info!("Received raw frame (not supported)");
+                    }
+                    Some(Err(e)) => {
+                        error!("WebSocket error: {}", e);
+                        break;
+                    }
+                    None => {
+                        info!("WebSocket stream ended");
+                        break;
+                    }
+                }
+            }
+            
+            // Send periodic heartbeat
+            _ = tokio::time::sleep(Duration::from_secs(30)) => {
+                let heartbeat = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": 0,
+                    "method": "system/heartbeat",
+                    "params": {
+                        "timestamp": chrono::Utc::now().timestamp()
+                    }
+                });
+                
+                let heartbeat_message = Message::Text(serde_json::to_string(&heartbeat)?);
+                if let Err(e) = write_stream.send(heartbeat_message).await {
+                    error!("Failed to send heartbeat: {}", e);
+                    break;
+                }
+                info!("Sent heartbeat");
+            }
+        }
+    }
+
+    info!("WebSocket connection closed");
     Ok(())
 }
 

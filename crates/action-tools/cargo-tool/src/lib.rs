@@ -142,22 +142,57 @@ impl ValidationTool for CargoTool {
         let mut all_warnings = Vec::new();
         let mut all_changes = Vec::new();
 
-        for cargo_file in &cargo_files {
-            match self
-                .run_cargo_commands_with_workspace(cargo_file, &config)
-                .await
-            {
-                Ok(results) => {
-                    for result in results {
-                        all_errors.extend(result.errors);
-                        all_warnings.extend(result.warnings);
-                        if !result.output.is_empty() {
-                            all_changes.push(result.output);
+        if config.parallel && cargo_files.len() > 1 {
+            // Parallel execution for multiple projects
+            let mut futures = Vec::new();
+
+            for cargo_file in &cargo_files {
+                let cargo_file = cargo_file.to_string();
+                let cargo_file_clone = cargo_file.clone();
+                let config = config.clone();
+                let future = tokio::spawn(async move {
+                    let tool = CargoTool;
+                    tool.run_cargo_commands_with_workspace(&cargo_file_clone, &config)
+                        .await
+                });
+                futures.push((cargo_file, future));
+            }
+
+            // Wait for all futures to complete
+            for (cargo_file, future) in futures {
+                match future.await {
+                    Ok(Ok(results)) => {
+                        for result in results {
+                            all_errors.extend(result.errors);
+                            all_warnings.extend(result.warnings);
+                            if !result.output.is_empty() {
+                                all_changes.push(result.output);
+                            }
                         }
                     }
+                    Ok(Err(e)) => all_errors
+                        .push(format!("Cargo operations failed for {}: {}", cargo_file, e)),
+                    Err(e) => all_errors.push(format!("Task failed for {}: {}", cargo_file, e)),
                 }
-                Err(e) => {
-                    all_errors.push(format!("Cargo operations failed for {}: {}", cargo_file, e))
+            }
+        } else {
+            // Sequential execution
+            for cargo_file in &cargo_files {
+                match self
+                    .run_cargo_commands_with_workspace(cargo_file, &config)
+                    .await
+                {
+                    Ok(results) => {
+                        for result in results {
+                            all_errors.extend(result.errors);
+                            all_warnings.extend(result.warnings);
+                            if !result.output.is_empty() {
+                                all_changes.push(result.output);
+                            }
+                        }
+                    }
+                    Err(e) => all_errors
+                        .push(format!("Cargo operations failed for {}: {}", cargo_file, e)),
                 }
             }
         }
@@ -223,24 +258,62 @@ impl TransformationTool for CargoTool {
         let mut all_warnings = Vec::new();
         let mut all_changes = Vec::new();
 
-        for cargo_file in &cargo_files {
-            match self
-                .run_transformation_commands_with_workspace(cargo_file, &config)
-                .await
-            {
-                Ok(results) => {
-                    for result in results {
-                        all_errors.extend(result.errors);
-                        all_warnings.extend(result.warnings);
-                        if !result.output.is_empty() {
-                            all_changes.push(result.output);
+        if config.parallel && cargo_files.len() > 1 {
+            // Parallel execution for multiple projects
+            let mut futures = Vec::new();
+
+            for cargo_file in &cargo_files {
+                let cargo_file = cargo_file.to_string();
+                let cargo_file_clone = cargo_file.clone();
+                let config = config.clone();
+                let future = tokio::spawn(async move {
+                    let tool = CargoTool;
+                    tool.run_transformation_commands_with_workspace(&cargo_file_clone, &config)
+                        .await
+                });
+                futures.push((cargo_file, future));
+            }
+
+            // Wait for all futures to complete
+            for (cargo_file, future) in futures {
+                match future.await {
+                    Ok(Ok(results)) => {
+                        for result in results {
+                            all_errors.extend(result.errors);
+                            all_warnings.extend(result.warnings);
+                            if !result.output.is_empty() {
+                                all_changes.push(result.output);
+                            }
                         }
                     }
+                    Ok(Err(e)) => all_errors.push(format!(
+                        "Cargo transformation failed for {}: {}",
+                        cargo_file, e
+                    )),
+                    Err(e) => all_errors.push(format!("Task failed for {}: {}", cargo_file, e)),
                 }
-                Err(e) => all_errors.push(format!(
-                    "Cargo transformation failed for {}: {}",
-                    cargo_file, e
-                )),
+            }
+        } else {
+            // Sequential execution
+            for cargo_file in &cargo_files {
+                match self
+                    .run_transformation_commands_with_workspace(cargo_file, &config)
+                    .await
+                {
+                    Ok(results) => {
+                        for result in results {
+                            all_errors.extend(result.errors);
+                            all_warnings.extend(result.warnings);
+                            if !result.output.is_empty() {
+                                all_changes.push(result.output);
+                            }
+                        }
+                    }
+                    Err(e) => all_errors.push(format!(
+                        "Cargo transformation failed for {}: {}",
+                        cargo_file, e
+                    )),
+                }
             }
         }
 

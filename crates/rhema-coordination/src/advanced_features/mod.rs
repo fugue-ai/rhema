@@ -15,13 +15,27 @@
  * limitations under the License.
  */
 
+pub mod alerting;
+pub mod audit;
 pub mod compression;
 pub mod encryption;
 pub mod key_management;
+pub mod tracing;
 
+pub use alerting::{
+    Alert, AlertHandler, AlertStatistics, AlertStatus, AlertingConfig, AlertingSystem,
+};
+pub use audit::{
+    AuditConfig, AuditEntry, AuditExporter, AuditFilter, AuditLevel, AuditLogger, AuditResult,
+    AuditStatistics as AuditStats, ComplianceStandard, DataClassification,
+};
 pub use compression::{CompressionAlgorithm, CompressionConfig, MessageCompressor};
 pub use encryption::{EncryptionAlgorithm, EncryptionConfig, MessageEncryption};
 pub use key_management::{KeyManager, KeyRotationPolicy, KeyStorage};
+pub use tracing::{
+    LogLevel, Span, SpanEvent, SpanLog, SpanStatus, Trace, TraceContext, TraceExportFormat,
+    TraceExporter, TraceStatistics, TraceStatus, TracingConfig, TracingSystem,
+};
 
 use chrono::{DateTime, Utc};
 use rhema_core::RhemaResult;
@@ -40,6 +54,12 @@ pub struct AdvancedFeaturesConfig {
     pub encryption: EncryptionConfig,
     /// Performance monitoring configuration
     pub performance_monitoring: PerformanceMonitoringConfig,
+    /// Alerting configuration
+    pub alerting: AlertingConfig,
+    /// Tracing configuration
+    pub tracing: TracingConfig,
+    /// Audit configuration
+    pub audit: AuditConfig,
 }
 
 /// Key management configuration
@@ -172,6 +192,9 @@ impl Default for AdvancedFeaturesConfig {
                 },
                 enable_alerts: true,
             },
+            alerting: AlertingConfig::default(),
+            tracing: TracingConfig::default(),
+            audit: AuditConfig::default(),
         }
     }
 }

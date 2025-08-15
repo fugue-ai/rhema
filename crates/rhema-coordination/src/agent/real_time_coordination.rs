@@ -2030,7 +2030,7 @@ impl RealTimeCoordinationSystem {
 
     /// Update performance metrics
     pub async fn update_performance_metrics(&self, metrics: PerformanceMetrics) {
-        if let Some(performance_monitor) = &self.performance_monitor {
+        if let Some(_performance_monitor) = &self.performance_monitor {
             // Clone the metrics and pass to the monitor
             let metrics_clone = metrics.clone();
             // Note: This would need to be handled differently in a real implementation

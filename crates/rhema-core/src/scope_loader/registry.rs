@@ -246,6 +246,11 @@ impl PluginRegistry {
         self.plugins.get(plugin_name).map(|p| p.as_ref())
     }
 
+    /// Get all plugins
+    pub fn get_all_plugins(&self) -> Vec<&dyn ScopeLoaderPlugin> {
+        self.plugins.values().map(|p| p.as_ref()).collect()
+    }
+
     /// Remove a plugin from the registry
     pub fn remove_plugin(&mut self, plugin_name: &str) -> Result<(), RegistryError> {
         if self.plugins.remove(plugin_name).is_some() {

@@ -1,7 +1,12 @@
 use clap::{Parser, Subcommand};
 use rhema_api::{Rhema, RhemaResult};
 use rhema_coordination::agent::real_time_coordination::{
-    AgentInfo, AgentMessage, AgentPerformanceMetrics, AgentStatus, MessagePriority, MessageType,
+    AgentMessage, AgentStatus, MessagePriority, MessageType,
+};
+
+// Import enhanced features
+use rhema_cli::enhanced_features::{
+    BatchCommand, BatchProcessor, EnhancedSearch, PerformanceMonitor, SearchFilters,
 };
 
 #[derive(Parser)]
@@ -99,6 +104,53 @@ enum Commands {
 
     /// Show statistics
     Stats,
+
+    /// Enhanced search with advanced filtering
+    AdvancedSearch {
+        /// Search query
+        query: String,
+
+        /// Scope to search in
+        #[arg(long)]
+        scope: Option<String>,
+
+        /// Content types to include (comma-separated)
+        #[arg(long)]
+        content_types: Option<String>,
+
+        /// Maximum file size in bytes
+        #[arg(long)]
+        max_file_size: Option<u64>,
+
+        /// Maximum number of results
+        #[arg(long, default_value = "50")]
+        limit: usize,
+
+        /// Use semantic search
+        #[arg(long)]
+        semantic: bool,
+    },
+
+    /// Batch processing of multiple commands
+    Batch {
+        /// Batch file path (JSON or YAML)
+        file: String,
+
+        /// Show detailed output
+        #[arg(long)]
+        verbose: bool,
+    },
+
+    /// Performance monitoring and statistics
+    Performance {
+        /// Show performance report
+        #[arg(long)]
+        report: bool,
+
+        /// Clear performance data
+        #[arg(long)]
+        clear: bool,
+    },
 
     /// Manage scope loader plugins and auto-discovery
     ScopeLoader {
@@ -783,7 +835,6 @@ async fn handle_scope_loader_commands(subcommand: ScopeLoaderCommands) -> RhemaR
 
 async fn handle_config_commands(subcommand: ConfigSubcommands) -> RhemaResult<()> {
     use rhema_core::scope_loader::*;
-    use std::path::PathBuf;
 
     let current_dir = std::env::current_dir().map_err(|e| {
         rhema_api::RhemaError::SystemError(format!("Failed to get current directory: {}", e))
@@ -871,7 +922,6 @@ async fn handle_config_commands(subcommand: ConfigSubcommands) -> RhemaResult<()
 
 async fn handle_git_commands(subcommand: GitSubcommands) -> RhemaResult<()> {
     use rhema_core::scope_loader::*;
-    use std::path::PathBuf;
 
     let current_dir = std::env::current_dir().map_err(|e| {
         rhema_api::RhemaError::SystemError(format!("Failed to get current directory: {}", e))
@@ -995,7 +1045,7 @@ async fn handle_git_commands(subcommand: GitSubcommands) -> RhemaResult<()> {
 }
 
 async fn handle_coordination_commands(
-    rhema: &Rhema,
+    rhema: &mut Rhema,
     subcommand: CoordinationSubcommands,
 ) -> RhemaResult<()> {
     match subcommand {
@@ -1168,7 +1218,7 @@ async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) 
 
             if let Some(integration) = rhema.get_coordination_integration() {
                 let session_id = integration
-                    .create_rhema_session(topic, participant_list)
+                    .create_rhema_session(&topic, participant_list)
                     .await?;
                 println!("✅ Session created successfully with ID: {}", session_id);
             } else {
@@ -1287,7 +1337,10 @@ async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) 
     }
 }
 
-async fn handle_system_commands(rhema: &Rhema, subcommand: SystemSubcommands) -> RhemaResult<()> {
+async fn handle_system_commands(
+    rhema: &mut Rhema,
+    subcommand: SystemSubcommands,
+) -> RhemaResult<()> {
     match subcommand {
         SystemSubcommands::Init {
             syneidesis,
@@ -1302,17 +1355,38 @@ async fn handle_system_commands(rhema: &Rhema, subcommand: SystemSubcommands) ->
                     server_address.unwrap_or_else(|| "http://127.0.0.1:50051".to_string());
                 println!("Server address: {}", server_addr);
 
-                let coordination_config =
-                    rhema_coordination::coordination_integration::CoordinationConfig {
+                let syneidesis_config =
+                    rhema_coordination::grpc::coordination_client::SyneidesisConfig {
                         enabled: true,
-                        server_address: Some(server_addr),
+                        server_address: Some(server_addr.clone()),
                         auto_register_agents: true,
                         sync_messages: true,
                         enable_health_monitoring: true,
                         timeout_seconds: 30,
                         max_retries: 3,
+                        retry_backoff_ms: 1000,
                         enable_tls: tls,
                         tls_cert_path: None,
+                        health_check_interval_seconds: 30,
+                        connection_recovery_enabled: true,
+                        max_reconnection_attempts: 5,
+                        reconnection_backoff_ms: 5000,
+                        enable_metrics: true,
+                        log_level: "info".to_string(),
+                        security: rhema_coordination::grpc::security::SecurityConfig::default(),
+                        performance: rhema_coordination::grpc::security::PerformanceConfig::default(
+                        ),
+                    };
+
+                let coordination_config =
+                    rhema_coordination::coordination_integration::CoordinationConfig {
+                        run_local_server: false,
+                        server_address: Some(server_addr),
+                        auto_register_agents: true,
+                        sync_messages: true,
+                        sync_tasks: true,
+                        enable_health_monitoring: true,
+                        syneidesis: Some(syneidesis_config),
                     };
 
                 rhema
@@ -1453,7 +1527,7 @@ async fn handle_coordination_status(
 async fn main() -> RhemaResult<()> {
     let cli = Cli::parse();
 
-    let rhema = Rhema::new()?;
+    let mut rhema = Rhema::new()?;
 
     match &cli.command {
         Some(Commands::Init {
@@ -1584,13 +1658,118 @@ async fn main() -> RhemaResult<()> {
             Ok(())
         }
 
+        Some(Commands::AdvancedSearch {
+            query,
+            scope,
+            content_types,
+            max_file_size,
+            limit,
+            semantic,
+        }) => {
+            let start_time = std::time::Instant::now();
+
+            let mut filters = SearchFilters::default();
+            filters.scope = scope.clone();
+            filters.max_file_size = *max_file_size;
+            filters.limit = Some(*limit);
+
+            if let Some(types) = content_types {
+                filters.content_types =
+                    Some(types.split(',').map(|s| s.trim().to_string()).collect());
+            }
+
+            let search = EnhancedSearch::new(&rhema);
+
+            let results = if *semantic {
+                search.semantic_search(&query, scope.as_deref()).await?
+            } else {
+                search.advanced_search(&query, &filters).await?
+            };
+
+            let duration = start_time.elapsed();
+
+            println!("Advanced search completed in {:?}", duration);
+            println!("Found {} results:", results.len());
+
+            for (i, result) in results.iter().enumerate() {
+                println!(
+                    "{}. {} (score: {:.2})",
+                    i + 1,
+                    result.file_path,
+                    result.relevance_score
+                );
+                println!("   Line {}: {}", result.line_number, result.content);
+                println!();
+            }
+
+            Ok(())
+        }
+
+        Some(Commands::Batch { file, verbose }) => {
+            let start_time = std::time::Instant::now();
+
+            // Read batch file
+            let content = std::fs::read_to_string(&file)?;
+            let commands: Vec<BatchCommand> = if file.ends_with(".json") {
+                serde_json::from_str(&content)?
+            } else {
+                serde_yaml::from_str(&content)?
+            };
+
+            if *verbose {
+                println!("Processing {} batch commands...", commands.len());
+            }
+
+            let processor = BatchProcessor::new(&rhema);
+            let results = processor.process_batch(commands).await?;
+
+            let duration = start_time.elapsed();
+
+            if *verbose {
+                println!("Batch processing completed in {:?}", duration);
+                for (i, result) in results.iter().enumerate() {
+                    println!("Command {}: {:?}", i + 1, result);
+                }
+            } else {
+                println!("Batch processing completed in {:?}", duration);
+                println!("Processed {} commands successfully", results.len());
+            }
+
+            Ok(())
+        }
+
+        Some(Commands::Performance { report, clear }) => {
+            static mut PERFORMANCE_MONITOR: Option<PerformanceMonitor> = None;
+
+            unsafe {
+                if PERFORMANCE_MONITOR.is_none() {
+                    PERFORMANCE_MONITOR = Some(PerformanceMonitor::new());
+                }
+
+                let monitor = PERFORMANCE_MONITOR.as_mut().unwrap();
+
+                if *clear {
+                    *monitor = PerformanceMonitor::new();
+                    println!("Performance data cleared");
+                } else if *report {
+                    let report_text = monitor.generate_report();
+                    println!("{}", report_text);
+                } else {
+                    println!("Performance monitoring active");
+                    println!("Use --report to see statistics or --clear to reset");
+                }
+            }
+
+            Ok(())
+        }
+
         Some(Commands::ScopeLoader { subcommand }) => {
             handle_scope_loader_commands(subcommand.clone()).await
         }
         Some(Commands::Config { subcommand }) => handle_config_commands(subcommand.clone()).await,
         Some(Commands::Git { subcommand }) => handle_git_commands(subcommand.clone()).await,
         Some(Commands::Coordination { subcommand }) => {
-            handle_coordination_commands(&rhema, subcommand.clone()).await
+            handle_coordination_commands(&mut rhema, subcommand.clone()).await
         }
         None => {
             println!("Welcome to Rhema CLI!");

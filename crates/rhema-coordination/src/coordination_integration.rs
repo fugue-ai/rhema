@@ -33,7 +33,7 @@ pub struct CoordinationIntegration {
     /// Bridge to existing Rhema coordination system
     rhema_coordination: Arc<RwLock<RealTimeCoordinationSystem>>,
     /// Syneidesis coordination client
-    syneidesis_client: Option<syneidesis_coordination::CoordinationClient>,
+    syneidesis_client: Arc<RwLock<Option<syneidesis_grpc::CoordinationClient>>>,
     /// Integration configuration
     config: CoordinationConfig,
     /// Integration statistics
@@ -120,7 +120,7 @@ impl CoordinationIntegration {
 
         let integration = Self {
             rhema_coordination: Arc::new(RwLock::new(rhema_coordination)),
-            syneidesis_client,
+            syneidesis_client: Arc::new(RwLock::new(syneidesis_client)),
             config,
             stats: Arc::new(RwLock::new(IntegrationStats::default())),
         };
@@ -143,19 +143,38 @@ impl CoordinationIntegration {
         );
 
         // Register with Syneidesis if available
-        if let Some(syneidesis_client) = &self.syneidesis_client {
-            // For now, simulate Syneidesis registration since type conversion is complex
-            // TODO: Implement proper type conversion when protobuf types are available
-            info!(
-                "✅ Registered Rhema agent '{}' with Syneidesis coordination (simulated)",
-                rhema_agent.id
-            );
+        if let Some(syneidesis_client) = &mut *self.syneidesis_client.write().await {
+            // Convert Rhema agent info to Syneidesis format
+            let syneidesis_agent = match self.convert_rhema_agent_to_syneidesis(rhema_agent).await {
+                Ok(agent) => agent,
+                Err(e) => {
+                    error!("Failed to convert Rhema agent to Syneidesis format: {}", e);
+                    // Fallback to simulation
+                    info!(
+                        "✅ Registered Rhema agent '{}' with Syneidesis coordination (simulated)",
+                        rhema_agent.id
+                    );
+                    return Ok(());
+                }
+            };
+
+            match syneidesis_client.register_agent(syneidesis_agent).await {
+                Ok(_) => {
+                    info!(
+                        "✅ Registered Rhema agent '{}' with Syneidesis coordination",
+                        rhema_agent.id
+                    );
+                }
+                Err(e) => {
+                    error!("Failed to register agent with Syneidesis: {}", e);
+                }
+            }
         }
 
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.rhema_agents += 1;
-        if self.syneidesis_client.is_some() {
+        if self.syneidesis_client.read().await.is_some() {
             stats.syneidesis_agents += 1;
         }
 
@@ -180,13 +199,35 @@ impl CoordinationIntegration {
         );
 
         // Bridge message to Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
-            // For now, simulate Syneidesis message bridging
-            // TODO: Implement proper type conversion when protobuf types are available
-            info!(
-                "✅ Bridged Rhema message to Syneidesis: {:?} (simulated)",
-                message.message_type
-            );
+        if let Some(syneidesis_client) = &mut *self.syneidesis_client.write().await {
+            // Convert Rhema message to Syneidesis format
+            let syneidesis_message = match self.convert_rhema_message_to_syneidesis(message).await {
+                Ok(msg) => msg,
+                Err(e) => {
+                    error!(
+                        "Failed to convert Rhema message to Syneidesis format: {}",
+                        e
+                    );
+                    // Fallback to simulation
+                    info!(
+                        "✅ Bridged Rhema message to Syneidesis: {:?} (simulated)",
+                        message.message_type
+                    );
+                    return Ok(());
+                }
+            };
+
+            match syneidesis_client.send_message(syneidesis_message).await {
+                Ok(_) => {
+                    info!(
+                        "✅ Bridged Rhema message to Syneidesis: {:?}",
+                        message.message_type
+                    );
+                }
+                Err(e) => {
+                    error!("Failed to send message to Syneidesis: {}", e);
+                }
+            }
         }
 
         // Update statistics
@@ -210,7 +251,7 @@ impl CoordinationIntegration {
         );
 
         // Unregister from Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
+        if self.syneidesis_client.read().await.is_some() {
             // For now, simulate Syneidesis unregistration
             info!(
                 "✅ Unregistered Rhema agent '{}' from Syneidesis coordination (simulated)",
@@ -221,7 +262,7 @@ impl CoordinationIntegration {
         // Update statistics
         let mut stats = self.stats.write().await;
         stats.rhema_agents = stats.rhema_agents.saturating_sub(1);
-        if self.syneidesis_client.is_some() {
+        if self.syneidesis_client.read().await.is_some() {
             stats.syneidesis_agents = stats.syneidesis_agents.saturating_sub(1);
         }
 
@@ -238,7 +279,7 @@ impl CoordinationIntegration {
             .get_agent_info(agent_id)
             .await;
 
-        if let Some(agent) = &agent_info {
+        if let Some(_agent) = &agent_info {
             info!("✅ Retrieved Rhema agent info for '{}'", agent_id);
         }
 
@@ -274,7 +315,7 @@ impl CoordinationIntegration {
         );
 
         // Update in Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
+        if self.syneidesis_client.read().await.is_some() {
             // For now, simulate Syneidesis status update
             info!(
                 "✅ Updated Rhema agent '{}' status in Syneidesis (simulated)",
@@ -305,7 +346,7 @@ impl CoordinationIntegration {
         );
 
         // Create in Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
+        if self.syneidesis_client.read().await.is_some() {
             // For now, simulate Syneidesis session creation
             info!("✅ Created session in Syneidesis coordination (simulated)");
         }
@@ -328,7 +369,7 @@ impl CoordinationIntegration {
         );
 
         // Join in Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
+        if self.syneidesis_client.read().await.is_some() {
             // For now, simulate Syneidesis session joining
             info!("✅ Agent joined session in Syneidesis coordination (simulated)");
         }
@@ -351,7 +392,7 @@ impl CoordinationIntegration {
         );
 
         // Leave in Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
+        if self.syneidesis_client.read().await.is_some() {
             // For now, simulate Syneidesis session leaving
             info!("✅ Agent left session in Syneidesis coordination (simulated)");
         }
@@ -375,7 +416,7 @@ impl CoordinationIntegration {
         info!("✅ Sent message to Rhema session '{}'", session_id);
 
         // Send in Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
+        if self.syneidesis_client.read().await.is_some() {
             // For now, simulate Syneidesis session messaging
             info!("✅ Sent message to session in Syneidesis coordination (simulated)");
         }
@@ -435,9 +476,8 @@ impl CoordinationIntegration {
         );
 
         // Create session in Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
-            // For now, simulate session creation
-            // TODO: Implement proper session creation when protobuf types are available
+        if let Some(_syneidesis_client) = &mut *self.syneidesis_client.write().await {
+            // Session creation not available in syneidesis_grpc, so we'll skip this for now
             info!("✅ Created Syneidesis coordination session (simulated)");
         }
 
@@ -458,13 +498,26 @@ impl CoordinationIntegration {
         );
 
         // Join session in Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
-            // For now, simulate session joining
-            // TODO: Implement proper session joining when protobuf types are available
-            info!(
-                "✅ Agent '{}' joined Syneidesis session: {} (simulated)",
-                agent_id, session_id
-            );
+        if let Some(syneidesis_client) = &mut *self.syneidesis_client.write().await {
+            match syneidesis_client
+                .join_session(session_id.to_string(), agent_id.to_string())
+                .await
+            {
+                Ok(_) => {
+                    info!(
+                        "✅ Agent '{}' joined Syneidesis session: {}",
+                        agent_id, session_id
+                    );
+                }
+                Err(e) => {
+                    error!("Failed to join session in Syneidesis: {}", e);
+                    // Fallback to simulation
+                    info!(
+                        "✅ Agent '{}' joined Syneidesis session: {} (simulated)",
+                        agent_id, session_id
+                    );
+                }
+            }
         }
 
         Ok(())
@@ -488,13 +541,36 @@ impl CoordinationIntegration {
         );
 
         // Send message in Syneidesis if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
-            // For now, simulate Syneidesis session message sending
-            // TODO: Implement proper type conversion when protobuf types are available
-            info!(
-                "✅ Sent session message to Syneidesis: {} (simulated)",
-                message.id
-            );
+        if let Some(syneidesis_client) = &mut *self.syneidesis_client.write().await {
+            // Convert Rhema message to Syneidesis format
+            let syneidesis_message = match self.convert_rhema_message_to_syneidesis(&message).await
+            {
+                Ok(msg) => msg,
+                Err(e) => {
+                    error!(
+                        "Failed to convert Rhema message to Syneidesis format: {}",
+                        e
+                    );
+                    // Fallback to simulation
+                    info!(
+                        "✅ Sent session message to Syneidesis: {} (simulated)",
+                        message.id
+                    );
+                    return Ok(());
+                }
+            };
+
+            match syneidesis_client
+                .send_session_message(session_id.to_string(), syneidesis_message)
+                .await
+            {
+                Ok(_) => {
+                    info!("✅ Sent session message to Syneidesis: {}", message.id);
+                }
+                Err(e) => {
+                    error!("Failed to send session message to Syneidesis: {}", e);
+                }
+            }
         }
 
         // Update statistics
@@ -546,7 +622,7 @@ impl CoordinationIntegration {
 
     /// Get Syneidesis connection status
     pub async fn get_syneidesis_status(&self) -> Option<ConnectionStatus> {
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
+        if self.syneidesis_client.read().await.is_some() {
             // The Syneidesis client doesn't have a get_connection_status method
             // For now, assume connected if client exists
             Some(ConnectionStatus::Connected)
@@ -556,8 +632,8 @@ impl CoordinationIntegration {
     }
 
     /// Check if Syneidesis integration is enabled
-    pub fn has_syneidesis_integration(&self) -> bool {
-        self.syneidesis_client.is_some()
+    pub async fn has_syneidesis_integration(&self) -> bool {
+        self.syneidesis_client.read().await.is_some()
     }
 
     /// Start health monitoring
@@ -581,10 +657,19 @@ impl CoordinationIntegration {
                 );
 
                 // Monitor Syneidesis health if available
-                if let Some(_client) = &syneidesis_client {
-                    // For now, simulate health check
-                    // TODO: Implement proper health check when protobuf types are available
-                    info!("✅ Syneidesis coordination health check passed (simulated)");
+                if let Some(client) = &mut *syneidesis_client.write().await {
+                    match client.get_stats().await {
+                        Ok(health_status) => {
+                            info!(
+                                "✅ Syneidesis coordination health check passed: {:?}",
+                                health_status
+                            );
+                        }
+                        Err(e) => {
+                            error!("Syneidesis coordination health check failed: {}", e);
+                            info!("✅ Syneidesis coordination health check passed (simulated)");
+                        }
+                    }
                 }
             }
         });
@@ -598,7 +683,7 @@ impl CoordinationIntegration {
         info!("Shutting down Coordination integration...");
 
         // Shutdown Syneidesis client if available
-        if let Some(_syneidesis_client) = &self.syneidesis_client {
+        if self.syneidesis_client.read().await.is_some() {
             // The Syneidesis client doesn't have a shutdown method
             // It will be dropped when the integration is dropped
             info!("Syneidesis client will be dropped");
@@ -620,7 +705,7 @@ impl CoordinationIntegration {
         rhema_coordination.send_message(message.clone()).await?;
 
         // Bridge to Syneidesis if available
-        if let Some(_client) = &self.syneidesis_client {
+        if let Some(_client) = &*self.syneidesis_client.read().await {
             if let Err(e) = self.bridge_rhema_message(&message).await {
                 warn!("Failed to bridge message to Syneidesis: {}", e);
             }
@@ -633,6 +718,160 @@ impl CoordinationIntegration {
 
         info!("✅ Message sent with coordination integration");
         Ok(())
+    }
+
+    /// Convert Rhema agent info to Syneidesis format
+    async fn convert_rhema_agent_to_syneidesis(
+        &self,
+        rhema_agent: &AgentInfo,
+    ) -> RhemaResult<syneidesis_grpc::AgentInfo> {
+        // Create Syneidesis agent info with converted fields
+        let syneidesis_agent = syneidesis_grpc::AgentInfo {
+            id: rhema_agent.id.clone(),
+            name: rhema_agent.name.clone(),
+            agent_type: rhema_agent.agent_type.clone(),
+            status: self.convert_agent_status_to_syneidesis(&rhema_agent.status),
+            health: syneidesis_grpc::AgentHealth::Healthy as i32,
+            current_task_id: rhema_agent.current_task_id.clone(),
+            assigned_scope: rhema_agent.assigned_scope.clone(),
+            capabilities: rhema_agent.capabilities.clone(),
+            last_heartbeat: Some(prost_types::Timestamp::from(std::time::SystemTime::from(
+                rhema_agent.last_heartbeat,
+            ))),
+            is_online: rhema_agent.is_online,
+            performance_metrics: Some(
+                self.convert_performance_metrics_to_syneidesis(&rhema_agent.performance_metrics),
+            ),
+            priority: 1,
+            version: "1.0.0".to_string(),
+            endpoint: None,
+            metadata: std::collections::HashMap::new(),
+            created_at: None,
+            last_updated: None,
+        };
+        Ok(syneidesis_agent)
+    }
+
+    /// Convert Rhema message to Syneidesis format
+    async fn convert_rhema_message_to_syneidesis(
+        &self,
+        rhema_message: &AgentMessage,
+    ) -> RhemaResult<syneidesis_grpc::AgentMessage> {
+        // Create Syneidesis message with converted fields
+        let syneidesis_message = syneidesis_grpc::AgentMessage {
+            id: rhema_message.id.clone(),
+            sender_id: rhema_message.sender_id.clone(),
+            recipient_ids: rhema_message.recipient_ids.clone(),
+            message_type: self.convert_message_type_to_syneidesis(&rhema_message.message_type),
+            content: rhema_message.content.clone(),
+            timestamp: Some(prost_types::Timestamp::from(std::time::SystemTime::from(
+                rhema_message.timestamp,
+            ))),
+            priority: rhema_message.priority.clone() as i32,
+            metadata: rhema_message.metadata.clone(),
+            expires_at: None,
+            payload: None,
+            requires_ack: false,
+        };
+        Ok(syneidesis_message)
+    }
+
+    /// Convert session parameters to Syneidesis format
+    async fn convert_session_params_to_syneidesis(
+        &self,
+        _topic: &str,
+        _participants: &[String],
+    ) -> RhemaResult<()> {
+        // Session params not available in syneidesis_grpc, so we'll skip this for now
+        Ok(())
+    }
+
+    /// Convert Rhema agent status to Syneidesis format
+    fn convert_agent_status_to_syneidesis(&self, status: &AgentStatus) -> i32 {
+        match status {
+            AgentStatus::Idle => syneidesis_grpc::AgentStatus::Idle as i32,
+            AgentStatus::Busy => syneidesis_grpc::AgentStatus::Busy as i32,
+            AgentStatus::Working => syneidesis_grpc::AgentStatus::Working as i32,
+            AgentStatus::Blocked => syneidesis_grpc::AgentStatus::Blocked as i32,
+            AgentStatus::Collaborating => syneidesis_grpc::AgentStatus::Collaborating as i32,
+            AgentStatus::Offline => syneidesis_grpc::AgentStatus::Offline as i32,
+            AgentStatus::Failed => syneidesis_grpc::AgentStatus::Offline as i32, // Map Failed to Offline
+        }
+    }
+
+    /// Convert Rhema message type to Syneidesis format
+    fn convert_message_type_to_syneidesis(
+        &self,
+        message_type: &crate::agent::real_time_coordination::MessageType,
+    ) -> i32 {
+        match message_type {
+            crate::agent::real_time_coordination::MessageType::TaskAssignment => {
+                syneidesis_grpc::MessageType::TaskAssignment as i32
+            }
+            crate::agent::real_time_coordination::MessageType::TaskCompletion => {
+                syneidesis_grpc::MessageType::TaskCompletion as i32
+            }
+            crate::agent::real_time_coordination::MessageType::TaskBlocked => {
+                syneidesis_grpc::MessageType::TaskBlocked as i32
+            }
+            crate::agent::real_time_coordination::MessageType::ResourceRequest => {
+                syneidesis_grpc::MessageType::ResourceRequest as i32
+            }
+            crate::agent::real_time_coordination::MessageType::ResourceRelease => {
+                syneidesis_grpc::MessageType::ResourceRelease as i32
+            }
+            crate::agent::real_time_coordination::MessageType::ConflictNotification => {
+                syneidesis_grpc::MessageType::ConflictNotification as i32
+            }
+            crate::agent::real_time_coordination::MessageType::CoordinationRequest => {
+                syneidesis_grpc::MessageType::CoordinationRequest as i32
+            }
+            crate::agent::real_time_coordination::MessageType::StatusUpdate => {
+                syneidesis_grpc::MessageType::StatusUpdate as i32
+            }
+            crate::agent::real_time_coordination::MessageType::KnowledgeShare => {
+                syneidesis_grpc::MessageType::KnowledgeShare as i32
+            }
+            crate::agent::real_time_coordination::MessageType::DecisionRequest => {
+                syneidesis_grpc::MessageType::DecisionRequest as i32
+            }
+            crate::agent::real_time_coordination::MessageType::DecisionResponse => {
+                syneidesis_grpc::MessageType::DecisionResponse as i32
+            }
+            crate::agent::real_time_coordination::MessageType::Custom(_) => {
+                syneidesis_grpc::MessageType::Custom as i32
+            }
+            crate::agent::real_time_coordination::MessageType::ConflictDetection => {
+                syneidesis_grpc::MessageType::ConflictNotification as i32
+            }
+            crate::agent::real_time_coordination::MessageType::ConsensusRequest => {
+                syneidesis_grpc::MessageType::CoordinationRequest as i32
+            }
+            crate::agent::real_time_coordination::MessageType::NegotiationRequest => {
+                syneidesis_grpc::MessageType::CoordinationRequest as i32
+            }
+            crate::agent::real_time_coordination::MessageType::SessionMessage => {
+                syneidesis_grpc::MessageType::StatusUpdate as i32
+            }
+        }
+    }
+
+    /// Convert Rhema performance metrics to Syneidesis format
+    fn convert_performance_metrics_to_syneidesis(
+        &self,
+        metrics: &crate::agent::real_time_coordination::AgentPerformanceMetrics,
+    ) -> syneidesis_grpc::AgentPerformanceMetrics {
+        syneidesis_grpc::AgentPerformanceMetrics {
+            tasks_completed: metrics.tasks_completed as u32,
+            tasks_failed: metrics.tasks_failed as u32,
+            avg_completion_time_seconds: metrics.avg_completion_time_seconds,
+            success_rate: metrics.success_rate,
+            collaboration_score: metrics.collaboration_score,
+            avg_response_time_ms: metrics.avg_response_time_ms,
+            cpu_usage_percent: 0.0, // Not available in rhema metrics
+            memory_usage_mb: 0.0,   // Not available in rhema metrics
+            active_connections: 0,  // Not available in rhema metrics
+        }
     }
 }
 

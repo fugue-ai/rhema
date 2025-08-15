@@ -18,7 +18,7 @@ use rhema_config::{
     wizard::{
         ConfigWizard, QuestionType, StepType, ValidationRuleType, WizardProgress, WizardSettings,
     },
-    Config, ConfigIssue, ConfigIssueSeverity, ValidationResult, GlobalConfig, ConfigEnvironment,
+    Config, ConfigEnvironment, ConfigIssue, ConfigIssueSeverity, GlobalConfig, ValidationResult,
 };
 use serde_json::json;
 use std::collections::HashMap;
@@ -411,13 +411,11 @@ async fn test_integration_end_to_end() {
     let mut wizard = ConfigWizard::new(wizard_settings);
 
     // Answer welcome step question
-    wizard
-        .answer_question("proceed", json!(true))
-        .unwrap();
-    
+    wizard.answer_question("proceed", json!(true)).unwrap();
+
     // Navigate to user info step
     wizard.next_step().unwrap();
-    
+
     // Answer user info questions
     wizard
         .answer_question("user_id", json!("integration_test_user"))
@@ -428,10 +426,10 @@ async fn test_integration_end_to_end() {
     wizard
         .answer_question("user_email", json!("integration@example.com"))
         .unwrap();
-    
+
     // Navigate to application setup step
     wizard.next_step().unwrap();
-    
+
     // Answer application setup questions
     wizard
         .answer_question("app_name", json!("Integration Test Project"))

@@ -130,16 +130,15 @@ pub fn handle_decision(
             rationale,
             consequences,
         } => {
-            match rhema_core::file_ops::add_decision(
+            match rhema_core::fileops::add_decision_entry(
                 &scope.path,
-                title.to_string(),
-                description.to_string(),
-                status.clone(),
-                decision_context.clone(),
-                makers.clone(),
-                alternatives.clone(),
-                rationale.clone(),
-                consequences.clone(),
+                title,
+                description,
+                decision_context.as_deref(),
+                makers.as_deref(),
+                alternatives.as_deref(),
+                rationale.as_deref(),
+                consequences.as_deref(),
             ) {
                 Ok(id) => {
                     println!("🎯 Decision recorded successfully with ID: {}", id);
@@ -170,7 +169,11 @@ pub fn handle_decision(
             }
         }
         DecisionSubcommands::List { status, maker } => {
-            match rhema_core::file_ops::list_decisions(&scope.path, status.clone(), maker.clone()) {
+            match rhema_core::fileops::get_decision_entries(
+                &scope.path,
+                status.clone(),
+                maker.as_deref(),
+            ) {
                 Ok(decisions) => {
                     if decisions.is_empty() {
                         println!("📭 No decisions found");
@@ -202,7 +205,7 @@ pub fn handle_decision(
             rationale,
             consequences,
         } => {
-            match rhema_core::file_ops::update_decision(
+            match rhema_core::fileops::update_decision(
                 &scope.path,
                 id,
                 title.clone(),
@@ -225,7 +228,7 @@ pub fn handle_decision(
             }
         }
         DecisionSubcommands::Delete { id } => {
-            match rhema_core::file_ops::delete_decision(&scope.path, id) {
+            match rhema_core::fileops::delete_decision(&scope.path, id) {
                 Ok(()) => {
                     println!("🗑️  Decision {} deleted successfully!", id);
                     Ok(())

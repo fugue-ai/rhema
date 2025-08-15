@@ -22,6 +22,7 @@ export interface RhemaCompletionItem extends CompletionItem {
   context?: string[];
   priority?: number;
   category?: 'keyword' | 'snippet' | 'value' | 'field' | 'enum';
+  label?: string;
 }
 
 export class RhemaCompleter {

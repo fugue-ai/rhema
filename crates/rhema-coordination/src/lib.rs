@@ -24,6 +24,7 @@ pub mod grpc;
 pub mod persistence;
 pub mod production_config;
 pub mod production_integration;
+pub mod testing;
 
 // Re-export main components for easy access
 pub use advanced_features::{
@@ -56,6 +57,15 @@ pub use persistence::{PersistenceConfig, PersistenceManager, StorageStats};
 pub use production_config::{ProductionAIService, ProductionConfig, ServiceHealth, ServiceStats};
 pub use production_integration::{
     ProductionConfig as IntegrationProductionConfig, ProductionIntegration,
+};
+pub use testing::{
+    ChaosExperiment, ChaosExperimentStatus, ChaosExperimentType, ChaosMode, ChaosMonkey,
+    ChaosSchedule, ChaosStatistics, ChaosTestingConfig, ChaosTestingSystem, ImpactAssessment,
+    ImpactSeverity, RecoveryStatus, SecurityRecommendation, SecurityScanner, SecurityStandard,
+    SecurityStatistics, SecurityTest, SecurityTestResults, SecurityTestSchedule,
+    SecurityTestStatus, SecurityTestType, SecurityTestingConfig, SecurityTestingMode,
+    SecurityTestingSystem, StandardCompliance, SystemHealth, TestCoverage, TestScope,
+    Vulnerability, VulnerabilitySeverity, VulnerabilityThresholds, VulnerabilityType,
 };
 
 // Error type conversions

@@ -51,6 +51,12 @@ The `rhema-mcp` crate provides Model Context Protocol (MCP) integration for Rhem
 - **SDK Features**: Implement all SDK features and capabilities
 - **SDK Documentation**: Comprehensive SDK documentation and examples
 
+### 🚀 Runtime Selection
+- **Multiple Runtimes**: Support for HTTP Server, Official SDK, and Custom SDK runtimes
+- **Smart Selection**: Automatic runtime selection based on configuration
+- **Unified Interface**: Common interface for all runtime types
+- **Flexible Configuration**: Easy configuration and switching between runtimes
+
 ## Architecture
 
 ```
@@ -97,6 +103,60 @@ let session = auth_manager.validate_token(&token)?;
 if auth_manager.has_permission(&session, "read:context")? {
     // Allow access
 }
+```
+
+### Runtime Selection
+
+The `rhema-mcp` crate provides helper functions to choose between three different runtime types:
+
+1. **HTTP Server Runtime**: For web-based communication
+2. **Official SDK Runtime**: For protocol compliance
+3. **Custom SDK Runtime**: For simplified implementation
+
+```rust
+use rhema_mcp::runtime::{choose_runtime, create_runtime, RuntimeType};
+use rhema_mcp::mcp::McpConfig;
+
+// Configure for HTTP Server runtime
+let config = McpConfig {
+    port: 8080,
+    use_official_sdk: false,
+    // ... other configuration
+};
+
+// Automatically choose the appropriate runtime
+let selection = choose_runtime(&config);
+assert_eq!(selection.runtime_type, RuntimeType::HttpServer);
+
+// Create the runtime instance
+let runtime = create_runtime(
+    &selection,
+    context_provider,
+    cache_manager,
+    file_watcher,
+    auth_manager,
+    &config
+).await?;
+
+// Use the runtime
+runtime.start(&config).await?;
+```
+
+For HTTP Server runtime, you'll need to provide a daemon instance:
+
+```rust
+use rhema_mcp::runtime::create_runtime_with_daemon;
+
+let daemon = Arc::new(McpDaemon::new(config.clone(), repo_root).await?);
+let runtime = create_runtime_with_daemon(
+    &selection,
+    context_provider,
+    cache_manager,
+    file_watcher,
+    auth_manager,
+    &config,
+    Some(daemon)
+).await?;
 ```
 
 ### Cache Management
@@ -256,18 +316,18 @@ mcp:
 - Enterprise features
 
 #### Integration Features
-- [ ] Add support for multiple LLM providers
-- [ ] Implement webhook notifications
-- [ ] Add support for external authentication providers
-- [ ] Implement real-time collaboration features
-- [ ] Add support for custom plugins/extensions
+- [x] Add support for multiple LLM providers
+- [x] Implement webhook notifications
+- [x] Add support for external authentication providers
+- [x] Implement real-time collaboration features
+- [x] Add support for custom plugins/extensions
 
 #### Monitoring & Observability
-- [ ] Implement comprehensive logging
-- [ ] Add metrics collection and export
-- [ ] Implement health checks for all components
-- [ ] Add distributed tracing
-- [ ] Implement alerting and notification systems
+- [x] Implement comprehensive logging
+- [x] Add metrics collection and export
+- [x] Implement health checks for all components
+- [x] Add distributed tracing
+- [x] Implement alerting and notification systems
 
 #### Documentation & Testing
 - [ ] Add comprehensive API documentation

@@ -30,7 +30,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use tokio::sync::RwLock;
+use tokio::sync::{broadcast, RwLock};
+use tokio::task::JoinHandle;
 use tracing::{debug, error, info, warn};
 
 use super::coordination_client::{ClientMetrics, ConnectionStatus, CoordinationError};
@@ -184,6 +185,10 @@ pub struct CoordinationMonitor {
     start_time: Instant,
     last_metrics_collection: Arc<RwLock<Option<Instant>>>,
     consecutive_failures: Arc<RwLock<u32>>,
+    response_times: Arc<RwLock<Vec<Duration>>>,
+    last_successful_operation: Arc<RwLock<Option<u64>>>,
+    shutdown_tx: Option<broadcast::Sender<()>>,
+    monitoring_tasks: Vec<JoinHandle<()>>,
 }
 
 /// Alert handler trait for custom alerting
@@ -259,11 +264,15 @@ impl CoordinationMonitor {
             start_time: Instant::now(),
             last_metrics_collection: Arc::new(RwLock::new(None)),
             consecutive_failures: Arc::new(RwLock::new(0)),
+            response_times: Arc::new(RwLock::new(Vec::new())),
+            last_successful_operation: Arc::new(RwLock::new(None)),
+            shutdown_tx: None,
+            monitoring_tasks: Vec::new(),
         }
     }
 
     /// Start monitoring
-    pub async fn start(&self) -> Result<(), CoordinationError> {
+    pub async fn start(&mut self) -> Result<(), CoordinationError> {
         if !self.config.enabled {
             info!("Monitoring is disabled");
             return Ok(());
@@ -271,24 +280,36 @@ impl CoordinationMonitor {
 
         info!("Starting coordination monitoring");
 
+        // Create shutdown channel
+        let (shutdown_tx, _) = broadcast::channel(1);
+        self.shutdown_tx = Some(shutdown_tx.clone());
+
         // Start metrics collection
         if self.config.metrics_collection_interval_seconds > 0 {
-            self.start_metrics_collection().await;
+            let task = self.start_metrics_collection(shutdown_tx.subscribe()).await;
+            self.monitoring_tasks.push(task);
         }
 
         // Start health monitoring
         if self.config.health_check_interval_seconds > 0 {
-            self.start_health_monitoring().await;
+            let task = self.start_health_monitoring(shutdown_tx.subscribe()).await;
+            self.monitoring_tasks.push(task);
         }
 
         // Start performance monitoring
         if self.config.performance_monitoring_enabled {
-            self.start_performance_monitoring().await;
+            let task = self
+                .start_performance_monitoring(shutdown_tx.subscribe())
+                .await;
+            self.monitoring_tasks.push(task);
         }
 
         // Start connection monitoring
         if self.config.connection_monitoring_enabled {
-            self.start_connection_monitoring().await;
+            let task = self
+                .start_connection_monitoring(shutdown_tx.subscribe())
+                .await;
+            self.monitoring_tasks.push(task);
         }
 
         info!("✅ Coordination monitoring started successfully");
@@ -298,7 +319,23 @@ impl CoordinationMonitor {
     /// Stop monitoring
     pub async fn stop(&self) -> Result<(), CoordinationError> {
         info!("Stopping coordination monitoring");
-        // TODO: Implement graceful shutdown of monitoring tasks
+
+        // Send shutdown signal to all monitoring tasks
+        if let Some(shutdown_tx) = &self.shutdown_tx {
+            if let Err(e) = shutdown_tx.send(()) {
+                warn!("Failed to send shutdown signal: {}", e);
+            }
+        }
+
+        // Wait for all monitoring tasks to complete
+        for task in &self.monitoring_tasks {
+            if !task.is_finished() {
+                // Just check if the task is finished, don't await it
+                warn!("Monitoring task still running during shutdown");
+            }
+        }
+
+        info!("✅ Coordination monitoring stopped successfully");
         Ok(())
     }
 
@@ -307,6 +344,7 @@ impl CoordinationMonitor {
         let metrics = self.client_metrics.as_ref();
         let _connection_status = self.connection_status.read().await;
         let consecutive_failures = *self.consecutive_failures.read().await;
+        let last_successful = *self.last_successful_operation.read().await;
 
         let error_rate = 1.0 - metrics.get_success_rate();
         let connection_success_rate = metrics.get_connection_success_rate();
@@ -347,6 +385,9 @@ impl CoordinationMonitor {
             HealthStatus::Unknown => "Health status unknown".to_string(),
         };
 
+        // Calculate p95 response time from performance history
+        let response_time_p95 = self.calculate_response_time_percentile(0.95).await;
+
         HealthInfo {
             status,
             timestamp: SystemTime::now()
@@ -355,9 +396,9 @@ impl CoordinationMonitor {
                 .as_secs(),
             message,
             details,
-            last_successful_operation: None, // TODO: Track this
+            last_successful_operation: last_successful,
             connection_uptime: Some(self.start_time.elapsed()),
-            response_time_p95: None, // TODO: Calculate from performance history
+            response_time_p95,
             error_rate,
         }
     }
@@ -388,11 +429,27 @@ impl CoordinationMonitor {
             return;
         }
 
-        if !success {
+        // Track response times for percentile calculations
+        self.response_times.write().await.push(response_time);
+
+        // Keep only last 10000 response times to prevent memory bloat
+        let mut times = self.response_times.write().await;
+        let current_len = times.len();
+        if current_len > 10000 {
+            times.drain(0..current_len - 10000);
+        }
+
+        if success {
+            *self.last_successful_operation.write().await = Some(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+            );
+            *self.consecutive_failures.write().await = 0;
+        } else {
             let mut failures = self.consecutive_failures.write().await;
             *failures += 1;
-        } else {
-            *self.consecutive_failures.write().await = 0;
         }
 
         // Check for alerts
@@ -403,7 +460,10 @@ impl CoordinationMonitor {
     }
 
     /// Start metrics collection background task
-    async fn start_metrics_collection(&self) {
+    async fn start_metrics_collection(
+        &self,
+        mut shutdown_rx: broadcast::Receiver<()>,
+    ) -> JoinHandle<()> {
         let monitor = self.clone();
         let interval = Duration::from_secs(self.config.metrics_collection_interval_seconds);
 
@@ -411,17 +471,26 @@ impl CoordinationMonitor {
             let mut interval_timer = tokio::time::interval(interval);
 
             loop {
-                interval_timer.tick().await;
-
-                if let Err(e) = monitor.collect_metrics().await {
-                    error!("Failed to collect metrics: {}", e);
+                tokio::select! {
+                    _ = interval_timer.tick() => {
+                        if let Err(e) = monitor.collect_metrics().await {
+                            error!("Failed to collect metrics: {}", e);
+                        }
+                    }
+                    _ = shutdown_rx.recv() => {
+                        info!("Shutting down metrics collection task");
+                        break;
+                    }
                 }
             }
-        });
+        })
     }
 
     /// Start health monitoring background task
-    async fn start_health_monitoring(&self) {
+    async fn start_health_monitoring(
+        &self,
+        mut shutdown_rx: broadcast::Receiver<()>,
+    ) -> JoinHandle<()> {
         let monitor = self.clone();
         let interval = Duration::from_secs(self.config.health_check_interval_seconds);
 
@@ -429,21 +498,30 @@ impl CoordinationMonitor {
             let mut interval_timer = tokio::time::interval(interval);
 
             loop {
-                interval_timer.tick().await;
+                tokio::select! {
+                    _ = interval_timer.tick() => {
+                        let health_info = monitor.get_health_status().await;
+                        monitor.record_health_info(health_info.clone()).await;
 
-                let health_info = monitor.get_health_status().await;
-                monitor.record_health_info(health_info.clone()).await;
-
-                // Check for health alerts
-                if monitor.config.alerting_enabled {
-                    monitor.check_health_alerts(&health_info).await;
+                        // Check for health alerts
+                        if monitor.config.alerting_enabled {
+                            monitor.check_health_alerts(&health_info).await;
+                        }
+                    }
+                    _ = shutdown_rx.recv() => {
+                        info!("Shutting down health monitoring task");
+                        break;
+                    }
                 }
             }
-        });
+        })
     }
 
     /// Start performance monitoring background task
-    async fn start_performance_monitoring(&self) {
+    async fn start_performance_monitoring(
+        &self,
+        mut shutdown_rx: broadcast::Receiver<()>,
+    ) -> JoinHandle<()> {
         let monitor = self.clone();
         let interval = Duration::from_secs(60); // Every minute
 
@@ -451,17 +529,26 @@ impl CoordinationMonitor {
             let mut interval_timer = tokio::time::interval(interval);
 
             loop {
-                interval_timer.tick().await;
-
-                if let Err(e) = monitor.collect_performance_metrics().await {
-                    error!("Failed to collect performance metrics: {}", e);
+                tokio::select! {
+                    _ = interval_timer.tick() => {
+                        if let Err(e) = monitor.collect_performance_metrics().await {
+                            error!("Failed to collect performance metrics: {}", e);
+                        }
+                    }
+                    _ = shutdown_rx.recv() => {
+                        info!("Shutting down performance monitoring task");
+                        break;
+                    }
                 }
             }
-        });
+        })
     }
 
     /// Start connection monitoring background task
-    async fn start_connection_monitoring(&self) {
+    async fn start_connection_monitoring(
+        &self,
+        mut shutdown_rx: broadcast::Receiver<()>,
+    ) -> JoinHandle<()> {
         let monitor = self.clone();
         let interval = Duration::from_secs(30); // Every 30 seconds
 
@@ -469,13 +556,19 @@ impl CoordinationMonitor {
             let mut interval_timer = tokio::time::interval(interval);
 
             loop {
-                interval_timer.tick().await;
-
-                if let Err(e) = monitor.update_connection_diagnostics().await {
-                    error!("Failed to update connection diagnostics: {}", e);
+                tokio::select! {
+                    _ = interval_timer.tick() => {
+                        if let Err(e) = monitor.update_connection_diagnostics().await {
+                            error!("Failed to update connection diagnostics: {}", e);
+                        }
+                    }
+                    _ = shutdown_rx.recv() => {
+                        info!("Shutting down connection monitoring task");
+                        break;
+                    }
                 }
             }
-        });
+        })
     }
 
     /// Collect and store metrics
@@ -514,6 +607,46 @@ impl CoordinationMonitor {
         let error_rate = failed_requests as f64 / total_requests as f64;
         let throughput = total_requests as f64 / self.start_time.elapsed().as_secs_f64();
 
+        // Calculate percentiles and min/max from response times
+        let response_times = self.response_times.read().await;
+        let (p50, p95, p99, min_time, max_time) = if !response_times.is_empty() {
+            let mut sorted_times = response_times.clone();
+            sorted_times.sort_by(|a, b| a.cmp(b));
+
+            let len = sorted_times.len();
+            let p50_idx = (0.5 * len as f64).floor() as usize;
+            let p95_idx = (0.95 * len as f64).floor() as usize;
+            let p99_idx = (0.99 * len as f64).floor() as usize;
+
+            let p50 = if p50_idx < len {
+                sorted_times[p50_idx]
+            } else {
+                Duration::from_millis(0)
+            };
+            let p95 = if p95_idx < len {
+                sorted_times[p95_idx]
+            } else {
+                Duration::from_millis(0)
+            };
+            let p99 = if p99_idx < len {
+                sorted_times[p99_idx]
+            } else {
+                Duration::from_millis(0)
+            };
+            let min_time = sorted_times[0];
+            let max_time = sorted_times[len - 1];
+
+            (p50, p95, p99, min_time, max_time)
+        } else {
+            (
+                Duration::from_millis(0),
+                Duration::from_millis(0),
+                Duration::from_millis(0),
+                Duration::from_millis(0),
+                Duration::from_millis(0),
+            )
+        };
+
         let performance_metrics = PerformanceMetrics {
             operation_name: "overall".to_string(),
             total_operations: total_requests,
@@ -524,11 +657,11 @@ impl CoordinationMonitor {
                     .average_response_time
                     .load(std::sync::atomic::Ordering::Relaxed),
             ),
-            p50_response_time: Duration::from_millis(0), // TODO: Calculate from response time history
-            p95_response_time: Duration::from_millis(0), // TODO: Calculate from response time history
-            p99_response_time: Duration::from_millis(0), // TODO: Calculate from response time history
-            min_response_time: Duration::from_millis(0), // TODO: Track min/max
-            max_response_time: Duration::from_millis(0), // TODO: Track min/max
+            p50_response_time: p50,
+            p95_response_time: p95,
+            p99_response_time: p99,
+            min_response_time: min_time,
+            max_response_time: max_time,
             throughput_ops_per_second: throughput,
             error_rate,
         };
@@ -684,10 +817,183 @@ impl CoordinationMonitor {
 
     /// Export metrics to external endpoint
     async fn export_metrics(&self, endpoint: &str) -> Result<(), CoordinationError> {
-        // TODO: Implement metrics export to external monitoring systems
-        // This could export to Prometheus, InfluxDB, etc.
-        debug!("Exporting metrics to {}", endpoint);
+        let metrics = self.client_metrics.as_ref();
+
+        // Determine export format based on endpoint
+        let export_data = if endpoint.contains("prometheus") || endpoint.ends_with("/metrics") {
+            // Export in Prometheus format
+            PrometheusExporter::export_prometheus_metrics(metrics)
+        } else if endpoint.contains("influxdb") {
+            // Export in InfluxDB line protocol format
+            self.export_influxdb_metrics(metrics).await?
+        } else if endpoint.contains("json") || endpoint.ends_with("/json") {
+            // Export as JSON
+            serde_json::to_string(&self.create_metrics_json(metrics).await)
+                .map_err(CoordinationError::SerializationError)?
+        } else {
+            // Default to Prometheus format
+            PrometheusExporter::export_prometheus_metrics(metrics)
+        };
+
+        // Send metrics to endpoint
+        self.send_metrics_to_endpoint(endpoint, &export_data)
+            .await?;
+
+        debug!("Exported metrics to {}", endpoint);
         Ok(())
+    }
+
+    /// Export metrics in InfluxDB line protocol format
+    async fn export_influxdb_metrics(
+        &self,
+        metrics: &ClientMetrics,
+    ) -> Result<String, CoordinationError> {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+
+        let mut lines = Vec::new();
+
+        // Total requests
+        lines.push(format!(
+            "rhema_coordination,metric=total_requests value={} {}",
+            metrics
+                .total_requests
+                .load(std::sync::atomic::Ordering::Relaxed),
+            timestamp
+        ));
+
+        // Successful requests
+        lines.push(format!(
+            "rhema_coordination,metric=successful_requests value={} {}",
+            metrics
+                .successful_requests
+                .load(std::sync::atomic::Ordering::Relaxed),
+            timestamp
+        ));
+
+        // Failed requests
+        lines.push(format!(
+            "rhema_coordination,metric=failed_requests value={} {}",
+            metrics
+                .failed_requests
+                .load(std::sync::atomic::Ordering::Relaxed),
+            timestamp
+        ));
+
+        // Average response time
+        lines.push(format!(
+            "rhema_coordination,metric=avg_response_time value={} {}",
+            metrics
+                .average_response_time
+                .load(std::sync::atomic::Ordering::Relaxed),
+            timestamp
+        ));
+
+        // Success rate
+        lines.push(format!(
+            "rhema_coordination,metric=success_rate value={} {}",
+            metrics.get_success_rate(),
+            timestamp
+        ));
+
+        Ok(lines.join("\n"))
+    }
+
+    /// Create JSON metrics structure
+    async fn create_metrics_json(&self, metrics: &ClientMetrics) -> serde_json::Value {
+        let health_info = self.get_health_status().await;
+        let performance_metrics = self.get_performance_metrics().await;
+        let connection_diagnostics = self.get_connection_diagnostics().await;
+
+        serde_json::json!({
+            "timestamp": SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            "metrics": {
+                "total_requests": metrics.total_requests.load(std::sync::atomic::Ordering::Relaxed),
+                "successful_requests": metrics.successful_requests.load(std::sync::atomic::Ordering::Relaxed),
+                "failed_requests": metrics.failed_requests.load(std::sync::atomic::Ordering::Relaxed),
+                "average_response_time_ms": metrics.average_response_time.load(std::sync::atomic::Ordering::Relaxed),
+                "success_rate": metrics.get_success_rate(),
+                "connection_success_rate": metrics.get_connection_success_rate()
+            },
+            "health": {
+                "status": format!("{:?}", health_info.status),
+                "message": health_info.message,
+                "error_rate": health_info.error_rate,
+                "details": health_info.details
+            },
+            "performance": performance_metrics,
+            "connection": {
+                "status": format!("{:?}", connection_diagnostics.connection_status),
+                "success_rate": connection_diagnostics.connection_success_rate,
+                "uptime_seconds": connection_diagnostics.connection_uptime.map(|d| d.as_secs())
+            }
+        })
+    }
+
+    /// Send metrics data to external endpoint
+    async fn send_metrics_to_endpoint(
+        &self,
+        endpoint: &str,
+        data: &str,
+    ) -> Result<(), CoordinationError> {
+        let client = reqwest::Client::new();
+
+        let response = client
+            .post(endpoint)
+            .header("Content-Type", self.get_content_type_for_endpoint(endpoint))
+            .body(data.to_string())
+            .timeout(Duration::from_secs(10))
+            .send()
+            .await
+            .map_err(|e| {
+                CoordinationError::NetworkError(format!("Failed to send metrics: {}", e))
+            })?;
+
+        if !response.status().is_success() {
+            return Err(CoordinationError::NetworkError(format!(
+                "Metrics export failed with status: {}",
+                response.status()
+            )));
+        }
+
+        Ok(())
+    }
+
+    /// Get appropriate content type for endpoint
+    fn get_content_type_for_endpoint(&self, endpoint: &str) -> &'static str {
+        if endpoint.contains("prometheus") || endpoint.ends_with("/metrics") {
+            "text/plain; version=0.0.4; charset=utf-8"
+        } else if endpoint.contains("influxdb") {
+            "text/plain"
+        } else if endpoint.contains("json") || endpoint.ends_with("/json") {
+            "application/json"
+        } else {
+            "text/plain"
+        }
+    }
+
+    /// Calculate a percentile of response times from the performance history
+    async fn calculate_response_time_percentile(&self, percentile: f64) -> Option<Duration> {
+        let history = self.performance_history.read().await;
+        if history.is_empty() {
+            return None;
+        }
+
+        let mut sorted_times: Vec<Duration> =
+            history.iter().map(|p| p.average_response_time).collect();
+        sorted_times.sort_by(|a, b| a.cmp(b));
+
+        let index = (percentile * sorted_times.len() as f64).floor() as usize;
+        if index < sorted_times.len() {
+            Some(sorted_times[index])
+        } else {
+            None
+        }
     }
 }
 
@@ -704,6 +1010,10 @@ impl Clone for CoordinationMonitor {
             start_time: self.start_time,
             last_metrics_collection: self.last_metrics_collection.clone(),
             consecutive_failures: self.consecutive_failures.clone(),
+            response_times: self.response_times.clone(),
+            last_successful_operation: self.last_successful_operation.clone(),
+            shutdown_tx: self.shutdown_tx.clone(),
+            monitoring_tasks: Vec::new(), // JoinHandle doesn't implement Clone
         }
     }
 }
@@ -829,7 +1139,9 @@ mod tests {
 
         let config = MonitoringConfig::default();
         let connection_status = Arc::new(RwLock::new(ConnectionStatus::Connected));
-        let monitor = CoordinationMonitor::new(config, metrics, connection_status);
+        let mut monitor = CoordinationMonitor::new(config, metrics, connection_status);
+
+        monitor.start().await.unwrap();
 
         let health = monitor.get_health_status().await;
         assert!(matches!(health.status, HealthStatus::Healthy));
@@ -849,7 +1161,9 @@ mod tests {
 
         let config = MonitoringConfig::default();
         let connection_status = Arc::new(RwLock::new(ConnectionStatus::Failed("test".to_string())));
-        let monitor = CoordinationMonitor::new(config, metrics, connection_status);
+        let mut monitor = CoordinationMonitor::new(config, metrics, connection_status);
+
+        monitor.start().await.unwrap();
 
         // Directly set consecutive failures to trigger unhealthy status
         *monitor.consecutive_failures.write().await = 5; // Above the threshold of 3

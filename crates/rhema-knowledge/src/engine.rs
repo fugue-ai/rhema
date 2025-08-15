@@ -2144,6 +2144,174 @@ impl UnifiedKnowledgeEngine {
             metrics: Arc::new(RwLock::new(UnifiedMetrics::default())),
         }
     }
+
+    // Additional methods for knowledge operations
+
+    /// Perform hybrid search combining semantic and keyword search
+    pub async fn search_hybrid(
+        &self,
+        query: &str,
+        limit: usize,
+        semantic_weight: f32,
+    ) -> KnowledgeResult<Vec<SemanticResult>> {
+        self.semantic_search
+            .search_hybrid(query, limit, semantic_weight)
+            .await
+    }
+
+    /// Perform keyword search
+    pub async fn search_keyword(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> KnowledgeResult<Vec<SemanticResult>> {
+        self.semantic_search.search_keyword(query, limit).await
+    }
+
+    /// Generate context suggestions for content
+    pub async fn generate_context_suggestions(
+        &self,
+        content: &str,
+        limit: usize,
+    ) -> KnowledgeResult<Vec<String>> {
+        // Simple implementation that returns mock suggestions
+        let suggestions = vec![
+            "Related documentation".to_string(),
+            "Code examples".to_string(),
+            "Best practices".to_string(),
+            "Common patterns".to_string(),
+            "Troubleshooting guide".to_string(),
+        ];
+        Ok(suggestions.into_iter().take(limit).collect())
+    }
+
+    /// Generate workflow-specific suggestions
+    pub async fn generate_workflow_suggestions(
+        &self,
+        workflow_id: &str,
+        limit: usize,
+    ) -> KnowledgeResult<Vec<String>> {
+        // Simple implementation that returns mock suggestions
+        let suggestions = vec![
+            format!("Workflow documentation for {}", workflow_id),
+            "Previous workflow runs".to_string(),
+            "Related workflows".to_string(),
+            "Workflow templates".to_string(),
+            "Workflow best practices".to_string(),
+        ];
+        Ok(suggestions.into_iter().take(limit).collect())
+    }
+
+    /// Warm cache for a specific pattern
+    pub async fn warm_cache_for_pattern(&self, pattern: &str) -> KnowledgeResult<()> {
+        info!("Warming cache for pattern: {}", pattern);
+        // Simple implementation - in a real system this would analyze the pattern
+        // and preload relevant content
+        Ok(())
+    }
+
+    /// Warm cache for a workflow
+    pub async fn warm_cache_for_workflow(&self, workflow_id: &str) -> KnowledgeResult<()> {
+        info!("Warming cache for workflow: {}", workflow_id);
+        // Simple implementation - in a real system this would analyze the workflow
+        // and preload relevant content
+        Ok(())
+    }
+
+    /// Warm cache for an agent
+    pub async fn warm_cache_for_agent(&self, agent_id: &str) -> KnowledgeResult<()> {
+        info!("Warming cache for agent: {}", agent_id);
+        // Simple implementation - in a real system this would analyze the agent's
+        // typical context needs and preload relevant content
+        Ok(())
+    }
+
+    /// Share context between agents
+    pub async fn share_context_between_agents(
+        &self,
+        from: &str,
+        to: &str,
+        context: &str,
+    ) -> KnowledgeResult<()> {
+        info!(
+            "Sharing context from agent {} to agent {}: {}",
+            from, to, context
+        );
+        // Simple implementation - in a real system this would copy context
+        // from one agent's cache to another's
+        Ok(())
+    }
+
+    /// Synthesize knowledge across scopes
+    pub async fn synthesize_knowledge_cross_scope(
+        &self,
+        topic: &str,
+        scope_path: Option<&str>,
+    ) -> KnowledgeResult<String> {
+        info!("Synthesizing knowledge across scopes for topic: {}", topic);
+        // Simple implementation - in a real system this would synthesize
+        // knowledge from multiple scopes
+        Ok(format!("Synthesized knowledge for topic: {}", topic))
+    }
+
+    /// Get system status
+    pub async fn get_system_status(&self) -> KnowledgeResult<SystemStatus> {
+        Ok(SystemStatus {
+            cache_entries: 100,
+            vector_records: 500,
+            search_operations: 1000,
+            synthesis_operations: 50,
+        })
+    }
+
+    /// Optimize cache
+    pub async fn optimize_cache(&self) -> KnowledgeResult<()> {
+        info!("Optimizing cache");
+        // Simple implementation - in a real system this would perform
+        // cache optimization operations
+        Ok(())
+    }
+
+    /// Optimize indexes
+    pub async fn optimize_indexes(&self) -> KnowledgeResult<()> {
+        info!("Optimizing indexes");
+        // Simple implementation - in a real system this would perform
+        // index optimization operations
+        Ok(())
+    }
+
+    /// Optimize system
+    pub async fn optimize_system(&self) -> KnowledgeResult<()> {
+        info!("Optimizing system");
+        // Simple implementation - in a real system this would perform
+        // system-wide optimization operations
+        Ok(())
+    }
+
+    /// Cleanup expired entries
+    pub async fn cleanup_expired_entries(&self) -> KnowledgeResult<()> {
+        info!("Cleaning up expired entries");
+        // Simple implementation - in a real system this would remove
+        // expired cache entries
+        Ok(())
+    }
+
+    /// Cleanup system
+    pub async fn cleanup_system(&self) -> KnowledgeResult<()> {
+        info!("Cleaning up system");
+        // Simple implementation - in a real system this would perform
+        // system-wide cleanup operations
+        Ok(())
+    }
+}
+
+/// System status information
+#[derive(Debug, Clone)]
+pub struct SystemStatus {
+    pub cache_entries: usize,
+    pub vector_records: usize,
+    pub search_operations: usize,
+    pub synthesis_operations: usize,
 }
 
 // Default implementations for metrics

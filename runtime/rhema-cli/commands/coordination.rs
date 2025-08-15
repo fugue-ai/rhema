@@ -454,7 +454,12 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
                 sender_id: "cli".to_string(),
                 recipient_ids: vec![to.clone()],
                 content: content.clone(),
-                payload: None, // TODO: Implement proper payload handling
+                payload: payload.as_ref().map(|p| {
+                    serde_json::from_str(p).unwrap_or_else(|_| {
+                        // If JSON parsing fails, treat as string payload
+                        serde_json::json!({ "data": p })
+                    })
+                }),
                 timestamp: Utc::now(),
                 requires_ack: *require_ack,
                 expires_at: None,
@@ -496,7 +501,12 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
                 sender_id: "cli".to_string(),
                 recipient_ids: recipient_ids.clone(),
                 content: content.clone(),
-                payload: None, // TODO: Implement proper payload handling
+                payload: payload.as_ref().map(|p| {
+                    serde_json::from_str(p).unwrap_or_else(|_| {
+                        // If JSON parsing fails, treat as string payload
+                        serde_json::json!({ "data": p })
+                    })
+                }),
                 timestamp: Utc::now(),
                 requires_ack: false,
                 expires_at: None,

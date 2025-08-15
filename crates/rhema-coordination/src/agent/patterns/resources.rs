@@ -267,29 +267,29 @@ impl ResourceManagementPattern {
             self.allocation_strategy.to_string()
         );
 
-        let mut allocations = HashMap::new();
+        let mut _allocations = HashMap::new();
 
         match self.allocation_strategy {
             ResourceAllocationStrategy::FirstComeFirstServed => {
-                allocations = self
+                _allocations = self
                     .allocate_first_come_first_served(requests, context)
                     .await?;
             }
             ResourceAllocationStrategy::PriorityBased => {
-                allocations = self.allocate_priority_based(requests, context).await?;
+                _allocations = self.allocate_priority_based(requests, context).await?;
             }
             ResourceAllocationStrategy::FairShare => {
-                allocations = self.allocate_fair_share(requests, context).await?;
+                _allocations = self.allocate_fair_share(requests, context).await?;
             }
             ResourceAllocationStrategy::LoadBalanced => {
-                allocations = self.allocate_load_balanced(requests, context).await?;
+                _allocations = self.allocate_load_balanced(requests, context).await?;
             }
             ResourceAllocationStrategy::Custom(_) => {
-                allocations = self.allocate_custom(requests, context).await?;
+                _allocations = self.allocate_custom(requests, context).await?;
             }
         }
 
-        Ok(allocations)
+        Ok(_allocations)
     }
 
     async fn allocate_first_come_first_served(

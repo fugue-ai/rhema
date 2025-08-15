@@ -589,3 +589,50 @@ members = ["crates/core"]
     let config = tool.extract_workspace_config(cargo_content);
     assert!(config.is_none());
 }
+
+#[tokio::test]
+async fn test_parallel_execution_config() {
+    let tool = CargoTool;
+
+    // Test parallel execution enabled
+    let mut intent = ActionIntent::new(
+        "test",
+        ActionType::Test,
+        "Test parallel execution",
+        vec![
+            "Cargo.toml".to_string(),
+            "crates/core/Cargo.toml".to_string(),
+        ],
+        SafetyLevel::Low,
+    );
+    intent.metadata = json!({
+        "parallel": true,
+        "commands": ["check"]
+    });
+
+    let config = tool.parse_config(&intent);
+    assert!(config.parallel);
+    assert_eq!(config.commands, vec![CargoCommand::Check]);
+
+    // Test parallel execution disabled
+    intent.metadata = json!({
+        "parallel": false,
+        "commands": ["check"]
+    });
+
+    let config = tool.parse_config(&intent);
+    assert!(!config.parallel);
+    assert_eq!(config.commands, vec![CargoCommand::Check]);
+
+    // Test default parallel execution (should be true)
+    let intent = ActionIntent::new(
+        "test",
+        ActionType::Test,
+        "Test default parallel execution",
+        vec!["Cargo.toml".to_string()],
+        SafetyLevel::Low,
+    );
+
+    let config = tool.parse_config(&intent);
+    assert!(config.parallel);
+}
