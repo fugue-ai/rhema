@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,80 +44,146 @@ impl GitLabIssuesIntegration {
             },
         }
     }
-    
+
     /// Create a GitLab issue
-    pub async fn create_issue(&self, project_id: &str, title: &str, description: Option<&str>, labels: Option<Vec<&str>>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("GitLab not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn create_issue(
+        &self,
+        project_id: &str,
+        title: &str,
+        description: Option<&str>,
+        labels: Option<Vec<&str>>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("GitLab not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let mut issue_data = serde_json::json!({
             "title": title
         });
-        
+
         if let Some(description) = description {
             issue_data["description"] = serde_json::Value::String(description.to_string());
         }
-        
+
         if let Some(labels) = labels {
             issue_data["labels"] = serde_json::Value::String(labels.join(","));
         }
-        
+
         let url = format!("{}/api/v4/projects/{}/issues", base_url, project_id);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("PRIVATE-TOKEN".to_string(), token.clone());
-        
-        let response = self.http_client.post(&url, &issue_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &issue_data.to_string(), Some(headers))
+            .await?;
         let issue: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(issue["iid"].as_u64().unwrap_or(0).to_string())
     }
-    
+
     /// Get GitLab issue details
-    pub async fn get_issue(&self, project_id: &str, issue_iid: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("GitLab not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("{}/api/v4/projects/{}/issues/{}", base_url, project_id, issue_iid);
+    pub async fn get_issue(
+        &self,
+        project_id: &str,
+        issue_iid: &str,
+    ) -> RhemaResult<serde_json::Value> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("GitLab not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "{}/api/v4/projects/{}/issues/{}",
+            base_url, project_id, issue_iid
+        );
         let mut headers = HashMap::new();
         headers.insert("PRIVATE-TOKEN".to_string(), token.clone());
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let issue: serde_json::Value = serde_json::from_str(&response)?;
         Ok(issue)
     }
-    
+
     /// Update GitLab issue
-    pub async fn update_issue(&self, project_id: &str, issue_iid: &str, fields: serde_json::Value) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("GitLab not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("{}/api/v4/projects/{}/issues/{}", base_url, project_id, issue_iid);
+    pub async fn update_issue(
+        &self,
+        project_id: &str,
+        issue_iid: &str,
+        fields: serde_json::Value,
+    ) -> RhemaResult<()> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("GitLab not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "{}/api/v4/projects/{}/issues/{}",
+            base_url, project_id, issue_iid
+        );
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("PRIVATE-TOKEN".to_string(), token.clone());
-        
-        self.http_client.put(&url, &fields.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .put(&url, &fields.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Get issues from a project
-    pub async fn get_project_issues(&self, project_id: &str, state: Option<&str>) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("GitLab not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn get_project_issues(
+        &self,
+        project_id: &str,
+        state: Option<&str>,
+    ) -> RhemaResult<Vec<serde_json::Value>> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("GitLab not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let mut url = format!("{}/api/v4/projects/{}/issues", base_url, project_id);
         if let Some(state) = state {
             url.push_str(&format!("?state={}", state));
         }
-        
+
         let mut headers = HashMap::new();
         headers.insert("PRIVATE-TOKEN".to_string(), token.clone());
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let issues: Vec<serde_json::Value> = serde_json::from_str(&response)?;
         Ok(issues)
@@ -140,7 +209,10 @@ impl ExternalIntegration for GitLabIssuesIntegration {
             version: "1.0.0".to_string(),
             description: "GitLab Issues integration for project management".to_string(),
             integration_type: IntegrationType::GitLabIssues,
-            capabilities: vec!["issue_management".to_string(), "repository_tracking".to_string()],
+            capabilities: vec![
+                "issue_management".to_string(),
+                "repository_tracking".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

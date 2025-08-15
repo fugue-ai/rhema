@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
 /// Validation error types for context data
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, Hash, PartialEq)]

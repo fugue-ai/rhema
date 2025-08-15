@@ -15,7 +15,10 @@
  */
 
 use chrono::Utc;
-use rhema_core::{scope::Scope, RhemaError, RhemaLock, RhemaResult, Knowledge, Todos, Decisions, Patterns, Conventions, TodoStatus, Validatable};
+use rhema_core::{
+    scope::Scope, Conventions, Decisions, Knowledge, Patterns, RhemaError, RhemaLock, RhemaResult,
+    TodoStatus, Todos, Validatable,
+};
 use rhema_query::QueryResult;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -24,7 +27,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use super::types::*;
-use super::validation::{ValidationSeverity, ValidationError, ValidationWarning, ValidationStats, ValidationErrorType, ContextValidationResult, ScopeValidationResult, CrossReferenceValidation, BrokenReference, ConsistencyValidation, NamingConflict, DuplicateEntry, TemporalValidation, TemporalAnomaly, TimestampSequence, ExpiredEntry, DependencyValidation};
+use super::validation::{
+    BrokenReference, ConsistencyValidation, ContextValidationResult, CrossReferenceValidation,
+    DependencyValidation, DuplicateEntry, ExpiredEntry, NamingConflict, ScopeValidationResult,
+    TemporalAnomaly, TemporalValidation, TimestampSequence, ValidationError, ValidationErrorType,
+    ValidationSeverity, ValidationStats, ValidationWarning,
+};
 
 /// Context provider for Rhema data
 pub struct ContextProvider {
@@ -359,8 +367,8 @@ impl ContextProvider {
                     dependency_type: dep.dependency_type.clone(),
                     is_transitive: false, // Default value since field doesn't exist
                     original_constraint: None, // Default value since field doesn't exist
-                    resolved_at: None, // Default value since field doesn't exist
-                    checksum: None, // Default value since field doesn't exist
+                    resolved_at: None,    // Default value since field doesn't exist
+                    checksum: None,       // Default value since field doesn't exist
                 });
             }
 
@@ -656,7 +664,7 @@ impl ContextProvider {
         since: chrono::DateTime<Utc>,
     ) -> RhemaResult<Vec<ContextChange>> {
         let mut changes = Vec::new();
-        
+
         // Track changes in knowledge entries
         let knowledge_cache = self.knowledge_cache.read().await;
         for (scope_path, knowledge) in knowledge_cache.iter() {
@@ -676,7 +684,7 @@ impl ContextProvider {
                         })),
                     });
                 }
-                
+
                 // Check if entry was updated after the since timestamp
                 if let Some(updated_at) = entry.updated_at {
                     if updated_at > since {
@@ -697,7 +705,7 @@ impl ContextProvider {
             }
         }
         drop(knowledge_cache);
-        
+
         // Track changes in todos
         let todos_cache = self.todos_cache.read().await;
         for (scope_path, todos) in todos_cache.iter() {
@@ -717,9 +725,9 @@ impl ContextProvider {
                         })),
                     });
                 }
-                
+
                 // Note: TodoEntry doesn't have updated_at field, only created_at and completed_at
-                
+
                 // Check if todo was completed after the since timestamp
                 if let Some(completed_at) = todo.completed_at {
                     if completed_at > since {
@@ -740,7 +748,7 @@ impl ContextProvider {
             }
         }
         drop(todos_cache);
-        
+
         // Track changes in decisions
         let decisions_cache = self.decisions_cache.read().await;
         for (scope_path, decisions) in decisions_cache.iter() {
@@ -760,7 +768,7 @@ impl ContextProvider {
                         })),
                     });
                 }
-                
+
                 // Check if decision was reviewed after the since timestamp
                 if let Some(review_date) = decision.review_date {
                     if review_date > since {
@@ -781,7 +789,7 @@ impl ContextProvider {
             }
         }
         drop(decisions_cache);
-        
+
         // Track changes in patterns
         let patterns_cache = self.patterns_cache.read().await;
         for (scope_path, patterns) in patterns_cache.iter() {
@@ -801,7 +809,7 @@ impl ContextProvider {
                         })),
                     });
                 }
-                
+
                 // Check if pattern was updated after the since timestamp
                 if let Some(updated_at) = pattern.updated_at {
                     if updated_at > since {
@@ -822,7 +830,7 @@ impl ContextProvider {
             }
         }
         drop(patterns_cache);
-        
+
         // Track changes in conventions
         let conventions_cache = self.conventions_cache.read().await;
         for (scope_path, conventions) in conventions_cache.iter() {
@@ -842,7 +850,7 @@ impl ContextProvider {
                         })),
                     });
                 }
-                
+
                 // Check if convention was updated after the since timestamp
                 if let Some(updated_at) = convention.updated_at {
                     if updated_at > since {
@@ -863,7 +871,7 @@ impl ContextProvider {
             }
         }
         drop(conventions_cache);
-        
+
         // Track changes in lock file
         let lock_file_cache = self.lock_file_cache.read().await;
         if let Some(lock_file) = lock_file_cache.as_ref() {
@@ -882,7 +890,7 @@ impl ContextProvider {
                     })),
                 });
             }
-            
+
             // Check if lock file was last validated after the since timestamp
             if let Some(last_validated) = lock_file.metadata.last_validated {
                 if last_validated > since {
@@ -903,10 +911,10 @@ impl ContextProvider {
             }
         }
         drop(lock_file_cache);
-        
+
         // Sort changes by timestamp (oldest first)
         changes.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
-        
+
         Ok(changes)
     }
 
@@ -2027,43 +2035,58 @@ impl ContextProvider {
         Ok(())
     }
 
-                    /// Load context data for a specific scope
-                async fn load_scope_context(&self, scope_path: &str) -> RhemaResult<()> {
-                    // TODO: Implement context loading
-                    // For now, just create empty data structures
-                    let mut knowledge_cache = self.knowledge_cache.write().await;
-                    knowledge_cache.insert(scope_path.to_string(), Knowledge {
-                        entries: Vec::new(),
-                        categories: None,
-                        custom: HashMap::new(),
-                    });
+    /// Load context data for a specific scope
+    async fn load_scope_context(&self, scope_path: &str) -> RhemaResult<()> {
+        // TODO: Implement context loading
+        // For now, just create empty data structures
+        let mut knowledge_cache = self.knowledge_cache.write().await;
+        knowledge_cache.insert(
+            scope_path.to_string(),
+            Knowledge {
+                entries: Vec::new(),
+                categories: None,
+                custom: HashMap::new(),
+            },
+        );
 
-                    let mut todos_cache = self.todos_cache.write().await;
-                    todos_cache.insert(scope_path.to_string(), Todos {
-                        todos: Vec::new(),
-                        custom: HashMap::new(),
-                    });
+        let mut todos_cache = self.todos_cache.write().await;
+        todos_cache.insert(
+            scope_path.to_string(),
+            Todos {
+                todos: Vec::new(),
+                custom: HashMap::new(),
+            },
+        );
 
-                    let mut decisions_cache = self.decisions_cache.write().await;
-                    decisions_cache.insert(scope_path.to_string(), Decisions {
-                        decisions: Vec::new(),
-                        custom: HashMap::new(),
-                    });
+        let mut decisions_cache = self.decisions_cache.write().await;
+        decisions_cache.insert(
+            scope_path.to_string(),
+            Decisions {
+                decisions: Vec::new(),
+                custom: HashMap::new(),
+            },
+        );
 
-                    let mut patterns_cache = self.patterns_cache.write().await;
-                    patterns_cache.insert(scope_path.to_string(), Patterns {
-                        patterns: Vec::new(),
-                        custom: HashMap::new(),
-                    });
+        let mut patterns_cache = self.patterns_cache.write().await;
+        patterns_cache.insert(
+            scope_path.to_string(),
+            Patterns {
+                patterns: Vec::new(),
+                custom: HashMap::new(),
+            },
+        );
 
-                    let mut conventions_cache = self.conventions_cache.write().await;
-                    conventions_cache.insert(scope_path.to_string(), Conventions {
-                        conventions: Vec::new(),
-                        custom: HashMap::new(),
-                    });
+        let mut conventions_cache = self.conventions_cache.write().await;
+        conventions_cache.insert(
+            scope_path.to_string(),
+            Conventions {
+                conventions: Vec::new(),
+                custom: HashMap::new(),
+            },
+        );
 
-                    Ok(())
-                }
+        Ok(())
+    }
 
     /// Load lock file data
     async fn load_lock_file(&self) -> RhemaResult<()> {

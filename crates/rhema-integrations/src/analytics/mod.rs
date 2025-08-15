@@ -15,13 +15,13 @@
  */
 
 pub mod analytics;
-pub mod monitoring;
-pub mod logging;
-pub mod performance;
 pub mod business_intelligence;
+pub mod logging;
+pub mod monitoring;
+pub mod performance;
 
 pub use analytics::AnalyticsIntegration;
-pub use monitoring::MonitoringIntegration;
-pub use logging::LoggingIntegration;
-pub use performance::PerformanceIntegration;
 pub use business_intelligence::BusinessIntelligenceIntegration;
+pub use logging::LoggingIntegration;
+pub use monitoring::MonitoringIntegration;
+pub use performance::PerformanceIntegration;

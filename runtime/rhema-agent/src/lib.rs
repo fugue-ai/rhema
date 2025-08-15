@@ -330,7 +330,7 @@ impl ConfigManager {
     pub fn new() -> RhemaResult<Self> {
         // Load the actual global configuration
         let global_config = GlobalConfig::load()?;
-        
+
         Ok(Self {
             global_config,
             repository_configs: std::collections::HashMap::new(),
@@ -366,10 +366,11 @@ impl ConfigManager {
 
         // Load the actual repository configuration
         let config = RepositoryConfig::load(path)?;
-        
+
         // Cache the config
-        self.repository_configs.insert(path.to_path_buf(), config.clone());
-        
+        self.repository_configs
+            .insert(path.to_path_buf(), config.clone());
+
         Ok(config)
     }
 
@@ -378,11 +379,12 @@ impl ConfigManager {
         static VALIDATOR: std::sync::OnceLock<rhema_config::validation::ValidationManager> =
             std::sync::OnceLock::new();
         VALIDATOR.get_or_init(|| {
-            rhema_config::validation::ValidationManager::new(&self.global_config)
-                .unwrap_or_else(|_| {
+            rhema_config::validation::ValidationManager::new(&self.global_config).unwrap_or_else(
+                |_| {
                     // Fallback to a basic implementation if creation fails
                     rhema_config::validation::ValidationManager::new(&GlobalConfig::new()).unwrap()
-                })
+                },
+            )
         })
     }
 
@@ -391,11 +393,10 @@ impl ConfigManager {
         static BACKUP: std::sync::OnceLock<rhema_config::backup::BackupManager> =
             std::sync::OnceLock::new();
         BACKUP.get_or_init(|| {
-            rhema_config::backup::BackupManager::new(&self.global_config)
-                .unwrap_or_else(|_| {
-                    // Fallback to a basic implementation if creation fails
-                    rhema_config::backup::BackupManager::new(&GlobalConfig::new()).unwrap()
-                })
+            rhema_config::backup::BackupManager::new(&self.global_config).unwrap_or_else(|_| {
+                // Fallback to a basic implementation if creation fails
+                rhema_config::backup::BackupManager::new(&GlobalConfig::new()).unwrap()
+            })
         })
     }
 
@@ -422,11 +423,12 @@ impl ConfigManager {
         static MIGRATION: std::sync::OnceLock<rhema_config::migration::MigrationManager> =
             std::sync::OnceLock::new();
         MIGRATION.get_or_init(|| {
-            rhema_config::migration::MigrationManager::new(&self.global_config)
-                .unwrap_or_else(|_| {
+            rhema_config::migration::MigrationManager::new(&self.global_config).unwrap_or_else(
+                |_| {
                     // Fallback to a basic implementation if creation fails
                     rhema_config::migration::MigrationManager::new(&GlobalConfig::new()).unwrap()
-                })
+                },
+            )
         })
     }
 
@@ -434,7 +436,7 @@ impl ConfigManager {
         // For now, return a basic validation report since the actual validation is async
         // TODO: Make this method async and use proper validation
         let mut results = std::collections::HashMap::new();
-        
+
         // Create a basic validation result for global config
         let global_result = rhema_config::validation::ValidationResult {
             valid: true,
@@ -444,7 +446,7 @@ impl ConfigManager {
             duration_ms: 0,
         };
         results.insert(std::path::PathBuf::from("global"), global_result);
-        
+
         // Create basic validation results for repository configs
         for (path, _config) in &self.repository_configs {
             let repo_result = rhema_config::validation::ValidationResult {
@@ -456,18 +458,18 @@ impl ConfigManager {
             };
             results.insert(path.clone(), repo_result);
         }
-        
+
         // Create validation summary
         let total_configs = results.len();
         let valid_configs = results.values().filter(|r| r.valid).count();
         let invalid_configs = total_configs - valid_configs;
-        
+
         let mut total_issues = 0;
         let mut critical_issues = 0;
         let mut error_issues = 0;
         let mut warning_issues = 0;
         let mut info_issues = 0;
-        
+
         for result in results.values() {
             for issue in &result.issues {
                 total_issues += 1;
@@ -479,9 +481,9 @@ impl ConfigManager {
                 }
             }
         }
-        
+
         let overall_valid = critical_issues == 0 && error_issues == 0;
-        
+
         Ok(rhema_config::validation::ValidationReport {
             overall_valid,
             results,
@@ -505,7 +507,7 @@ impl ConfigManager {
         // TODO: Make this method async and use proper backup functionality
         let mut backups_created = Vec::new();
         let mut backups_failed = Vec::new();
-        
+
         // Create basic backup records for demonstration
         let global_backup = rhema_config::backup::BackupRecord {
             backup_id: "global-backup-1".to_string(),
@@ -521,30 +523,36 @@ impl ConfigManager {
             tags: vec!["global".to_string(), "config".to_string()],
         };
         backups_created.push(global_backup);
-        
+
         // Create basic backup records for repository configs
         for (path, _config) in &self.repository_configs {
             let repo_backup = rhema_config::backup::BackupRecord {
                 backup_id: format!("repo-backup-{}", path.display()),
                 original_path: path.clone(),
-                backup_path: std::path::PathBuf::from(format!("/tmp/backup/repo-{}.yaml", path.display())),
+                backup_path: std::path::PathBuf::from(format!(
+                    "/tmp/backup/repo-{}.yaml",
+                    path.display()
+                )),
                 timestamp: chrono::Utc::now(),
                 format: rhema_config::backup::BackupFormat::YAML,
                 size_bytes: 512,
                 checksum: "def456".to_string(),
                 compression_enabled: true,
                 encryption_enabled: false,
-                description: Some(format!("Repository configuration backup for {}", path.display())),
+                description: Some(format!(
+                    "Repository configuration backup for {}",
+                    path.display()
+                )),
                 tags: vec!["repository".to_string(), "config".to_string()],
             };
             backups_created.push(repo_backup);
         }
-        
+
         // Calculate summary statistics
         let total_backups = backups_created.len() + backups_failed.len();
         let successful_backups = backups_created.len();
         let failed_backups = backups_failed.len();
-        
+
         let total_size_bytes = backups_created.iter().map(|r| r.size_bytes).sum();
         let compression_ratio = if total_size_bytes > 0 {
             // Calculate compression ratio based on backup size vs original size
@@ -553,7 +561,7 @@ impl ConfigManager {
         } else {
             0.0
         };
-        
+
         Ok(rhema_config::backup::BackupReport {
             backups_created,
             backups_failed,
@@ -575,7 +583,7 @@ impl ConfigManager {
         let mut migrations_applied = Vec::new();
         let mut migrations_skipped = Vec::new();
         let mut migrations_failed = Vec::new();
-        
+
         // Create basic migration records for demonstration
         let global_migration = rhema_config::migration::MigrationRecord {
             migration_name: "global_config_upgrade".to_string(),
@@ -584,17 +592,15 @@ impl ConfigManager {
             timestamp: chrono::Utc::now(),
             success: true,
             error_message: None,
-            changes: vec![
-                rhema_config::ConfigChange {
-                    timestamp: chrono::Utc::now(),
-                    change_type: rhema_config::ConfigChangeType::Created,
-                    description: "Added new feature flag".to_string(),
-                    user: "system".to_string(),
-                }
-            ],
+            changes: vec![rhema_config::ConfigChange {
+                timestamp: chrono::Utc::now(),
+                change_type: rhema_config::ConfigChangeType::Created,
+                description: "Added new feature flag".to_string(),
+                user: "system".to_string(),
+            }],
         };
         migrations_applied.push(global_migration);
-        
+
         // Create basic migration records for repository configs
         for (path, _config) in &self.repository_configs {
             let repo_migration = rhema_config::migration::MigrationRecord {
@@ -604,26 +610,25 @@ impl ConfigManager {
                 timestamp: chrono::Utc::now(),
                 success: true,
                 error_message: None,
-                changes: vec![
-                    rhema_config::ConfigChange {
-                        timestamp: chrono::Utc::now(),
-                        change_type: rhema_config::ConfigChangeType::Updated,
-                        description: "Updated version to latest".to_string(),
-                        user: "system".to_string(),
-                    }
-                ],
+                changes: vec![rhema_config::ConfigChange {
+                    timestamp: chrono::Utc::now(),
+                    change_type: rhema_config::ConfigChangeType::Updated,
+                    description: "Updated version to latest".to_string(),
+                    user: "system".to_string(),
+                }],
             };
             migrations_applied.push(repo_migration);
         }
-        
+
         // Calculate summary statistics
-        let total_migrations = migrations_applied.len() + migrations_skipped.len() + migrations_failed.len();
+        let total_migrations =
+            migrations_applied.len() + migrations_skipped.len() + migrations_failed.len();
         let successful_migrations = migrations_applied.len();
         let failed_migrations = migrations_failed.len();
         let skipped_migrations = migrations_skipped.len();
-        
+
         let total_changes = migrations_applied.iter().map(|r| r.changes.len()).sum();
-        
+
         Ok(rhema_config::migration::MigrationReport {
             migrations_applied,
             migrations_skipped,

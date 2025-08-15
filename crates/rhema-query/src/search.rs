@@ -464,7 +464,7 @@ impl SearchEngine {
     /// Extract file metadata including modification time
     fn extract_file_metadata(&self, file_path: &Path) -> RhemaResult<HashMap<String, Value>> {
         let mut metadata = HashMap::new();
-        
+
         // Get file modification time
         if let Ok(metadata_info) = std::fs::metadata(file_path) {
             if let Ok(modified_time) = metadata_info.modified() {
@@ -473,22 +473,25 @@ impl SearchEngine {
                     metadata.insert("last_modified".to_string(), Value::Number(timestamp.into()));
                 }
             }
-            
+
             // Add file size
-            metadata.insert("size_bytes".to_string(), Value::Number(metadata_info.len().into()));
-            
+            metadata.insert(
+                "size_bytes".to_string(),
+                Value::Number(metadata_info.len().into()),
+            );
+
             // Add file permissions
             let readonly = metadata_info.permissions().readonly();
             metadata.insert("readonly".to_string(), Value::Bool(readonly));
         }
-        
+
         // Add file extension
         if let Some(extension) = file_path.extension() {
             if let Some(ext_str) = extension.to_str() {
                 metadata.insert("extension".to_string(), Value::String(ext_str.to_string()));
             }
         }
-        
+
         Ok(metadata)
     }
 
@@ -498,7 +501,11 @@ impl SearchEngine {
             if let Ok(modified_time) = metadata_info.modified() {
                 if let Ok(datetime) = modified_time.duration_since(std::time::UNIX_EPOCH) {
                     let secs = datetime.as_secs() as i64;
-                    return Some(Utc.timestamp_opt(secs, 0).single().unwrap_or_else(|| Utc::now()));
+                    return Some(
+                        Utc.timestamp_opt(secs, 0)
+                            .single()
+                            .unwrap_or_else(|| Utc::now()),
+                    );
                 }
             }
         }

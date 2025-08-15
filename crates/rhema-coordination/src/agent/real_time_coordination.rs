@@ -607,7 +607,9 @@ impl MessageEncryption {
         // In a production implementation, this would use proper decryption libraries
         // For now, implement basic decryption simulation
         if data.is_empty() {
-            return Err(rhema_core::RhemaError::InvalidInput("Empty data".to_string()));
+            return Err(rhema_core::RhemaError::InvalidInput(
+                "Empty data".to_string(),
+            ));
         }
 
         match data[0] {
@@ -623,7 +625,9 @@ impl MessageEncryption {
                 // XChaCha20 decryption
                 Ok(data[1..].to_vec())
             }
-            _ => Err(rhema_core::RhemaError::InvalidInput("Unknown encryption format".to_string())),
+            _ => Err(rhema_core::RhemaError::InvalidInput(
+                "Unknown encryption format".to_string(),
+            )),
         }
     }
 }
@@ -1013,10 +1017,10 @@ impl PerformanceMonitor {
         // In a production implementation, this would send alerts to monitoring systems
         // For now, log the alert and store it locally
         info!("Performance Alert [{}]: {}", severity, alert.message);
-        
+
         // Store alert in local alerts list
         self.alerts.push(alert);
-        
+
         // In production, this would also:
         // - Send to external monitoring systems (Prometheus, Grafana, etc.)
         // - Trigger webhooks or notifications
@@ -1745,8 +1749,6 @@ impl RealTimeCoordinationSystem {
             Err(CoordinationError::AgentNotFound(agent_id.to_string()).into())
         }
     }
-
-
 
     /// Get agent information
     pub async fn get_agent_info(&self, agent_id: &str) -> Option<AgentInfo> {

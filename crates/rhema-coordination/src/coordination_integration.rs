@@ -17,9 +17,7 @@
 use crate::agent::real_time_coordination::{
     AgentInfo, AgentMessage, AgentStatus, RealTimeCoordinationSystem,
 };
-use crate::grpc::coordination_client::{
-    ConnectionStatus, SyneidesisConfig,
-};
+use crate::grpc::coordination_client::{ConnectionStatus, SyneidesisConfig};
 
 use rhema_core::RhemaResult;
 use serde::{Deserialize, Serialize};
@@ -206,12 +204,18 @@ impl CoordinationIntegration {
             .await
             .unregister_agent(agent_id)
             .await?;
-        info!("✅ Unregistered Rhema agent '{}' from Rhema coordination", agent_id);
+        info!(
+            "✅ Unregistered Rhema agent '{}' from Rhema coordination",
+            agent_id
+        );
 
         // Unregister from Syneidesis if available
         if let Some(_syneidesis_client) = &self.syneidesis_client {
             // For now, simulate Syneidesis unregistration
-            info!("✅ Unregistered Rhema agent '{}' from Syneidesis coordination (simulated)", agent_id);
+            info!(
+                "✅ Unregistered Rhema agent '{}' from Syneidesis coordination (simulated)",
+                agent_id
+            );
         }
 
         // Update statistics
@@ -227,7 +231,8 @@ impl CoordinationIntegration {
     /// Get Rhema agent information
     pub async fn get_rhema_agent_info(&self, agent_id: &str) -> RhemaResult<Option<AgentInfo>> {
         // Get from Rhema coordination system
-        let agent_info = self.rhema_coordination
+        let agent_info = self
+            .rhema_coordination
             .read()
             .await
             .get_agent_info(agent_id)
@@ -243,11 +248,7 @@ impl CoordinationIntegration {
     /// List all registered Rhema agents
     pub async fn list_rhema_agents(&self) -> RhemaResult<Vec<AgentInfo>> {
         // Get from Rhema coordination system
-        let agents = self.rhema_coordination
-            .read()
-            .await
-            .get_all_agents()
-            .await;
+        let agents = self.rhema_coordination.read().await.get_all_agents().await;
 
         info!("✅ Retrieved {} registered Rhema agents", agents.len());
 
@@ -255,7 +256,11 @@ impl CoordinationIntegration {
     }
 
     /// Update Rhema agent status
-    pub async fn update_rhema_agent_status(&self, agent_id: &str, status: AgentStatus) -> RhemaResult<()> {
+    pub async fn update_rhema_agent_status(
+        &self,
+        agent_id: &str,
+        status: AgentStatus,
+    ) -> RhemaResult<()> {
         // Update in Rhema coordination system
         self.rhema_coordination
             .write()
@@ -263,27 +268,41 @@ impl CoordinationIntegration {
             .update_agent_status(agent_id, status.clone())
             .await?;
 
-        info!("✅ Updated Rhema agent '{}' status to {:?}", agent_id, status);
+        info!(
+            "✅ Updated Rhema agent '{}' status to {:?}",
+            agent_id, status
+        );
 
         // Update in Syneidesis if available
         if let Some(_syneidesis_client) = &self.syneidesis_client {
             // For now, simulate Syneidesis status update
-            info!("✅ Updated Rhema agent '{}' status in Syneidesis (simulated)", agent_id);
+            info!(
+                "✅ Updated Rhema agent '{}' status in Syneidesis (simulated)",
+                agent_id
+            );
         }
 
         Ok(())
     }
 
     /// Create a coordination session
-    pub async fn create_rhema_session(&self, topic: &str, participants: Vec<String>) -> RhemaResult<String> {
+    pub async fn create_rhema_session(
+        &self,
+        topic: &str,
+        participants: Vec<String>,
+    ) -> RhemaResult<String> {
         // Create in Rhema coordination system
-        let session_id = self.rhema_coordination
+        let session_id = self
+            .rhema_coordination
             .write()
             .await
             .create_session(topic.to_string(), participants.clone())
             .await?;
 
-        info!("✅ Created Rhema coordination session '{}' with topic '{}'", session_id, topic);
+        info!(
+            "✅ Created Rhema coordination session '{}' with topic '{}'",
+            session_id, topic
+        );
 
         // Create in Syneidesis if available
         if let Some(_syneidesis_client) = &self.syneidesis_client {
@@ -303,7 +322,10 @@ impl CoordinationIntegration {
             .join_session(session_id, agent_id)
             .await?;
 
-        info!("✅ Agent '{}' joined Rhema session '{}'", agent_id, session_id);
+        info!(
+            "✅ Agent '{}' joined Rhema session '{}'",
+            agent_id, session_id
+        );
 
         // Join in Syneidesis if available
         if let Some(_syneidesis_client) = &self.syneidesis_client {
@@ -323,7 +345,10 @@ impl CoordinationIntegration {
             .leave_session(session_id, agent_id)
             .await?;
 
-        info!("✅ Agent '{}' left Rhema session '{}'", agent_id, session_id);
+        info!(
+            "✅ Agent '{}' left Rhema session '{}'",
+            agent_id, session_id
+        );
 
         // Leave in Syneidesis if available
         if let Some(_syneidesis_client) = &self.syneidesis_client {
@@ -335,7 +360,11 @@ impl CoordinationIntegration {
     }
 
     /// Send a message to a coordination session
-    pub async fn send_rhema_session_message(&self, session_id: &str, message: &AgentMessage) -> RhemaResult<()> {
+    pub async fn send_rhema_session_message(
+        &self,
+        session_id: &str,
+        message: &AgentMessage,
+    ) -> RhemaResult<()> {
         // Send in Rhema coordination system
         self.rhema_coordination
             .write()
@@ -357,7 +386,8 @@ impl CoordinationIntegration {
     /// List active coordination sessions
     pub async fn list_rhema_sessions(&self) -> RhemaResult<Vec<String>> {
         // Get from Rhema coordination system
-        let sessions = self.rhema_coordination
+        let sessions = self
+            .rhema_coordination
             .read()
             .await
             .get_active_sessions()
@@ -461,7 +491,10 @@ impl CoordinationIntegration {
         if let Some(_syneidesis_client) = &self.syneidesis_client {
             // For now, simulate Syneidesis session message sending
             // TODO: Implement proper type conversion when protobuf types are available
-            info!("✅ Sent session message to Syneidesis: {} (simulated)", message.id);
+            info!(
+                "✅ Sent session message to Syneidesis: {} (simulated)",
+                message.id
+            );
         }
 
         // Update statistics
@@ -499,7 +532,10 @@ impl CoordinationIntegration {
         if stats.syneidesis_tasks > 0 {
             stats.syneidesis_tasks -= 1;
         }
-        info!("Task completed - Remaining tasks: {}", stats.syneidesis_tasks);
+        info!(
+            "Task completed - Remaining tasks: {}",
+            stats.syneidesis_tasks
+        );
     }
 
     /// Get current task count
@@ -700,6 +736,9 @@ mod tests {
         // So we check that the integration exists, but don't require Syneidesis to be available
         // In a real environment with a Syneidesis server running, this would be true
         // For now, we just verify the integration was created successfully
-        info!("Integration created successfully, Syneidesis client status: {}", integration.has_syneidesis_integration());
+        info!(
+            "Integration created successfully, Syneidesis client status: {}",
+            integration.has_syneidesis_integration()
+        );
     }
 }

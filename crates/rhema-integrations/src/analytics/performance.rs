@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,13 +44,28 @@ impl PerformanceIntegration {
             },
         }
     }
-    
+
     /// Record a performance metric
-    pub async fn record_metric(&self, metric_name: &str, value: f64, unit: &str, tags: HashMap<String, String>) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Performance not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn record_metric(
+        &self,
+        metric_name: &str,
+        value: f64,
+        unit: &str,
+        tags: HashMap<String, String>,
+    ) -> RhemaResult<()> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Performance not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let metric_data = serde_json::json!({
             "metric": metric_name,
             "value": value,
@@ -55,70 +73,105 @@ impl PerformanceIntegration {
             "tags": tags,
             "timestamp": chrono::Utc::now().timestamp()
         });
-        
+
         let url = format!("{}/metrics", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        self.http_client.post(&url, &metric_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(&url, &metric_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Record a trace
-    pub async fn record_trace(&self, trace_id: &str, spans: Vec<serde_json::Value>) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Performance not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn record_trace(
+        &self,
+        trace_id: &str,
+        spans: Vec<serde_json::Value>,
+    ) -> RhemaResult<()> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Performance not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let trace_data = serde_json::json!({
             "trace_id": trace_id,
             "spans": spans,
             "timestamp": chrono::Utc::now().timestamp()
         });
-        
+
         let url = format!("{}/traces", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        self.http_client.post(&url, &trace_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(&url, &trace_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Get performance dashboard
-    pub async fn get_performance_dashboard(&self, dashboard_id: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Performance not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn get_performance_dashboard(
+        &self,
+        dashboard_id: &str,
+    ) -> RhemaResult<serde_json::Value> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Performance not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let url = format!("{}/dashboards/{}", base_url, dashboard_id);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let dashboard: serde_json::Value = serde_json::from_str(&response)?;
         Ok(dashboard)
     }
-    
+
     /// Get performance alerts
     pub async fn get_performance_alerts(&self) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Performance not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Performance not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let url = format!("{}/alerts", base_url);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
-        let alerts = result["alerts"]
-            .as_array()
-            .unwrap_or(&Vec::new())
-            .clone();
-        
+
+        let alerts = result["alerts"].as_array().unwrap_or(&Vec::new()).clone();
+
         Ok(alerts)
     }
 }
@@ -142,7 +195,10 @@ impl ExternalIntegration for PerformanceIntegration {
             version: "1.0.0".to_string(),
             description: "Performance integration for performance monitoring".to_string(),
             integration_type: IntegrationType::Performance,
-            capabilities: vec!["performance_monitoring".to_string(), "profiling".to_string()],
+            capabilities: vec![
+                "performance_monitoring".to_string(),
+                "profiling".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

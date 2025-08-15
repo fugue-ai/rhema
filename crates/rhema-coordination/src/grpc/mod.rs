@@ -25,19 +25,18 @@ mod security_tests;
 
 // Re-export main types
 pub use coordination_client::{
-    CoordinationError, ClientMetrics, ConnectionStatus, GrpcClientConfig, 
-    LocalGrpcCoordinationClient, SyneidesisCoordinationClient, SyneidesisConfig
+    ClientMetrics, ConnectionStatus, CoordinationError, GrpcClientConfig,
+    LocalGrpcCoordinationClient, SyneidesisConfig, SyneidesisCoordinationClient,
 };
 pub use coordination_service::CoordinationService;
 pub use monitoring::{
-    Alert, AlertHandler, AlertSeverity, AlertType, CoordinationMonitor, 
-    HealthInfo, HealthStatus, LoggingAlertHandler, MonitoringConfig, 
-    PerformanceMetrics, PerformanceThresholds, HealthThresholds,
-    ConnectionDiagnostics, PrometheusExporter
+    Alert, AlertHandler, AlertSeverity, AlertType, ConnectionDiagnostics, CoordinationMonitor,
+    HealthInfo, HealthStatus, HealthThresholds, LoggingAlertHandler, MonitoringConfig,
+    PerformanceMetrics, PerformanceThresholds, PrometheusExporter,
 };
 pub use security::{
-    SecurityConfig, PerformanceConfig, SecurityManager, PerformanceManager, 
-    ConnectionPool, CompressionAlgorithm
+    CompressionAlgorithm, ConnectionPool, PerformanceConfig, PerformanceManager, SecurityConfig,
+    SecurityManager,
 };
 pub use server::{GrpcCoordinationServer, GrpcServerConfig};
 

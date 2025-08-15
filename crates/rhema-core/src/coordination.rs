@@ -20,17 +20,15 @@
 //! enabling agents to communicate and coordinate their activities.
 
 use crate::{RhemaError, RhemaResult};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 #[cfg(feature = "coordination")]
 // Re-export syneidesis-grpc types for convenience
 pub use syneidesis_grpc::{CoordinationClient as SyneidesisClient, GrpcClientConfig};
-
-
 
 // Note: Full coordination client integration requires the syneidesis-grpc crate
 // This module provides the core types and interfaces for coordination
@@ -255,11 +253,7 @@ pub struct AgentMessage {
 
 impl AgentMessage {
     /// Create a new agent message
-    pub fn new(
-        sender_id: String,
-        message_type: MessageType,
-        content: String,
-    ) -> Self {
+    pub fn new(sender_id: String, message_type: MessageType, content: String) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             sender_id,
@@ -332,34 +326,42 @@ pub enum MessagePriority {
 pub trait CoordinationClient: Send + Sync {
     /// Register an agent
     async fn register_agent(&mut self, agent_info: AgentInfo) -> RhemaResult<()>;
-    
+
     /// Unregister an agent
     async fn unregister_agent(&mut self, agent_id: &str) -> RhemaResult<()>;
-    
+
     /// Send a message
     async fn send_message(&mut self, message: AgentMessage) -> RhemaResult<()>;
-    
+
     /// Get agent information
     async fn get_agent_info(&mut self, agent_id: &str) -> RhemaResult<Option<AgentInfo>>;
-    
+
     /// Get all registered agents
     async fn get_all_agents(&mut self) -> RhemaResult<Vec<AgentInfo>>;
-    
+
     /// Create a coordination session
-    async fn create_session(&mut self, topic: String, participants: Vec<String>) -> RhemaResult<String>;
-    
+    async fn create_session(
+        &mut self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> RhemaResult<String>;
+
     /// Join a coordination session
     async fn join_session(&mut self, session_id: &str, agent_id: &str) -> RhemaResult<()>;
-    
+
     /// Leave a coordination session
     async fn leave_session(&mut self, session_id: &str, agent_id: &str) -> RhemaResult<()>;
-    
+
     /// Send a session message
-    async fn send_session_message(&mut self, session_id: &str, message: AgentMessage) -> RhemaResult<()>;
-    
+    async fn send_session_message(
+        &mut self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> RhemaResult<()>;
+
     /// Check if the client is connected
     async fn is_connected(&self) -> bool;
-    
+
     /// Get connection statistics
     async fn get_connection_stats(&mut self) -> RhemaResult<ConnectionStats>;
 }
@@ -412,8 +414,11 @@ impl CoordinationManager {
         }
 
         // Initialize the coordination client
-        tracing::info!("Initializing coordination manager with endpoint: {}", self.config.server_endpoint);
-        
+        tracing::info!(
+            "Initializing coordination manager with endpoint: {}",
+            self.config.server_endpoint
+        );
+
         #[cfg(feature = "coordination")]
         {
             // Use the real gRPC client when coordination feature is enabled
@@ -427,7 +432,7 @@ impl CoordinationManager {
             let mock_client = MockCoordinationClient::new();
             self.client = Some(Box::new(mock_client));
         }
-        
+
         Ok(())
     }
 
@@ -475,7 +480,9 @@ impl CoordinationManager {
 }
 
 /// Create a coordination manager from configuration
-pub async fn create_coordination_manager(config: CoordinationConfig) -> RhemaResult<CoordinationManager> {
+pub async fn create_coordination_manager(
+    config: CoordinationConfig,
+) -> RhemaResult<CoordinationManager> {
     let mut manager = CoordinationManager::new(config);
     manager.initialize().await?;
     Ok(manager)
@@ -506,9 +513,9 @@ impl GrpcCoordinationClient {
             tls: None, // Simplified for now
         };
 
-        let client = SyneidesisClient::new(grpc_config)
-            .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to create gRPC client: {}", e)))?;
+        let client = SyneidesisClient::new(grpc_config).await.map_err(|e| {
+            RhemaError::CoordinationError(format!("Failed to create gRPC client: {}", e))
+        })?;
 
         Ok(Self {
             client,
@@ -566,7 +573,7 @@ impl GrpcCoordinationClient {
             version: "1.0.0".to_string(),
             endpoint: None,
             metadata: agent_info.metadata.clone(),
-            created_at: None, // Simplified for now
+            created_at: None,   // Simplified for now
             last_updated: None, // Simplified for now
         }
     }
@@ -579,9 +586,15 @@ impl GrpcCoordinationClient {
             MessageType::TaskFailure => syneidesis_grpc::MessageType::TaskBlocked as i32,
             MessageType::StatusUpdate => syneidesis_grpc::MessageType::StatusUpdate as i32,
             MessageType::Heartbeat => syneidesis_grpc::MessageType::Custom as i32,
-            MessageType::CoordinationRequest => syneidesis_grpc::MessageType::CoordinationRequest as i32,
-            MessageType::CoordinationResponse => syneidesis_grpc::MessageType::DecisionResponse as i32,
-            MessageType::ErrorNotification => syneidesis_grpc::MessageType::ConflictNotification as i32,
+            MessageType::CoordinationRequest => {
+                syneidesis_grpc::MessageType::CoordinationRequest as i32
+            }
+            MessageType::CoordinationResponse => {
+                syneidesis_grpc::MessageType::DecisionResponse as i32
+            }
+            MessageType::ErrorNotification => {
+                syneidesis_grpc::MessageType::ConflictNotification as i32
+            }
             MessageType::Custom(_) => syneidesis_grpc::MessageType::Custom as i32,
         };
 
@@ -620,7 +633,8 @@ impl GrpcCoordinationClient {
         };
 
         let last_heartbeat = agent_info.last_heartbeat.as_ref().map(|t| {
-            chrono::DateTime::from_timestamp(t.seconds, t.nanos as u32).unwrap_or_else(|| chrono::Utc::now())
+            chrono::DateTime::from_timestamp(t.seconds, t.nanos as u32)
+                .unwrap_or_else(|| chrono::Utc::now())
         });
 
         AgentInfo {
@@ -633,16 +647,18 @@ impl GrpcCoordinationClient {
             capabilities: agent_info.capabilities.clone(),
             last_heartbeat,
             is_online: agent_info.is_online,
-            performance_metrics: agent_info.performance_metrics.as_ref().map(|m| {
-                AgentPerformanceMetrics {
+            performance_metrics: agent_info
+                .performance_metrics
+                .as_ref()
+                .map(|m| AgentPerformanceMetrics {
                     tasks_completed: m.tasks_completed as usize,
                     tasks_failed: m.tasks_failed as usize,
                     avg_completion_time_seconds: m.avg_completion_time_seconds,
                     success_rate: m.success_rate,
                     collaboration_score: m.collaboration_score,
                     avg_response_time_ms: m.avg_response_time_ms,
-                }
-            }).unwrap_or_default(),
+                })
+                .unwrap_or_default(),
             metadata: agent_info.metadata.clone(),
         }
     }
@@ -669,9 +685,14 @@ impl GrpcCoordinationClient {
             _ => MessagePriority::Normal,
         };
 
-        let timestamp = message.timestamp.as_ref().map(|t| {
-            chrono::DateTime::from_timestamp(t.seconds, t.nanos as u32).unwrap_or_else(|| chrono::Utc::now())
-        }).unwrap_or_else(|| chrono::Utc::now());
+        let timestamp = message
+            .timestamp
+            .as_ref()
+            .map(|t| {
+                chrono::DateTime::from_timestamp(t.seconds, t.nanos as u32)
+                    .unwrap_or_else(|| chrono::Utc::now())
+            })
+            .unwrap_or_else(|| chrono::Utc::now());
 
         AgentMessage {
             id: message.id.clone(),
@@ -700,17 +721,20 @@ impl GrpcCoordinationClient {
 impl CoordinationClient for GrpcCoordinationClient {
     async fn register_agent(&mut self, agent_info: AgentInfo) -> RhemaResult<()> {
         let syneidesis_agent_info = self.convert_agent_info(&agent_info);
-        
+
         self.client
             .register_agent(syneidesis_agent_info)
             .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to register agent: {}", e)))?;
-        
+            .map_err(|e| {
+                RhemaError::CoordinationError(format!("Failed to register agent: {}", e))
+            })?;
+
         self.update_stats(|stats| {
             stats.messages_sent += 1;
             stats.is_connected = true;
-        }).await;
-        
+        })
+        .await;
+
         Ok(())
     }
 
@@ -718,48 +742,62 @@ impl CoordinationClient for GrpcCoordinationClient {
         self.client
             .unregister_agent(agent_id.to_string())
             .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to unregister agent: {}", e)))?;
-        
+            .map_err(|e| {
+                RhemaError::CoordinationError(format!("Failed to unregister agent: {}", e))
+            })?;
+
         self.update_stats(|stats| stats.messages_sent += 1).await;
         Ok(())
     }
 
     async fn send_message(&mut self, message: AgentMessage) -> RhemaResult<()> {
         let syneidesis_message = self.convert_message(&message);
-        
+
         self.client
             .send_message(syneidesis_message)
             .await
             .map_err(|e| RhemaError::CoordinationError(format!("Failed to send message: {}", e)))?;
-        
+
         self.update_stats(|stats| stats.messages_sent += 1).await;
         Ok(())
     }
 
     async fn get_agent_info(&mut self, agent_id: &str) -> RhemaResult<Option<AgentInfo>> {
-        let syneidesis_agent_info = self.client
+        let syneidesis_agent_info = self
+            .client
             .get_agent_info(agent_id.to_string())
             .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to get agent info: {}", e)))?;
-        
+            .map_err(|e| {
+                RhemaError::CoordinationError(format!("Failed to get agent info: {}", e))
+            })?;
+
         Ok(syneidesis_agent_info.map(|info| self.convert_syneidesis_agent_info(&info)))
     }
 
     async fn get_all_agents(&mut self) -> RhemaResult<Vec<AgentInfo>> {
-        let syneidesis_agents = self.client
-            .get_all_agents()
-            .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to get all agents: {}", e)))?;
-        
-        Ok(syneidesis_agents.into_iter().map(|agent| self.convert_syneidesis_agent_info(&agent)).collect())
+        let syneidesis_agents = self.client.get_all_agents().await.map_err(|e| {
+            RhemaError::CoordinationError(format!("Failed to get all agents: {}", e))
+        })?;
+
+        Ok(syneidesis_agents
+            .into_iter()
+            .map(|agent| self.convert_syneidesis_agent_info(&agent))
+            .collect())
     }
 
-    async fn create_session(&mut self, topic: String, participants: Vec<String>) -> RhemaResult<String> {
-        let session_id = self.client
+    async fn create_session(
+        &mut self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> RhemaResult<String> {
+        let session_id = self
+            .client
             .create_session(topic, participants)
             .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to create session: {}", e)))?;
-        
+            .map_err(|e| {
+                RhemaError::CoordinationError(format!("Failed to create session: {}", e))
+            })?;
+
         Ok(session_id)
     }
 
@@ -768,7 +806,7 @@ impl CoordinationClient for GrpcCoordinationClient {
             .join_session(session_id.to_string(), agent_id.to_string())
             .await
             .map_err(|e| RhemaError::CoordinationError(format!("Failed to join session: {}", e)))?;
-        
+
         Ok(())
     }
 
@@ -776,19 +814,27 @@ impl CoordinationClient for GrpcCoordinationClient {
         self.client
             .leave_session(session_id.to_string(), agent_id.to_string())
             .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to leave session: {}", e)))?;
-        
+            .map_err(|e| {
+                RhemaError::CoordinationError(format!("Failed to leave session: {}", e))
+            })?;
+
         Ok(())
     }
 
-    async fn send_session_message(&mut self, session_id: &str, message: AgentMessage) -> RhemaResult<()> {
+    async fn send_session_message(
+        &mut self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> RhemaResult<()> {
         let syneidesis_message = self.convert_message(&message);
-        
+
         self.client
             .send_session_message(session_id.to_string(), syneidesis_message)
             .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to send session message: {}", e)))?;
-        
+            .map_err(|e| {
+                RhemaError::CoordinationError(format!("Failed to send session message: {}", e))
+            })?;
+
         self.update_stats(|stats| stats.messages_sent += 1).await;
         Ok(())
     }
@@ -800,17 +846,16 @@ impl CoordinationClient for GrpcCoordinationClient {
     }
 
     async fn get_connection_stats(&mut self) -> RhemaResult<ConnectionStats> {
-        let stats = self.client
-            .get_stats()
-            .await
-            .map_err(|e| RhemaError::CoordinationError(format!("Failed to get connection stats: {}", e)))?;
-        
+        let stats = self.client.get_stats().await.map_err(|e| {
+            RhemaError::CoordinationError(format!("Failed to get connection stats: {}", e))
+        })?;
+
         let mut connection_stats = self.connection_stats.read().await.clone();
         connection_stats.is_connected = true;
         connection_stats.messages_sent = stats.total_messages as u64;
         connection_stats.messages_received = stats.messages_delivered as u64;
         connection_stats.latency_ms = Some(stats.avg_response_time_ms as u64);
-        
+
         Ok(connection_stats)
     }
 }
@@ -852,7 +897,8 @@ impl CoordinationClient for MockCoordinationClient {
         self.update_stats(|stats| {
             stats.messages_sent += 1;
             stats.is_connected = true;
-        }).await;
+        })
+        .await;
         Ok(())
     }
 
@@ -863,7 +909,11 @@ impl CoordinationClient for MockCoordinationClient {
     }
 
     async fn send_message(&mut self, message: AgentMessage) -> RhemaResult<()> {
-        tracing::info!("Mock: Message sent from {} to {:?}", message.sender_id, message.recipient_ids);
+        tracing::info!(
+            "Mock: Message sent from {} to {:?}",
+            message.sender_id,
+            message.recipient_ids
+        );
         self.update_stats(|stats| stats.messages_sent += 1).await;
         Ok(())
     }
@@ -878,23 +928,47 @@ impl CoordinationClient for MockCoordinationClient {
         Ok(Vec::new())
     }
 
-    async fn create_session(&mut self, topic: String, participants: Vec<String>) -> RhemaResult<String> {
-        tracing::info!("Mock: Session creation requested for topic '{}' with participants {:?}", topic, participants);
+    async fn create_session(
+        &mut self,
+        topic: String,
+        participants: Vec<String>,
+    ) -> RhemaResult<String> {
+        tracing::info!(
+            "Mock: Session creation requested for topic '{}' with participants {:?}",
+            topic,
+            participants
+        );
         Ok("mock-session-id".to_string())
     }
 
     async fn join_session(&mut self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
-        tracing::info!("Mock: Join session requested for session {} by agent {}", session_id, agent_id);
+        tracing::info!(
+            "Mock: Join session requested for session {} by agent {}",
+            session_id,
+            agent_id
+        );
         Ok(())
     }
 
     async fn leave_session(&mut self, session_id: &str, agent_id: &str) -> RhemaResult<()> {
-        tracing::info!("Mock: Leave session requested for session {} by agent {}", session_id, agent_id);
+        tracing::info!(
+            "Mock: Leave session requested for session {} by agent {}",
+            session_id,
+            agent_id
+        );
         Ok(())
     }
 
-    async fn send_session_message(&mut self, session_id: &str, message: AgentMessage) -> RhemaResult<()> {
-        tracing::info!("Mock: Session message sent to session {} from {}", session_id, message.sender_id);
+    async fn send_session_message(
+        &mut self,
+        session_id: &str,
+        message: AgentMessage,
+    ) -> RhemaResult<()> {
+        tracing::info!(
+            "Mock: Session message sent to session {} from {}",
+            session_id,
+            message.sender_id
+        );
         self.update_stats(|stats| stats.messages_sent += 1).await;
         Ok(())
     }
@@ -954,7 +1028,7 @@ mod tests {
     async fn test_coordination_manager_creation() {
         let config = CoordinationConfig::default();
         let manager = CoordinationManager::new(config);
-        
+
         assert!(!manager.is_enabled());
         assert_eq!(manager.get_connection_stats().await.is_connected, false);
     }

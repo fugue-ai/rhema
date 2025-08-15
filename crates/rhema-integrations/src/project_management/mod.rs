@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-pub mod jira;
 pub mod asana;
-pub mod trello;
 pub mod github_issues;
 pub mod gitlab_issues;
+pub mod jira;
+pub mod trello;
 
-pub use jira::JiraIntegration;
 pub use asana::AsanaIntegration;
-pub use trello::TrelloIntegration;
 pub use github_issues::GitHubIssuesIntegration;
 pub use gitlab_issues::GitLabIssuesIntegration;
+pub use jira::JiraIntegration;
+pub use trello::TrelloIntegration;

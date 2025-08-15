@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
 /// Architectural patterns that can be detected
@@ -216,13 +216,13 @@ impl PatternRecognitionEngine {
     fn initialize_detection_rules(&mut self) {
         // Architectural patterns
         self.add_architectural_patterns();
-        
+
         // Project structure patterns
         self.add_project_structure_patterns();
-        
+
         // Technology stack patterns
         self.add_technology_stack_patterns();
-        
+
         // Build system patterns
         self.add_build_system_patterns();
     }
@@ -230,30 +230,28 @@ impl PatternRecognitionEngine {
     /// Add architectural pattern detection rules
     fn add_architectural_patterns(&mut self) {
         // Monorepo pattern
-        let monorepo_rules = vec![
-            DetectionRule {
-                name: "workspace_config".to_string(),
-                file_patterns: vec![
-                    "Cargo.toml".to_string(),
-                    "package.json".to_string(),
-                    "lerna.json".to_string(),
-                    "nx.json".to_string(),
-                ],
-                directory_patterns: vec![
-                    "packages/".to_string(),
-                    "crates/".to_string(),
-                    "apps/".to_string(),
-                    "libs/".to_string(),
-                ],
-                content_patterns: vec![
-                    r#"\[workspace\]"#.to_string(),
-                    r#""workspaces""#.to_string(),
-                    r#""projects""#.to_string(),
-                ],
-                weight: 0.8,
-                description: "Detected workspace configuration".to_string(),
-            },
-        ];
+        let monorepo_rules = vec![DetectionRule {
+            name: "workspace_config".to_string(),
+            file_patterns: vec![
+                "Cargo.toml".to_string(),
+                "package.json".to_string(),
+                "lerna.json".to_string(),
+                "nx.json".to_string(),
+            ],
+            directory_patterns: vec![
+                "packages/".to_string(),
+                "crates/".to_string(),
+                "apps/".to_string(),
+                "libs/".to_string(),
+            ],
+            content_patterns: vec![
+                r#"\[workspace\]"#.to_string(),
+                r#""workspaces""#.to_string(),
+                r#""projects""#.to_string(),
+            ],
+            weight: 0.8,
+            description: "Detected workspace configuration".to_string(),
+        }];
 
         self.detection_rules.insert(
             PatternType::Architectural(ArchitecturalPattern::Monorepo),
@@ -261,29 +259,27 @@ impl PatternRecognitionEngine {
         );
 
         // Microservices pattern
-        let microservices_rules = vec![
-            DetectionRule {
-                name: "service_structure".to_string(),
-                file_patterns: vec![
-                    "docker-compose.yml".to_string(),
-                    "docker-compose.yaml".to_string(),
-                    "kubernetes/".to_string(),
-                    "helm/".to_string(),
-                ],
-                directory_patterns: vec![
-                    "services/".to_string(),
-                    "microservices/".to_string(),
-                    "api/".to_string(),
-                ],
-                content_patterns: vec![
-                    r#"service:"#.to_string(),
-                    r#"api:"#.to_string(),
-                    r#"microservice"#.to_string(),
-                ],
-                weight: 0.7,
-                description: "Detected microservices structure".to_string(),
-            },
-        ];
+        let microservices_rules = vec![DetectionRule {
+            name: "service_structure".to_string(),
+            file_patterns: vec![
+                "docker-compose.yml".to_string(),
+                "docker-compose.yaml".to_string(),
+                "kubernetes/".to_string(),
+                "helm/".to_string(),
+            ],
+            directory_patterns: vec![
+                "services/".to_string(),
+                "microservices/".to_string(),
+                "api/".to_string(),
+            ],
+            content_patterns: vec![
+                r#"service:"#.to_string(),
+                r#"api:"#.to_string(),
+                r#"microservice"#.to_string(),
+            ],
+            weight: 0.7,
+            description: "Detected microservices structure".to_string(),
+        }];
 
         self.detection_rules.insert(
             PatternType::Architectural(ArchitecturalPattern::Microservices),
@@ -291,25 +287,23 @@ impl PatternRecognitionEngine {
         );
 
         // Clean Architecture pattern
-        let clean_arch_rules = vec![
-            DetectionRule {
-                name: "clean_architecture_layers".to_string(),
-                file_patterns: vec![],
-                directory_patterns: vec![
-                    "domain/".to_string(),
-                    "application/".to_string(),
-                    "infrastructure/".to_string(),
-                    "interfaces/".to_string(),
-                ],
-                content_patterns: vec![
-                    r#"domain"#.to_string(),
-                    r#"application"#.to_string(),
-                    r#"infrastructure"#.to_string(),
-                ],
-                weight: 0.9,
-                description: "Detected clean architecture layers".to_string(),
-            },
-        ];
+        let clean_arch_rules = vec![DetectionRule {
+            name: "clean_architecture_layers".to_string(),
+            file_patterns: vec![],
+            directory_patterns: vec![
+                "domain/".to_string(),
+                "application/".to_string(),
+                "infrastructure/".to_string(),
+                "interfaces/".to_string(),
+            ],
+            content_patterns: vec![
+                r#"domain"#.to_string(),
+                r#"application"#.to_string(),
+                r#"infrastructure"#.to_string(),
+            ],
+            weight: 0.9,
+            description: "Detected clean architecture layers".to_string(),
+        }];
 
         self.detection_rules.insert(
             PatternType::Architectural(ArchitecturalPattern::CleanArchitecture),
@@ -435,16 +429,14 @@ impl PatternRecognitionEngine {
     /// Add build system pattern detection rules
     fn add_build_system_patterns(&mut self) {
         // Cargo build system
-        let cargo_rules = vec![
-            DetectionRule {
-                name: "cargo_build".to_string(),
-                file_patterns: vec!["Cargo.toml".to_string(), "Cargo.lock".to_string()],
-                directory_patterns: vec![],
-                content_patterns: vec![r#"\[dependencies\]"#.to_string()],
-                weight: 0.9,
-                description: "Detected Cargo build system".to_string(),
-            },
-        ];
+        let cargo_rules = vec![DetectionRule {
+            name: "cargo_build".to_string(),
+            file_patterns: vec!["Cargo.toml".to_string(), "Cargo.lock".to_string()],
+            directory_patterns: vec![],
+            content_patterns: vec![r#"\[dependencies\]"#.to_string()],
+            weight: 0.9,
+            description: "Detected Cargo build system".to_string(),
+        }];
 
         self.detection_rules.insert(
             PatternType::BuildSystem(BuildSystemPattern::Cargo),
@@ -452,16 +444,18 @@ impl PatternRecognitionEngine {
         );
 
         // npm/yarn build system
-        let npm_rules = vec![
-            DetectionRule {
-                name: "npm_build".to_string(),
-                file_patterns: vec!["package.json".to_string(), "package-lock.json".to_string(), "yarn.lock".to_string()],
-                directory_patterns: vec![],
-                content_patterns: vec![r#""scripts""#.to_string()],
-                weight: 0.9,
-                description: "Detected npm/yarn build system".to_string(),
-            },
-        ];
+        let npm_rules = vec![DetectionRule {
+            name: "npm_build".to_string(),
+            file_patterns: vec![
+                "package.json".to_string(),
+                "package-lock.json".to_string(),
+                "yarn.lock".to_string(),
+            ],
+            directory_patterns: vec![],
+            content_patterns: vec![r#""scripts""#.to_string()],
+            weight: 0.9,
+            description: "Detected npm/yarn build system".to_string(),
+        }];
 
         self.detection_rules.insert(
             PatternType::BuildSystem(BuildSystemPattern::NpmYarn),
@@ -496,14 +490,10 @@ impl PatternRecognitionEngine {
         );
 
         // Build system patterns have medium weight
-        self.pattern_weights.insert(
-            PatternType::BuildSystem(BuildSystemPattern::Cargo),
-            0.7,
-        );
-        self.pattern_weights.insert(
-            PatternType::BuildSystem(BuildSystemPattern::NpmYarn),
-            0.7,
-        );
+        self.pattern_weights
+            .insert(PatternType::BuildSystem(BuildSystemPattern::Cargo), 0.7);
+        self.pattern_weights
+            .insert(PatternType::BuildSystem(BuildSystemPattern::NpmYarn), 0.7);
 
         // Project structure patterns have medium weight
         self.pattern_weights.insert(
@@ -517,12 +507,15 @@ impl PatternRecognitionEngine {
     }
 
     /// Detect patterns in a project directory
-    pub fn detect_patterns(&self, path: &Path) -> Result<Vec<DetectedPattern>, Box<dyn std::error::Error>> {
+    pub fn detect_patterns(
+        &self,
+        path: &Path,
+    ) -> Result<Vec<DetectedPattern>, Box<dyn std::error::Error>> {
         let mut detected_patterns = Vec::new();
 
         for (pattern_type, rules) in &self.detection_rules {
             let pattern_confidence = self.calculate_pattern_confidence(path, rules)?;
-            
+
             if pattern_confidence > 0.3 {
                 let evidence = self.collect_evidence(path, rules)?;
                 let metadata = self.extract_metadata(path, pattern_type)?;
@@ -538,7 +531,9 @@ impl PatternRecognitionEngine {
 
         // Sort by confidence (highest first)
         detected_patterns.sort_by(|a, b| {
-            b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal)
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         Ok(detected_patterns)
@@ -567,7 +562,11 @@ impl PatternRecognitionEngine {
     }
 
     /// Evaluate a single detection rule
-    fn evaluate_rule(&self, path: &Path, rule: &DetectionRule) -> Result<f64, Box<dyn std::error::Error>> {
+    fn evaluate_rule(
+        &self,
+        path: &Path,
+        rule: &DetectionRule,
+    ) -> Result<f64, Box<dyn std::error::Error>> {
         let mut confidence: f64 = 0.0;
         let mut evidence_count = 0;
 
@@ -604,7 +603,11 @@ impl PatternRecognitionEngine {
     }
 
     /// Check if a file pattern matches
-    fn matches_file_pattern(&self, path: &Path, pattern: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    fn matches_file_pattern(
+        &self,
+        path: &Path,
+        pattern: &str,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         for entry in WalkDir::new(path)
             .max_depth(3)
             .follow_links(true)
@@ -612,11 +615,11 @@ impl PatternRecognitionEngine {
             .filter_map(|e| e.ok())
         {
             let entry_path = entry.path();
-            
+
             if entry_path.is_file() {
                 if let Some(file_name) = entry_path.file_name() {
                     let file_name_str = file_name.to_string_lossy();
-                    
+
                     // Simple glob-like pattern matching
                     if self.matches_glob_pattern(&file_name_str, pattern) {
                         return Ok(true);
@@ -629,7 +632,11 @@ impl PatternRecognitionEngine {
     }
 
     /// Check if a directory pattern matches
-    fn matches_directory_pattern(&self, path: &Path, pattern: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    fn matches_directory_pattern(
+        &self,
+        path: &Path,
+        pattern: &str,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         for entry in WalkDir::new(path)
             .max_depth(2)
             .follow_links(true)
@@ -637,14 +644,14 @@ impl PatternRecognitionEngine {
             .filter_map(|e| e.ok())
         {
             let entry_path = entry.path();
-            
+
             if entry_path.is_dir() {
                 if let Some(dir_name) = entry_path.file_name() {
                     let dir_name_str = dir_name.to_string_lossy();
-                    
+
                     // Remove trailing slash from pattern
                     let clean_pattern = pattern.trim_end_matches('/');
-                    
+
                     if dir_name_str == clean_pattern {
                         return Ok(true);
                     }
@@ -656,7 +663,11 @@ impl PatternRecognitionEngine {
     }
 
     /// Check if a content pattern matches
-    fn matches_content_pattern(&self, path: &Path, pattern: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    fn matches_content_pattern(
+        &self,
+        path: &Path,
+        pattern: &str,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         let regex = regex::Regex::new(pattern)?;
 
         for entry in WalkDir::new(path)
@@ -666,7 +677,7 @@ impl PatternRecognitionEngine {
             .filter_map(|e| e.ok())
         {
             let entry_path = entry.path();
-            
+
             if entry_path.is_file() {
                 if let Ok(content) = std::fs::read_to_string(entry_path) {
                     if regex.is_match(&content) {
@@ -704,7 +715,11 @@ impl PatternRecognitionEngine {
     }
 
     /// Collect evidence for a pattern
-    fn collect_evidence(&self, path: &Path, rules: &[DetectionRule]) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    fn collect_evidence(
+        &self,
+        path: &Path,
+        rules: &[DetectionRule],
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let mut evidence = Vec::new();
 
         for rule in rules {
@@ -717,14 +732,21 @@ impl PatternRecognitionEngine {
     }
 
     /// Extract metadata for a pattern
-    fn extract_metadata(&self, path: &Path, pattern_type: &PatternType) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
+    fn extract_metadata(
+        &self,
+        path: &Path,
+        pattern_type: &PatternType,
+    ) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
         let mut metadata = HashMap::new();
 
         match pattern_type {
             PatternType::Architectural(ArchitecturalPattern::Monorepo) => {
                 // Extract workspace information
                 if let Ok(workspace_info) = self.extract_workspace_info(path) {
-                    metadata.insert("workspace_info".to_string(), serde_json::to_value(workspace_info)?);
+                    metadata.insert(
+                        "workspace_info".to_string(),
+                        serde_json::to_value(workspace_info)?,
+                    );
                 }
             }
             PatternType::TechnologyStack(TechnologyStackPattern::RustEcosystem) => {
@@ -736,7 +758,10 @@ impl PatternRecognitionEngine {
             PatternType::TechnologyStack(TechnologyStackPattern::NodeJSEcosystem) => {
                 // Extract Node.js-specific information
                 if let Ok(nodejs_info) = self.extract_nodejs_info(path) {
-                    metadata.insert("nodejs_info".to_string(), serde_json::to_value(nodejs_info)?);
+                    metadata.insert(
+                        "nodejs_info".to_string(),
+                        serde_json::to_value(nodejs_info)?,
+                    );
                 }
             }
             _ => {}
@@ -746,7 +771,10 @@ impl PatternRecognitionEngine {
     }
 
     /// Extract workspace information
-    fn extract_workspace_info(&self, path: &Path) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
+    fn extract_workspace_info(
+        &self,
+        path: &Path,
+    ) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
         let mut info = HashMap::new();
 
         // Count packages/crates
@@ -758,7 +786,7 @@ impl PatternRecognitionEngine {
             .filter_map(|e| e.ok())
         {
             let entry_path = entry.path();
-            
+
             if entry_path.is_file() {
                 if let Some(file_name) = entry_path.file_name() {
                     let file_name_str = file_name.to_string_lossy();
@@ -769,13 +797,19 @@ impl PatternRecognitionEngine {
             }
         }
 
-        info.insert("package_count".to_string(), serde_json::Value::Number(serde_json::Number::from(package_count)));
+        info.insert(
+            "package_count".to_string(),
+            serde_json::Value::Number(serde_json::Number::from(package_count)),
+        );
 
         Ok(info)
     }
 
     /// Extract Rust-specific information
-    fn extract_rust_info(&self, path: &Path) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
+    fn extract_rust_info(
+        &self,
+        path: &Path,
+    ) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
         let mut info = HashMap::new();
 
         // Check for Cargo.toml
@@ -783,15 +817,25 @@ impl PatternRecognitionEngine {
         if cargo_toml.exists() {
             if let Ok(content) = std::fs::read_to_string(&cargo_toml) {
                 // Extract basic package info
-                if let Some(name_match) = regex::Regex::new(r#"name\s*=\s*"([^"]+)"#)?.captures(&content) {
+                if let Some(name_match) =
+                    regex::Regex::new(r#"name\s*=\s*"([^"]+)"#)?.captures(&content)
+                {
                     if let Some(name) = name_match.get(1) {
-                        info.insert("package_name".to_string(), serde_json::Value::String(name.as_str().to_string()));
+                        info.insert(
+                            "package_name".to_string(),
+                            serde_json::Value::String(name.as_str().to_string()),
+                        );
                     }
                 }
 
-                if let Some(version_match) = regex::Regex::new(r#"version\s*=\s*"([^"]+)"#)?.captures(&content) {
+                if let Some(version_match) =
+                    regex::Regex::new(r#"version\s*=\s*"([^"]+)"#)?.captures(&content)
+                {
                     if let Some(version) = version_match.get(1) {
-                        info.insert("version".to_string(), serde_json::Value::String(version.as_str().to_string()));
+                        info.insert(
+                            "version".to_string(),
+                            serde_json::Value::String(version.as_str().to_string()),
+                        );
                     }
                 }
 
@@ -806,7 +850,10 @@ impl PatternRecognitionEngine {
     }
 
     /// Extract Node.js-specific information
-    fn extract_nodejs_info(&self, path: &Path) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
+    fn extract_nodejs_info(
+        &self,
+        path: &Path,
+    ) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
         let mut info = HashMap::new();
 
         // Check for package.json
@@ -840,7 +887,7 @@ impl PatternRecognitionEngine {
 
         for pattern in &self.historical_patterns {
             stats.total_patterns += 1;
-            
+
             let pattern_key = match &pattern.pattern_type {
                 PatternType::Architectural(arch) => format!("architectural_{:?}", arch),
                 PatternType::ProjectStructure(proj) => format!("project_{:?}", proj),

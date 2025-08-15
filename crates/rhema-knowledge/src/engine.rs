@@ -1512,7 +1512,11 @@ impl UnifiedKnowledgeEngine {
                 content: result.content.clone().unwrap_or_default(),
                 embedding: result.embedding.clone(),
                 relevance_score: result.score,
-                semantic_tags: result.metadata.as_ref().map(|m| vec![m.source_type.to_string()]).unwrap_or_default(),
+                semantic_tags: result
+                    .metadata
+                    .as_ref()
+                    .map(|m| vec![m.source_type.to_string()])
+                    .unwrap_or_default(),
                 metadata: result.metadata.clone().unwrap_or_default(),
                 cache_info,
             });

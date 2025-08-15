@@ -11,8 +11,9 @@ use crate::vector::VectorStoreWrapper;
 use super::config::AIIntegrationConfig;
 use super::metrics::AIIntegrationMetrics;
 use super::types::{
-    AIEnhancement, AIEnhancementType, AIInsight, AIInsightType, AIKnowledgeRequest, AIKnowledgeResponse, AIKnowledgeResult,
-    KnowledgeSuggestion, KnowledgeSuggestionType, SuggestionPriority,
+    AIEnhancement, AIEnhancementType, AIInsight, AIInsightType, AIKnowledgeRequest,
+    AIKnowledgeResponse, AIKnowledgeResult, KnowledgeSuggestion, KnowledgeSuggestionType,
+    SuggestionPriority,
 };
 
 /// AI Integration for knowledge processing
@@ -131,8 +132,10 @@ impl AIIntegration {
             if ai_enhanced_score > result.relevance_score {
                 enhancements.push(AIEnhancement {
                     enhancement_type: AIEnhancementType::SemanticRelevanceBoost,
-                    description: format!("Boosted relevance score from {:.3} to {:.3}", 
-                                       result.relevance_score, ai_enhanced_score),
+                    description: format!(
+                        "Boosted relevance score from {:.3} to {:.3}",
+                        result.relevance_score, ai_enhanced_score
+                    ),
                     impact_score: ai_enhanced_score - result.relevance_score,
                     applied_at: chrono::Utc::now(),
                     metadata: serde_json::json!({
@@ -187,17 +190,24 @@ impl AIIntegration {
 
         // Track result reranking if we have multiple results
         if enhanced_results.len() > 1 {
-            let original_order: Vec<f32> = search_results.iter().map(|r| r.relevance_score).collect();
-            let enhanced_order: Vec<f32> = enhanced_results.iter().map(|r| r.ai_enhanced_score).collect();
-            
+            let original_order: Vec<f32> =
+                search_results.iter().map(|r| r.relevance_score).collect();
+            let enhanced_order: Vec<f32> = enhanced_results
+                .iter()
+                .map(|r| r.ai_enhanced_score)
+                .collect();
+
             // Check if order changed
-            let order_changed = original_order.iter().zip(enhanced_order.iter())
+            let order_changed = original_order
+                .iter()
+                .zip(enhanced_order.iter())
                 .any(|(orig, enhanced)| (orig - enhanced).abs() > 0.1);
-            
+
             if order_changed {
                 enhancements.push(AIEnhancement {
                     enhancement_type: AIEnhancementType::ResultReranking,
-                    description: "AI-enhanced scoring resulted in different result ordering".to_string(),
+                    description: "AI-enhanced scoring resulted in different result ordering"
+                        .to_string(),
                     impact_score: 0.3,
                     applied_at: chrono::Utc::now(),
                     metadata: serde_json::json!({
@@ -495,15 +505,17 @@ impl AIIntegration {
         let search_engine = Arc::clone(&self.search_engine);
 
         let monitoring_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(
-                std::time::Duration::from_secs(config.monitoring_interval_seconds)
-            );
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(
+                config.monitoring_interval_seconds,
+            ));
 
             loop {
                 interval.tick().await;
 
                 // Monitor system health
-                if let Err(e) = Self::monitor_system_health(&metrics, &knowledge_engine, &search_engine).await {
+                if let Err(e) =
+                    Self::monitor_system_health(&metrics, &knowledge_engine, &search_engine).await
+                {
                     tracing::error!("System health monitoring failed: {}", e);
                 }
 
@@ -556,12 +568,13 @@ impl AIIntegration {
         metrics: &Arc<RwLock<AIIntegrationMetrics>>,
     ) -> Result<(), KnowledgeError> {
         let metrics_guard = metrics.read().await;
-        
+
         // Check if it's time for scheduled optimization
         if let Some(last_optimization) = metrics_guard.last_optimization {
             let time_since_optimization = chrono::Utc::now() - last_optimization;
-            let optimization_interval = chrono::Duration::minutes(config.optimization_interval_minutes as i64);
-            
+            let optimization_interval =
+                chrono::Duration::minutes(config.optimization_interval_minutes as i64);
+
             if time_since_optimization > optimization_interval {
                 tracing::info!("Scheduled optimization trigger activated");
                 // In a real implementation, you'd trigger optimization here
@@ -584,10 +597,10 @@ impl AIIntegration {
     /// Optimize search patterns
     async fn optimize_search_patterns(&self) -> Result<(), KnowledgeError> {
         tracing::info!("Optimizing search patterns");
-        
+
         // Analyze common query patterns
         // In a real implementation, you'd analyze query logs and optimize accordingly
-        
+
         // Optimize search engine configuration
         // Note: optimize method would need to be implemented on SemanticSearchEngine
         tracing::debug!("Search engine optimization skipped (method not implemented)");
@@ -598,14 +611,14 @@ impl AIIntegration {
     /// Clean up low-quality content
     async fn cleanup_low_quality_content(&self) -> Result<(), KnowledgeError> {
         tracing::info!("Cleaning up low-quality content");
-        
+
         // In a real implementation, you'd identify and remove or flag low-quality content
         // This could involve:
         // - Content with very low relevance scores
         // - Duplicate content
         // - Outdated content
         // - Content with poor quality assessments
-        
+
         Ok(())
     }
 

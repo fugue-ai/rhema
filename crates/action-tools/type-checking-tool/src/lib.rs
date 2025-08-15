@@ -45,18 +45,26 @@ impl SafetyTool for TypeCheckingTool {
 
         // Group files by language for efficient processing
         let files_by_language = self.group_files_by_language(files);
-        
+
         let mut all_errors = Vec::new();
         let mut all_warnings = Vec::new();
         let mut type_check_results = Vec::new();
 
         // Run type checking for each language
         for (language, files) in files_by_language {
-            info!("Type checking {} files for language: {}", files.len(), language);
-            
+            info!(
+                "Type checking {} files for language: {}",
+                files.len(),
+                language
+            );
+
             match self.check_language_types(&language, &files).await {
                 Ok(result) => {
-                    type_check_results.push(format!("{}: {} files checked successfully", language, files.len()));
+                    type_check_results.push(format!(
+                        "{}: {} files checked successfully",
+                        language,
+                        files.len()
+                    ));
                     all_warnings.extend(result.warnings);
                 }
                 Err(e) => {
@@ -67,7 +75,10 @@ impl SafetyTool for TypeCheckingTool {
 
         let success = all_errors.is_empty();
         let output = if success {
-            format!("Type checking completed successfully for {} files", files.len())
+            format!(
+                "Type checking completed successfully for {} files",
+                files.len()
+            )
         } else {
             format!("Type checking failed with {} errors", all_errors.len())
         };
@@ -93,22 +104,22 @@ impl SafetyTool for TypeCheckingTool {
     async fn is_available(&self) -> bool {
         // Check if any type checking tools are available
         let mut available_tools = 0;
-        
+
         // Check TypeScript
         if self.check_typescript_available().await {
             available_tools += 1;
         }
-        
+
         // Check Python
         if self.check_python_available().await {
             available_tools += 1;
         }
-        
+
         // Check Rust
         if self.check_rust_available().await {
             available_tools += 1;
         }
-        
+
         // Check Go
         if self.check_go_available().await {
             available_tools += 1;
@@ -122,12 +133,15 @@ impl TypeCheckingTool {
     /// Group files by their programming language
     fn group_files_by_language(&self, files: &[String]) -> HashMap<String, Vec<String>> {
         let mut grouped = HashMap::new();
-        
+
         for file in files {
             let language = self.detect_language(file);
-            grouped.entry(language).or_insert_with(Vec::new).push(file.clone());
+            grouped
+                .entry(language)
+                .or_insert_with(Vec::new)
+                .push(file.clone());
         }
-        
+
         grouped
     }
 
@@ -155,7 +169,11 @@ impl TypeCheckingTool {
     }
 
     /// Check types for a specific language
-    async fn check_language_types(&self, language: &str, files: &[String]) -> ActionResult<ToolResult> {
+    async fn check_language_types(
+        &self,
+        language: &str,
+        files: &[String],
+    ) -> ActionResult<ToolResult> {
         match language {
             "typescript" => self.check_typescript_types(files).await,
             "javascript" => self.check_javascript_types(files).await,
@@ -206,7 +224,10 @@ impl TypeCheckingTool {
         Ok(ToolResult {
             success: errors.is_empty(),
             changes: vec![],
-            output: format!("TypeScript type checking completed for {} files", files.len()),
+            output: format!(
+                "TypeScript type checking completed for {} files",
+                files.len()
+            ),
             errors,
             warnings,
             duration: start.elapsed(),
@@ -235,7 +256,10 @@ impl TypeCheckingTool {
         Ok(ToolResult {
             success: errors.is_empty(),
             changes: vec![],
-            output: format!("JavaScript type checking completed for {} files", files.len()),
+            output: format!(
+                "JavaScript type checking completed for {} files",
+                files.len()
+            ),
             errors,
             warnings,
             duration: start.elapsed(),
@@ -714,7 +738,7 @@ mod tests {
     #[tokio::test]
     async fn test_language_detection() {
         let tool = TypeCheckingTool;
-        
+
         assert_eq!(tool.detect_language("test.ts"), "typescript");
         assert_eq!(tool.detect_language("test.tsx"), "typescript");
         assert_eq!(tool.detect_language("test.js"), "javascript");
@@ -738,9 +762,9 @@ mod tests {
             "test4.rs".to_string(),
             "test5.go".to_string(),
         ];
-        
+
         let grouped = tool.group_files_by_language(&files);
-        
+
         assert_eq!(grouped.get("typescript").unwrap().len(), 2);
         assert_eq!(grouped.get("python").unwrap().len(), 1);
         assert_eq!(grouped.get("rust").unwrap().len(), 1);
@@ -757,7 +781,7 @@ mod tests {
             vec![],
             rhema_action_tool::SafetyLevel::Medium,
         );
-        
+
         let result = tool.check(&intent).await.unwrap();
         assert!(result.success);
         assert_eq!(result.output, "No files specified for type checking");
@@ -768,9 +792,11 @@ mod tests {
     async fn test_unknown_language_handling() {
         let tool = TypeCheckingTool;
         let files = vec!["test.unknown".to_string()];
-        
+
         let result = tool.check_language_types("unknown", &files).await.unwrap();
         assert!(result.success);
-        assert!(result.warnings.contains(&"No type checker available for unknown".to_string()));
+        assert!(result
+            .warnings
+            .contains(&"No type checker available for unknown".to_string()));
     }
 }

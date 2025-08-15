@@ -172,8 +172,10 @@ impl ConfigDocumentationGenerator {
             ],
         };
 
-        self.templates.insert(DocumentationFormat::Markdown, markdown_template);
-        self.templates.insert(DocumentationFormat::HTML, html_template);
+        self.templates
+            .insert(DocumentationFormat::Markdown, markdown_template);
+        self.templates
+            .insert(DocumentationFormat::HTML, html_template);
     }
 
     /// Generate documentation for a configuration
@@ -1014,13 +1016,20 @@ scope:
     }
 
     /// Generate documentation summary
-    fn generate_summary<T: Config>(&self, config: &T, sections: &[DocumentationSection]) -> DocumentationSummary {
+    fn generate_summary<T: Config>(
+        &self,
+        config: &T,
+        sections: &[DocumentationSection],
+    ) -> DocumentationSummary {
         DocumentationSummary {
             total_options: 50, // This would be calculated from actual config
             required_options: 10,
             optional_options: 40,
             validation_rules: 25,
-            examples: sections.iter().filter(|s| s.section_type == SectionType::Examples).count(),
+            examples: sections
+                .iter()
+                .filter(|s| s.section_type == SectionType::Examples)
+                .count(),
             completeness_score: 95,
         }
     }
@@ -1067,16 +1076,34 @@ scope:
         // Title
         content.push_str(&format!("# {}\n\n", documentation.title));
         content.push_str(&format!("**Version**: {}\n", documentation.version));
-        content.push_str(&format!("**Generated**: {}\n\n", documentation.generated_at));
+        content.push_str(&format!(
+            "**Generated**: {}\n\n",
+            documentation.generated_at
+        ));
 
         // Summary
         content.push_str("## Summary\n\n");
-        content.push_str(&format!("- Total Options: {}\n", documentation.summary.total_options));
-        content.push_str(&format!("- Required Options: {}\n", documentation.summary.required_options));
-        content.push_str(&format!("- Optional Options: {}\n", documentation.summary.optional_options));
-        content.push_str(&format!("- Validation Rules: {}\n", documentation.summary.validation_rules));
+        content.push_str(&format!(
+            "- Total Options: {}\n",
+            documentation.summary.total_options
+        ));
+        content.push_str(&format!(
+            "- Required Options: {}\n",
+            documentation.summary.required_options
+        ));
+        content.push_str(&format!(
+            "- Optional Options: {}\n",
+            documentation.summary.optional_options
+        ));
+        content.push_str(&format!(
+            "- Validation Rules: {}\n",
+            documentation.summary.validation_rules
+        ));
         content.push_str(&format!("- Examples: {}\n", documentation.summary.examples));
-        content.push_str(&format!("- Completeness Score: {}%\n\n", documentation.summary.completeness_score));
+        content.push_str(&format!(
+            "- Completeness Score: {}%\n\n",
+            documentation.summary.completeness_score
+        ));
 
         // Sections
         for section in &documentation.sections {
@@ -1100,27 +1127,52 @@ scope:
         content.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
         content.push_str(&format!("<title>{}</title>\n", documentation.title));
         content.push_str("<meta charset=\"utf-8\">\n");
-        content.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
-        
+        content
+            .push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
+
         if let Some(css) = &self.settings.custom_css {
             content.push_str(&format!("<style>{}</style>\n", css));
         } else {
             content.push_str(include_str!("templates/default.css"));
         }
-        
+
         content.push_str("</head>\n<body>\n");
         content.push_str(&format!("<h1>{}</h1>\n", documentation.title));
-        content.push_str(&format!("<p><strong>Version</strong>: {}</p>\n", documentation.version));
-        content.push_str(&format!("<p><strong>Generated</strong>: {}</p>\n", documentation.generated_at));
+        content.push_str(&format!(
+            "<p><strong>Version</strong>: {}</p>\n",
+            documentation.version
+        ));
+        content.push_str(&format!(
+            "<p><strong>Generated</strong>: {}</p>\n",
+            documentation.generated_at
+        ));
 
         // Summary
         content.push_str("<h2>Summary</h2>\n<ul>\n");
-        content.push_str(&format!("<li>Total Options: {}</li>\n", documentation.summary.total_options));
-        content.push_str(&format!("<li>Required Options: {}</li>\n", documentation.summary.required_options));
-        content.push_str(&format!("<li>Optional Options: {}</li>\n", documentation.summary.optional_options));
-        content.push_str(&format!("<li>Validation Rules: {}</li>\n", documentation.summary.validation_rules));
-        content.push_str(&format!("<li>Examples: {}</li>\n", documentation.summary.examples));
-        content.push_str(&format!("<li>Completeness Score: {}%</li>\n", documentation.summary.completeness_score));
+        content.push_str(&format!(
+            "<li>Total Options: {}</li>\n",
+            documentation.summary.total_options
+        ));
+        content.push_str(&format!(
+            "<li>Required Options: {}</li>\n",
+            documentation.summary.required_options
+        ));
+        content.push_str(&format!(
+            "<li>Optional Options: {}</li>\n",
+            documentation.summary.optional_options
+        ));
+        content.push_str(&format!(
+            "<li>Validation Rules: {}</li>\n",
+            documentation.summary.validation_rules
+        ));
+        content.push_str(&format!(
+            "<li>Examples: {}</li>\n",
+            documentation.summary.examples
+        ));
+        content.push_str(&format!(
+            "<li>Completeness Score: {}%</li>\n",
+            documentation.summary.completeness_score
+        ));
         content.push_str("</ul>\n");
 
         // Sections

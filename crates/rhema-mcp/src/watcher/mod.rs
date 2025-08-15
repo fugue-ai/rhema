@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-pub mod types;
-pub mod file_watcher;
 pub mod builder;
+pub mod file_watcher;
+pub mod types;
 
 #[cfg(test)]
 mod tests;
 
 // Re-export main types for convenience
+pub use builder::FileWatcherBuilder;
 pub use file_watcher::FileWatcher;
 pub use types::*;
-pub use builder::FileWatcherBuilder;

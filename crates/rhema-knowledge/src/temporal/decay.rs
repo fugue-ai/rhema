@@ -312,7 +312,11 @@ mod tests {
         // Test at half-life
         let half_life_duration = Duration::from_secs((365 * 24 * 3600) as u64);
         let decay = decay_fn.calculate_decay(half_life_duration).unwrap();
-        println!("Decay at half-life: {:.6}, expected: 0.5, difference: {:.6}", decay, (decay - 0.5).abs());
+        println!(
+            "Decay at half-life: {:.6}, expected: 0.5, difference: {:.6}",
+            decay,
+            (decay - 0.5).abs()
+        );
         assert!((decay - 0.5).abs() < 0.1); // Allow for floating point precision
 
         // Test at zero age

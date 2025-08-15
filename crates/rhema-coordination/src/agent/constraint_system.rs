@@ -709,7 +709,7 @@ impl ConstraintSystem {
         // 3. Verify dependency versions and compatibility
         // 4. Check for circular dependencies
         // 5. Validate dependency constraints against current context
-        
+
         // For now, implement basic dependency checking using custom_data
         if let Some(dependencies) = constraint.parameters.custom.get("dependencies") {
             if let Some(deps_array) = dependencies.as_array() {
@@ -717,23 +717,36 @@ impl ConstraintSystem {
                     if let Some(dep_obj) = dep.as_object() {
                         if let Some(dep_name) = dep_obj.get("name").and_then(|v| v.as_str()) {
                             // Check if dependency is available in context custom_data
-                            if let Some(available_resources) = context.custom_data.get("available_resources") {
+                            if let Some(available_resources) =
+                                context.custom_data.get("available_resources")
+                            {
                                 if let Some(resources_array) = available_resources.as_array() {
                                     let is_available = resources_array.iter().any(|r| {
                                         r.as_str().map(|s| s == dep_name).unwrap_or(false)
                                     });
-                                    
+
                                     if !is_available {
                                         return Err(ConstraintViolation {
                                             id: format!("violation-{}", constraint.id),
                                             constraint_id: constraint.id.clone(),
-                                            description: format!("Missing dependency: {}", dep_name),
+                                            description: format!(
+                                                "Missing dependency: {}",
+                                                dep_name
+                                            ),
                                             severity: ConstraintSeverity::Error,
                                             timestamp: Utc::now(),
                                             context: {
                                                 let mut ctx = HashMap::new();
-                                                ctx.insert("missing_dependency".to_string(), serde_json::Value::String(dep_name.to_string()));
-                                                ctx.insert("constraint_type".to_string(), serde_json::Value::String("dependency".to_string()));
+                                                ctx.insert(
+                                                    "missing_dependency".to_string(),
+                                                    serde_json::Value::String(dep_name.to_string()),
+                                                );
+                                                ctx.insert(
+                                                    "constraint_type".to_string(),
+                                                    serde_json::Value::String(
+                                                        "dependency".to_string(),
+                                                    ),
+                                                );
                                                 ctx
                                             },
                                             resolved: false,
@@ -743,12 +756,18 @@ impl ConstraintSystem {
                                     }
                                 }
                             }
-                            
+
                             // Check version constraints if specified
-                            if let Some(required_version) = dep_obj.get("version").and_then(|v| v.as_str()) {
-                                if let Some(resource_versions) = context.custom_data.get("resource_versions") {
+                            if let Some(required_version) =
+                                dep_obj.get("version").and_then(|v| v.as_str())
+                            {
+                                if let Some(resource_versions) =
+                                    context.custom_data.get("resource_versions")
+                                {
                                     if let Some(versions_obj) = resource_versions.as_object() {
-                                        if let Some(available_version) = versions_obj.get(dep_name).and_then(|v| v.as_str()) {
+                                        if let Some(available_version) =
+                                            versions_obj.get(dep_name).and_then(|v| v.as_str())
+                                        {
                                             if available_version != required_version {
                                                 return Err(ConstraintViolation {
                                                     id: format!("violation-{}", constraint.id),
@@ -781,7 +800,7 @@ impl ConstraintSystem {
                 }
             }
         }
-        
+
         Ok(())
     }
 

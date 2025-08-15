@@ -22,6 +22,7 @@ use super::engine::TemporalRelevanceEngine;
 use super::relationships::TemporalRelationshipDetector;
 use super::seasonal::SeasonalPatternDetector;
 use super::timezone::TimezoneAwareContextManager;
+use super::{CacheInfo, CacheTier};
 use super::{
     Content, FreshnessPreference, SearchResultMetadata, SeasonalPeriod, SeasonalPreference,
     SemanticResult, TemporalEnhancedResult, TemporalFilter, TemporalSearchConfig,
@@ -29,7 +30,6 @@ use super::{
 };
 use super::{TemporalError, TemporalResult};
 use crate::types::ContentType;
-use super::{CacheInfo, CacheTier};
 
 /// Temporal search enhancer for applying temporal context to search results
 pub struct TemporalSearchEnhancer {

@@ -1,4 +1,5 @@
 pub mod basic;
+pub mod change_tracking_tests;
 pub mod cql_improvements;
 pub mod enhanced_dependencies_tests;
 pub mod health_command_tests;
@@ -8,4 +9,3 @@ pub mod resolver_tests;
 pub mod send_sync_test;
 pub mod unit_tests;
 pub mod validation_command_tests;
-pub mod change_tracking_tests;

@@ -25,8 +25,8 @@
 
 use rhema_core::{
     coordination::{
-        AgentInfo, AgentMessage, CoordinationConfig, CoordinationManager, MessagePriority, MessageType,
-        create_coordination_manager,
+        create_coordination_manager, AgentInfo, AgentMessage, CoordinationConfig,
+        CoordinationManager, MessagePriority, MessageType,
     },
     RhemaResult,
 };
@@ -119,7 +119,10 @@ async fn main() -> RhemaResult<()> {
     .with_metadata("task_id".to_string(), "auth-review-001".to_string());
 
     manager.send_message(task_assignment).await?;
-    println!("  📤 {} → {}: Task assignment sent", agent1.name, agent2.name);
+    println!(
+        "  📤 {} → {}: Task assignment sent",
+        agent1.name, agent2.name
+    );
 
     // Agent 2 sends a status update
     let status_update = AgentMessage::new(
@@ -145,7 +148,10 @@ async fn main() -> RhemaResult<()> {
     .with_metadata("deployment_id".to_string(), "auth-deploy-001".to_string());
 
     manager.send_message(coordination_request).await?;
-    println!("  📤 {} → {}: Coordination request sent", agent3.name, "all");
+    println!(
+        "  📤 {} → {}: Coordination request sent",
+        agent3.name, "all"
+    );
 
     // Create a coordination session
     println!("\n👥 Creating coordination session...");

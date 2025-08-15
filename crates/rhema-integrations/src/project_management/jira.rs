@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
-use std::collections::HashMap;
 use base64::Engine;
+use std::collections::HashMap;
 
 /// Jira integration for issue and project tracking
 pub struct JiraIntegration {
@@ -42,12 +45,24 @@ impl JiraIntegration {
             },
         }
     }
-    
+
     /// Create a Jira issue
-    pub async fn create_issue(&self, project_key: &str, summary: &str, description: &str, issue_type: &str) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Jira not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn create_issue(
+        &self,
+        project_key: &str,
+        summary: &str,
+        description: &str,
+        issue_type: &str,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Jira not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let issue_data = serde_json::json!({
             "fields": {
                 "project": {
@@ -60,106 +75,144 @@ impl JiraIntegration {
                 }
             }
         });
-        
+
         let url = format!("{}/rest/api/2/issue", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
+
         if let Some(token) = &config.token {
             headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         } else if let Some(username) = &config.username {
             if let Some(password) = &config.password {
-                let auth = base64::engine::general_purpose::STANDARD.encode(format!("{}:{}", username, password));
+                let auth = base64::engine::general_purpose::STANDARD
+                    .encode(format!("{}:{}", username, password));
                 headers.insert("Authorization".to_string(), format!("Basic {}", auth));
             }
         }
-        
-        let response = self.http_client.post(&url, &issue_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &issue_data.to_string(), Some(headers))
+            .await?;
         let issue: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(issue["key"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Get Jira issue details
     pub async fn get_issue(&self, issue_key: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Jira not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Jira not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let url = format!("{}/rest/api/2/issue/{}", base_url, issue_key);
         let mut headers = HashMap::new();
-        
+
         if let Some(token) = &config.token {
             headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         } else if let Some(username) = &config.username {
             if let Some(password) = &config.password {
-                let auth = base64::engine::general_purpose::STANDARD.encode(format!("{}:{}", username, password));
+                let auth = base64::engine::general_purpose::STANDARD
+                    .encode(format!("{}:{}", username, password));
                 headers.insert("Authorization".to_string(), format!("Basic {}", auth));
             }
         }
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let issue: serde_json::Value = serde_json::from_str(&response)?;
         Ok(issue)
     }
-    
+
     /// Update Jira issue
-    pub async fn update_issue(&self, issue_key: &str, fields: serde_json::Value) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Jira not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn update_issue(
+        &self,
+        issue_key: &str,
+        fields: serde_json::Value,
+    ) -> RhemaResult<()> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Jira not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let update_data = serde_json::json!({
             "fields": fields
         });
-        
+
         let url = format!("{}/rest/api/2/issue/{}", base_url, issue_key);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
+
         if let Some(token) = &config.token {
             headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         } else if let Some(username) = &config.username {
             if let Some(password) = &config.password {
-                let auth = base64::engine::general_purpose::STANDARD.encode(format!("{}:{}", username, password));
+                let auth = base64::engine::general_purpose::STANDARD
+                    .encode(format!("{}:{}", username, password));
                 headers.insert("Authorization".to_string(), format!("Basic {}", auth));
             }
         }
-        
-        self.http_client.put(&url, &update_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .put(&url, &update_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Search Jira issues
-    pub async fn search_issues(&self, jql: &str, max_results: Option<u32>) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Jira not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn search_issues(
+        &self,
+        jql: &str,
+        max_results: Option<u32>,
+    ) -> RhemaResult<Vec<serde_json::Value>> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Jira not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let search_data = serde_json::json!({
             "jql": jql,
             "maxResults": max_results.unwrap_or(50),
             "fields": ["summary", "description", "status", "assignee", "created", "updated"]
         });
-        
+
         let url = format!("{}/rest/api/2/search", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
+
         if let Some(token) = &config.token {
             headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         } else if let Some(username) = &config.username {
             if let Some(password) = &config.password {
-                let auth = base64::engine::general_purpose::STANDARD.encode(format!("{}:{}", username, password));
+                let auth = base64::engine::general_purpose::STANDARD
+                    .encode(format!("{}:{}", username, password));
                 headers.insert("Authorization".to_string(), format!("Basic {}", auth));
             }
         }
-        
-        let response = self.http_client.post(&url, &search_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &search_data.to_string(), Some(headers))
+            .await?;
         let search_result: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         let issues = search_result["issues"]
             .as_array()
             .unwrap_or(&Vec::new())
             .clone();
-        
+
         Ok(issues)
     }
 }
@@ -183,7 +236,10 @@ impl ExternalIntegration for JiraIntegration {
             version: "1.0.0".to_string(),
             description: "Jira integration for project management".to_string(),
             integration_type: IntegrationType::Jira,
-            capabilities: vec!["issue_management".to_string(), "project_tracking".to_string()],
+            capabilities: vec![
+                "issue_management".to_string(),
+                "project_tracking".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

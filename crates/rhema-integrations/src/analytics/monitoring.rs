@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,84 +44,142 @@ impl MonitoringIntegration {
             },
         }
     }
-    
+
     /// Send a metric
-    pub async fn send_metric(&self, metric_name: &str, value: f64, tags: HashMap<String, String>) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Monitoring not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn send_metric(
+        &self,
+        metric_name: &str,
+        value: f64,
+        tags: HashMap<String, String>,
+    ) -> RhemaResult<()> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Monitoring not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let metric_data = serde_json::json!({
             "metric": metric_name,
             "value": value,
             "tags": tags,
             "timestamp": chrono::Utc::now().timestamp()
         });
-        
+
         let url = format!("{}/metrics", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        self.http_client.post(&url, &metric_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(&url, &metric_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Send a log entry
-    pub async fn send_log(&self, level: &str, message: &str, context: HashMap<String, serde_json::Value>) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Monitoring not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn send_log(
+        &self,
+        level: &str,
+        message: &str,
+        context: HashMap<String, serde_json::Value>,
+    ) -> RhemaResult<()> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Monitoring not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let log_data = serde_json::json!({
             "level": level,
             "message": message,
             "context": context,
             "timestamp": chrono::Utc::now().to_rfc3339()
         });
-        
+
         let url = format!("{}/logs", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        self.http_client.post(&url, &log_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(&url, &log_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Create an alert
-    pub async fn create_alert(&self, alert_name: &str, condition: &str, severity: &str) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Monitoring not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn create_alert(
+        &self,
+        alert_name: &str,
+        condition: &str,
+        severity: &str,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Monitoring not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let alert_data = serde_json::json!({
             "name": alert_name,
             "condition": condition,
             "severity": severity
         });
-        
+
         let url = format!("{}/alerts", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        let response = self.http_client.post(&url, &alert_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &alert_data.to_string(), Some(headers))
+            .await?;
         let alert: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(alert["id"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Get monitoring dashboard
     pub async fn get_dashboard(&self, dashboard_id: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Monitoring not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Monitoring not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let url = format!("{}/dashboards/{}", base_url, dashboard_id);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let dashboard: serde_json::Value = serde_json::from_str(&response)?;
         Ok(dashboard)

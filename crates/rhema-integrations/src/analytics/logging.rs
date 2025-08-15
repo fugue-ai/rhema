@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,93 +44,150 @@ impl LoggingIntegration {
             },
         }
     }
-    
+
     /// Send a log entry
-    pub async fn log(&self, level: &str, message: &str, fields: HashMap<String, serde_json::Value>) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Logging not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn log(
+        &self,
+        level: &str,
+        message: &str,
+        fields: HashMap<String, serde_json::Value>,
+    ) -> RhemaResult<()> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Logging not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let log_data = serde_json::json!({
             "level": level,
             "message": message,
             "fields": fields,
             "timestamp": chrono::Utc::now().to_rfc3339()
         });
-        
+
         let url = format!("{}/logs", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        self.http_client.post(&url, &log_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(&url, &log_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Search logs
-    pub async fn search_logs(&self, query: &str, start_time: &str, end_time: &str, limit: Option<u32>) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Logging not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn search_logs(
+        &self,
+        query: &str,
+        start_time: &str,
+        end_time: &str,
+        limit: Option<u32>,
+    ) -> RhemaResult<Vec<serde_json::Value>> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Logging not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let search_data = serde_json::json!({
             "query": query,
             "start_time": start_time,
             "end_time": end_time,
             "limit": limit.unwrap_or(100)
         });
-        
+
         let url = format!("{}/logs/search", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        let response = self.http_client.post(&url, &search_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &search_data.to_string(), Some(headers))
+            .await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
-        let logs = result["logs"]
-            .as_array()
-            .unwrap_or(&Vec::new())
-            .clone();
-        
+
+        let logs = result["logs"].as_array().unwrap_or(&Vec::new()).clone();
+
         Ok(logs)
     }
-    
+
     /// Get log statistics
     pub async fn get_log_stats(&self, time_range: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Logging not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Logging not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let url = format!("{}/logs/stats?time_range={}", base_url, time_range);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let stats: serde_json::Value = serde_json::from_str(&response)?;
         Ok(stats)
     }
-    
+
     /// Create a log alert
-    pub async fn create_log_alert(&self, alert_name: &str, query: &str, threshold: u32) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Logging not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn create_log_alert(
+        &self,
+        alert_name: &str,
+        query: &str,
+        threshold: u32,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Logging not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let alert_data = serde_json::json!({
             "name": alert_name,
             "query": query,
             "threshold": threshold
         });
-        
+
         let url = format!("{}/alerts", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        let response = self.http_client.post(&url, &alert_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &alert_data.to_string(), Some(headers))
+            .await?;
         let alert: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(alert["id"].as_str().unwrap_or("").to_string())
     }
 }

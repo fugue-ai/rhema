@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 use std::process::Command;
@@ -42,14 +45,20 @@ impl IDEIntegration {
             },
         }
     }
-    
+
     /// Open a file in the configured IDE
     pub async fn open_file(&self, file_path: &str, line: Option<u32>) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("IDE not configured".to_string()))?;
-        let ide_command = config.custom_headers.get("ide_command").ok_or_else(|| RhemaError::ConfigError("IDE command not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("IDE not configured".to_string()))?;
+        let ide_command = config
+            .custom_headers
+            .get("ide_command")
+            .ok_or_else(|| RhemaError::ConfigError("IDE command not configured".to_string()))?;
+
         let mut command = Command::new(ide_command);
-        
+
         if let Some(line) = line {
             if ide_command.contains("code") {
                 // VS Code
@@ -67,53 +76,69 @@ impl IDEIntegration {
         } else {
             command.arg(file_path);
         }
-        
+
         command.spawn()?;
         Ok(())
     }
-    
+
     /// Open a project in the IDE
     pub async fn open_project(&self, project_path: &str) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("IDE not configured".to_string()))?;
-        let ide_command = config.custom_headers.get("ide_command").ok_or_else(|| RhemaError::ConfigError("IDE command not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("IDE not configured".to_string()))?;
+        let ide_command = config
+            .custom_headers
+            .get("ide_command")
+            .ok_or_else(|| RhemaError::ConfigError("IDE command not configured".to_string()))?;
+
         let mut command = Command::new(ide_command);
         command.arg(project_path);
-        
+
         command.spawn()?;
         Ok(())
     }
-    
+
     /// Get IDE status
     pub async fn get_ide_status(&self) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("IDE not configured".to_string()))?;
-        let ide_command = config.custom_headers.get("ide_command").ok_or_else(|| RhemaError::ConfigError("IDE command not configured".to_string()))?;
-        
-        let output = Command::new(ide_command)
-            .arg("--version")
-            .output()?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("IDE not configured".to_string()))?;
+        let ide_command = config
+            .custom_headers
+            .get("ide_command")
+            .ok_or_else(|| RhemaError::ConfigError("IDE command not configured".to_string()))?;
+
+        let output = Command::new(ide_command).arg("--version").output()?;
+
         let version = String::from_utf8_lossy(&output.stdout);
-        
+
         Ok(serde_json::json!({
             "ide": ide_command,
             "version": version.trim(),
             "available": output.status.success()
         }))
     }
-    
+
     /// Execute IDE command
     pub async fn execute_command(&self, command: &str, args: Vec<&str>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("IDE not configured".to_string()))?;
-        let ide_command = config.custom_headers.get("ide_command").ok_or_else(|| RhemaError::ConfigError("IDE command not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("IDE not configured".to_string()))?;
+        let ide_command = config
+            .custom_headers
+            .get("ide_command")
+            .ok_or_else(|| RhemaError::ConfigError("IDE command not configured".to_string()))?;
+
         let mut cmd = Command::new(ide_command);
         cmd.arg(command);
         cmd.args(args);
-        
+
         let output = cmd.output()?;
         let result = String::from_utf8_lossy(&output.stdout);
-        
+
         Ok(result.to_string())
     }
 }

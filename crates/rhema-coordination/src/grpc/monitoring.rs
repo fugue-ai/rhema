@@ -189,7 +189,10 @@ pub struct CoordinationMonitor {
 /// Alert handler trait for custom alerting
 #[async_trait::async_trait]
 pub trait AlertHandler: Send + Sync {
-    async fn handle_alert(&self, alert: Alert) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    async fn handle_alert(
+        &self,
+        alert: Alert,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 }
 
 /// Alert types for monitoring
@@ -308,21 +311,34 @@ impl CoordinationMonitor {
         let error_rate = 1.0 - metrics.get_success_rate();
         let connection_success_rate = metrics.get_connection_success_rate();
 
-        let status = if consecutive_failures >= self.config.health_thresholds.max_consecutive_failures {
-            HealthStatus::Unhealthy
-        } else if error_rate > self.config.health_thresholds.max_error_rate {
-            HealthStatus::Degraded
-        } else if connection_success_rate < 0.9 {
-            HealthStatus::Degraded
-        } else {
-            HealthStatus::Healthy
-        };
+        let status =
+            if consecutive_failures >= self.config.health_thresholds.max_consecutive_failures {
+                HealthStatus::Unhealthy
+            } else if error_rate > self.config.health_thresholds.max_error_rate {
+                HealthStatus::Degraded
+            } else if connection_success_rate < 0.9 {
+                HealthStatus::Degraded
+            } else {
+                HealthStatus::Healthy
+            };
 
         let mut details = HashMap::new();
         details.insert("error_rate".to_string(), format!("{:.4}", error_rate));
-        details.insert("connection_success_rate".to_string(), format!("{:.4}", connection_success_rate));
-        details.insert("consecutive_failures".to_string(), consecutive_failures.to_string());
-        details.insert("total_requests".to_string(), metrics.total_requests.load(std::sync::atomic::Ordering::Relaxed).to_string());
+        details.insert(
+            "connection_success_rate".to_string(),
+            format!("{:.4}", connection_success_rate),
+        );
+        details.insert(
+            "consecutive_failures".to_string(),
+            consecutive_failures.to_string(),
+        );
+        details.insert(
+            "total_requests".to_string(),
+            metrics
+                .total_requests
+                .load(std::sync::atomic::Ordering::Relaxed)
+                .to_string(),
+        );
 
         let message = match status {
             HealthStatus::Healthy => "All systems operational".to_string(),
@@ -333,7 +349,10 @@ impl CoordinationMonitor {
 
         HealthInfo {
             status,
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
             message,
             details,
             last_successful_operation: None, // TODO: Track this
@@ -378,7 +397,8 @@ impl CoordinationMonitor {
 
         // Check for alerts
         if self.config.alerting_enabled {
-            self.check_alerts(operation_name, success, response_time).await;
+            self.check_alerts(operation_name, success, response_time)
+                .await;
         }
     }
 
@@ -477,9 +497,15 @@ impl CoordinationMonitor {
     /// Collect performance metrics
     async fn collect_performance_metrics(&self) -> Result<(), CoordinationError> {
         let metrics = self.client_metrics.as_ref();
-        let total_requests = metrics.total_requests.load(std::sync::atomic::Ordering::Relaxed);
-        let successful_requests = metrics.successful_requests.load(std::sync::atomic::Ordering::Relaxed);
-        let failed_requests = metrics.failed_requests.load(std::sync::atomic::Ordering::Relaxed);
+        let total_requests = metrics
+            .total_requests
+            .load(std::sync::atomic::Ordering::Relaxed);
+        let successful_requests = metrics
+            .successful_requests
+            .load(std::sync::atomic::Ordering::Relaxed);
+        let failed_requests = metrics
+            .failed_requests
+            .load(std::sync::atomic::Ordering::Relaxed);
 
         if total_requests == 0 {
             return Ok(());
@@ -494,7 +520,9 @@ impl CoordinationMonitor {
             successful_operations: successful_requests,
             failed_operations: failed_requests,
             average_response_time: Duration::from_millis(
-                metrics.average_response_time.load(std::sync::atomic::Ordering::Relaxed)
+                metrics
+                    .average_response_time
+                    .load(std::sync::atomic::Ordering::Relaxed),
             ),
             p50_response_time: Duration::from_millis(0), // TODO: Calculate from response time history
             p95_response_time: Duration::from_millis(0), // TODO: Calculate from response time history
@@ -505,7 +533,10 @@ impl CoordinationMonitor {
             error_rate,
         };
 
-        self.performance_history.write().await.push(performance_metrics);
+        self.performance_history
+            .write()
+            .await
+            .push(performance_metrics);
 
         // Keep only last 1000 entries
         let mut history = self.performance_history.write().await;
@@ -522,9 +553,15 @@ impl CoordinationMonitor {
         let mut diagnostics = self.connection_diagnostics.write().await;
         let metrics = self.client_metrics.as_ref();
 
-        diagnostics.connection_attempts = metrics.connection_attempts.load(std::sync::atomic::Ordering::Relaxed);
-        diagnostics.successful_connections = metrics.successful_connections.load(std::sync::atomic::Ordering::Relaxed);
-        diagnostics.failed_connections = metrics.failed_connections.load(std::sync::atomic::Ordering::Relaxed);
+        diagnostics.connection_attempts = metrics
+            .connection_attempts
+            .load(std::sync::atomic::Ordering::Relaxed);
+        diagnostics.successful_connections = metrics
+            .successful_connections
+            .load(std::sync::atomic::Ordering::Relaxed);
+        diagnostics.failed_connections = metrics
+            .failed_connections
+            .load(std::sync::atomic::Ordering::Relaxed);
         diagnostics.connection_success_rate = metrics.get_connection_success_rate();
         diagnostics.connection_status = self.connection_status.read().await.clone();
 
@@ -549,17 +586,34 @@ impl CoordinationMonitor {
         let error_rate = 1.0 - metrics.get_success_rate();
 
         // Check response time threshold
-        if response_time.as_millis() > self.config.performance_thresholds.max_response_time_ms as u128 {
+        if response_time.as_millis()
+            > self.config.performance_thresholds.max_response_time_ms as u128
+        {
             let alert = Alert {
                 alert_type: AlertType::HighResponseTime,
                 severity: AlertSeverity::Warning,
-                message: format!("High response time for operation '{}': {:?}", operation_name, response_time),
-                timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+                message: format!(
+                    "High response time for operation '{}': {:?}",
+                    operation_name, response_time
+                ),
+                timestamp: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
                 details: {
                     let mut details = HashMap::new();
                     details.insert("operation".to_string(), operation_name.to_string());
-                    details.insert("response_time_ms".to_string(), response_time.as_millis().to_string());
-                    details.insert("threshold_ms".to_string(), self.config.performance_thresholds.max_response_time_ms.to_string());
+                    details.insert(
+                        "response_time_ms".to_string(),
+                        response_time.as_millis().to_string(),
+                    );
+                    details.insert(
+                        "threshold_ms".to_string(),
+                        self.config
+                            .performance_thresholds
+                            .max_response_time_ms
+                            .to_string(),
+                    );
                     details
                 },
             };
@@ -572,11 +626,17 @@ impl CoordinationMonitor {
                 alert_type: AlertType::HighErrorRate,
                 severity: AlertSeverity::Error,
                 message: format!("High error rate detected: {:.2}%", error_rate * 100.0),
-                timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+                timestamp: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
                 details: {
                     let mut details = HashMap::new();
                     details.insert("error_rate".to_string(), format!("{:.4}", error_rate));
-                    details.insert("threshold".to_string(), format!("{:.4}", self.config.performance_thresholds.max_error_rate));
+                    details.insert(
+                        "threshold".to_string(),
+                        format!("{:.4}", self.config.performance_thresholds.max_error_rate),
+                    );
                     details
                 },
             };
@@ -614,7 +674,7 @@ impl CoordinationMonitor {
     /// Send alert to all registered handlers
     async fn send_alert(&self, alert: Alert) {
         let handlers = self.alert_handlers.read().await;
-        
+
         for handler in handlers.iter() {
             if let Err(e) = handler.handle_alert(alert.clone()).await {
                 error!("Failed to send alert via handler: {}", e);
@@ -653,7 +713,10 @@ pub struct LoggingAlertHandler;
 
 #[async_trait::async_trait]
 impl AlertHandler for LoggingAlertHandler {
-    async fn handle_alert(&self, alert: Alert) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn handle_alert(
+        &self,
+        alert: Alert,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         match alert.severity {
             AlertSeverity::Info => info!("Alert: {}", alert.message),
             AlertSeverity::Warning => warn!("Alert: {}", alert.message),
@@ -673,7 +736,7 @@ impl PrometheusExporter {
     /// Export metrics in Prometheus format
     pub fn export_prometheus_metrics(metrics: &ClientMetrics) -> String {
         let mut output = String::new();
-        
+
         output.push_str(&format!(
             "# HELP rhema_coordination_total_requests Total number of requests\n"
         ));
@@ -682,7 +745,9 @@ impl PrometheusExporter {
         ));
         output.push_str(&format!(
             "rhema_coordination_total_requests {}\n",
-            metrics.total_requests.load(std::sync::atomic::Ordering::Relaxed)
+            metrics
+                .total_requests
+                .load(std::sync::atomic::Ordering::Relaxed)
         ));
 
         output.push_str(&format!(
@@ -693,7 +758,9 @@ impl PrometheusExporter {
         ));
         output.push_str(&format!(
             "rhema_coordination_successful_requests {}\n",
-            metrics.successful_requests.load(std::sync::atomic::Ordering::Relaxed)
+            metrics
+                .successful_requests
+                .load(std::sync::atomic::Ordering::Relaxed)
         ));
 
         output.push_str(&format!(
@@ -704,7 +771,9 @@ impl PrometheusExporter {
         ));
         output.push_str(&format!(
             "rhema_coordination_failed_requests {}\n",
-            metrics.failed_requests.load(std::sync::atomic::Ordering::Relaxed)
+            metrics
+                .failed_requests
+                .load(std::sync::atomic::Ordering::Relaxed)
         ));
 
         output.push_str(&format!(
@@ -715,15 +784,15 @@ impl PrometheusExporter {
         ));
         output.push_str(&format!(
             "rhema_coordination_average_response_time {}\n",
-            metrics.average_response_time.load(std::sync::atomic::Ordering::Relaxed)
+            metrics
+                .average_response_time
+                .load(std::sync::atomic::Ordering::Relaxed)
         ));
 
         output.push_str(&format!(
             "# HELP rhema_coordination_success_rate Success rate as a percentage\n"
         ));
-        output.push_str(&format!(
-            "# TYPE rhema_coordination_success_rate gauge\n"
-        ));
+        output.push_str(&format!("# TYPE rhema_coordination_success_rate gauge\n"));
         output.push_str(&format!(
             "rhema_coordination_success_rate {}\n",
             metrics.get_success_rate() * 100.0
@@ -781,7 +850,7 @@ mod tests {
         let config = MonitoringConfig::default();
         let connection_status = Arc::new(RwLock::new(ConnectionStatus::Failed("test".to_string())));
         let monitor = CoordinationMonitor::new(config, metrics, connection_status);
-        
+
         // Directly set consecutive failures to trigger unhealthy status
         *monitor.consecutive_failures.write().await = 5; // Above the threshold of 3
 

@@ -1,5 +1,5 @@
 //! Chart visualization module
-//! 
+//!
 //! This module provides various chart types for visualizing knowledge data,
 //! including bar charts, line charts, pie charts, and scatter plots.
 
@@ -189,11 +189,7 @@ impl ChartGenerator {
     }
 
     /// Create a pie chart from data
-    pub fn create_pie_chart(
-        &self,
-        title: &str,
-        data: &[(String, f64)],
-    ) -> Chart {
+    pub fn create_pie_chart(&self, title: &str, data: &[(String, f64)]) -> Chart {
         let data_points = data
             .iter()
             .enumerate()
@@ -458,7 +454,9 @@ impl ChartGenerator {
                 if let Some(label) = &point.label {
                     svg.push_str(&format!(
                         r#"<text x="{}" y="{}" text-anchor="middle" font-size="10">{}</text>"#,
-                        x + bar_width / 2.0, chart.config.height as f64 - 30.0, label
+                        x + bar_width / 2.0,
+                        chart.config.height as f64 - 30.0,
+                        label
                     ));
                 }
             }
@@ -510,7 +508,11 @@ impl ChartGenerator {
                 let x2 = center_x + radius * end_angle.cos();
                 let y2 = center_y + radius * end_angle.sin();
 
-                let large_arc_flag = if slice_angle > std::f64::consts::PI { 1 } else { 0 };
+                let large_arc_flag = if slice_angle > std::f64::consts::PI {
+                    1
+                } else {
+                    0
+                };
 
                 let path_data = format!(
                     "M {} {} A {} {} 0 {} 1 {} {} L {} {} Z",

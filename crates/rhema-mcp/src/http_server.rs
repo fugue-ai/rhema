@@ -42,8 +42,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::atomic::{AtomicU64, Ordering};
-use tokio::sync::Semaphore;
 use std::time::SystemTime;
+use tokio::sync::Semaphore;
 
 use crate::mcp::{ClientType, McpConfig, McpDaemon};
 use rhema_core::{RhemaError, RhemaResult};
@@ -195,31 +195,33 @@ impl PerformanceMetrics {
         // Simple CPU usage calculation based on system time
         // In a production environment, you might want to use a more sophisticated approach
         // like reading from /proc/stat on Linux or using system-specific APIs
-        
+
         let now = SystemTime::now();
-        let elapsed = now.duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default();
-        
+        let elapsed = now
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap_or_default();
+
         // Use a simple heuristic based on system load
         // This is a basic implementation - for production, consider using:
         // - sysinfo crate for cross-platform CPU monitoring
         // - procfs crate for Linux-specific CPU stats
         // - windows-rs for Windows-specific CPU monitoring
-        
+
         let cpu_usage = if elapsed.as_secs() % 60 == 0 {
             // Simulate CPU usage based on request load
             let request_rate = self.request_count.load(Ordering::Relaxed) as f64 / 60.0;
             let error_rate = self.error_count.load(Ordering::Relaxed) as f64 / 60.0;
-            
+
             // Base CPU usage + load factor
             let base_usage = 5.0; // 5% base CPU usage
             let load_factor = (request_rate * 0.1) + (error_rate * 0.2);
-            
+
             (base_usage + load_factor).min(100.0)
         } else {
             // Return cached value for performance
             self.cpu_usage.load(Ordering::Relaxed) as f64 / 100.0
         };
-        
+
         // Update the cached value
         self.update_cpu_usage(cpu_usage);
         cpu_usage
@@ -661,12 +663,12 @@ impl HttpServer {
             info!("Unix socket server listening on {:?}", socket_path);
 
             let app = self.create_router();
-            
+
             // For Unix sockets, we need to use a different approach
             // since axum::serve expects TcpListener
             // For now, we'll use a basic implementation that accepts connections
             // and handles them manually
-            
+
             loop {
                 match listener.accept().await {
                     Ok((stream, _addr)) => {
@@ -674,7 +676,7 @@ impl HttpServer {
                         // In a production environment, you would use a proper
                         // HTTP server that supports Unix sockets
                         info!("Unix socket connection accepted");
-                        
+
                         // For now, we'll just close the connection
                         // as axum doesn't directly support Unix sockets
                         drop(stream);
@@ -1954,12 +1956,7 @@ impl HttpServer {
         }
 
         // Implement search stats using the search engine
-        let response = match server
-            .daemon
-            .get_context_provider()
-            .get_stats()
-            .await
-        {
+        let response = match server.daemon.get_context_provider().get_stats().await {
             Ok(stats) => SearchStatsResponse {
                 total_documents: stats.scopes_count,
                 total_terms: stats.knowledge_entries_count,

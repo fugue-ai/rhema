@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,82 +44,143 @@ impl GitHubIssuesIntegration {
             },
         }
     }
-    
+
     /// Create a GitHub issue
-    pub async fn create_issue(&self, owner: &str, repo: &str, title: &str, body: Option<&str>, labels: Option<Vec<&str>>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("GitHub not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn create_issue(
+        &self,
+        owner: &str,
+        repo: &str,
+        title: &str,
+        body: Option<&str>,
+        labels: Option<Vec<&str>>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("GitHub not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let mut issue_data = serde_json::json!({
             "title": title
         });
-        
+
         if let Some(body) = body {
             issue_data["body"] = serde_json::Value::String(body.to_string());
         }
-        
+
         if let Some(labels) = labels {
             issue_data["labels"] = serde_json::Value::Array(
-                labels.iter().map(|l| serde_json::Value::String(l.to_string())).collect()
+                labels
+                    .iter()
+                    .map(|l| serde_json::Value::String(l.to_string()))
+                    .collect(),
             );
         }
-        
+
         let url = format!("https://api.github.com/repos/{}/{}/issues", owner, repo);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         headers.insert("User-Agent".to_string(), "RHEMA".to_string());
-        
-        let response = self.http_client.post(&url, &issue_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &issue_data.to_string(), Some(headers))
+            .await?;
         let issue: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(issue["number"].as_u64().unwrap_or(0).to_string())
     }
-    
+
     /// Get GitHub issue details
-    pub async fn get_issue(&self, owner: &str, repo: &str, issue_number: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("GitHub not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("https://api.github.com/repos/{}/{}/issues/{}", owner, repo, issue_number);
+    pub async fn get_issue(
+        &self,
+        owner: &str,
+        repo: &str,
+        issue_number: &str,
+    ) -> RhemaResult<serde_json::Value> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("GitHub not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "https://api.github.com/repos/{}/{}/issues/{}",
+            owner, repo, issue_number
+        );
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         headers.insert("User-Agent".to_string(), "RHEMA".to_string());
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let issue: serde_json::Value = serde_json::from_str(&response)?;
         Ok(issue)
     }
-    
+
     /// Update GitHub issue
-    pub async fn update_issue(&self, owner: &str, repo: &str, issue_number: &str, fields: serde_json::Value) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("GitHub not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("https://api.github.com/repos/{}/{}/issues/{}", owner, repo, issue_number);
+    pub async fn update_issue(
+        &self,
+        owner: &str,
+        repo: &str,
+        issue_number: &str,
+        fields: serde_json::Value,
+    ) -> RhemaResult<()> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("GitHub not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "https://api.github.com/repos/{}/{}/issues/{}",
+            owner, repo, issue_number
+        );
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         headers.insert("User-Agent".to_string(), "RHEMA".to_string());
-        
-        self.http_client.patch(&url, &fields.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .patch(&url, &fields.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Get issues from a repository
-    pub async fn get_repo_issues(&self, owner: &str, repo: &str, state: Option<&str>) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("GitHub not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn get_repo_issues(
+        &self,
+        owner: &str,
+        repo: &str,
+        state: Option<&str>,
+    ) -> RhemaResult<Vec<serde_json::Value>> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("GitHub not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let mut url = format!("https://api.github.com/repos/{}/{}/issues", owner, repo);
         if let Some(state) = state {
             url.push_str(&format!("?state={}", state));
         }
-        
+
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         headers.insert("User-Agent".to_string(), "RHEMA".to_string());
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let issues: Vec<serde_json::Value> = serde_json::from_str(&response)?;
         Ok(issues)
@@ -142,7 +206,10 @@ impl ExternalIntegration for GitHubIssuesIntegration {
             version: "1.0.0".to_string(),
             description: "GitHub Issues integration for project management".to_string(),
             integration_type: IntegrationType::GitHubIssues,
-            capabilities: vec!["issue_management".to_string(), "repository_tracking".to_string()],
+            capabilities: vec![
+                "issue_management".to_string(),
+                "repository_tracking".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

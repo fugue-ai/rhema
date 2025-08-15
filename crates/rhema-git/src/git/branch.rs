@@ -648,14 +648,15 @@ impl BranchContextManager {
     fn validate_context_file(&self, file_path: &Path) -> RhemaResult<()> {
         // Implement context file validation
         if !file_path.exists() {
-            return Err(RhemaError::ValidationError(
-                format!("Context file does not exist: {:?}", file_path)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Context file does not exist: {:?}",
+                file_path
+            )));
         }
-        
+
         // Read file content
         let content = std::fs::read_to_string(file_path)?;
-        
+
         // Check if it's a YAML file
         if let Some(extension) = file_path.extension() {
             if extension == "yaml" || extension == "yml" {
@@ -666,39 +667,43 @@ impl BranchContextManager {
                         self.validate_context_schema(file_path, &content)?;
                     }
                     Err(e) => {
-                        return Err(RhemaError::ValidationError(
-                            format!("Invalid YAML syntax in {:?}: {}", file_path, e)
-                        ));
+                        return Err(RhemaError::ValidationError(format!(
+                            "Invalid YAML syntax in {:?}: {}",
+                            file_path, e
+                        )));
                     }
                 }
             }
         }
-        
+
         // Check file size (should not be too large)
         let metadata = std::fs::metadata(file_path)?;
-        if metadata.len() > 1024 * 1024 { // 1MB limit
-            return Err(RhemaError::ValidationError(
-                format!("Context file too large: {:?} ({} bytes)", file_path, metadata.len())
-            ));
+        if metadata.len() > 1024 * 1024 {
+            // 1MB limit
+            return Err(RhemaError::ValidationError(format!(
+                "Context file too large: {:?} ({} bytes)",
+                file_path,
+                metadata.len()
+            )));
         }
-        
+
         Ok(())
     }
-    
+
     fn validate_context_schema(&self, file_path: &Path, content: &str) -> RhemaResult<()> {
         // Basic schema validation for context files
         let yaml_value: serde_yaml::Value = serde_yaml::from_str(content)?;
-        
+
         // Check for required fields based on file name
         if let Some(file_name) = file_path.file_name() {
             let file_name_str = file_name.to_string_lossy();
-            
+
             match file_name_str.as_ref() {
                 "context.yaml" | "context.yml" => {
                     // Validate main context file
                     if !yaml_value.is_mapping() {
                         return Err(RhemaError::ValidationError(
-                            "Context file must be a YAML mapping".to_string()
+                            "Context file must be a YAML mapping".to_string(),
                         ));
                     }
                 }
@@ -706,7 +711,7 @@ impl BranchContextManager {
                     // Validate inheritance rules
                     if !yaml_value.is_mapping() {
                         return Err(RhemaError::ValidationError(
-                            "Inheritance file must be a YAML mapping".to_string()
+                            "Inheritance file must be a YAML mapping".to_string(),
                         ));
                     }
                 }
@@ -714,7 +719,7 @@ impl BranchContextManager {
                     // Validate boundary rules
                     if !yaml_value.is_mapping() {
                         return Err(RhemaError::ValidationError(
-                            "Boundary file must be a YAML mapping".to_string()
+                            "Boundary file must be a YAML mapping".to_string(),
                         ));
                     }
                 }
@@ -724,7 +729,7 @@ impl BranchContextManager {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -803,10 +808,10 @@ impl BranchContextManager {
         // Implement automatic context merging
         let source_context = self.get_branch_context(source_branch)?;
         let target_context = self.get_branch_context(target_branch)?;
-        
+
         let mut merged_files = Vec::new();
         let mut messages = Vec::new();
-        
+
         // Merge context files automatically
         for file_path in &source_context.context_files {
             let file_name = file_path.to_string_lossy();
@@ -821,7 +826,7 @@ impl BranchContextManager {
                 messages.push(format!("Added new file {}", file_name));
             }
         }
-        
+
         // Handle files that only exist in target
         for file_path in &target_context.context_files {
             let file_name = file_path.to_string_lossy();
@@ -829,7 +834,7 @@ impl BranchContextManager {
                 messages.push(format!("Kept existing file {}", file_name));
             }
         }
-        
+
         Ok(MergeResult {
             success: true,
             conflicts: Vec::new(),
@@ -837,7 +842,7 @@ impl BranchContextManager {
             messages,
         })
     }
-    
+
     fn auto_merge_content(&self, source: &str, target: &str) -> RhemaResult<String> {
         // Simple auto-merge strategy: prefer source content
         // In a real implementation, this would do more sophisticated merging
@@ -853,11 +858,11 @@ impl BranchContextManager {
         // Implement manual context merging with prompts
         let source_context = self.get_branch_context(source_branch)?;
         let target_context = self.get_branch_context(target_branch)?;
-        
+
         let mut merged_files = Vec::new();
         let mut messages = Vec::new();
         let mut conflicts = Vec::new();
-        
+
         // Identify conflicts and prompt for resolution
         for file_path in &source_context.context_files {
             let file_name = file_path.to_string_lossy();
@@ -872,7 +877,7 @@ impl BranchContextManager {
                 messages.push(format!("Added new file {}", file_name));
             }
         }
-        
+
         Ok(MergeResult {
             success: conflicts.is_empty(),
             conflicts,
@@ -880,7 +885,7 @@ impl BranchContextManager {
             messages,
         })
     }
-    
+
     fn prompt_for_conflict_resolution(
         &self,
         file_name: &str,
@@ -892,11 +897,11 @@ impl BranchContextManager {
         eprintln!("Conflict detected in {}", file_name);
         eprintln!("Source content: {}", source_content);
         eprintln!("Target content: {}", target_content);
-        
+
         // Simple heuristic: prefer source for most files
         Ok(ConflictResolution::Source)
     }
-    
+
     fn merge_both_versions(&self, source: &str, target: &str) -> RhemaResult<String> {
         // Simple merge: concatenate both versions
         Ok(format!("{}\n---\n{}", source, target))
@@ -911,23 +916,23 @@ impl BranchContextManager {
         // Implement rebase-style context merging
         let source_context = self.get_branch_context(source_branch)?;
         let target_context = self.get_branch_context(target_branch)?;
-        
+
         let mut merged_files = Vec::new();
         let mut messages = Vec::new();
-        
+
         // Rebase strategy: apply source changes on top of target
         // This creates a linear history by replaying source changes
-        
+
         // First, identify the base (common ancestor)
         let base_context = self.find_common_ancestor_context(source_branch, target_branch)?;
-        
+
         // Apply target changes first
         for file_path in &target_context.context_files {
             let file_name = file_path.to_string_lossy();
             merged_files.push(file_path.clone());
             messages.push(format!("Applied target changes to {}", file_name));
         }
-        
+
         // Then apply source changes on top
         for file_path in &source_context.context_files {
             let file_name = file_path.to_string_lossy();
@@ -941,9 +946,9 @@ impl BranchContextManager {
                 messages.push(format!("Added new file from source: {}", file_name));
             }
         }
-        
+
         messages.push("Rebase-style merge completed".to_string());
-        
+
         Ok(MergeResult {
             success: true,
             conflicts: Vec::new(),
@@ -951,7 +956,7 @@ impl BranchContextManager {
             messages,
         })
     }
-    
+
     fn find_common_ancestor_context(
         &self,
         source_branch: &str,
@@ -972,22 +977,22 @@ impl BranchContextManager {
         // Implement squash-style context merging
         let source_context = self.get_branch_context(source_branch)?;
         let target_context = self.get_branch_context(target_branch)?;
-        
+
         let mut merged_files = Vec::new();
         let mut messages = Vec::new();
-        
+
         // Squash strategy: combine all source changes into a single change
         // This creates a single commit that represents all the changes
-        
+
         let mut squashed_content: HashMap<String, String> = HashMap::new();
-        
+
         // Collect all source changes
         for file_path in &source_context.context_files {
             let file_name = file_path.to_string_lossy();
             merged_files.push(file_path.clone());
             messages.push(format!("Squashed changes for {}", file_name));
         }
-        
+
         // Keep target files that weren't modified in source
         for file_path in &target_context.context_files {
             let file_name = file_path.to_string_lossy();
@@ -995,9 +1000,9 @@ impl BranchContextManager {
                 messages.push(format!("Kept target file {}", file_name));
             }
         }
-        
+
         messages.push("Squash-style merge completed".to_string());
-        
+
         Ok(MergeResult {
             success: true,
             conflicts: Vec::new(),
@@ -1016,10 +1021,10 @@ impl BranchContextManager {
         // Implement custom merge strategy
         let source_context = self.get_branch_context(source_branch)?;
         let target_context = self.get_branch_context(target_branch)?;
-        
+
         let mut merged_files = Vec::new();
         let mut messages = Vec::new();
-        
+
         match strategy {
             MergeStrategy::Custom(custom_strategy) => {
                 match custom_strategy.as_str() {
@@ -1065,21 +1070,22 @@ impl BranchContextManager {
                         }
                     }
                     _ => {
-                        return Err(RhemaError::ValidationError(
-                            format!("Unknown custom merge strategy: {}", custom_strategy)
-                        ));
+                        return Err(RhemaError::ValidationError(format!(
+                            "Unknown custom merge strategy: {}",
+                            custom_strategy
+                        )));
                     }
                 }
             }
             _ => {
                 return Err(RhemaError::ValidationError(
-                    "Expected custom merge strategy".to_string()
+                    "Expected custom merge strategy".to_string(),
                 ));
             }
         }
-        
+
         messages.push("Custom merge completed".to_string());
-        
+
         Ok(MergeResult {
             success: true,
             conflicts: Vec::new(),
@@ -1087,7 +1093,7 @@ impl BranchContextManager {
             messages,
         })
     }
-    
+
     fn should_merge_file(&self, file_name: &str) -> bool {
         // Simple heuristic for selective merging
         // In a real implementation, this would use more sophisticated rules
@@ -1115,9 +1121,9 @@ impl BranchContextManager {
         // Implement conflict detection logic
         let source_context = self.get_branch_context(source_branch)?;
         let target_context = self.get_branch_context(target_branch)?;
-        
+
         let mut conflicts = Vec::new();
-        
+
         // Check for content conflicts
         for file_path in &source_context.context_files {
             let file_name = file_path.to_string_lossy();
@@ -1126,11 +1132,11 @@ impl BranchContextManager {
                 // In a real implementation, you would compare file contents
             }
         }
-        
+
         // Check for structural conflicts
         let source_structure = self.analyze_context_structure(&source_context)?;
         let target_structure = self.analyze_context_structure(&target_context)?;
-        
+
         if source_structure != target_structure {
             conflicts.push(ContextConflict {
                 file_path: PathBuf::from("structure"),
@@ -1139,11 +1145,11 @@ impl BranchContextManager {
                 resolution: None,
             });
         }
-        
+
         // Check for schema conflicts
         let source_schema = self.extract_context_schema(&source_context)?;
         let target_schema = self.extract_context_schema(&target_context)?;
-        
+
         if source_schema != target_schema {
             conflicts.push(ContextConflict {
                 file_path: PathBuf::from("schema"),
@@ -1152,11 +1158,11 @@ impl BranchContextManager {
                 resolution: None,
             });
         }
-        
+
         // Check for dependency conflicts
         let source_deps = self.extract_dependencies(&source_context)?;
         let target_deps = self.extract_dependencies(&target_context)?;
-        
+
         if source_deps != target_deps {
             conflicts.push(ContextConflict {
                 file_path: PathBuf::from("dependencies"),
@@ -1165,10 +1171,10 @@ impl BranchContextManager {
                 resolution: None,
             });
         }
-        
+
         Ok(conflicts)
     }
-    
+
     fn analyze_context_structure(&self, context: &BranchContext) -> RhemaResult<String> {
         // Analyze the structure of context files
         let mut structure = Vec::new();
@@ -1179,7 +1185,7 @@ impl BranchContextManager {
         structure.sort();
         Ok(structure.join(","))
     }
-    
+
     fn extract_context_schema(&self, context: &BranchContext) -> RhemaResult<String> {
         // Extract schema information from context
         let mut schema = Vec::new();
@@ -1192,13 +1198,16 @@ impl BranchContextManager {
         schema.sort();
         Ok(schema.join(","))
     }
-    
+
     fn extract_dependencies(&self, context: &BranchContext) -> RhemaResult<String> {
         // Extract dependency information from context
         let mut deps = Vec::new();
         for file_path in &context.context_files {
             let file_name = file_path.to_string_lossy();
-            if file_name.contains("dependencies") || file_name.contains("Cargo.toml") || file_name.contains("package.json") {
+            if file_name.contains("dependencies")
+                || file_name.contains("Cargo.toml")
+                || file_name.contains("package.json")
+            {
                 deps.push(format!("{}:dependency", file_name));
             }
         }
@@ -1228,28 +1237,28 @@ impl BranchContextManager {
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     fn resolve_content_conflict(&mut self, conflict: &ContextConflict) -> RhemaResult<()> {
         eprintln!("Resolving content conflict: {}", conflict.description);
         // In a real implementation, this would apply the resolution strategy
         Ok(())
     }
-    
+
     fn resolve_structure_conflict(&mut self, conflict: &ContextConflict) -> RhemaResult<()> {
         eprintln!("Resolving structure conflict: {}", conflict.description);
         // In a real implementation, this would restructure the context
         Ok(())
     }
-    
+
     fn resolve_schema_conflict(&mut self, conflict: &ContextConflict) -> RhemaResult<()> {
         eprintln!("Resolving schema conflict: {}", conflict.description);
         // In a real implementation, this would update the schema
         Ok(())
     }
-    
+
     fn resolve_dependency_conflict(&mut self, conflict: &ContextConflict) -> RhemaResult<()> {
         eprintln!("Resolving dependency conflict: {}", conflict.description);
         // In a real implementation, this would resolve dependency conflicts
@@ -1295,24 +1304,24 @@ impl BranchContextManager {
             .join(".rhema")
             .join("branches")
             .join(branch_name);
-        
+
         // Create branch-specific directory
         std::fs::create_dir_all(&branch_dir)?;
-        
+
         // Create branch-specific context files
         self.create_branch_context_files(&branch_dir, branch_name)?;
-        
+
         // Set up branch-specific configuration
         self.setup_branch_configuration(&branch_dir, branch_name)?;
-        
+
         // Create isolation boundaries
         self.create_isolation_boundaries(&branch_dir, branch_name)?;
-        
+
         eprintln!("Context isolation set up for branch: {}", branch_name);
-        
+
         Ok(())
     }
-    
+
     fn create_branch_context_files(&self, branch_dir: &Path, branch_name: &str) -> RhemaResult<()> {
         // Create branch-specific context.yaml
         let context_content = format!(
@@ -1337,10 +1346,10 @@ files:
             branch_name,
             chrono::Utc::now().format("%Y-%m-%d %H:%M:%S")
         );
-        
+
         let context_file = branch_dir.join("context.yaml");
         std::fs::write(context_file, context_content)?;
-        
+
         // Create inheritance.yaml
         let inheritance_content = format!(
             r#"
@@ -1356,10 +1365,10 @@ rules:
 "#,
             branch_name
         );
-        
+
         let inheritance_file = branch_dir.join("inheritance.yaml");
         std::fs::write(inheritance_file, inheritance_content)?;
-        
+
         // Create boundary.yaml
         let boundary_content = format!(
             r#"
@@ -1379,13 +1388,13 @@ boundaries:
 "#,
             branch_name
         );
-        
+
         let boundary_file = branch_dir.join("boundary.yaml");
         std::fs::write(boundary_file, boundary_content)?;
-        
+
         Ok(())
     }
-    
+
     fn setup_branch_configuration(&self, branch_dir: &Path, branch_name: &str) -> RhemaResult<()> {
         // Create branch-specific configuration
         let config_content = format!(
@@ -1402,16 +1411,15 @@ automation:
   hooks: enabled
   monitoring: enabled
 "#,
-            branch_name,
-            branch_name
+            branch_name, branch_name
         );
-        
+
         let config_file = branch_dir.join("config.yaml");
         std::fs::write(config_file, config_content)?;
-        
+
         Ok(())
     }
-    
+
     fn create_isolation_boundaries(&self, branch_dir: &Path, branch_name: &str) -> RhemaResult<()> {
         // Create isolation boundary markers
         let boundary_content = format!(
@@ -1429,10 +1437,10 @@ boundary_type: strict
             branch_name,
             chrono::Utc::now().format("%Y-%m-%d %H:%M:%S")
         );
-        
+
         let boundary_file = branch_dir.join(".boundary");
         std::fs::write(boundary_file, boundary_content)?;
-        
+
         Ok(())
     }
 
@@ -1440,17 +1448,17 @@ boundary_type: strict
     pub fn get_context_evolution(&self, branch_name: &str) -> RhemaResult<Vec<ContextEvolution>> {
         // Implement context evolution tracking
         let mut evolution = Vec::new();
-        
+
         // Get branch history
         let branch = self.repo.find_branch(branch_name, BranchType::Local)?;
         let mut walker = self.repo.revwalk()?;
         walker.push(branch.get().target().unwrap())?;
-        
+
         // Analyze commits for context changes
         for oid in walker {
             let oid = oid?;
             let commit = self.repo.find_commit(oid)?;
-            
+
             // Check if commit contains context changes
             if self.has_context_changes(&commit)? {
                 let evolution_entry = ContextEvolution {
@@ -1461,17 +1469,17 @@ boundary_type: strict
                     author: commit.author().name().unwrap_or("unknown").to_string(),
                     message: commit.message().unwrap_or("").to_string(),
                 };
-                
+
                 evolution.push(evolution_entry);
             }
         }
-        
+
         // Sort by timestamp (newest first)
         evolution.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-        
+
         Ok(evolution)
     }
-    
+
     fn has_context_changes(&self, commit: &git2::Commit) -> RhemaResult<bool> {
         // Check if commit contains context file changes
         let tree = commit.tree()?;
@@ -1480,34 +1488,39 @@ boundary_type: strict
         } else {
             return Ok(false);
         };
-        
-        let diff = self.repo.diff_tree_to_tree(Some(&parent_tree), Some(&tree), None)?;
-        
+
+        let diff = self
+            .repo
+            .diff_tree_to_tree(Some(&parent_tree), Some(&tree), None)?;
+
         for delta in diff.deltas() {
             if let Some(new_file) = delta.new_file().path() {
-                if new_file.to_string_lossy().contains("context") ||
-                   new_file.to_string_lossy().contains(".yaml") ||
-                   new_file.to_string_lossy().contains(".yml") {
+                if new_file.to_string_lossy().contains("context")
+                    || new_file.to_string_lossy().contains(".yaml")
+                    || new_file.to_string_lossy().contains(".yml")
+                {
                     return Ok(true);
                 }
             }
         }
-        
+
         Ok(false)
     }
-    
+
     fn extract_context_changes(&self, commit: &git2::Commit) -> RhemaResult<Vec<ContextChange>> {
         let mut changes = Vec::new();
-        
+
         let tree = commit.tree()?;
         let parent_tree = if let Some(parent) = commit.parent(0).ok() {
             parent.tree()?
         } else {
             return Ok(changes);
         };
-        
-        let diff = self.repo.diff_tree_to_tree(Some(&parent_tree), Some(&tree), None)?;
-        
+
+        let diff = self
+            .repo
+            .diff_tree_to_tree(Some(&parent_tree), Some(&tree), None)?;
+
         for delta in diff.deltas() {
             if let Some(new_file) = delta.new_file().path() {
                 let file_path = new_file.to_path_buf();
@@ -1518,9 +1531,9 @@ boundary_type: strict
                     git2::Delta::Renamed => ChangeType::Renamed,
                     _ => ChangeType::Modified,
                 };
-                
+
                 let description = format!("{:?} context file", change_type);
-                
+
                 changes.push(ContextChange {
                     file_path,
                     change_type,
@@ -1529,7 +1542,7 @@ boundary_type: strict
                 });
             }
         }
-        
+
         Ok(changes)
     }
 

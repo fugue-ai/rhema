@@ -1,5 +1,6 @@
 use crate::{
-    Config, ConfigIssue, ConfigIssueSeverity, ComprehensiveValidationResult, ValidationResult, GlobalConfig,
+    ComprehensiveValidationResult, Config, ConfigIssue, ConfigIssueSeverity, GlobalConfig,
+    ValidationResult,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -145,7 +146,7 @@ impl ConfigFeedbackProvider {
                     "Validate data types and formats".to_string(),
                 ],
                 documentation_links: vec![
-                    "https://docs.rhema.ai/configuration/validation".to_string(),
+                    "https://docs.rhema.ai/configuration/validation".to_string()
                 ],
             },
             FeedbackTemplate {
@@ -158,7 +159,7 @@ impl ConfigFeedbackProvider {
                     "Update access controls".to_string(),
                 ],
                 documentation_links: vec![
-                    "https://docs.rhema.ai/configuration/security".to_string(),
+                    "https://docs.rhema.ai/configuration/security".to_string()
                 ],
             },
             FeedbackTemplate {
@@ -171,13 +172,14 @@ impl ConfigFeedbackProvider {
                     "Review parallel processing settings".to_string(),
                 ],
                 documentation_links: vec![
-                    "https://docs.rhema.ai/configuration/performance".to_string(),
+                    "https://docs.rhema.ai/configuration/performance".to_string()
                 ],
             },
         ];
 
         for template in templates {
-            self.feedback_templates.insert(template.id.clone(), template);
+            self.feedback_templates
+                .insert(template.id.clone(), template);
         }
     }
 
@@ -249,10 +251,12 @@ impl ConfigFeedbackProvider {
     /// Create validation feedback for a specific issue
     fn create_validation_feedback(&self, issue: &ConfigIssue) -> ValidationFeedback {
         let template = self.get_template_for_issue(issue);
-        
+
         ValidationFeedback {
             issue: issue.clone(),
-            message: template.message_template.replace("{message}", &issue.message),
+            message: template
+                .message_template
+                .replace("{message}", &issue.message),
             suggested_actions: template.suggested_actions.clone(),
             documentation_links: template.documentation_links.clone(),
             estimated_fix_time: self.estimate_fix_time(issue),
@@ -306,7 +310,7 @@ impl ConfigFeedbackProvider {
     ) -> Option<ConfigurationSuggestion> {
         // This is a simplified implementation
         // In a real implementation, you would parse the config and apply regex patterns
-        
+
         Some(ConfigurationSuggestion {
             id: pattern.id.clone(),
             description: pattern.description.clone(),
@@ -350,20 +354,26 @@ impl ConfigFeedbackProvider {
         // Calculate health score
         let total_issues = summary.total_issues as f32;
         let total_suggestions = summary.total_suggestions as f32;
-        
+
         if total_issues > 0.0 {
             summary.health_score = (100.0 - (total_issues * 10.0).min(100.0)) as u8;
         }
 
         // Generate recommended actions
         if summary.critical_issues > 0 {
-            summary.recommended_actions.push("Fix critical validation errors first".to_string());
+            summary
+                .recommended_actions
+                .push("Fix critical validation errors first".to_string());
         }
         if summary.high_priority_issues > 0 {
-            summary.recommended_actions.push("Address security warnings".to_string());
+            summary
+                .recommended_actions
+                .push("Address security warnings".to_string());
         }
         if summary.total_suggestions > 0 {
-            summary.recommended_actions.push("Review and apply configuration suggestions".to_string());
+            summary
+                .recommended_actions
+                .push("Review and apply configuration suggestions".to_string());
         }
 
         summary
@@ -400,8 +410,10 @@ mod tests {
             duration_ms: 0,
         };
 
-        let feedback = provider.generate_feedback(&config, &validation_result).await;
-        
+        let feedback = provider
+            .generate_feedback(&config, &validation_result)
+            .await;
+
         assert_eq!(feedback.validation_feedback.len(), 0);
         assert!(feedback.suggestions.len() > 0);
         assert_eq!(feedback.summary.health_score, 100);
@@ -411,16 +423,14 @@ mod tests {
     async fn test_validation_feedback_with_issues() {
         let provider = ConfigFeedbackProvider::new();
         let config = GlobalConfig::default();
-        
-        let issues = vec![
-            ConfigIssue {
-                path: "test.path".to_string(),
-                message: "Test error message".to_string(),
-                severity: ConfigIssueSeverity::Error,
-                category: "validation".to_string(),
-            },
-        ];
-        
+
+        let issues = vec![ConfigIssue {
+            path: "test.path".to_string(),
+            message: "Test error message".to_string(),
+            severity: ConfigIssueSeverity::Error,
+            category: "validation".to_string(),
+        }];
+
         let validation_result = ValidationResult {
             valid: false,
             issues,
@@ -429,8 +439,10 @@ mod tests {
             duration_ms: 0,
         };
 
-        let feedback = provider.generate_feedback(&config, &validation_result).await;
-        
+        let feedback = provider
+            .generate_feedback(&config, &validation_result)
+            .await;
+
         assert_eq!(feedback.validation_feedback.len(), 1);
         assert_eq!(feedback.summary.critical_issues, 1);
         assert!(feedback.summary.health_score < 100);

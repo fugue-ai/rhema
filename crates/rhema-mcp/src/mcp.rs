@@ -25,9 +25,7 @@ use crate::cache::{
 use crate::context::ContextProvider;
 use crate::http_server::HttpServer;
 use crate::official_sdk::OfficialRhemaMcpServer;
-use crate::sdk::{
-    ContextProviderExt, RhemaMcpServer,
-};
+use crate::sdk::{ContextProviderExt, RhemaMcpServer};
 use crate::watcher::FileWatcher;
 
 use rhema_core::RhemaResult;

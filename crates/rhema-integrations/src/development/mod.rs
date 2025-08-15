@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-pub mod ide;
-pub mod code_review;
-pub mod testing;
 pub mod build;
+pub mod code_review;
 pub mod deployment;
+pub mod ide;
+pub mod testing;
 
-pub use ide::IDEIntegration;
-pub use code_review::CodeReviewIntegration;
-pub use testing::TestingIntegration;
 pub use build::BuildIntegration;
+pub use code_review::CodeReviewIntegration;
 pub use deployment::DeploymentIntegration;
+pub use ide::IDEIntegration;
+pub use testing::TestingIntegration;

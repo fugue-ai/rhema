@@ -153,7 +153,7 @@ impl CoordinationPattern for ResourceManagementPattern {
         ]);
 
         let execution_time_ms = start_time.elapsed().as_millis() as u64;
-        
+
         Ok(PatternResult {
             pattern_id: "resource-management".to_string(),
             success: resource_state.status == ResourceManagementStatus::Completed,
@@ -757,7 +757,7 @@ impl CoordinationPattern for FileLockManagementPattern {
         ]);
 
         let execution_time_ms = start_time.elapsed().as_millis() as u64;
-        
+
         Ok(PatternResult {
             pattern_id: "file-lock-management".to_string(),
             success: lock_state.status == LockManagementStatus::Completed,

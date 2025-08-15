@@ -32,13 +32,13 @@ impl HealthChecker {
     /// Start the health checker
     pub async fn start(&self) -> RhemaResult<()> {
         info!("Starting health checker with config: {:?}", self.config);
-        
+
         // In a real implementation, this would:
         // 1. Start periodic health checks
         // 2. Begin monitoring node health
         // 3. Start alerting system
         // 4. Initialize health metrics collection
-        
+
         info!("✅ Health checker started successfully");
         Ok(())
     }
@@ -46,13 +46,13 @@ impl HealthChecker {
     /// Stop the health checker
     pub async fn stop(&self) -> RhemaResult<()> {
         info!("Stopping health checker...");
-        
+
         // In a real implementation, this would:
         // 1. Stop periodic health checks
         // 2. Stop monitoring node health
         // 3. Stop alerting system
         // 4. Clean up health metrics
-        
+
         info!("✅ Health checker stopped successfully");
         Ok(())
     }

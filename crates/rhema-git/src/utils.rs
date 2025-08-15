@@ -1444,7 +1444,7 @@ impl AdvancedGitIntegration {
     ) -> RhemaResult<crate::git_hooks::HookResult> {
         // Implement proper hook execution
         let hook_manager = crate::git_hooks::GitHooksManager::new(self.repo.path())?;
-        
+
         match hook_manager.execute_hook(&hook_type) {
             Ok(result) => Ok(result),
             Err(e) => {
@@ -1574,34 +1574,35 @@ monitoring:
             .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
             .join(".rhema")
             .join("backups");
-        
+
         let backup_file = backup_dir.join(format!("{}.json", version));
-        
+
         if !backup_file.exists() {
-            return Err(RhemaError::ValidationError(
-                format!("Backup version {} not found", version)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Backup version {} not found",
+                version
+            )));
         }
-        
+
         // Read backup data
         let backup_content = std::fs::read_to_string(&backup_file)?;
         let backup_data: serde_json::Value = serde_json::from_str(&backup_content)?;
-        
+
         // Restore from backup
         if let Some(context_data) = backup_data.get("context") {
             let context_file = self.repo.path().parent().unwrap().join("context.yaml");
             std::fs::write(context_file, serde_json::to_string_pretty(context_data)?)?;
         }
-        
+
         // Create rollback commit
         let mut index = self.repo.index()?;
         index.add_path(Path::new("context.yaml"))?;
         let tree_id = index.write_tree()?;
         let tree = self.repo.find_tree(tree_id)?;
-        
+
         let head = self.repo.head()?;
         let parent = self.repo.find_commit(head.target().unwrap())?;
-        
+
         let signature = git2::Signature::now("Rhema System", "rhema@system.local")?;
         self.repo.commit(
             Some("HEAD"),
@@ -1611,7 +1612,7 @@ monitoring:
             &tree,
             &[&parent],
         )?;
-        
+
         Ok(())
     }
 
@@ -1633,67 +1634,67 @@ monitoring:
         // Implement actual automation start
         if self.automation_running {
             return Err(RhemaError::ValidationError(
-                "Automation is already running".to_string()
+                "Automation is already running".to_string(),
             ));
         }
-        
+
         // Initialize automation components
         self.initialize_automation_components()?;
-        
+
         // Start background tasks
         self.start_background_tasks()?;
-        
+
         // Set status
         self.automation_running = true;
-        
+
         // Log automation start
         eprintln!("Automation started successfully");
-        
+
         Ok(())
     }
-    
+
     fn initialize_automation_components(&self) -> RhemaResult<()> {
         // Initialize monitoring
         if let Some(monitor) = &self.monitor {
             // TODO: Implement monitor.start_monitoring()
             // For now, we'll skip this implementation
         }
-        
+
         // Initialize security scanning
         if let Some(security) = &self.security {
             // TODO: Implement security.start_scanning()
             // For now, we'll skip this implementation
         }
-        
+
         Ok(())
     }
-    
+
     fn start_background_tasks(&self) -> RhemaResult<()> {
         // Start periodic health checks
         self.schedule_health_checks()?;
-        
+
         // Start periodic backups
         self.schedule_backups()?;
-        
+
         // Start periodic validation
         self.schedule_validation()?;
-        
+
         Ok(())
     }
-    
+
     fn schedule_health_checks(&self) -> RhemaResult<()> {
         // Schedule health checks every 5 minutes
         // This is a simplified implementation - in a real system, you'd use a proper task scheduler
         eprintln!("Health checks scheduled");
         Ok(())
     }
-    
+
     fn schedule_backups(&self) -> RhemaResult<()> {
         // Schedule backups every hour
         eprintln!("Backups scheduled");
         Ok(())
     }
-    
+
     fn schedule_validation(&self) -> RhemaResult<()> {
         // Schedule validation every 10 minutes
         eprintln!("Validation scheduled");
@@ -1704,66 +1705,66 @@ monitoring:
         // Implement actual automation stop
         if !self.automation_running {
             return Err(RhemaError::ValidationError(
-                "Automation is not running".to_string()
+                "Automation is not running".to_string(),
             ));
         }
-        
+
         // Stop background tasks
         self.stop_background_tasks()?;
-        
+
         // Cleanup automation components
         self.cleanup_automation_components()?;
-        
+
         // Set status
         self.automation_running = false;
-        
+
         // Log automation stop
         eprintln!("Automation stopped successfully");
-        
+
         Ok(())
     }
-    
+
     fn stop_background_tasks(&self) -> RhemaResult<()> {
         // Stop periodic health checks
         self.cancel_health_checks()?;
-        
+
         // Stop periodic backups
         self.cancel_backups()?;
-        
+
         // Stop periodic validation
         self.cancel_validation()?;
-        
+
         Ok(())
     }
-    
+
     fn cleanup_automation_components(&self) -> RhemaResult<()> {
         // Stop monitoring
         if let Some(monitor) = &self.monitor {
             // TODO: Implement monitor.stop_monitoring()
             // For now, we'll skip this implementation
         }
-        
+
         // Stop security scanning
         if let Some(security) = &self.security {
             // TODO: Implement security.stop_scanning()
             // For now, we'll skip this implementation
         }
-        
+
         Ok(())
     }
-    
+
     fn cancel_health_checks(&self) -> RhemaResult<()> {
         // Cancel health check tasks
         eprintln!("Health checks cancelled");
         Ok(())
     }
-    
+
     fn cancel_backups(&self) -> RhemaResult<()> {
         // Cancel backup tasks
         eprintln!("Backups cancelled");
         Ok(())
     }
-    
+
     fn cancel_validation(&self) -> RhemaResult<()> {
         // Cancel validation tasks
         eprintln!("Validation cancelled");
@@ -1801,20 +1802,21 @@ monitoring:
         // Implement task cancellation
         if task_id.trim().is_empty() {
             return Err(RhemaError::ValidationError(
-                "Task ID cannot be empty".to_string()
+                "Task ID cannot be empty".to_string(),
             ));
         }
-        
+
         // Check if task exists and is running
         let task_history = self.get_task_history(None)?;
         let task_exists = task_history.iter().any(|task| task.id == task_id);
-        
+
         if !task_exists {
-            return Err(RhemaError::ValidationError(
-                format!("Task {} not found", task_id)
-            ));
+            return Err(RhemaError::ValidationError(format!(
+                "Task {} not found",
+                task_id
+            )));
         }
-        
+
         // Cancel the task based on its type
         match task_id {
             id if id.starts_with("health-") => self.cancel_health_task(id)?,
@@ -1825,21 +1827,21 @@ monitoring:
                 eprintln!("Cancelling task: {}", task_id);
             }
         }
-        
+
         eprintln!("Task {} cancelled successfully", task_id);
         Ok(())
     }
-    
+
     fn cancel_health_task(&self, task_id: &str) -> RhemaResult<()> {
         eprintln!("Cancelling health check task: {}", task_id);
         Ok(())
     }
-    
+
     fn cancel_backup_task(&self, task_id: &str) -> RhemaResult<()> {
         eprintln!("Cancelling backup task: {}", task_id);
         Ok(())
     }
-    
+
     fn cancel_validation_task(&self, task_id: &str) -> RhemaResult<()> {
         eprintln!("Cancelling validation task: {}", task_id);
         Ok(())
@@ -1854,7 +1856,7 @@ monitoring:
             .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
             .join(".rhema")
             .join("task_history.json");
-        
+
         // Clear the history file if it exists
         if history_file.exists() {
             std::fs::remove_file(&history_file)?;
@@ -1862,11 +1864,11 @@ monitoring:
         } else {
             eprintln!("No task history file found to clear");
         }
-        
+
         // Also clear any in-memory task history
         // Note: In a real implementation, you'd have a proper task history storage
         eprintln!("Task history cleared successfully");
-        
+
         Ok(())
     }
 
@@ -1882,7 +1884,7 @@ monitoring:
                 "Trigger type cannot be empty".to_string(),
             ));
         }
-        
+
         match trigger_type {
             "commit" => self.handle_commit_trigger(data)?,
             "push" => self.handle_push_trigger(data)?,
@@ -1892,17 +1894,21 @@ monitoring:
             "scheduled" => self.handle_scheduled_trigger(data)?,
             "manual" => self.handle_manual_trigger(data)?,
             _ => {
-                return Err(RhemaError::ValidationError(
-                    format!("Unknown trigger type: {}", trigger_type)
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Unknown trigger type: {}",
+                    trigger_type
+                )));
             }
         }
-        
+
         eprintln!("Workflow automation triggered: {}", trigger_type);
         Ok(())
     }
-    
-    fn handle_commit_trigger(&self, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+
+    fn handle_commit_trigger(
+        &self,
+        data: Option<std::collections::HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         if let Some(commit_data) = data {
             if let Some(branch) = commit_data.get("branch") {
                 eprintln!("Commit trigger on branch: {}", branch);
@@ -1910,8 +1916,11 @@ monitoring:
         }
         Ok(())
     }
-    
-    fn handle_push_trigger(&self, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+
+    fn handle_push_trigger(
+        &self,
+        data: Option<std::collections::HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         if let Some(push_data) = data {
             if let Some(remote) = push_data.get("remote") {
                 eprintln!("Push trigger to remote: {}", remote);
@@ -1919,8 +1928,11 @@ monitoring:
         }
         Ok(())
     }
-    
-    fn handle_merge_trigger(&self, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+
+    fn handle_merge_trigger(
+        &self,
+        data: Option<std::collections::HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         if let Some(merge_data) = data {
             if let Some(source) = merge_data.get("source") {
                 if let Some(target) = merge_data.get("target") {
@@ -1930,8 +1942,11 @@ monitoring:
         }
         Ok(())
     }
-    
-    fn handle_release_trigger(&self, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+
+    fn handle_release_trigger(
+        &self,
+        data: Option<std::collections::HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         if let Some(release_data) = data {
             if let Some(version) = release_data.get("version") {
                 eprintln!("Release trigger for version: {}", version);
@@ -1939,8 +1954,11 @@ monitoring:
         }
         Ok(())
     }
-    
-    fn handle_hotfix_trigger(&self, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+
+    fn handle_hotfix_trigger(
+        &self,
+        data: Option<std::collections::HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         if let Some(hotfix_data) = data {
             if let Some(version) = hotfix_data.get("version") {
                 eprintln!("Hotfix trigger for version: {}", version);
@@ -1948,8 +1966,11 @@ monitoring:
         }
         Ok(())
     }
-    
-    fn handle_scheduled_trigger(&self, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+
+    fn handle_scheduled_trigger(
+        &self,
+        data: Option<std::collections::HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         if let Some(schedule_data) = data {
             if let Some(schedule) = schedule_data.get("schedule") {
                 eprintln!("Scheduled trigger: {}", schedule);
@@ -1957,8 +1978,11 @@ monitoring:
         }
         Ok(())
     }
-    
-    fn handle_manual_trigger(&self, data: Option<std::collections::HashMap<String, String>>) -> RhemaResult<()> {
+
+    fn handle_manual_trigger(
+        &self,
+        data: Option<std::collections::HashMap<String, String>>,
+    ) -> RhemaResult<()> {
         if let Some(manual_data) = data {
             if let Some(user) = manual_data.get("user") {
                 eprintln!("Manual trigger by user: {}", user);
@@ -1980,7 +2004,7 @@ monitoring:
                 "Action cannot be empty".to_string(),
             ));
         }
-        
+
         match action {
             "create" => self.create_feature_automation(feature_name)?,
             "develop" => self.develop_feature_automation(feature_name)?,
@@ -1989,46 +2013,50 @@ monitoring:
             "validate" => self.validate_feature_automation(feature_name)?,
             "test" => self.test_feature_automation(feature_name)?,
             _ => {
-                return Err(RhemaError::ValidationError(
-                    format!("Unknown feature action: {}", action)
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Unknown feature action: {}",
+                    action
+                )));
             }
         }
-        
-        eprintln!("Feature automation triggered: {} - {}", feature_name, action);
+
+        eprintln!(
+            "Feature automation triggered: {} - {}",
+            feature_name, action
+        );
         Ok(())
     }
-    
+
     fn create_feature_automation(&self, feature_name: &str) -> RhemaResult<()> {
         eprintln!("Creating feature branch: {}", feature_name);
         // In a real implementation, this would create the feature branch
         Ok(())
     }
-    
+
     fn develop_feature_automation(&self, feature_name: &str) -> RhemaResult<()> {
         eprintln!("Developing feature: {}", feature_name);
         // In a real implementation, this would set up development environment
         Ok(())
     }
-    
+
     fn merge_feature_automation(&self, feature_name: &str) -> RhemaResult<()> {
         eprintln!("Merging feature: {}", feature_name);
         // In a real implementation, this would merge the feature branch
         Ok(())
     }
-    
+
     fn cleanup_feature_automation(&self, feature_name: &str) -> RhemaResult<()> {
         eprintln!("Cleaning up feature: {}", feature_name);
         // In a real implementation, this would clean up the feature branch
         Ok(())
     }
-    
+
     fn validate_feature_automation(&self, feature_name: &str) -> RhemaResult<()> {
         eprintln!("Validating feature: {}", feature_name);
         // In a real implementation, this would validate the feature
         Ok(())
     }
-    
+
     fn test_feature_automation(&self, feature_name: &str) -> RhemaResult<()> {
         eprintln!("Testing feature: {}", feature_name);
         // In a real implementation, this would run tests for the feature
@@ -2048,7 +2076,7 @@ monitoring:
                 "Action cannot be empty".to_string(),
             ));
         }
-        
+
         match action {
             "create" => self.create_release_automation(version)?,
             "prepare" => self.prepare_release_automation(version)?,
@@ -2057,46 +2085,47 @@ monitoring:
             "rollback" => self.rollback_release_automation(version)?,
             "cleanup" => self.cleanup_release_automation(version)?,
             _ => {
-                return Err(RhemaError::ValidationError(
-                    format!("Unknown release action: {}", action)
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Unknown release action: {}",
+                    action
+                )));
             }
         }
-        
+
         eprintln!("Release automation triggered: {} - {}", version, action);
         Ok(())
     }
-    
+
     fn create_release_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Creating release: {}", version);
         // In a real implementation, this would create the release branch
         Ok(())
     }
-    
+
     fn prepare_release_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Preparing release: {}", version);
         // In a real implementation, this would prepare the release
         Ok(())
     }
-    
+
     fn publish_release_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Publishing release: {}", version);
         // In a real implementation, this would publish the release
         Ok(())
     }
-    
+
     fn deploy_release_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Deploying release: {}", version);
         // In a real implementation, this would deploy the release
         Ok(())
     }
-    
+
     fn rollback_release_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Rolling back release: {}", version);
         // In a real implementation, this would rollback the release
         Ok(())
     }
-    
+
     fn cleanup_release_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Cleaning up release: {}", version);
         // In a real implementation, this would clean up the release
@@ -2116,7 +2145,7 @@ monitoring:
                 "Action cannot be empty".to_string(),
             ));
         }
-        
+
         match action {
             "create" => self.create_hotfix_automation(version)?,
             "fix" => self.fix_hotfix_automation(version)?,
@@ -2125,46 +2154,47 @@ monitoring:
             "merge" => self.merge_hotfix_automation(version)?,
             "cleanup" => self.cleanup_hotfix_automation(version)?,
             _ => {
-                return Err(RhemaError::ValidationError(
-                    format!("Unknown hotfix action: {}", action)
-                ));
+                return Err(RhemaError::ValidationError(format!(
+                    "Unknown hotfix action: {}",
+                    action
+                )));
             }
         }
-        
+
         eprintln!("Hotfix automation triggered: {} - {}", version, action);
         Ok(())
     }
-    
+
     fn create_hotfix_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Creating hotfix: {}", version);
         // In a real implementation, this would create the hotfix branch
         Ok(())
     }
-    
+
     fn fix_hotfix_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Fixing hotfix: {}", version);
         // In a real implementation, this would apply the hotfix
         Ok(())
     }
-    
+
     fn test_hotfix_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Testing hotfix: {}", version);
         // In a real implementation, this would test the hotfix
         Ok(())
     }
-    
+
     fn deploy_hotfix_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Deploying hotfix: {}", version);
         // In a real implementation, this would deploy the hotfix
         Ok(())
     }
-    
+
     fn merge_hotfix_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Merging hotfix: {}", version);
         // In a real implementation, this would merge the hotfix
         Ok(())
     }
-    
+
     fn cleanup_hotfix_automation(&self, version: &str) -> RhemaResult<()> {
         eprintln!("Cleaning up hotfix: {}", version);
         // In a real implementation, this would clean up the hotfix
@@ -2181,25 +2211,25 @@ monitoring:
             failed_tasks: self.get_failed_tasks()?,
             pending_tasks: self.get_pending_tasks()?,
         };
-        
+
         Ok(automation_status)
     }
-    
+
     fn get_total_tasks(&self) -> RhemaResult<u32> {
         // In a real implementation, this would query the task database
         Ok(10)
     }
-    
+
     fn get_completed_tasks(&self) -> RhemaResult<u32> {
         // In a real implementation, this would query the task database
         Ok(7)
     }
-    
+
     fn get_failed_tasks(&self) -> RhemaResult<u32> {
         // In a real implementation, this would query the task database
         Ok(1)
     }
-    
+
     fn get_pending_tasks(&self) -> RhemaResult<u32> {
         // In a real implementation, this would query the task database
         Ok(2)
@@ -2213,76 +2243,76 @@ monitoring:
         // Implement actual monitoring start
         if self.monitoring_active {
             return Err(RhemaError::ValidationError(
-                "Monitoring is already active".to_string()
+                "Monitoring is already active".to_string(),
             ));
         }
-        
+
         // Initialize monitoring components
         self.initialize_monitoring_components()?;
-        
+
         // Start monitoring tasks
         self.start_monitoring_tasks()?;
-        
+
         // Set status
         self.monitoring_active = true;
-        
+
         // Log monitoring start
         eprintln!("Monitoring started successfully");
-        
+
         Ok(())
     }
-    
+
     fn initialize_monitoring_components(&self) -> RhemaResult<()> {
         // Initialize performance monitoring
         self.initialize_performance_monitoring()?;
-        
+
         // Initialize security monitoring
         self.initialize_security_monitoring()?;
-        
+
         // Initialize health monitoring
         self.initialize_health_monitoring()?;
-        
+
         Ok(())
     }
-    
+
     fn start_monitoring_tasks(&self) -> RhemaResult<()> {
         // Start performance monitoring
         self.start_performance_monitoring()?;
-        
+
         // Start security monitoring
         self.start_security_monitoring()?;
-        
+
         // Start health monitoring
         self.start_health_monitoring()?;
-        
+
         Ok(())
     }
-    
+
     fn initialize_performance_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Performance monitoring initialized");
         Ok(())
     }
-    
+
     fn initialize_security_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Security monitoring initialized");
         Ok(())
     }
-    
+
     fn initialize_health_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Health monitoring initialized");
         Ok(())
     }
-    
+
     fn start_performance_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Performance monitoring started");
         Ok(())
     }
-    
+
     fn start_security_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Security monitoring started");
         Ok(())
     }
-    
+
     fn start_health_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Health monitoring started");
         Ok(())
@@ -2292,76 +2322,76 @@ monitoring:
         // Implement actual monitoring stop
         if !self.monitoring_active {
             return Err(RhemaError::ValidationError(
-                "Monitoring is not active".to_string()
+                "Monitoring is not active".to_string(),
             ));
         }
-        
+
         // Stop monitoring tasks
         self.stop_monitoring_tasks()?;
-        
+
         // Cleanup monitoring components
         self.cleanup_monitoring_components()?;
-        
+
         // Set status
         self.monitoring_active = false;
-        
+
         // Log monitoring stop
         eprintln!("Monitoring stopped successfully");
-        
+
         Ok(())
     }
-    
+
     fn stop_monitoring_tasks(&self) -> RhemaResult<()> {
         // Stop performance monitoring
         self.stop_performance_monitoring()?;
-        
+
         // Stop security monitoring
         self.stop_security_monitoring()?;
-        
+
         // Stop health monitoring
         self.stop_health_monitoring()?;
-        
+
         Ok(())
     }
-    
+
     fn cleanup_monitoring_components(&self) -> RhemaResult<()> {
         // Cleanup performance monitoring
         self.cleanup_performance_monitoring()?;
-        
+
         // Cleanup security monitoring
         self.cleanup_security_monitoring()?;
-        
+
         // Cleanup health monitoring
         self.cleanup_health_monitoring()?;
-        
+
         Ok(())
     }
-    
+
     fn stop_performance_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Performance monitoring stopped");
         Ok(())
     }
-    
+
     fn stop_security_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Security monitoring stopped");
         Ok(())
     }
-    
+
     fn stop_health_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Health monitoring stopped");
         Ok(())
     }
-    
+
     fn cleanup_performance_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Performance monitoring cleaned up");
         Ok(())
     }
-    
+
     fn cleanup_security_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Security monitoring cleaned up");
         Ok(())
     }
-    
+
     fn cleanup_health_monitoring(&self) -> RhemaResult<()> {
         eprintln!("Health monitoring cleaned up");
         Ok(())
@@ -2388,7 +2418,7 @@ monitoring:
             timestamp: chrono::Utc::now(),
             status: "completed".to_string(),
         };
-        
+
         // Write to operation log file
         let log_file = self
             .repo
@@ -2397,7 +2427,7 @@ monitoring:
             .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
             .join(".rhema")
             .join("git_operations.log");
-        
+
         let log_entry = format!(
             "{} | {} | {}ms | {}\n",
             operation_log.timestamp.format("%Y-%m-%d %H:%M:%S"),
@@ -2405,13 +2435,13 @@ monitoring:
             operation_log.duration,
             operation_log.status
         );
-        
+
         std::fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(log_file)?
             .write_all(log_entry.as_bytes())?;
-        
+
         Ok(())
     }
 
@@ -2427,7 +2457,7 @@ monitoring:
             timestamp: chrono::Utc::now(),
             status: "completed".to_string(),
         };
-        
+
         // Write to context operation log file
         let log_file = self
             .repo
@@ -2436,7 +2466,7 @@ monitoring:
             .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
             .join(".rhema")
             .join("context_operations.log");
-        
+
         let log_entry = format!(
             "{} | {} | {}ms | {}\n",
             operation_log.timestamp.format("%Y-%m-%d %H:%M:%S"),
@@ -2444,13 +2474,13 @@ monitoring:
             operation_log.duration,
             operation_log.status
         );
-        
+
         std::fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(log_file)?
             .write_all(log_entry.as_bytes())?;
-        
+
         Ok(())
     }
 

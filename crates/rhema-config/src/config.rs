@@ -15,10 +15,10 @@
  */
 
 use rhema_core::RhemaResult;
+use serde_yaml;
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 use thiserror::Error;
-use serde_yaml;
 // Removed unused imports
 
 /// Safety violation types as defined in the TLA+ specification
@@ -75,11 +75,7 @@ impl SafetyValidator {
     }
 
     /// Validate scope references
-    pub fn validate_scope_references(
-        &self,
-        scope: &str,
-        all_scopes: &[String],
-    ) -> RhemaResult<()> {
+    pub fn validate_scope_references(&self, scope: &str, all_scopes: &[String]) -> RhemaResult<()> {
         if !all_scopes.contains(&scope.to_string()) {
             return Err(rhema_core::RhemaError::ValidationError(format!(
                 "Scope '{}' not found in available scopes: {:?}",
@@ -159,11 +155,7 @@ impl SafetyValidator {
     }
 
     /// Validate dependency bounds
-    pub fn validate_dependency_bounds(
-        &self,
-        deps: &[String],
-        max_deps: usize,
-    ) -> RhemaResult<()> {
+    pub fn validate_dependency_bounds(&self, deps: &[String], max_deps: usize) -> RhemaResult<()> {
         if deps.len() > max_deps {
             return Err(rhema_core::RhemaError::ValidationError(format!(
                 "Too many dependencies: {} (max: {})",
@@ -188,8 +180,17 @@ impl SafetyValidator {
     /// Validate agent states
     pub fn validate_agent_states(&self, agents: &HashMap<String, String>) -> RhemaResult<()> {
         let valid_states = [
-            "idle", "ready", "busy", "working", "paused", "stopping", 
-            "stopped", "error", "deadlocked", "blocked", "completed"
+            "idle",
+            "ready",
+            "busy",
+            "working",
+            "paused",
+            "stopping",
+            "stopped",
+            "error",
+            "deadlocked",
+            "blocked",
+            "completed",
         ];
 
         for (agent_id, state) in agents {
@@ -209,10 +210,8 @@ impl SafetyValidator {
         locks: &HashMap<String, Option<String>>,
         max_concurrent: usize,
     ) -> RhemaResult<()> {
-        let active_agents: HashSet<&String> = locks
-            .values()
-            .filter_map(|agent| agent.as_ref())
-            .collect();
+        let active_agents: HashSet<&String> =
+            locks.values().filter_map(|agent| agent.as_ref()).collect();
 
         if active_agents.len() > max_concurrent {
             return Err(rhema_core::RhemaError::ValidationError(format!(
@@ -234,16 +233,17 @@ impl SafetyValidator {
         // This would typically check against a progress tracking system
         // For now, we'll validate the state is not stuck in a blocking state too long
         let blocking_states = ["blocked", "deadlocked", "error"];
-        
+
         if blocking_states.contains(&state) {
             // In a real implementation, you'd check the actual blocking duration
             // against max_block_time here
             tracing::warn!(
                 "Agent '{}' is in blocking state '{}' - should check duration",
-                agent_id, state
+                agent_id,
+                state
             );
         }
-        
+
         Ok(())
     }
 
@@ -254,7 +254,7 @@ impl SafetyValidator {
         agents: &[String],
     ) -> RhemaResult<()> {
         let agent_set: HashSet<&String> = agents.iter().collect();
-        
+
         for (resource, owner) in locks {
             if let Some(agent_id) = owner {
                 if !agent_set.contains(agent_id) {
@@ -274,13 +274,16 @@ impl SafetyValidator {
         locks: &HashMap<String, Option<String>>,
     ) -> RhemaResult<()> {
         let mut agent_locks: HashMap<&String, Vec<&String>> = HashMap::new();
-        
+
         for (resource, owner) in locks {
             if let Some(agent_id) = owner {
-                agent_locks.entry(agent_id).or_insert_with(Vec::new).push(resource);
+                agent_locks
+                    .entry(agent_id)
+                    .or_insert_with(Vec::new)
+                    .push(resource);
             }
         }
-        
+
         for (agent_id, resources) in agent_locks {
             if resources.len() > 1 {
                 return Err(rhema_core::RhemaError::ValidationError(format!(
@@ -299,7 +302,7 @@ impl SafetyValidator {
         timeouts: &HashMap<String, Instant>,
     ) -> RhemaResult<()> {
         let now = Instant::now();
-        
+
         for (resource, timeout) in timeouts {
             if locks.contains_key(resource) && now.duration_since(*timeout).as_secs() > 300 {
                 // 5 minute timeout threshold
@@ -319,7 +322,7 @@ impl SafetyValidator {
         sync_dependencies: &HashMap<String, Vec<String>>,
     ) -> RhemaResult<()> {
         let valid_sync_states = ["synced", "syncing", "conflict", "error", "pending"];
-        
+
         // Validate sync states
         for (resource, status) in sync_status {
             if !valid_sync_states.contains(&status.as_str()) {
@@ -329,7 +332,7 @@ impl SafetyValidator {
                 )));
             }
         }
-        
+
         // Validate dependencies are consistent
         for (resource, deps) in sync_dependencies {
             if let Some(status) = sync_status.get(resource) {
@@ -348,7 +351,7 @@ impl SafetyValidator {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -365,20 +368,20 @@ impl SafetyValidator {
     ) -> RhemaResult<()> {
         // Validate context consistency
         self.validate_context_consistency(agents, dependencies)?;
-        
+
         // Validate dependency integrity
         self.validate_dependency_integrity(dependencies)?;
-        
+
         // Validate agent coordination
         self.validate_agent_coordination(agents, locks, max_concurrent_agents)?;
-        
+
         // Validate lock consistency
         let agent_ids: Vec<String> = agents.keys().cloned().collect();
         self.validate_lock_consistency(locks, &agent_ids)?;
-        
+
         // Validate sync status consistency
         self.validate_sync_status_consistency(sync_status, sync_dependencies)?;
-        
+
         Ok(())
     }
 
@@ -390,13 +393,13 @@ impl SafetyValidator {
     ) -> RhemaResult<()> {
         // Validate agent states
         self.validate_agent_states(agents)?;
-        
+
         // Validate no circular dependencies
         self.validate_no_circular_dependencies(dependencies)?;
-        
+
         // Validate dependency graph structure
         self.validate_dependency_graph(dependencies)?;
-        
+
         Ok(())
     }
 
@@ -411,13 +414,13 @@ impl SafetyValidator {
                 tracing::debug!("Node '{}' has no dependencies", node);
             }
         }
-        
+
         // Validate dependency bounds (reasonable limit of 100 dependencies per node)
         for (node, deps) in dependencies {
             self.validate_dependency_bounds(deps, 100)?;
             self.validate_no_self_dependencies(node, deps)?;
         }
-        
+
         Ok(())
     }
 
@@ -430,14 +433,14 @@ impl SafetyValidator {
     ) -> RhemaResult<()> {
         // Validate concurrent agents limit
         self.validate_concurrent_agents(locks, max_concurrent_agents)?;
-        
+
         // Validate lock ownership
         let agent_ids: Vec<String> = agents.keys().cloned().collect();
         self.validate_lock_ownership(locks, &agent_ids)?;
-        
+
         // Validate one lock per agent
         self.validate_one_lock_per_agent(locks)?;
-        
+
         Ok(())
     }
 
@@ -449,10 +452,10 @@ impl SafetyValidator {
     ) -> RhemaResult<()> {
         // Validate lock ownership
         self.validate_lock_ownership(locks, agents)?;
-        
+
         // Validate one lock per agent
         self.validate_one_lock_per_agent(locks)?;
-        
+
         Ok(())
     }
 
@@ -501,7 +504,9 @@ mod tests {
         let validator = SafetyValidator::new();
         assert!(validator.validate_yaml_content("test content").is_ok());
         assert!(validator.validate_yaml_content("key: value").is_ok());
-        assert!(validator.validate_yaml_content("invalid: [yaml: content: [").is_err());
+        assert!(validator
+            .validate_yaml_content("invalid: [yaml: content: [")
+            .is_err());
     }
 
     #[test]
@@ -523,15 +528,17 @@ mod tests {
         deps.insert("a".to_string(), vec!["b".to_string()]);
         deps.insert("b".to_string(), vec!["c".to_string()]);
         deps.insert("c".to_string(), vec!["a".to_string()]);
-        
+
         assert!(validator.validate_no_circular_dependencies(&deps).is_err());
-        
+
         let mut deps_no_cycle = HashMap::new();
         deps_no_cycle.insert("a".to_string(), vec!["b".to_string()]);
         deps_no_cycle.insert("b".to_string(), vec!["c".to_string()]);
         deps_no_cycle.insert("c".to_string(), vec![]);
-        
-        assert!(validator.validate_no_circular_dependencies(&deps_no_cycle).is_ok());
+
+        assert!(validator
+            .validate_no_circular_dependencies(&deps_no_cycle)
+            .is_ok());
     }
 
     #[test]
@@ -541,7 +548,7 @@ mod tests {
         agents.insert("agent1".to_string(), "idle".to_string());
         agents.insert("agent2".to_string(), "busy".to_string());
         assert!(validator.validate_agent_states(&agents).is_ok());
-        
+
         agents.insert("agent3".to_string(), "invalid_state".to_string());
         assert!(validator.validate_agent_states(&agents).is_err());
     }
@@ -601,10 +608,14 @@ mod tests {
     fn test_validate_no_self_dependencies() {
         let validator = SafetyValidator::new();
         let deps = vec!["dep1".to_string(), "dep2".to_string()];
-        assert!(validator.validate_no_self_dependencies("scope1", &deps).is_ok());
-        
+        assert!(validator
+            .validate_no_self_dependencies("scope1", &deps)
+            .is_ok());
+
         let deps_with_self = vec!["dep1".to_string(), "scope1".to_string()];
-        assert!(validator.validate_no_self_dependencies("scope1", &deps_with_self).is_err());
+        assert!(validator
+            .validate_no_self_dependencies("scope1", &deps_with_self)
+            .is_err());
     }
 
     #[test]
@@ -614,7 +625,7 @@ mod tests {
         locks.insert("resource1".to_string(), Some("agent1".to_string()));
         let agents = vec!["agent1".to_string()];
         assert!(validator.validate_lock_ownership(&locks, &agents).is_ok());
-        
+
         locks.insert("resource2".to_string(), Some("agent2".to_string()));
         assert!(validator.validate_lock_ownership(&locks, &agents).is_err());
     }
@@ -626,7 +637,7 @@ mod tests {
         locks.insert("resource1".to_string(), Some("agent1".to_string()));
         locks.insert("resource2".to_string(), Some("agent2".to_string()));
         assert!(validator.validate_one_lock_per_agent(&locks).is_ok());
-        
+
         locks.insert("resource3".to_string(), Some("agent1".to_string()));
         assert!(validator.validate_one_lock_per_agent(&locks).is_err());
     }

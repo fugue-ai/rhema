@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
-use std::collections::HashMap;
 use base64::{engine::general_purpose, Engine as _};
+use std::collections::HashMap;
 
 /// Wiki integration for knowledge sharing
 pub struct WikiIntegration {
@@ -42,25 +45,36 @@ impl WikiIntegration {
             },
         }
     }
-    
+
     /// Create a wiki page
-    pub async fn create_page(&self, title: &str, content: &str, namespace: Option<&str>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Wiki not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn create_page(
+        &self,
+        title: &str,
+        content: &str,
+        namespace: Option<&str>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Wiki not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let mut page_data = serde_json::json!({
             "title": title,
             "content": content
         });
-        
+
         if let Some(namespace) = namespace {
             page_data["namespace"] = serde_json::Value::String(namespace.to_string());
         }
-        
+
         let url = format!("{}/api/pages", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
+
         if let Some(token) = &config.token {
             headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         } else if let Some(username) = &config.username {
@@ -69,21 +83,30 @@ impl WikiIntegration {
                 headers.insert("Authorization".to_string(), format!("Basic {}", auth));
             }
         }
-        
-        let response = self.http_client.post(&url, &page_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &page_data.to_string(), Some(headers))
+            .await?;
         let page: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(page["id"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Get wiki page content
     pub async fn get_page(&self, page_id: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Wiki not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Wiki not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let url = format!("{}/api/pages/{}", base_url, page_id);
         let mut headers = HashMap::new();
-        
+
         if let Some(token) = &config.token {
             headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         } else if let Some(username) = &config.username {
@@ -92,26 +115,32 @@ impl WikiIntegration {
                 headers.insert("Authorization".to_string(), format!("Basic {}", auth));
             }
         }
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let page: serde_json::Value = serde_json::from_str(&response)?;
         Ok(page)
     }
-    
+
     /// Update wiki page
     pub async fn update_page(&self, page_id: &str, title: &str, content: &str) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Wiki not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Wiki not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let page_data = serde_json::json!({
             "title": title,
             "content": content
         });
-        
+
         let url = format!("{}/api/pages/{}", base_url, page_id);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
+
         if let Some(token) = &config.token {
             headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         } else if let Some(username) = &config.username {
@@ -120,19 +149,27 @@ impl WikiIntegration {
                 headers.insert("Authorization".to_string(), format!("Basic {}", auth));
             }
         }
-        
-        self.http_client.put(&url, &page_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .put(&url, &page_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Search wiki pages
     pub async fn search_pages(&self, query: &str) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Wiki not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Wiki not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let url = format!("{}/api/search?q={}", base_url, query);
         let mut headers = HashMap::new();
-        
+
         if let Some(token) = &config.token {
             headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         } else if let Some(username) = &config.username {
@@ -141,15 +178,12 @@ impl WikiIntegration {
                 headers.insert("Authorization".to_string(), format!("Basic {}", auth));
             }
         }
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
-        let pages = result["results"]
-            .as_array()
-            .unwrap_or(&Vec::new())
-            .clone();
-        
+
+        let pages = result["results"].as_array().unwrap_or(&Vec::new()).clone();
+
         Ok(pages)
     }
 }
@@ -173,7 +207,10 @@ impl ExternalIntegration for WikiIntegration {
             version: "1.0.0".to_string(),
             description: "Wiki integration for documentation".to_string(),
             integration_type: IntegrationType::Wiki,
-            capabilities: vec!["page_management".to_string(), "content_management".to_string()],
+            capabilities: vec![
+                "page_management".to_string(),
+                "content_management".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

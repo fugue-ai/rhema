@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 use std::process::Command;
@@ -42,26 +45,34 @@ impl DeploymentIntegration {
             },
         }
     }
-    
+
     /// Deploy to a target environment
-    pub async fn deploy(&self, environment: &str, version: Option<&str>) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Deployment not configured".to_string()))?;
-        let deploy_command = config.custom_headers.get("deploy_command").map(|s| s.as_str()).unwrap_or("echo 'Deploy command not configured'");
-        
+    pub async fn deploy(
+        &self,
+        environment: &str,
+        version: Option<&str>,
+    ) -> RhemaResult<serde_json::Value> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Deployment not configured".to_string()))?;
+        let deploy_command = config
+            .custom_headers
+            .get("deploy_command")
+            .map(|s| s.as_str())
+            .unwrap_or("echo 'Deploy command not configured'");
+
         let mut command = deploy_command.to_string();
         if let Some(version) = version {
             command = command.replace("{version}", version);
         }
         command = command.replace("{environment}", environment);
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(&command)
-            .output()?;
-        
+
+        let output = Command::new("sh").arg("-c").arg(&command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -72,24 +83,32 @@ impl DeploymentIntegration {
             "command": command
         }))
     }
-    
+
     /// Rollback to a previous version
-    pub async fn rollback(&self, environment: &str, version: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Deployment not configured".to_string()))?;
-        let rollback_command = config.custom_headers.get("rollback_command").map(|s| s.as_str()).unwrap_or("echo 'Rollback command not configured'");
-        
+    pub async fn rollback(
+        &self,
+        environment: &str,
+        version: &str,
+    ) -> RhemaResult<serde_json::Value> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Deployment not configured".to_string()))?;
+        let rollback_command = config
+            .custom_headers
+            .get("rollback_command")
+            .map(|s| s.as_str())
+            .unwrap_or("echo 'Rollback command not configured'");
+
         let mut command = rollback_command.to_string();
         command = command.replace("{version}", version);
         command = command.replace("{environment}", environment);
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(&command)
-            .output()?;
-        
+
+        let output = Command::new("sh").arg("-c").arg(&command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -100,23 +119,27 @@ impl DeploymentIntegration {
             "command": command
         }))
     }
-    
+
     /// Get deployment status
     pub async fn get_deployment_status(&self, environment: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Deployment not configured".to_string()))?;
-        let status_command = config.custom_headers.get("status_command").map(|s| s.as_str()).unwrap_or("echo 'Status command not configured'");
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Deployment not configured".to_string()))?;
+        let status_command = config
+            .custom_headers
+            .get("status_command")
+            .map(|s| s.as_str())
+            .unwrap_or("echo 'Status command not configured'");
+
         let mut command = status_command.to_string();
         command = command.replace("{environment}", environment);
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(&command)
-            .output()?;
-        
+
+        let output = Command::new("sh").arg("-c").arg(&command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -126,24 +149,28 @@ impl DeploymentIntegration {
             "command": command
         }))
     }
-    
+
     /// List available environments
     pub async fn list_environments(&self) -> RhemaResult<Vec<String>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Deployment not configured".to_string()))?;
-        let list_command = config.custom_headers.get("list_command").map(|s| s.as_str()).unwrap_or("echo 'dev,staging,prod'");
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(list_command)
-            .output()?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Deployment not configured".to_string()))?;
+        let list_command = config
+            .custom_headers
+            .get("list_command")
+            .map(|s| s.as_str())
+            .unwrap_or("echo 'dev,staging,prod'");
+
+        let output = Command::new("sh").arg("-c").arg(list_command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let environments: Vec<String> = stdout
             .trim()
             .split(',')
             .map(|s| s.trim().to_string())
             .collect();
-        
+
         Ok(environments)
     }
 }
@@ -167,7 +194,10 @@ impl ExternalIntegration for DeploymentIntegration {
             version: "1.0.0".to_string(),
             description: "Deployment integration for development".to_string(),
             integration_type: IntegrationType::Deployment,
-            capabilities: vec!["deployment_management".to_string(), "environment_management".to_string()],
+            capabilities: vec![
+                "deployment_management".to_string(),
+                "environment_management".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

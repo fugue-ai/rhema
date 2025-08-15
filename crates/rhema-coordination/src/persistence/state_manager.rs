@@ -442,9 +442,9 @@ impl StateManager {
         Ok(StoreStats {
             total_entries,
             size_bytes,
-            last_backup: Some(Utc::now()),    // Track backup timestamps
-            last_cleanup: Some(Utc::now()),   // Track cleanup timestamps
-            validation_errors: 0, // Track validation errors
+            last_backup: Some(Utc::now()),  // Track backup timestamps
+            last_cleanup: Some(Utc::now()), // Track cleanup timestamps
+            validation_errors: 0,           // Track validation errors
         })
     }
 }

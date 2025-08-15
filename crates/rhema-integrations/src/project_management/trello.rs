@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,60 +44,115 @@ impl TrelloIntegration {
             },
         }
     }
-    
+
     /// Create a Trello card
-    pub async fn create_card(&self, list_id: &str, name: &str, description: Option<&str>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Trello not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let mut params = format!("idList={}&key={}&token={}&name={}", list_id, api_key, token, name);
-        
+    pub async fn create_card(
+        &self,
+        list_id: &str,
+        name: &str,
+        description: Option<&str>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Trello not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let mut params = format!(
+            "idList={}&key={}&token={}&name={}",
+            list_id, api_key, token, name
+        );
+
         if let Some(description) = description {
             params.push_str(&format!("&desc={}", description));
         }
-        
+
         let url = format!("https://api.trello.com/1/cards?{}", params);
-        
+
         let response = self.http_client.post(&url, "", None).await?;
         let card: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(card["id"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Get Trello card details
     pub async fn get_card(&self, card_id: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Trello not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("https://api.trello.com/1/cards/{}?key={}&token={}", card_id, api_key, token);
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Trello not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "https://api.trello.com/1/cards/{}?key={}&token={}",
+            card_id, api_key, token
+        );
+
         let response = self.http_client.get(&url, None).await?;
         let card: serde_json::Value = serde_json::from_str(&response)?;
         Ok(card)
     }
-    
+
     /// Update Trello card
     pub async fn update_card(&self, card_id: &str, fields: serde_json::Value) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Trello not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("https://api.trello.com/1/cards/{}?key={}&token={}", card_id, api_key, token);
-        
-        self.http_client.put(&url, &fields.to_string(), None).await?;
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Trello not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "https://api.trello.com/1/cards/{}?key={}&token={}",
+            card_id, api_key, token
+        );
+
+        self.http_client
+            .put(&url, &fields.to_string(), None)
+            .await?;
         Ok(())
     }
-    
+
     /// Get cards from a board
     pub async fn get_board_cards(&self, board_id: &str) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Trello not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("https://api.trello.com/1/boards/{}/cards?key={}&token={}", board_id, api_key, token);
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Trello not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "https://api.trello.com/1/boards/{}/cards?key={}&token={}",
+            board_id, api_key, token
+        );
+
         let response = self.http_client.get(&url, None).await?;
         let cards: Vec<serde_json::Value> = serde_json::from_str(&response)?;
         Ok(cards)

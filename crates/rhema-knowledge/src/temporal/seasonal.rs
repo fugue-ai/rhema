@@ -406,7 +406,7 @@ mod tests {
         for i in 0..30 {
             let weekday = if i % 7 == 1 { 1 } else { 3 }; // Monday vs Wednesday
             let access_time = Utc::now() - ChronoDuration::days(i);
-                    // Set the weekday by calculating the days to add/subtract
+            // Set the weekday by calculating the days to add/subtract
             let current_weekday = access_time.weekday().num_days_from_monday();
             let target_weekday = weekday - 1; // Convert to 0-based
             let days_diff = (target_weekday as i32 - current_weekday as i32 + 7) % 7;

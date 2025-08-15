@@ -851,9 +851,9 @@ impl VectorStore for QdrantVectorStore {
         let get_request = qdrant_client::qdrant::GetPoints {
             collection_name: self.config.collection_name.clone(),
             ids: vec![qdrant_client::qdrant::PointId {
-                point_id_options: Some(
-                    qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id.to_string()),
-                ),
+                point_id_options: Some(qdrant_client::qdrant::point_id::PointIdOptions::Uuid(
+                    id.to_string(),
+                )),
             }],
             with_payload: Some(qdrant_client::qdrant::WithPayloadSelector {
                 selector_options: Some(
@@ -868,16 +868,12 @@ impl VectorStore for QdrantVectorStore {
             ..Default::default()
         };
 
-        let response = self
-            .client
-            .get_points(get_request)
-            .await
-            .map_err(|e| {
-                KnowledgeError::VectorError(VectorError::StoreError(format!(
-                    "Failed to get vector: {}",
-                    e
-                )))
-            })?;
+        let response = self.client.get_points(get_request).await.map_err(|e| {
+            KnowledgeError::VectorError(VectorError::StoreError(format!(
+                "Failed to get vector: {}",
+                e
+            )))
+        })?;
 
         if let Some(point) = response.result.first() {
             let payload = &point.payload;
@@ -898,9 +894,7 @@ impl VectorStore for QdrantVectorStore {
                         })
                         .unwrap_or(ContentType::Documentation),
                     scope_path: payload.get("scope_path").and_then(|v| match &v.kind {
-                        Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
-                            Some(s.clone())
-                        }
+                        Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => Some(s.clone()),
                         _ => None,
                     }),
                     created_at: payload
@@ -933,9 +927,7 @@ impl VectorStore for QdrantVectorStore {
                         })
                         .unwrap_or(0),
                     chunk_id: payload.get("chunk_id").and_then(|v| match &v.kind {
-                        Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => {
-                            Some(s.clone())
-                        }
+                        Some(qdrant_client::qdrant::value::Kind::StringValue(s)) => Some(s.clone()),
                         _ => None,
                     }),
                 })
@@ -944,12 +936,28 @@ impl VectorStore for QdrantVectorStore {
             };
 
             Ok(Some(VectorRecord {
-                id: match point.id.as_ref().unwrap().point_id_options.as_ref().unwrap() {
+                id: match point
+                    .id
+                    .as_ref()
+                    .unwrap()
+                    .point_id_options
+                    .as_ref()
+                    .unwrap()
+                {
                     qdrant_client::qdrant::point_id::PointIdOptions::Uuid(id) => id.clone(),
                     qdrant_client::qdrant::point_id::PointIdOptions::Num(id) => id.to_string(),
                 },
-                embedding: match point.vectors.as_ref().unwrap().vectors_options.as_ref().unwrap() {
-                    qdrant_client::qdrant::vectors_output::VectorsOptions::Vector(v) => v.data.clone(),
+                embedding: match point
+                    .vectors
+                    .as_ref()
+                    .unwrap()
+                    .vectors_options
+                    .as_ref()
+                    .unwrap()
+                {
+                    qdrant_client::qdrant::vectors_output::VectorsOptions::Vector(v) => {
+                        v.data.clone()
+                    }
                     _ => vec![],
                 },
                 content,
@@ -966,16 +974,12 @@ impl VectorStore for QdrantVectorStore {
             collection_name: self.config.collection_name.clone(),
         };
 
-        let response = self
-            .client
-            .collection_info(request)
-            .await
-            .map_err(|e| {
-                KnowledgeError::VectorError(VectorError::StoreError(format!(
-                    "Failed to get collection info: {}",
-                    e
-                )))
-            })?;
+        let response = self.client.collection_info(request).await.map_err(|e| {
+            KnowledgeError::VectorError(VectorError::StoreError(format!(
+                "Failed to get collection info: {}",
+                e
+            )))
+        })?;
 
         let info = response.result.unwrap();
         let config = info.config.unwrap();

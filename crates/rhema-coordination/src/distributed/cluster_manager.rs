@@ -32,13 +32,13 @@ impl ClusterManager {
     /// Start the cluster manager
     pub async fn start(&self) -> RhemaResult<()> {
         info!("Starting cluster manager with config: {:?}", self.config);
-        
+
         // In a real implementation, this would:
         // 1. Initialize cluster membership
         // 2. Start cluster coordination
         // 3. Begin leader election
         // 4. Start cluster health monitoring
-        
+
         info!("✅ Cluster manager started successfully");
         Ok(())
     }
@@ -46,13 +46,13 @@ impl ClusterManager {
     /// Stop the cluster manager
     pub async fn stop(&self) -> RhemaResult<()> {
         info!("Stopping cluster manager...");
-        
+
         // In a real implementation, this would:
         // 1. Stop cluster coordination
         // 2. Stop leader election
         // 3. Stop cluster health monitoring
         // 4. Clean up cluster membership
-        
+
         info!("✅ Cluster manager stopped successfully");
         Ok(())
     }
@@ -60,13 +60,13 @@ impl ClusterManager {
     /// Get cluster health
     pub async fn get_health(&self) -> RhemaResult<ClusterHealth> {
         info!("Getting cluster health");
-        
+
         // In a real implementation, this would:
         // 1. Check all cluster nodes
         // 2. Verify cluster connectivity
         // 3. Assess cluster stability
         // 4. Return comprehensive health status
-        
+
         Ok(ClusterHealth {
             status: ClusterStatus::Healthy,
             total_nodes: 1,
@@ -81,13 +81,13 @@ impl ClusterManager {
     /// Get node information
     pub async fn get_node_info(&self) -> RhemaResult<NodeInfo> {
         info!("Getting node information");
-        
+
         // In a real implementation, this would:
         // 1. Retrieve current node information
         // 2. Check node capabilities
         // 3. Verify node status
         // 4. Return detailed node info
-        
+
         Ok(NodeInfo {
             node_id: "node-1".to_string(),
             name: "rhema-node".to_string(),
@@ -104,13 +104,13 @@ impl ClusterManager {
     /// Get all nodes
     pub async fn get_all_nodes(&self) -> RhemaResult<Vec<NodeInfo>> {
         info!("Getting all cluster nodes");
-        
+
         // In a real implementation, this would:
         // 1. Retrieve all cluster members
         // 2. Check node health status
         // 3. Filter by node role if needed
         // 4. Return list of all nodes
-        
+
         Ok(vec![self.get_node_info().await?])
     }
 }

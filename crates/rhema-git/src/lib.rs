@@ -27,50 +27,50 @@ pub fn create_advanced_git_integration_with_config(
 ) -> RhemaResult<AdvancedGitIntegration> {
     // Implement config handling
     let mut integration = create_advanced_git_integration(repo_path)?;
-    
+
     // Parse and apply configuration
     if let Some(config_obj) = config.as_object() {
         // Apply hook configuration
         if let Some(hooks_config) = config_obj.get("hooks") {
             integration.apply_hooks_config(hooks_config)?;
         }
-        
+
         // Apply workflow configuration
         if let Some(workflow_config) = config_obj.get("workflow") {
             integration.apply_workflow_config(workflow_config)?;
         }
-        
+
         // Apply automation configuration
         if let Some(automation_config) = config_obj.get("automation") {
             integration.apply_automation_config(automation_config)?;
         }
-        
+
         // Apply security configuration
         if let Some(security_config) = config_obj.get("security") {
             integration.apply_security_config(security_config)?;
         }
-        
+
         // Apply monitoring configuration
         if let Some(monitoring_config) = config_obj.get("monitoring") {
             integration.apply_monitoring_config(monitoring_config)?;
         }
-        
+
         // Apply context configuration
         if let Some(context_config) = config_obj.get("context") {
             integration.apply_context_config(context_config)?;
         }
-        
+
         // Apply performance configuration
         if let Some(performance_config) = config_obj.get("performance") {
             integration.apply_performance_config(performance_config)?;
         }
-        
+
         // Apply integration configuration
         if let Some(integration_config) = config_obj.get("integrations") {
             integration.apply_integration_config(integration_config)?;
         }
     }
-    
+
     Ok(integration)
 }
 

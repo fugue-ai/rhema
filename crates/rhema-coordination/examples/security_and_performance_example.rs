@@ -1,18 +1,18 @@
-use rhema_coordination::grpc::{
-    SyneidesisCoordinationClient, SyneidesisConfig, SecurityConfig, PerformanceConfig,
-    CompressionAlgorithm, CoordinationMonitor, MonitoringConfig, LoggingAlertHandler,
-    WebhookAlertHandler, SlackAlertHandler
+use rhema_coordination::agent::real_time_coordination::{
+    AgentInfo, AgentMessage, MessagePriority, MessageType,
 };
-use rhema_coordination::agent::real_time_coordination::{AgentInfo, AgentMessage, MessageType, MessagePriority};
-use tracing::{info, warn, error};
+use rhema_coordination::grpc::{
+    CompressionAlgorithm, CoordinationMonitor, LoggingAlertHandler, MonitoringConfig,
+    PerformanceConfig, SecurityConfig, SlackAlertHandler, SyneidesisConfig,
+    SyneidesisCoordinationClient, WebhookAlertHandler,
+};
+use tracing::{error, info, warn};
 use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_env_filter("info")
-        .init();
+    tracing_subscriber::fmt().with_env_filter("info").init();
 
     info!("🚀 Starting Security and Performance Example");
 
@@ -54,10 +54,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("📋 Client Configuration:");
     info!("  - TLS Enabled: {}", config.security.enable_tls);
-    info!("  - Connection Pooling: {}", config.performance.enable_connection_pooling);
-    info!("  - Compression: {:?}", config.performance.compression_algorithm);
-    info!("  - Max Connections: {}", config.performance.max_connections);
-    info!("  - Max Message Size: {}MB", config.performance.max_message_size / 1024 / 1024);
+    info!(
+        "  - Connection Pooling: {}",
+        config.performance.enable_connection_pooling
+    );
+    info!(
+        "  - Compression: {:?}",
+        config.performance.compression_algorithm
+    );
+    info!(
+        "  - Max Connections: {}",
+        config.performance.max_connections
+    );
+    info!(
+        "  - Max Message Size: {}MB",
+        config.performance.max_message_size / 1024 / 1024
+    );
 
     // Create monitoring configuration
     let monitoring_config = MonitoringConfig {
@@ -85,12 +97,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let monitor = CoordinationMonitor::new(
         monitoring_config,
         std::sync::Arc::new(rhema_coordination::grpc::ClientMetrics::new()),
-        std::sync::Arc::new(tokio::sync::RwLock::new(rhema_coordination::grpc::ConnectionStatus::Disconnected)),
+        std::sync::Arc::new(tokio::sync::RwLock::new(
+            rhema_coordination::grpc::ConnectionStatus::Disconnected,
+        )),
     );
 
     // Add alert handlers
     monitor.add_alert_handler(Box::new(LoggingAlertHandler::new()));
-    
+
     // Add webhook alert handler (for production)
     let webhook_handler = WebhookAlertHandler::new(
         "https://your-webhook-url.com/alerts".to_string(),
@@ -109,12 +123,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     monitor.start().await;
 
     info!("🔒 Creating secure gRPC client...");
-    
+
     // Create the client (this will fail without a running server, but demonstrates the setup)
     match SyneidesisCoordinationClient::new(config).await {
         Ok(client) => {
             info!("✅ Secure gRPC client created successfully");
-            
+
             // Demonstrate agent registration with security
             let agent_info = AgentInfo {
                 id: "secure-agent-001".to_string(),
@@ -132,7 +146,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("📝 Registering agent with security...");
             match client.register_agent(agent_info).await {
                 Ok(()) => info!("✅ Agent registered successfully"),
-                Err(e) => warn!("⚠️ Agent registration failed (expected without server): {}", e),
+                Err(e) => warn!(
+                    "⚠️ Agent registration failed (expected without server): {}",
+                    e
+                ),
             }
 
             // Demonstrate secure message sending with compression
@@ -163,11 +180,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Demonstrate performance monitoring
             info!("📊 Performance Metrics:");
             let metrics = client.get_metrics();
-            info!("  - Total Requests: {}", metrics.total_requests.load(std::sync::atomic::Ordering::Relaxed));
-            info!("  - Successful Requests: {}", metrics.successful_requests.load(std::sync::atomic::Ordering::Relaxed));
-            info!("  - Failed Requests: {}", metrics.failed_requests.load(std::sync::atomic::Ordering::Relaxed));
-            info!("  - Connection Attempts: {}", metrics.connection_attempts.load(std::sync::atomic::Ordering::Relaxed));
-            info!("  - Average Response Time: {}ms", metrics.average_response_time_ms.load(std::sync::atomic::Ordering::Relaxed));
+            info!(
+                "  - Total Requests: {}",
+                metrics
+                    .total_requests
+                    .load(std::sync::atomic::Ordering::Relaxed)
+            );
+            info!(
+                "  - Successful Requests: {}",
+                metrics
+                    .successful_requests
+                    .load(std::sync::atomic::Ordering::Relaxed)
+            );
+            info!(
+                "  - Failed Requests: {}",
+                metrics
+                    .failed_requests
+                    .load(std::sync::atomic::Ordering::Relaxed)
+            );
+            info!(
+                "  - Connection Attempts: {}",
+                metrics
+                    .connection_attempts
+                    .load(std::sync::atomic::Ordering::Relaxed)
+            );
+            info!(
+                "  - Average Response Time: {}ms",
+                metrics
+                    .average_response_time_ms
+                    .load(std::sync::atomic::Ordering::Relaxed)
+            );
 
             // Demonstrate health checking
             info!("🏥 Performing health check...");
@@ -180,7 +222,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("🛑 Shutting down client gracefully...");
             client.shutdown().await;
             info!("✅ Client shutdown completed");
-
         }
         Err(e) => {
             error!("❌ Failed to create secure gRPC client: {}", e);

@@ -1,13 +1,13 @@
 //! Network visualization module
-//! 
+//!
 //! This module provides network analysis and visualization capabilities
 //! for knowledge networks, including network metrics, path analysis,
 //! and network layout algorithms.
 
-use super::{KnowledgeGraph, KnowledgeNode, KnowledgeEdge};
+use super::{KnowledgeEdge, KnowledgeGraph, KnowledgeNode};
 use crate::types::KnowledgeResult;
-use std::collections::{HashMap, HashSet, VecDeque};
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 /// Network metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,7 +58,7 @@ impl NetworkAnalyzer {
     pub fn calculate_metrics(&self, graph: &KnowledgeGraph) -> NetworkMetrics {
         let node_count = graph.nodes.len();
         let edge_count = graph.edges.len();
-        
+
         // Calculate density
         let possible_edges = if node_count > 1 {
             node_count * (node_count - 1) / 2
@@ -94,7 +94,12 @@ impl NetworkAnalyzer {
     }
 
     /// Find shortest path between two nodes
-    pub fn find_shortest_path(&self, graph: &KnowledgeGraph, source: &str, target: &str) -> Option<PathInfo> {
+    pub fn find_shortest_path(
+        &self,
+        graph: &KnowledgeGraph,
+        source: &str,
+        target: &str,
+    ) -> Option<PathInfo> {
         let mut distances = HashMap::<String, usize>::new();
         let mut previous = HashMap::<String, String>::new();
         let mut queue = VecDeque::new();
@@ -151,16 +156,17 @@ impl NetworkAnalyzer {
             while current != source {
                 path_nodes.push(current.clone());
                 let prev = previous[&current].clone();
-                
+
                 // Find edge between prev and current
                 for edge in &graph.edges {
-                    if (edge.source == prev && edge.target == current) ||
-                       (edge.source == current && edge.target == prev) {
+                    if (edge.source == prev && edge.target == current)
+                        || (edge.source == current && edge.target == prev)
+                    {
                         path_edges.push(edge.label.clone());
                         break;
                     }
                 }
-                
+
                 current = prev;
             }
             path_nodes.push(source.to_string());
@@ -178,18 +184,37 @@ impl NetworkAnalyzer {
     }
 
     /// Find all paths between two nodes
-    pub fn find_all_paths(&self, graph: &KnowledgeGraph, source: &str, target: &str, max_paths: usize) -> Vec<PathInfo> {
+    pub fn find_all_paths(
+        &self,
+        graph: &KnowledgeGraph,
+        source: &str,
+        target: &str,
+        max_paths: usize,
+    ) -> Vec<PathInfo> {
         let mut paths = Vec::new();
         let mut visited = HashSet::<String>::new();
         let mut current_path = Vec::new();
 
-        self.dfs_all_paths(graph, source, target, &mut visited, &mut current_path, &mut paths, max_paths);
+        self.dfs_all_paths(
+            graph,
+            source,
+            target,
+            &mut visited,
+            &mut current_path,
+            &mut paths,
+            max_paths,
+        );
 
         paths
     }
 
     /// Find nodes within a certain distance
-    pub fn find_nodes_within_distance(&self, graph: &KnowledgeGraph, source: &str, max_distance: usize) -> HashMap<String, usize> {
+    pub fn find_nodes_within_distance(
+        &self,
+        graph: &KnowledgeGraph,
+        source: &str,
+        max_distance: usize,
+    ) -> HashMap<String, usize> {
         let mut distances = HashMap::new();
         let mut queue = VecDeque::new();
         let mut visited = HashSet::<String>::new();
@@ -272,7 +297,9 @@ impl NetworkAnalyzer {
 
         for i in 0..graph.nodes.len() {
             for j in (i + 1)..graph.nodes.len() {
-                if let Some(path) = self.find_shortest_path(graph, &graph.nodes[i].id, &graph.nodes[j].id) {
+                if let Some(path) =
+                    self.find_shortest_path(graph, &graph.nodes[i].id, &graph.nodes[j].id)
+                {
                     total_path_length += path.length as f64;
                     path_count += 1;
                     max_path_length = max_path_length.max(path.length as f64);
@@ -346,8 +373,9 @@ impl NetworkAnalyzer {
             let mut path_edges = Vec::new();
             for i in 0..current_path.len() - 1 {
                 for edge in &graph.edges {
-                    if (edge.source == current_path[i] && edge.target == current_path[i + 1]) ||
-                       (edge.source == current_path[i + 1] && edge.target == current_path[i]) {
+                    if (edge.source == current_path[i] && edge.target == current_path[i + 1])
+                        || (edge.source == current_path[i + 1] && edge.target == current_path[i])
+                    {
                         path_edges.push(edge.label.clone());
                         break;
                     }
@@ -375,7 +403,15 @@ impl NetworkAnalyzer {
 
                 if let Some(neighbor_id) = neighbor {
                     if !visited.contains(neighbor_id) {
-                        self.dfs_all_paths(graph, neighbor_id, target, visited, current_path, paths, max_paths);
+                        self.dfs_all_paths(
+                            graph,
+                            neighbor_id,
+                            target,
+                            visited,
+                            current_path,
+                            paths,
+                            max_paths,
+                        );
                     }
                 }
             }
@@ -404,8 +440,8 @@ impl NetworkAnalyzer {
     /// Check if there's an edge between two nodes
     fn has_edge(&self, graph: &KnowledgeGraph, node1: &str, node2: &str) -> bool {
         graph.edges.iter().any(|edge| {
-            (edge.source == node1 && edge.target == node2) ||
-            (edge.source == node2 && edge.target == node1)
+            (edge.source == node1 && edge.target == node2)
+                || (edge.source == node2 && edge.target == node1)
         })
     }
 }

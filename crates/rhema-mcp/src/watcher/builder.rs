@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-use std::path::PathBuf;
 use rhema_core::RhemaResult;
+use std::path::PathBuf;
 
-use super::types::WatcherConfig;
 use super::file_watcher::FileWatcher;
+use super::types::WatcherConfig;
 
 /// File watcher builder for easy configuration
 pub struct FileWatcherBuilder {

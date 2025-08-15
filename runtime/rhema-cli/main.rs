@@ -363,7 +363,7 @@ async fn main() -> RhemaResult<()> {
 
             for scope in &scopes {
                 context.display_info(&format!("Validating scope: {}", scope.definition.name))?;
-                
+
                 match context.rhema.validate_scope(scope).await {
                     Ok(_) => {
                         validated_scopes += 1;
@@ -374,7 +374,10 @@ async fn main() -> RhemaResult<()> {
                     Err(e) => {
                         validation_errors.push(format!("Scope '{}': {}", scope.definition.name, e));
                         if !context.quiet {
-                            println!("❌ Scope '{}' validation failed: {}", scope.definition.name, e);
+                            println!(
+                                "❌ Scope '{}' validation failed: {}",
+                                scope.definition.name, e
+                            );
                         }
                     }
                 }
@@ -388,7 +391,10 @@ async fn main() -> RhemaResult<()> {
                             }
                         }
                         Err(e) => {
-                            validation_warnings.push(format!("Schema validation for '{}': {}", scope.definition.name, e));
+                            validation_warnings.push(format!(
+                                "Schema validation for '{}': {}",
+                                scope.definition.name, e
+                            ));
                             if !context.quiet {
                                 println!("  ⚠️  Schema validation warning: {}", e);
                             }
@@ -409,7 +415,10 @@ async fn main() -> RhemaResult<()> {
             if validation_errors.is_empty() {
                 context.display_info("✅ Repository validation completed successfully!")?;
             } else {
-                context.display_warning(&format!("⚠️  Repository validation completed with {} errors", validation_errors.len()))?;
+                context.display_warning(&format!(
+                    "⚠️  Repository validation completed with {} errors",
+                    validation_errors.len()
+                ))?;
             }
 
             Ok(())
@@ -434,12 +443,19 @@ async fn main() -> RhemaResult<()> {
                     }
                 }
 
-                context.display_info(&format!("Checking health for scope: {}", scope_item.definition.name))?;
-                
+                context.display_info(&format!(
+                    "Checking health for scope: {}",
+                    scope_item.definition.name
+                ))?;
+
                 // Check if scope path exists
                 if !scope_item.path.exists() {
                     if !context.quiet {
-                        println!("❌ Scope '{}' path does not exist: {}", scope_item.definition.name, scope_item.path.display());
+                        println!(
+                            "❌ Scope '{}' path does not exist: {}",
+                            scope_item.definition.name,
+                            scope_item.path.display()
+                        );
                     }
                     continue;
                 }
@@ -459,7 +475,11 @@ async fn main() -> RhemaResult<()> {
                     }
                 } else {
                     if !context.quiet {
-                        println!("⚠️  Scope '{}' has missing files: {}", scope_item.definition.name, missing_files.join(", "));
+                        println!(
+                            "⚠️  Scope '{}' has missing files: {}",
+                            scope_item.definition.name,
+                            missing_files.join(", ")
+                        );
                     }
                 }
             }
@@ -469,13 +489,19 @@ async fn main() -> RhemaResult<()> {
                 println!("\n🏥 Health Summary:");
                 println!("  Total scopes: {}", total_scopes);
                 println!("  Healthy scopes: {}", healthy_scopes);
-                println!("  Health score: {:.1}%", (healthy_scopes as f64 / total_scopes as f64) * 100.0);
+                println!(
+                    "  Health score: {:.1}%",
+                    (healthy_scopes as f64 / total_scopes as f64) * 100.0
+                );
             }
 
             if healthy_scopes == total_scopes {
                 context.display_info("✅ All scopes are healthy!")?;
             } else {
-                context.display_warning(&format!("⚠️  {} out of {} scopes are healthy", healthy_scopes, total_scopes))?;
+                context.display_warning(&format!(
+                    "⚠️  {} out of {} scopes are healthy",
+                    healthy_scopes, total_scopes
+                ))?;
             }
 
             Ok(())
@@ -486,18 +512,18 @@ async fn main() -> RhemaResult<()> {
 
             // Implement actual statistics logic
             let scopes = context.handle_error(context.rhema.discover_scopes())?;
-            
+
             // Get cache statistics
             let cache_stats = context.handle_error(context.rhema.get_cache_stats().await)?;
-            
+
             // Get coordination statistics if available
             let coordination_stats = context.rhema.get_coordination_stats().await;
-            
+
             // Calculate scope statistics
             let total_scopes = scopes.len();
             let mut scope_types = std::collections::HashMap::new();
             let mut total_files = 0;
-            
+
             for scope in &scopes {
                 *scope_types.entry(&scope.definition.scope_type).or_insert(0) += 1;
                 total_files += scope.files.len();
@@ -508,28 +534,42 @@ async fn main() -> RhemaResult<()> {
                 println!("\n📊 Repository Statistics:");
                 println!("  Total scopes: {}", total_scopes);
                 println!("  Total files: {}", total_files);
-                println!("  Average files per scope: {:.1}", if total_scopes > 0 { total_files as f64 / total_scopes as f64 } else { 0.0 });
-                
+                println!(
+                    "  Average files per scope: {:.1}",
+                    if total_scopes > 0 {
+                        total_files as f64 / total_scopes as f64
+                    } else {
+                        0.0
+                    }
+                );
+
                 println!("\n📁 Scope Types:");
                 for (scope_type, count) in scope_types {
                     println!("  {}: {}", scope_type, count);
                 }
-                
+
                 println!("\n💾 Cache Statistics:");
                 for (key, value) in &cache_stats {
                     println!("  {}: {}", key, value);
                 }
-                
+
                 if let Ok(stats) = coordination_stats {
                     println!("\n🤝 Coordination Statistics:");
                     println!("  Active sessions: {}", stats.active_sessions);
                     println!("  Total messages: {}", stats.total_messages);
                     println!("  Active agents: {}", stats.active_agents);
                 }
-                
+
                 println!("\n📈 Performance Metrics:");
                 println!("  Repository size: {} scopes", total_scopes);
-                println!("  File density: {:.1} files/scope", if total_scopes > 0 { total_files as f64 / total_scopes as f64 } else { 0.0 });
+                println!(
+                    "  File density: {:.1} files/scope",
+                    if total_scopes > 0 {
+                        total_files as f64 / total_scopes as f64
+                    } else {
+                        0.0
+                    }
+                );
             }
 
             context.display_info("✅ Statistics generated successfully!")?;

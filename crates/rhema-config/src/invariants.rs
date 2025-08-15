@@ -37,12 +37,13 @@ impl ContextValidator {
     /// Validate YAML content
     pub fn validate_yaml_content(&mut self, content: &str) -> RhemaResult<()> {
         // Validate YAML syntax using serde_yaml
-        serde_yaml::from_str::<serde_yaml::Value>(content)
-            .map_err(|e| rhema_core::RhemaError::InvalidYaml {
+        serde_yaml::from_str::<serde_yaml::Value>(content).map_err(|e| {
+            rhema_core::RhemaError::InvalidYaml {
                 file: "content".to_string(),
                 message: e.to_string(),
-            })?;
-        
+            }
+        })?;
+
         self.validation_count += 1;
         Ok(())
     }
@@ -218,7 +219,14 @@ impl AgentValidator {
     /// Validate agent states
     pub fn validate_agent_states(&mut self, agents: &HashMap<String, String>) -> RhemaResult<()> {
         let valid_states = [
-            "idle", "busy", "working", "blocked", "collaborating", "offline", "error", "maintenance"
+            "idle",
+            "busy",
+            "working",
+            "blocked",
+            "collaborating",
+            "offline",
+            "error",
+            "maintenance",
         ];
 
         for (agent_id, state) in agents {
@@ -240,10 +248,8 @@ impl AgentValidator {
         locks: &HashMap<String, Option<String>>,
         max_concurrent: usize,
     ) -> RhemaResult<()> {
-        let active_agents: HashSet<&String> = locks
-            .values()
-            .filter_map(|agent| agent.as_ref())
-            .collect();
+        let active_agents: HashSet<&String> =
+            locks.values().filter_map(|agent| agent.as_ref()).collect();
 
         if active_agents.len() > max_concurrent {
             return Err(rhema_core::RhemaError::ConfigError(format!(
@@ -268,7 +274,8 @@ impl AgentValidator {
         if state == "blocked" {
             // This would typically check against a timestamp, but for now we just validate the state
             // In a real implementation, you'd compare against the actual block start time
-            if max_block_time > Duration::from_secs(3600) { // 1 hour
+            if max_block_time > Duration::from_secs(3600) {
+                // 1 hour
                 return Err(rhema_core::RhemaError::ConfigError(format!(
                     "Agent '{}' has been blocked for too long",
                     agent_id
@@ -329,7 +336,10 @@ impl LockValidator {
 
         for (resource, owner) in locks {
             if let Some(agent) = owner {
-                agent_locks.entry(agent).or_insert_with(Vec::new).push(resource);
+                agent_locks
+                    .entry(agent)
+                    .or_insert_with(Vec::new)
+                    .push(resource);
             }
         }
 
@@ -450,29 +460,47 @@ mod tests {
     #[test]
     fn test_yaml_validation() {
         let mut validator = ContextValidator::new();
-        
+
         // Valid YAML
         assert!(validator.validate_yaml_content("key: value").is_ok());
-        assert!(validator.validate_yaml_content("list:\n  - item1\n  - item2").is_ok());
-        
+        assert!(validator
+            .validate_yaml_content("list:\n  - item1\n  - item2")
+            .is_ok());
+
         // Invalid YAML
-        assert!(validator.validate_yaml_content("key: value\n  invalid: indentation").is_err());
+        assert!(validator
+            .validate_yaml_content("key: value\n  invalid: indentation")
+            .is_err());
         assert!(validator.validate_yaml_content("key: [unclosed").is_err());
     }
 
     #[test]
     fn test_scope_reference_validation() {
         let mut validator = ContextValidator::new();
-        let all_scopes = vec!["scope1".to_string(), "scope2".to_string(), "scope3".to_string()];
-        
+        let all_scopes = vec![
+            "scope1".to_string(),
+            "scope2".to_string(),
+            "scope3".to_string(),
+        ];
+
         // Valid scope references
-        assert!(validator.validate_scope_references("scope1", &all_scopes).is_ok());
-        assert!(validator.validate_scope_references("scope2", &all_scopes).is_ok());
-        
+        assert!(validator
+            .validate_scope_references("scope1", &all_scopes)
+            .is_ok());
+        assert!(validator
+            .validate_scope_references("scope2", &all_scopes)
+            .is_ok());
+
         // Invalid scope references
-        assert!(validator.validate_scope_references("nonexistent", &all_scopes).is_err());
-        assert!(validator.validate_scope_references("", &all_scopes).is_err());
-        assert!(validator.validate_scope_references("   ", &all_scopes).is_err());
+        assert!(validator
+            .validate_scope_references("nonexistent", &all_scopes)
+            .is_err());
+        assert!(validator
+            .validate_scope_references("", &all_scopes)
+            .is_err());
+        assert!(validator
+            .validate_scope_references("   ", &all_scopes)
+            .is_err());
     }
 
     #[test]
@@ -487,38 +515,40 @@ mod tests {
     #[test]
     fn test_circular_dependency_detection() {
         let mut validator = DependencyValidator::new();
-        
+
         // No circular dependencies
         let mut deps = HashMap::new();
         deps.insert("A".to_string(), vec!["B".to_string()]);
         deps.insert("B".to_string(), vec!["C".to_string()]);
         deps.insert("C".to_string(), vec![]);
         assert!(validator.validate_no_circular_dependencies(&deps).is_ok());
-        
+
         // Circular dependency
         let mut circular_deps = HashMap::new();
         circular_deps.insert("A".to_string(), vec!["B".to_string()]);
         circular_deps.insert("B".to_string(), vec!["C".to_string()]);
         circular_deps.insert("C".to_string(), vec!["A".to_string()]);
-        assert!(validator.validate_no_circular_dependencies(&circular_deps).is_err());
+        assert!(validator
+            .validate_no_circular_dependencies(&circular_deps)
+            .is_err());
     }
 
     #[test]
     fn test_dependency_graph_validation() {
         let mut validator = DependencyValidator::new();
-        
+
         // Valid graph
         let mut valid_graph = HashMap::new();
         valid_graph.insert("A".to_string(), vec!["B".to_string()]);
         valid_graph.insert("B".to_string(), vec![]);
         assert!(validator.validate_dependency_graph(&valid_graph).is_ok());
-        
+
         // Invalid graph - reference to non-existent node
         let mut invalid_graph = HashMap::new();
         invalid_graph.insert("A".to_string(), vec!["B".to_string()]);
         invalid_graph.insert("C".to_string(), vec!["D".to_string()]); // D doesn't exist
         assert!(validator.validate_dependency_graph(&invalid_graph).is_err());
-        
+
         // Empty graph
         let empty_graph = HashMap::new();
         assert!(validator.validate_dependency_graph(&empty_graph).is_err());
@@ -527,7 +557,7 @@ mod tests {
     #[test]
     fn test_dependency_bounds_validation() {
         let mut validator = DependencyValidator::new();
-        
+
         let deps = vec!["dep1".to_string(), "dep2".to_string()];
         assert!(validator.validate_dependency_bounds(&deps, 3).is_ok());
         assert!(validator.validate_dependency_bounds(&deps, 2).is_ok());
@@ -537,13 +567,17 @@ mod tests {
     #[test]
     fn test_self_dependency_validation() {
         let mut validator = DependencyValidator::new();
-        
+
         let scope = "myscope";
         let deps = vec!["dep1".to_string(), "dep2".to_string()];
-        assert!(validator.validate_no_self_dependencies(scope, &deps).is_ok());
-        
+        assert!(validator
+            .validate_no_self_dependencies(scope, &deps)
+            .is_ok());
+
         let self_deps = vec!["dep1".to_string(), "myscope".to_string()];
-        assert!(validator.validate_no_self_dependencies(scope, &self_deps).is_err());
+        assert!(validator
+            .validate_no_self_dependencies(scope, &self_deps)
+            .is_err());
     }
 
     #[test]
@@ -558,14 +592,14 @@ mod tests {
     #[test]
     fn test_agent_states_validation() {
         let mut validator = AgentValidator::new();
-        
+
         // Valid states
         let mut valid_agents = HashMap::new();
         valid_agents.insert("agent1".to_string(), "idle".to_string());
         valid_agents.insert("agent2".to_string(), "busy".to_string());
         valid_agents.insert("agent3".to_string(), "working".to_string());
         assert!(validator.validate_agent_states(&valid_agents).is_ok());
-        
+
         // Invalid state
         let mut invalid_agents = HashMap::new();
         invalid_agents.insert("agent1".to_string(), "invalid_state".to_string());
@@ -575,11 +609,11 @@ mod tests {
     #[test]
     fn test_concurrent_agents_validation() {
         let mut validator = AgentValidator::new();
-        
+
         let mut locks = HashMap::new();
         locks.insert("resource1".to_string(), Some("agent1".to_string()));
         locks.insert("resource2".to_string(), Some("agent2".to_string()));
-        
+
         assert!(validator.validate_concurrent_agents(&locks, 3).is_ok());
         assert!(validator.validate_concurrent_agents(&locks, 2).is_ok());
         assert!(validator.validate_concurrent_agents(&locks, 1).is_err());
@@ -588,15 +622,21 @@ mod tests {
     #[test]
     fn test_agent_progress_validation() {
         let mut validator = AgentValidator::new();
-        
+
         // Non-blocked state
-        assert!(validator.validate_agent_progress("agent1", "idle", Duration::from_secs(7200)).is_ok());
-        
+        assert!(validator
+            .validate_agent_progress("agent1", "idle", Duration::from_secs(7200))
+            .is_ok());
+
         // Blocked state within limits
-        assert!(validator.validate_agent_progress("agent1", "blocked", Duration::from_secs(1800)).is_ok());
-        
+        assert!(validator
+            .validate_agent_progress("agent1", "blocked", Duration::from_secs(1800))
+            .is_ok());
+
         // Blocked state exceeding limits
-        assert!(validator.validate_agent_progress("agent1", "blocked", Duration::from_secs(7200)).is_err());
+        assert!(validator
+            .validate_agent_progress("agent1", "blocked", Duration::from_secs(7200))
+            .is_err());
     }
 
     #[test]
@@ -612,51 +652,57 @@ mod tests {
     #[test]
     fn test_lock_ownership_validation() {
         let mut validator = LockValidator::new();
-        
+
         let agents = vec!["agent1".to_string(), "agent2".to_string()];
-        
+
         // Valid ownership
         let mut valid_locks = HashMap::new();
         valid_locks.insert("resource1".to_string(), Some("agent1".to_string()));
         valid_locks.insert("resource2".to_string(), Some("agent2".to_string()));
-        assert!(validator.validate_lock_ownership(&valid_locks, &agents).is_ok());
-        
+        assert!(validator
+            .validate_lock_ownership(&valid_locks, &agents)
+            .is_ok());
+
         // Invalid ownership - unknown agent
         let mut invalid_locks = HashMap::new();
         invalid_locks.insert("resource1".to_string(), Some("unknown_agent".to_string()));
-        assert!(validator.validate_lock_ownership(&invalid_locks, &agents).is_err());
+        assert!(validator
+            .validate_lock_ownership(&invalid_locks, &agents)
+            .is_err());
     }
 
     #[test]
     fn test_one_lock_per_agent_validation() {
         let mut validator = LockValidator::new();
-        
+
         // Valid - one lock per agent
         let mut valid_locks = HashMap::new();
         valid_locks.insert("resource1".to_string(), Some("agent1".to_string()));
         valid_locks.insert("resource2".to_string(), Some("agent2".to_string()));
         assert!(validator.validate_one_lock_per_agent(&valid_locks).is_ok());
-        
+
         // Invalid - agent with multiple locks
         let mut invalid_locks = HashMap::new();
         invalid_locks.insert("resource1".to_string(), Some("agent1".to_string()));
         invalid_locks.insert("resource2".to_string(), Some("agent1".to_string()));
-        assert!(validator.validate_one_lock_per_agent(&invalid_locks).is_err());
+        assert!(validator
+            .validate_one_lock_per_agent(&invalid_locks)
+            .is_err());
     }
 
     #[test]
     fn test_lock_timeout_validation() {
         let mut validator = LockValidator::new();
-        
+
         let mut locks = HashMap::new();
         locks.insert("resource1".to_string(), Some("agent1".to_string()));
-        
+
         let mut timeouts = HashMap::new();
         timeouts.insert("resource1".to_string(), Instant::now());
-        
+
         // Should pass for recent locks
         assert!(validator.validate_lock_timeouts(&locks, &timeouts).is_ok());
-        
+
         // Should fail for old locks (we'd need to manipulate the time, but this tests the structure)
         // In a real implementation, you'd mock the time or use a different approach
     }
@@ -676,28 +722,34 @@ mod tests {
     #[test]
     fn test_sync_status_consistency_validation() {
         let mut validator = SyncValidator::new();
-        
+
         // Valid sync statuses
         let mut valid_status = HashMap::new();
         valid_status.insert("scope1".to_string(), "idle".to_string());
         valid_status.insert("scope2".to_string(), "completed".to_string());
         valid_status.insert("scope3".to_string(), "syncing".to_string());
-        
+
         let mut dependencies = HashMap::new();
         dependencies.insert("scope3".to_string(), vec!["scope2".to_string()]);
-        
-        assert!(validator.validate_sync_status_consistency(&valid_status, &dependencies).is_ok());
-        
+
+        assert!(validator
+            .validate_sync_status_consistency(&valid_status, &dependencies)
+            .is_ok());
+
         // Invalid sync status
         let mut invalid_status = HashMap::new();
         invalid_status.insert("scope1".to_string(), "invalid_status".to_string());
-        assert!(validator.validate_sync_status_consistency(&invalid_status, &dependencies).is_err());
-        
+        assert!(validator
+            .validate_sync_status_consistency(&invalid_status, &dependencies)
+            .is_err());
+
         // Invalid dependency consistency - syncing scope with non-completed dependency
         let mut invalid_deps = HashMap::new();
         invalid_deps.insert("scope3".to_string(), vec!["scope1".to_string()]);
         valid_status.insert("scope1".to_string(), "idle".to_string());
         valid_status.insert("scope3".to_string(), "syncing".to_string());
-        assert!(validator.validate_sync_status_consistency(&valid_status, &invalid_deps).is_err());
+        assert!(validator
+            .validate_sync_status_consistency(&valid_status, &invalid_deps)
+            .is_err());
     }
 }

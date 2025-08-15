@@ -31,14 +31,17 @@ impl DistributedLoadBalancer {
 
     /// Start the load balancer
     pub async fn start(&self) -> RhemaResult<()> {
-        info!("Starting distributed load balancer with config: {:?}", self.config);
-        
+        info!(
+            "Starting distributed load balancer with config: {:?}",
+            self.config
+        );
+
         // In a real implementation, this would:
         // 1. Initialize load balancing algorithms
         // 2. Start monitoring node health and load
         // 3. Begin traffic distribution
         // 4. Start metrics collection
-        
+
         info!("✅ Distributed load balancer started successfully");
         Ok(())
     }
@@ -46,13 +49,13 @@ impl DistributedLoadBalancer {
     /// Stop the load balancer
     pub async fn stop(&self) -> RhemaResult<()> {
         info!("Stopping distributed load balancer...");
-        
+
         // In a real implementation, this would:
         // 1. Stop traffic distribution
         // 2. Stop monitoring node health and load
         // 3. Clean up load balancing algorithms
         // 4. Stop metrics collection
-        
+
         info!("✅ Distributed load balancer stopped successfully");
         Ok(())
     }
@@ -60,13 +63,13 @@ impl DistributedLoadBalancer {
     /// Select node for service
     pub async fn select_node(&self, service_name: &str) -> RhemaResult<Option<NodeInfo>> {
         info!("Selecting node for service: {}", service_name);
-        
+
         // In a real implementation, this would:
         // 1. Get available nodes for the service
         // 2. Apply load balancing algorithm (round-robin, least connections, etc.)
         // 3. Check node health and capacity
         // 4. Return the best available node
-        
+
         // Placeholder implementation
         Ok(None)
     }

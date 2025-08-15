@@ -1,14 +1,14 @@
 //! Pattern detection and visualization module
-//! 
+//!
 //! This module provides pattern detection and visualization capabilities
 //! for knowledge data, including temporal patterns, usage patterns,
 //! and relationship patterns.
 
-use crate::types::KnowledgeResult;
 use crate::temporal::types::ContentAccess;
+use crate::types::KnowledgeResult;
+use chrono::{DateTime, Datelike, Duration as ChronoDuration, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc, Duration as ChronoDuration, Timelike, Datelike};
 
 /// Pattern type enumeration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,7 +114,10 @@ impl PatternDetector {
     }
 
     /// Detect relationship patterns
-    pub fn detect_relationship_patterns(&self, content_access: &[ContentAccess]) -> Vec<PatternResult> {
+    pub fn detect_relationship_patterns(
+        &self,
+        content_access: &[ContentAccess],
+    ) -> Vec<PatternResult> {
         let mut patterns = Vec::new();
 
         // Detect co-access patterns
@@ -145,17 +148,21 @@ impl PatternDetector {
         // Calculate variance to determine if there's a pattern
         let total = hourly_counts.iter().sum::<usize>();
         let mean = total as f64 / 24.0;
-        let variance = hourly_counts.iter()
+        let variance = hourly_counts
+            .iter()
             .map(|&count| {
                 let diff = count as f64 - mean;
                 diff * diff
             })
-            .sum::<f64>() / 24.0;
+            .sum::<f64>()
+            / 24.0;
 
         let confidence = (variance / (mean * mean)).min(1.0);
 
         if confidence > 0.1 {
-            let data_points = hourly_counts.iter().enumerate()
+            let data_points = hourly_counts
+                .iter()
+                .enumerate()
                 .map(|(hour, &count)| PatternDataPoint {
                     timestamp: Utc::now().with_hour(hour as u32).unwrap(),
                     value: count as f64,
@@ -190,18 +197,30 @@ impl PatternDetector {
 
         let total = daily_counts.iter().sum::<usize>();
         let mean = total as f64 / 7.0;
-        let variance = daily_counts.iter()
+        let variance = daily_counts
+            .iter()
             .map(|&count| {
                 let diff = count as f64 - mean;
                 diff * diff
             })
-            .sum::<f64>() / 7.0;
+            .sum::<f64>()
+            / 7.0;
 
         let confidence = (variance / (mean * mean)).min(1.0);
 
         if confidence > 0.1 {
-            let day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-            let data_points = daily_counts.iter().enumerate()
+            let day_names = [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+            ];
+            let data_points = daily_counts
+                .iter()
+                .enumerate()
                 .map(|(day, &count)| PatternDataPoint {
                     timestamp: Utc::now(),
                     value: count as f64,
@@ -236,21 +255,35 @@ impl PatternDetector {
 
         let total = monthly_counts.iter().sum::<usize>();
         let mean = total as f64 / 12.0;
-        let variance = monthly_counts.iter()
+        let variance = monthly_counts
+            .iter()
             .map(|&count| {
                 let diff = count as f64 - mean;
                 diff * diff
             })
-            .sum::<f64>() / 12.0;
+            .sum::<f64>()
+            / 12.0;
 
         let confidence = (variance / (mean * mean)).min(1.0);
 
         if confidence > 0.1 {
             let month_names = [
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
             ];
-            let data_points = monthly_counts.iter().enumerate()
+            let data_points = monthly_counts
+                .iter()
+                .enumerate()
                 .map(|(month, &count)| PatternDataPoint {
                     timestamp: Utc::now(),
                     value: count as f64,
@@ -281,9 +314,9 @@ impl PatternDetector {
         for access in content_access {
             let month = access.access_time.month();
             let season = match month {
-                12 | 1 | 2 => 0, // Winter
-                3 | 4 | 5 => 1,  // Spring
-                6 | 7 | 8 => 2,  // Summer
+                12 | 1 | 2 => 0,  // Winter
+                3 | 4 | 5 => 1,   // Spring
+                6 | 7 | 8 => 2,   // Summer
                 9 | 10 | 11 => 3, // Fall
                 _ => 0,
             };
@@ -292,18 +325,22 @@ impl PatternDetector {
 
         let total = seasonal_counts.iter().sum::<usize>();
         let mean = total as f64 / 4.0;
-        let variance = seasonal_counts.iter()
+        let variance = seasonal_counts
+            .iter()
             .map(|&count| {
                 let diff = count as f64 - mean;
                 diff * diff
             })
-            .sum::<f64>() / 4.0;
+            .sum::<f64>()
+            / 4.0;
 
         let confidence = (variance / (mean * mean)).min(1.0);
 
         if confidence > 0.1 {
             let season_names = ["Winter", "Spring", "Summer", "Fall"];
-            let data_points = seasonal_counts.iter().enumerate()
+            let data_points = seasonal_counts
+                .iter()
+                .enumerate()
                 .map(|(season, &count)| PatternDataPoint {
                     timestamp: Utc::now(),
                     value: count as f64,
@@ -345,11 +382,16 @@ impl PatternDetector {
         let mean_interval = intervals.iter().sum::<f64>() / intervals.len() as f64;
         let burst_threshold = mean_interval * 0.5;
 
-        let burst_count = intervals.iter().filter(|&&interval| interval < burst_threshold).count();
+        let burst_count = intervals
+            .iter()
+            .filter(|&&interval| interval < burst_threshold)
+            .count();
         let confidence = burst_count as f64 / intervals.len() as f64;
 
         if confidence > 0.3 {
-            let data_points = intervals.iter().enumerate()
+            let data_points = intervals
+                .iter()
+                .enumerate()
                 .map(|(i, &interval)| PatternDataPoint {
                     timestamp: sorted_access[i + 1].access_time,
                     value: interval,
@@ -389,18 +431,22 @@ impl PatternDetector {
 
         // Calculate regularity (low variance in intervals)
         let mean_interval = intervals.iter().sum::<f64>() / intervals.len() as f64;
-        let variance = intervals.iter()
+        let variance = intervals
+            .iter()
             .map(|&interval| {
                 let diff = interval - mean_interval;
                 diff * diff
             })
-            .sum::<f64>() / intervals.len() as f64;
+            .sum::<f64>()
+            / intervals.len() as f64;
 
         let coefficient_of_variation = (variance.sqrt() / mean_interval).min(1.0);
         let confidence = 1.0 - coefficient_of_variation;
 
         if confidence > 0.5 {
-            let data_points = intervals.iter().enumerate()
+            let data_points = intervals
+                .iter()
+                .enumerate()
                 .map(|(i, &interval)| PatternDataPoint {
                     timestamp: sorted_access[i + 1].access_time,
                     value: interval,
@@ -456,14 +502,22 @@ impl PatternDetector {
         let n = window_counts.len() as f64;
         let sum_x = (0..window_counts.len()).map(|i| i as f64).sum::<f64>();
         let sum_y = window_counts.iter().map(|&x| x as f64).sum::<f64>();
-        let sum_xy = window_counts.iter().enumerate().map(|(i, &y)| i as f64 * y as f64).sum::<f64>();
-        let sum_x2 = (0..window_counts.len()).map(|i| (i as f64).powi(2)).sum::<f64>();
+        let sum_xy = window_counts
+            .iter()
+            .enumerate()
+            .map(|(i, &y)| i as f64 * y as f64)
+            .sum::<f64>();
+        let sum_x2 = (0..window_counts.len())
+            .map(|i| (i as f64).powi(2))
+            .sum::<f64>();
 
         let slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x);
         let confidence = (-slope / 10.0).max(0.0).min(1.0);
 
         if confidence > 0.3 {
-            let data_points = window_counts.iter().enumerate()
+            let data_points = window_counts
+                .iter()
+                .enumerate()
                 .map(|(i, &count)| PatternDataPoint {
                     timestamp: sorted_access[0].access_time + ChronoDuration::days(7 * i as i64),
                     value: count as f64,
@@ -497,7 +551,10 @@ impl PatternDetector {
 
         for access in content_access {
             let window_key = (access.access_time - current_window_start).num_minutes() / 30;
-            window_groups.entry(window_key).or_insert_with(Vec::new).push(access.content_id.clone());
+            window_groups
+                .entry(window_key)
+                .or_insert_with(Vec::new)
+                .push(access.content_id.clone());
         }
 
         // Count co-occurrences
@@ -523,7 +580,8 @@ impl PatternDetector {
         let confidence = (*max_co_occurrence as f64 / window_groups.len() as f64).min(1.0);
 
         if confidence > 0.1 {
-            let data_points = co_occurrences.iter()
+            let data_points = co_occurrences
+                .iter()
                 .map(|((content1, content2), &count)| PatternDataPoint {
                     timestamp: Utc::now(),
                     value: count as f64,
@@ -545,7 +603,10 @@ impl PatternDetector {
     }
 
     /// Detect sequential access patterns
-    fn detect_sequential_access_pattern(&self, content_access: &[ContentAccess]) -> Option<PatternResult> {
+    fn detect_sequential_access_pattern(
+        &self,
+        content_access: &[ContentAccess],
+    ) -> Option<PatternResult> {
         if content_access.len() < 10 {
             return None;
         }
@@ -574,7 +635,8 @@ impl PatternDetector {
         let confidence = (*max_sequence_count as f64 / (sorted_access.len() as f64 - 1.0)).min(1.0);
 
         if confidence > 0.1 {
-            let data_points = sequences.iter()
+            let data_points = sequences
+                .iter()
                 .map(|(sequence, &count)| PatternDataPoint {
                     timestamp: Utc::now(),
                     value: count as f64,

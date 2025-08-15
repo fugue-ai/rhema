@@ -78,15 +78,17 @@
 //! coordination capabilities.
 
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 use tracing::{debug, error, info, instrument, warn, Level};
-use std::sync::atomic::{AtomicU64, Ordering};
 
+use super::security::{
+    ConnectionPool, PerformanceConfig, PerformanceManager, SecurityConfig, SecurityManager,
+};
 use crate::agent::real_time_coordination::{AgentInfo, AgentMessage};
-use super::security::{SecurityConfig, PerformanceConfig, SecurityManager, PerformanceManager, ConnectionPool};
 
 // Type conversion functions (to be implemented)
 fn rhema_agent_info_to_proto(_agent: &AgentInfo) -> syneidesis_grpc::AgentInfo {
@@ -117,7 +119,7 @@ fn rhema_message_to_proto(_message: &AgentMessage) -> syneidesis_grpc::AgentMess
     syneidesis_grpc::AgentMessage {
         id: _message.id.clone(),
         message_type: 0, // Default message type
-        priority: 0, // Default priority
+        priority: 0,     // Default priority
         sender_id: _message.sender_id.clone(),
         recipient_ids: _message.recipient_ids.clone(),
         content: _message.content.clone(),
@@ -141,7 +143,8 @@ fn proto_agent_info_to_rhema(_proto_agent: &syneidesis_grpc::AgentInfo) -> Agent
         capabilities: _proto_agent.capabilities.clone(),
         last_heartbeat: chrono::Utc::now(),
         is_online: _proto_agent.is_online,
-        performance_metrics: crate::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+        performance_metrics: crate::agent::real_time_coordination::AgentPerformanceMetrics::default(
+        ),
     }
 }
 
@@ -149,7 +152,9 @@ fn proto_message_to_rhema(_proto_message: &syneidesis_grpc::AgentMessage) -> Age
     // TODO: Implement proper conversion
     AgentMessage {
         id: _proto_message.id.clone(),
-        message_type: crate::agent::real_time_coordination::MessageType::Custom("default".to_string()),
+        message_type: crate::agent::real_time_coordination::MessageType::Custom(
+            "default".to_string(),
+        ),
         priority: crate::agent::real_time_coordination::MessagePriority::Normal,
         sender_id: _proto_message.sender_id.clone(),
         recipient_ids: _proto_message.recipient_ids.clone(),
@@ -164,8 +169,7 @@ fn proto_message_to_rhema(_proto_message: &syneidesis_grpc::AgentMessage) -> Age
 
 // Use Syneidesis gRPC types
 use syneidesis_grpc::{
-    CoordinationClient as GrpcCoordinationClient,
-    GrpcClientConfig as SyneidesisGrpcConfig,
+    CoordinationClient as GrpcCoordinationClient, GrpcClientConfig as SyneidesisGrpcConfig,
 };
 
 /// Custom error types for gRPC coordination client
@@ -173,25 +177,28 @@ use syneidesis_grpc::{
 pub enum CoordinationError {
     #[error("Connection failed: {0}")]
     ConnectionFailed(String),
-    
+
     #[error("Timeout after {timeout:?}: {operation}")]
-    Timeout { operation: String, timeout: Duration },
-    
+    Timeout {
+        operation: String,
+        timeout: Duration,
+    },
+
     #[error("Retry limit exceeded after {attempts} attempts: {operation}")]
     RetryLimitExceeded { operation: String, attempts: u32 },
-    
+
     #[error("gRPC error: {0}")]
     GrpcError(#[from] tonic::Status),
-    
+
     #[error("Server error: {0}")]
     ServerError(String),
-    
+
     #[error("Not connected to coordination server")]
     NotConnected,
-    
+
     #[error("Health check failed: {0}")]
     HealthCheckFailed(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
     #[error("Transport error: {0}")]
@@ -218,10 +225,14 @@ impl Clone for ClientMetrics {
             successful_requests: AtomicU64::new(self.successful_requests.load(Ordering::Relaxed)),
             failed_requests: AtomicU64::new(self.failed_requests.load(Ordering::Relaxed)),
             connection_attempts: AtomicU64::new(self.connection_attempts.load(Ordering::Relaxed)),
-            successful_connections: AtomicU64::new(self.successful_connections.load(Ordering::Relaxed)),
+            successful_connections: AtomicU64::new(
+                self.successful_connections.load(Ordering::Relaxed),
+            ),
             failed_connections: AtomicU64::new(self.failed_connections.load(Ordering::Relaxed)),
             retry_attempts: AtomicU64::new(self.retry_attempts.load(Ordering::Relaxed)),
-            average_response_time: AtomicU64::new(self.average_response_time.load(Ordering::Relaxed)),
+            average_response_time: AtomicU64::new(
+                self.average_response_time.load(Ordering::Relaxed),
+            ),
         }
     }
 }
@@ -275,7 +286,8 @@ impl ClientMetrics {
             let new_avg = ((current_avg * (total_requests - 1)) + new_time_ms) / total_requests;
             self.average_response_time.store(new_avg, Ordering::Relaxed);
         } else {
-            self.average_response_time.store(new_time_ms, Ordering::Relaxed);
+            self.average_response_time
+                .store(new_time_ms, Ordering::Relaxed);
         }
     }
 
@@ -381,7 +393,7 @@ impl SyneidesisCoordinationClient {
 
         let security_manager = Arc::new(SecurityManager::new(config.security.clone()));
         let performance_manager = Arc::new(PerformanceManager::new(config.performance.clone()));
-        
+
         let connection_pool = if config.performance.enable_connection_pooling {
             Some(Arc::new(ConnectionPool::new(
                 config.performance.max_connections,
@@ -438,7 +450,7 @@ impl SyneidesisCoordinationClient {
 
                     if attempts < max_attempts {
                         let backoff_duration = Duration::from_millis(
-                            self.config.reconnection_backoff_ms * attempts as u64
+                            self.config.reconnection_backoff_ms * attempts as u64,
                         );
                         info!("Retrying connection in {:?}", backoff_duration);
                         sleep(backoff_duration).await;
@@ -452,7 +464,9 @@ impl SyneidesisCoordinationClient {
             }
         }
 
-        Err(CoordinationError::ConnectionFailed("Max reconnection attempts exceeded".to_string()))
+        Err(CoordinationError::ConnectionFailed(
+            "Max reconnection attempts exceeded".to_string(),
+        ))
     }
 
     async fn connect(&self) -> Result<(), CoordinationError> {
@@ -460,21 +474,29 @@ impl SyneidesisCoordinationClient {
         *status = ConnectionStatus::Connecting;
 
         // Connect to Syneidesis coordination server
-        let server_address = self.config.server_address.as_deref()
-            .ok_or_else(|| CoordinationError::ConfigurationError("Server address not configured".to_string()))?
+        let server_address = self
+            .config
+            .server_address
+            .as_deref()
+            .ok_or_else(|| {
+                CoordinationError::ConfigurationError("Server address not configured".to_string())
+            })?
             .replace("http://", "");
-        
+
         // Create TLS-enabled endpoint using security manager
-        let endpoint = self.security_manager.create_tls_endpoint(&server_address).await?;
-        
+        let endpoint = self
+            .security_manager
+            .create_tls_endpoint(&server_address)
+            .await?;
+
         // Configure endpoint with performance optimizations
         let configured_endpoint = self.performance_manager.configure_endpoint(endpoint);
-        
+
         // Initialize connection pool if enabled
         if let Some(pool) = &self.connection_pool {
             pool.initialize_pool(configured_endpoint.clone()).await?;
         }
-        
+
         // Create gRPC client configuration
         let grpc_config = SyneidesisGrpcConfig {
             server_addr: server_address.clone(),
@@ -490,9 +512,10 @@ impl SyneidesisCoordinationClient {
         };
 
         // Create the gRPC client
-        let _grpc_client = GrpcCoordinationClient::new(grpc_config).await
+        let _grpc_client = GrpcCoordinationClient::new(grpc_config)
+            .await
             .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-        
+
         *status = ConnectionStatus::Connected;
         info!("✅ Connected to Syneidesis coordination server at {} with security and performance optimizations", server_address);
         Ok(())
@@ -505,12 +528,17 @@ impl SyneidesisCoordinationClient {
             // Note: new_with_channel doesn't exist, we'll need to handle this differently
             // For now, we'll fall back to creating a new client
         }
-        
+
         // Fallback to creating new client
-        let server_address = self.config.server_address.as_deref()
-            .ok_or_else(|| CoordinationError::ConfigurationError("Server address not configured".to_string()))?
+        let server_address = self
+            .config
+            .server_address
+            .as_deref()
+            .ok_or_else(|| {
+                CoordinationError::ConfigurationError("Server address not configured".to_string())
+            })?
             .replace("http://", "");
-        
+
         let grpc_config = SyneidesisGrpcConfig {
             server_addr: server_address,
             connection_timeout: self.config.timeout_seconds,
@@ -523,8 +551,9 @@ impl SyneidesisCoordinationClient {
             pool_size: self.config.performance.max_connections,
             tls: None,
         };
-        
-        GrpcCoordinationClient::new(grpc_config).await
+
+        GrpcCoordinationClient::new(grpc_config)
+            .await
             .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))
     }
 
@@ -533,30 +562,34 @@ impl SyneidesisCoordinationClient {
         let start_time = Instant::now();
         self.metrics.increment_total_requests();
 
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    info!("Registering agent '{}' with Syneidesis", agent.id);
-                    
-                    // Convert Rhema AgentInfo to Syneidesis protobuf AgentInfo
-                    let proto_agent = rhema_agent_info_to_proto(&agent);
-                    
-                    // Create gRPC client and send registration request
-                    let mut client = self.get_client().await?;
-                    let response = client.register_agent(proto_agent).await
-                        .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-                    
-                    if response.success {
-                        info!("✅ Agent '{}' registered with Syneidesis", agent.id);
-                        Ok(())
-                    } else {
-                        Err(CoordinationError::ServerError(response.message))
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        info!("Registering agent '{}' with Syneidesis", agent.id);
+
+                        // Convert Rhema AgentInfo to Syneidesis protobuf AgentInfo
+                        let proto_agent = rhema_agent_info_to_proto(&agent);
+
+                        // Create gRPC client and send registration request
+                        let mut client = self.get_client().await?;
+                        let response = client
+                            .register_agent(proto_agent)
+                            .await
+                            .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
+
+                        if response.success {
+                            info!("✅ Agent '{}' registered with Syneidesis", agent.id);
+                            Ok(())
+                        } else {
+                            Err(CoordinationError::ServerError(response.message))
+                        }
                     }
+                    _ => Err(CoordinationError::NotConnected),
                 }
-                _ => Err(CoordinationError::NotConnected),
-            }
-        }).await;
+            })
+            .await;
 
         self.update_metrics(&result, start_time);
         result
@@ -567,27 +600,31 @@ impl SyneidesisCoordinationClient {
         let start_time = Instant::now();
         self.metrics.increment_total_requests();
 
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    info!("Unregistering agent '{}' from Syneidesis", agent_id);
-                    
-                    // Create gRPC client and send unregistration request
-                    let mut client = self.get_client().await?;
-                    let response = client.unregister_agent(agent_id.to_string()).await
-                        .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-                    
-                    if response.success {
-                        info!("✅ Agent '{}' unregistered from Syneidesis", agent_id);
-                        Ok(())
-                    } else {
-                        Err(CoordinationError::ServerError(response.message))
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        info!("Unregistering agent '{}' from Syneidesis", agent_id);
+
+                        // Create gRPC client and send unregistration request
+                        let mut client = self.get_client().await?;
+                        let response = client
+                            .unregister_agent(agent_id.to_string())
+                            .await
+                            .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
+
+                        if response.success {
+                            info!("✅ Agent '{}' unregistered from Syneidesis", agent_id);
+                            Ok(())
+                        } else {
+                            Err(CoordinationError::ServerError(response.message))
+                        }
                     }
+                    _ => Err(CoordinationError::NotConnected),
                 }
-                _ => Err(CoordinationError::NotConnected),
-            }
-        }).await;
+            })
+            .await;
 
         self.update_metrics(&result, start_time);
         result
@@ -598,61 +635,72 @@ impl SyneidesisCoordinationClient {
         let start_time = Instant::now();
         self.metrics.increment_total_requests();
 
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    info!("Sending message '{}' via Syneidesis", message.id);
-                    
-                    // Convert Rhema AgentMessage to Syneidesis protobuf AgentMessage
-                    let proto_message = rhema_message_to_proto(&message);
-                    
-                    // Create gRPC client and send message
-                    let mut client = self.get_client().await?;
-                    let response = client.send_message(proto_message).await
-                        .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-                    
-                    if response.success {
-                        info!("✅ Message '{}' sent via Syneidesis", message.id);
-                        Ok(())
-                    } else {
-                        Err(CoordinationError::ServerError(response.error_message))
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        info!("Sending message '{}' via Syneidesis", message.id);
+
+                        // Convert Rhema AgentMessage to Syneidesis protobuf AgentMessage
+                        let proto_message = rhema_message_to_proto(&message);
+
+                        // Create gRPC client and send message
+                        let mut client = self.get_client().await?;
+                        let response = client
+                            .send_message(proto_message)
+                            .await
+                            .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
+
+                        if response.success {
+                            info!("✅ Message '{}' sent via Syneidesis", message.id);
+                            Ok(())
+                        } else {
+                            Err(CoordinationError::ServerError(response.error_message))
+                        }
                     }
+                    _ => Err(CoordinationError::NotConnected),
                 }
-                _ => Err(CoordinationError::NotConnected),
-            }
-        }).await;
+            })
+            .await;
 
         self.update_metrics(&result, start_time);
         result
     }
 
     #[instrument(level = Level::INFO, skip(self))]
-    pub async fn get_agent_info(&self, agent_id: &str) -> Result<Option<AgentInfo>, CoordinationError> {
+    pub async fn get_agent_info(
+        &self,
+        agent_id: &str,
+    ) -> Result<Option<AgentInfo>, CoordinationError> {
         let start_time = Instant::now();
         self.metrics.increment_total_requests();
 
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    info!("Getting agent info '{}' from Syneidesis", agent_id);
-                    
-                    // Create gRPC client and request agent info
-                    let mut client = self.get_client().await?;
-                    let response = client.get_agent_info(agent_id.to_string()).await
-                        .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-                    
-                    if let Some(proto_agent) = response {
-                        let rhema_agent = proto_agent_info_to_rhema(&proto_agent);
-                        Ok(Some(rhema_agent))
-                    } else {
-                        Ok(None)
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        info!("Getting agent info '{}' from Syneidesis", agent_id);
+
+                        // Create gRPC client and request agent info
+                        let mut client = self.get_client().await?;
+                        let response = client
+                            .get_agent_info(agent_id.to_string())
+                            .await
+                            .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
+
+                        if let Some(proto_agent) = response {
+                            let rhema_agent = proto_agent_info_to_rhema(&proto_agent);
+                            Ok(Some(rhema_agent))
+                        } else {
+                            Ok(None)
+                        }
                     }
+                    _ => Err(CoordinationError::NotConnected),
                 }
-                _ => Err(CoordinationError::NotConnected),
-            }
-        }).await;
+            })
+            .await;
 
         self.update_metrics(&result, start_time);
         result
@@ -668,87 +716,107 @@ impl SyneidesisCoordinationClient {
         self.metrics.increment_total_requests();
 
         let participants_clone = participants.clone();
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    info!(
-                        "Creating session '{}' with {} participants via Syneidesis",
-                        topic,
-                        participants_clone.len()
-                    );
-                    
-                    // Create gRPC client and request session creation
-                    let mut client = self.get_client().await?;
-                    let session_id = client.create_session(topic.clone(), participants_clone.clone()).await
-                        .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-                    
-                    info!("✅ Session '{}' created with ID '{}'", topic, session_id);
-                    Ok(session_id)
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        info!(
+                            "Creating session '{}' with {} participants via Syneidesis",
+                            topic,
+                            participants_clone.len()
+                        );
+
+                        // Create gRPC client and request session creation
+                        let mut client = self.get_client().await?;
+                        let session_id = client
+                            .create_session(topic.clone(), participants_clone.clone())
+                            .await
+                            .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
+
+                        info!("✅ Session '{}' created with ID '{}'", topic, session_id);
+                        Ok(session_id)
+                    }
+                    _ => Err(CoordinationError::NotConnected),
                 }
-                _ => Err(CoordinationError::NotConnected),
-            }
-        }).await;
+            })
+            .await;
 
         self.update_metrics(&result, start_time);
         result
     }
 
     #[instrument(level = Level::INFO, skip(self))]
-    pub async fn join_session(&self, session_id: &str, agent_id: &str) -> Result<(), CoordinationError> {
+    pub async fn join_session(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> Result<(), CoordinationError> {
         let start_time = Instant::now();
         self.metrics.increment_total_requests();
 
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    info!(
-                        "Agent '{}' joining session '{}' via Syneidesis",
-                        agent_id, session_id
-                    );
-                    
-                    // Create gRPC client and join session
-                    let mut client = self.get_client().await?;
-                    client.join_session(session_id.to_string(), agent_id.to_string()).await
-                        .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-                    
-                    info!("✅ Agent '{}' joined session '{}'", agent_id, session_id);
-                    Ok(())
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        info!(
+                            "Agent '{}' joining session '{}' via Syneidesis",
+                            agent_id, session_id
+                        );
+
+                        // Create gRPC client and join session
+                        let mut client = self.get_client().await?;
+                        client
+                            .join_session(session_id.to_string(), agent_id.to_string())
+                            .await
+                            .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
+
+                        info!("✅ Agent '{}' joined session '{}'", agent_id, session_id);
+                        Ok(())
+                    }
+                    _ => Err(CoordinationError::NotConnected),
                 }
-                _ => Err(CoordinationError::NotConnected),
-            }
-        }).await;
+            })
+            .await;
 
         self.update_metrics(&result, start_time);
         result
     }
 
     #[instrument(level = Level::INFO, skip(self))]
-    pub async fn leave_session(&self, session_id: &str, agent_id: &str) -> Result<(), CoordinationError> {
+    pub async fn leave_session(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> Result<(), CoordinationError> {
         let start_time = Instant::now();
         self.metrics.increment_total_requests();
 
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    info!(
-                        "Agent '{}' leaving session '{}' via Syneidesis",
-                        agent_id, session_id
-                    );
-                    
-                    // Create gRPC client and leave session
-                    let mut client = self.get_client().await?;
-                    client.leave_session(session_id.to_string(), agent_id.to_string()).await
-                        .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-                    
-                    info!("✅ Agent '{}' left session '{}'", agent_id, session_id);
-                    Ok(())
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        info!(
+                            "Agent '{}' leaving session '{}' via Syneidesis",
+                            agent_id, session_id
+                        );
+
+                        // Create gRPC client and leave session
+                        let mut client = self.get_client().await?;
+                        client
+                            .leave_session(session_id.to_string(), agent_id.to_string())
+                            .await
+                            .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
+
+                        info!("✅ Agent '{}' left session '{}'", agent_id, session_id);
+                        Ok(())
+                    }
+                    _ => Err(CoordinationError::NotConnected),
                 }
-                _ => Err(CoordinationError::NotConnected),
-            }
-        }).await;
+            })
+            .await;
 
         self.update_metrics(&result, start_time);
         result
@@ -763,29 +831,36 @@ impl SyneidesisCoordinationClient {
         let start_time = Instant::now();
         self.metrics.increment_total_requests();
 
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    info!(
-                        "Sending session message '{}' to session '{}' via Syneidesis",
-                        message.id, session_id
-                    );
-                    
-                    // Convert Rhema AgentMessage to Syneidesis protobuf AgentMessage
-                    let proto_message = rhema_message_to_proto(&message);
-                    
-                    // Create gRPC client and send session message
-                    let mut client = self.get_client().await?;
-                    client.send_session_message(session_id.to_string(), proto_message).await
-                        .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
-                    
-                    info!("✅ Session message '{}' sent to session '{}'", message.id, session_id);
-                    Ok(())
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        info!(
+                            "Sending session message '{}' to session '{}' via Syneidesis",
+                            message.id, session_id
+                        );
+
+                        // Convert Rhema AgentMessage to Syneidesis protobuf AgentMessage
+                        let proto_message = rhema_message_to_proto(&message);
+
+                        // Create gRPC client and send session message
+                        let mut client = self.get_client().await?;
+                        client
+                            .send_session_message(session_id.to_string(), proto_message)
+                            .await
+                            .map_err(|e| CoordinationError::ConnectionFailed(e.to_string()))?;
+
+                        info!(
+                            "✅ Session message '{}' sent to session '{}'",
+                            message.id, session_id
+                        );
+                        Ok(())
+                    }
+                    _ => Err(CoordinationError::NotConnected),
                 }
-                _ => Err(CoordinationError::NotConnected),
-            }
-        }).await;
+            })
+            .await;
 
         self.update_metrics(&result, start_time);
         result
@@ -797,19 +872,23 @@ impl SyneidesisCoordinationClient {
 
     pub async fn health_check(&self) -> Result<(), CoordinationError> {
         let _start_time = Instant::now();
-        
-        let result = self.execute_with_retry(|| async {
-            let status = self.connection_status.read().await;
-            match *status {
-                ConnectionStatus::Connected => {
-                    debug!("Performing health check");
-                    // TODO: Replace with actual Syneidesis health check
-                    // For now, we'll consider the connection status as the health indicator
-                    Ok(())
+
+        let result = self
+            .execute_with_retry(|| async {
+                let status = self.connection_status.read().await;
+                match *status {
+                    ConnectionStatus::Connected => {
+                        debug!("Performing health check");
+                        // TODO: Replace with actual Syneidesis health check
+                        // For now, we'll consider the connection status as the health indicator
+                        Ok(())
+                    }
+                    _ => Err(CoordinationError::HealthCheckFailed(
+                        "Not connected".to_string(),
+                    )),
                 }
-                _ => Err(CoordinationError::HealthCheckFailed("Not connected".to_string())),
-            }
-        }).await;
+            })
+            .await;
 
         if result.is_ok() {
             *self.last_health_check.write().await = Some(Instant::now());
@@ -842,22 +921,24 @@ impl SyneidesisCoordinationClient {
 
         loop {
             attempts += 1;
-            
+
             match operation().await {
                 Ok(result) => return Ok(result),
                 Err(e) => {
-                    warn!("Operation failed (attempt {}/{}): {}", attempts, max_attempts, e);
-                    
+                    warn!(
+                        "Operation failed (attempt {}/{}): {}",
+                        attempts, max_attempts, e
+                    );
+
                     if attempts >= max_attempts {
                         return Err(e);
                     }
 
                     self.metrics.increment_retry_attempts();
-                    
-                    let backoff_duration = Duration::from_millis(
-                        self.config.retry_backoff_ms * attempts as u64
-                    );
-                    
+
+                    let backoff_duration =
+                        Duration::from_millis(self.config.retry_backoff_ms * attempts as u64);
+
                     debug!("Retrying operation in {:?}", backoff_duration);
                     sleep(backoff_duration).await;
                 }
@@ -887,16 +968,16 @@ impl SyneidesisCoordinationClient {
     async fn start_health_monitoring(&self) {
         let client = self.clone();
         let interval = Duration::from_secs(self.config.health_check_interval_seconds);
-        
+
         tokio::spawn(async move {
             let mut interval_timer = tokio::time::interval(interval);
-            
+
             loop {
                 interval_timer.tick().await;
-                
+
                 if let Err(e) = client.health_check().await {
                     error!("Health check failed: {}", e);
-                    
+
                     // Attempt to reconnect if connection recovery is enabled
                     if client.config.connection_recovery_enabled {
                         warn!("Attempting to reconnect due to health check failure");
@@ -969,7 +1050,10 @@ impl LocalGrpcCoordinationClient {
         Ok(())
     }
 
-    pub async fn unregister_agent(&mut self, agent_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn unregister_agent(
+        &mut self,
+        agent_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // For now, just log the unregistration
         info!("Would unregister agent: {}", agent_id);
         Ok(())

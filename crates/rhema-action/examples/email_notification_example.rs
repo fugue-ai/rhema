@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-use rhema_action::{
-    ApprovalWorkflow, ActionConfig, ActionType, ApprovalPolicy, ApprovalCondition
-};
 use rhema_action::schema::SafetyLevel;
+use rhema_action::{ActionConfig, ActionType, ApprovalCondition, ApprovalPolicy, ApprovalWorkflow};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -37,7 +35,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "email-notification-demo",
         ActionType::Security,
         "Update security policies for production environment",
-        vec!["src/security/".to_string(), "config/security.yaml".to_string()],
+        vec![
+            "src/security/".to_string(),
+            "config/security.yaml".to_string(),
+        ],
         SafetyLevel::High,
     );
 
@@ -50,10 +51,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Add metadata for the email body
     intent.metadata = Some(HashMap::from([
-        ("priority".to_string(), Value::String("critical".to_string())),
-        ("environment".to_string(), Value::String("production".to_string())),
+        (
+            "priority".to_string(),
+            Value::String("critical".to_string()),
+        ),
+        (
+            "environment".to_string(),
+            Value::String("production".to_string()),
+        ),
         ("risk_level".to_string(), Value::String("high".to_string())),
-        ("estimated_impact".to_string(), Value::String("affects all users".to_string())),
+        (
+            "estimated_impact".to_string(),
+            Value::String("affects all users".to_string()),
+        ),
     ]));
 
     println!("✓ Action intent created:");
@@ -61,13 +71,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  - Type: {:?}", intent.action_type);
     println!("  - Description: {}", intent.description);
     println!("  - Safety Level: {:?}", intent.safety_level);
-    println!("  - Approvers: {:?}", intent.approval_workflow.approvers.as_ref().unwrap_or(&vec![]));
+    println!(
+        "  - Approvers: {:?}",
+        intent
+            .approval_workflow
+            .approvers
+            .as_ref()
+            .unwrap_or(&vec![])
+    );
     println!();
 
     // Request approval (this will trigger email notifications)
     println!("Requesting approval...");
     let approved = workflow.request_approval(&intent).await?;
-    
+
     if approved {
         println!("✓ Approval granted!");
     } else {
@@ -79,18 +96,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Enhanced Approval with Policy ===\n");
 
     let policies = workflow.get_default_policies().await;
-    let high_safety_policy = policies.iter().find(|p| p.id == "high_safety_policy").unwrap();
+    let high_safety_policy = policies
+        .iter()
+        .find(|p| p.id == "high_safety_policy")
+        .unwrap();
 
     println!("✓ Using policy: {}", high_safety_policy.name);
     println!("  - Description: {}", high_safety_policy.description);
-    println!("  - Required approvers: {}", high_safety_policy.required_approvers);
-    println!("  - Timeout: {} seconds", high_safety_policy.timeout_seconds);
+    println!(
+        "  - Required approvers: {}",
+        high_safety_policy.required_approvers
+    );
+    println!(
+        "  - Timeout: {} seconds",
+        high_safety_policy.timeout_seconds
+    );
     println!("  - Auto-approve: {}", high_safety_policy.auto_approve);
     println!();
 
     // Create enhanced approval request
-    let enhanced_request = workflow.create_enhanced_approval_request(&intent, high_safety_policy).await?;
-    
+    let enhanced_request = workflow
+        .create_enhanced_approval_request(&intent, high_safety_policy)
+        .await?;
+
     println!("✓ Enhanced approval request created:");
     println!("  - Request ID: {}", enhanced_request.id);
     println!("  - Status: {:?}", enhanced_request.status);

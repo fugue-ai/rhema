@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,73 +44,109 @@ impl DiscordIntegration {
             },
         }
     }
-    
+
     /// Send a message to a Discord channel
-    pub async fn send_message(&self, channel_id: &str, content: &str, embeds: Option<Vec<serde_json::Value>>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Discord not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn send_message(
+        &self,
+        channel_id: &str,
+        content: &str,
+        embeds: Option<Vec<serde_json::Value>>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Discord not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let mut message_data = serde_json::json!({
             "content": content
         });
-        
+
         if let Some(embeds) = embeds {
             message_data["embeds"] = serde_json::Value::Array(embeds);
         }
-        
-        let url = format!("https://discord.com/api/v10/channels/{}/messages", channel_id);
+
+        let url = format!(
+            "https://discord.com/api/v10/channels/{}/messages",
+            channel_id
+        );
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bot {}", token));
-        
-        let response = self.http_client.post(&url, &message_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &message_data.to_string(), Some(headers))
+            .await?;
         let message: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(message["id"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Get channel information
     pub async fn get_channel(&self, channel_id: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Discord not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Discord not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let url = format!("https://discord.com/api/v10/channels/{}", channel_id);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bot {}", token));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let channel: serde_json::Value = serde_json::from_str(&response)?;
         Ok(channel)
     }
-    
+
     /// Get guild (server) channels
     pub async fn get_guild_channels(&self, guild_id: &str) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Discord not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Discord not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let url = format!("https://discord.com/api/v10/guilds/{}/channels", guild_id);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bot {}", token));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let channels: Vec<serde_json::Value> = serde_json::from_str(&response)?;
         Ok(channels)
     }
-    
+
     /// Create a webhook message
-    pub async fn send_webhook(&self, webhook_url: &str, content: &str, embeds: Option<Vec<serde_json::Value>>) -> RhemaResult<()> {
+    pub async fn send_webhook(
+        &self,
+        webhook_url: &str,
+        content: &str,
+        embeds: Option<Vec<serde_json::Value>>,
+    ) -> RhemaResult<()> {
         let mut message_data = serde_json::json!({
             "content": content
         });
-        
+
         if let Some(embeds) = embeds {
             message_data["embeds"] = serde_json::Value::Array(embeds);
         }
-        
+
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
-        self.http_client.post(webhook_url, &message_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(webhook_url, &message_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
 }

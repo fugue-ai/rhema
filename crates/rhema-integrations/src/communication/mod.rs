@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-pub mod slack;
 pub mod discord;
-pub mod microsoft_teams;
 pub mod email;
+pub mod microsoft_teams;
+pub mod slack;
 
-pub use slack::SlackIntegration;
 pub use discord::DiscordIntegration;
-pub use microsoft_teams::MicrosoftTeamsIntegration;
 pub use email::EmailIntegration;
+pub use microsoft_teams::MicrosoftTeamsIntegration;
+pub use slack::SlackIntegration;

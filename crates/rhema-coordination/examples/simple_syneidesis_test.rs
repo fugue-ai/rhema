@@ -16,8 +16,12 @@
 
 //! Simple test demonstrating Syneidesis integration is working
 
-use rhema_coordination::coordination_integration::{CoordinationConfig, CoordinationIntegration, SyneidesisConfig};
-use rhema_coordination::agent::real_time_coordination::{AgentInfo, AgentStatus, RealTimeCoordinationSystem};
+use rhema_coordination::agent::real_time_coordination::{
+    AgentInfo, AgentStatus, RealTimeCoordinationSystem,
+};
+use rhema_coordination::coordination_integration::{
+    CoordinationConfig, CoordinationIntegration, SyneidesisConfig,
+};
 use rhema_core::RhemaResult;
 use tracing::info;
 
@@ -25,12 +29,12 @@ use tracing::info;
 async fn main() -> RhemaResult<()> {
     // Initialize logging
     tracing_subscriber::fmt::init();
-    
+
     info!("🚀 Starting simple Syneidesis integration test");
 
     // Create Rhema coordination system
     let rhema_coordination = RealTimeCoordinationSystem::new();
-    
+
     // Configure Syneidesis integration
     let syneidesis_config = SyneidesisConfig {
         enabled: true,
@@ -55,8 +59,8 @@ async fn main() -> RhemaResult<()> {
     };
 
     // Create coordination integration
-    let integration = CoordinationIntegration::new(rhema_coordination, Some(integration_config))
-        .await?;
+    let integration =
+        CoordinationIntegration::new(rhema_coordination, Some(integration_config)).await?;
 
     info!("✅ Coordination integration initialized successfully");
 
@@ -71,7 +75,8 @@ async fn main() -> RhemaResult<()> {
         capabilities: vec!["verification".to_string(), "testing".to_string()],
         last_heartbeat: chrono::Utc::now(),
         is_online: true,
-        performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
+        performance_metrics:
+            rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
     };
 
     // Register agent with both systems
@@ -91,12 +96,15 @@ async fn main() -> RhemaResult<()> {
     info!("  Syneidesis Agents: {}", stats.syneidesis_agents);
     info!("  Syneidesis Tasks: {}", stats.syneidesis_tasks);
     info!("  Bridge Messages Sent: {}", stats.bridge_messages_sent);
-    info!("  Bridge Messages Received: {}", stats.bridge_messages_received);
+    info!(
+        "  Bridge Messages Received: {}",
+        stats.bridge_messages_received
+    );
 
     // Check if Syneidesis integration is enabled
     if integration.has_syneidesis_integration() {
         info!("✅ Syneidesis integration is enabled");
-        
+
         // Get connection status
         if let Some(status) = integration.get_syneidesis_status().await {
             info!("🔗 Syneidesis connection status: {:?}", status);
@@ -120,6 +128,6 @@ async fn main() -> RhemaResult<()> {
 
     info!("🎉 Simple Syneidesis integration test completed successfully!");
     info!("✅ Syneidesis integration is working correctly!");
-    
+
     Ok(())
 }

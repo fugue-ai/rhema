@@ -251,7 +251,7 @@ impl CoordinationPattern for WorkflowOrchestrationPattern {
         ]);
 
         let execution_time_ms = start_time.elapsed().as_millis() as u64;
-        
+
         Ok(PatternResult {
             pattern_id: "workflow-orchestration".to_string(),
             success: workflow_state.status == WorkflowStatus::Completed,
@@ -842,7 +842,7 @@ impl CoordinationPattern for StateSynchronizationPattern {
         ]);
 
         let execution_time_ms = start_time.elapsed().as_millis() as u64;
-        
+
         Ok(PatternResult {
             pattern_id: "state-synchronization".to_string(),
             success: sync_state.status == StateSyncStatus::Completed,

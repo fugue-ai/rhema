@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,35 +44,48 @@ impl MicrosoftTeamsIntegration {
             },
         }
     }
-    
+
     /// Send a message to a Teams channel
-    pub async fn send_message(&self, webhook_url: &str, text: &str, title: Option<&str>) -> RhemaResult<()> {
+    pub async fn send_message(
+        &self,
+        webhook_url: &str,
+        text: &str,
+        title: Option<&str>,
+    ) -> RhemaResult<()> {
         let mut message_data = serde_json::json!({
             "text": text
         });
-        
+
         if let Some(title) = title {
             message_data["title"] = serde_json::Value::String(title.to_string());
         }
-        
+
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
-        self.http_client.post(webhook_url, &message_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(webhook_url, &message_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Send a card message
     pub async fn send_card(&self, webhook_url: &str, card: serde_json::Value) -> RhemaResult<()> {
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
-        self.http_client.post(webhook_url, &card.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(webhook_url, &card.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Send an adaptive card
-    pub async fn send_adaptive_card(&self, webhook_url: &str, card: serde_json::Value) -> RhemaResult<()> {
+    pub async fn send_adaptive_card(
+        &self,
+        webhook_url: &str,
+        card: serde_json::Value,
+    ) -> RhemaResult<()> {
         let message_data = serde_json::json!({
             "type": "message",
             "attachments": [
@@ -79,11 +95,13 @@ impl MicrosoftTeamsIntegration {
                 }
             ]
         });
-        
+
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
-        self.http_client.post(webhook_url, &message_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .post(webhook_url, &message_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
 }

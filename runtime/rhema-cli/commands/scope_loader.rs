@@ -16,8 +16,8 @@
 use crate::CliContext;
 use clap::{Subcommand, ValueEnum};
 use rhema_api::RhemaResult;
-use rhema_core::scope_loader::*;
 use rhema_core::scope_loader::service::ScopeLoaderConfig;
+use rhema_core::scope_loader::*;
 use std::path::PathBuf;
 
 #[derive(Debug, Subcommand, Clone)]
@@ -27,65 +27,65 @@ pub enum ScopeLoaderSubcommands {
         /// Path to analyze (defaults to current directory)
         #[arg(short, long)]
         path: Option<PathBuf>,
-        
+
         /// Show detailed information about each boundary
         #[arg(short, long)]
         verbose: bool,
-        
+
         /// Output format
         #[arg(short, long, default_value = "table")]
         format: OutputFormat,
     },
-    
+
     /// Generate scope suggestions based on discovered boundaries
     Suggest {
         /// Path to analyze (defaults to current directory)
         #[arg(short, long)]
         path: Option<PathBuf>,
-        
+
         /// Minimum confidence threshold (0.0-1.0)
         #[arg(short, long, default_value = "0.7")]
         confidence: f64,
-        
+
         /// Show detailed reasoning for each suggestion
         #[arg(short, long)]
         verbose: bool,
-        
+
         /// Output format
         #[arg(short, long, default_value = "table")]
         format: OutputFormat,
     },
-    
+
     /// Create scopes from suggestions
     Create {
         /// Path to analyze (defaults to current directory)
         #[arg(short, long)]
         path: Option<PathBuf>,
-        
+
         /// Minimum confidence threshold (0.0-1.0)
         #[arg(short, long, default_value = "0.8")]
         confidence: f64,
-        
+
         /// Auto-create without confirmation
         #[arg(short, long)]
         auto: bool,
-        
+
         /// Dry run - show what would be created without actually creating
         #[arg(long)]
         dry_run: bool,
     },
-    
+
     /// List available plugins
     Plugins {
         /// Show detailed plugin information
         #[arg(short, long)]
         verbose: bool,
-        
+
         /// Output format
         #[arg(short, long, default_value = "table")]
         format: OutputFormat,
     },
-    
+
     /// Show scope loader statistics and cache information
     Stats {
         /// Clear cache after showing stats
@@ -118,21 +118,27 @@ pub fn handle_scope_loader(
     subcommand: ScopeLoaderSubcommands,
 ) -> RhemaResult<()> {
     match subcommand {
-        ScopeLoaderSubcommands::Discover { path, verbose, format } => {
-            handle_discover(context, path, verbose, format)
-        }
-        ScopeLoaderSubcommands::Suggest { path, confidence, verbose, format } => {
-            handle_suggest(context, path, confidence, verbose, format)
-        }
-        ScopeLoaderSubcommands::Create { path, confidence, auto, dry_run } => {
-            handle_create(context, path, confidence, auto, dry_run)
-        }
+        ScopeLoaderSubcommands::Discover {
+            path,
+            verbose,
+            format,
+        } => handle_discover(context, path, verbose, format),
+        ScopeLoaderSubcommands::Suggest {
+            path,
+            confidence,
+            verbose,
+            format,
+        } => handle_suggest(context, path, confidence, verbose, format),
+        ScopeLoaderSubcommands::Create {
+            path,
+            confidence,
+            auto,
+            dry_run,
+        } => handle_create(context, path, confidence, auto, dry_run),
         ScopeLoaderSubcommands::Plugins { verbose, format } => {
             handle_plugins(context, verbose, format)
         }
-        ScopeLoaderSubcommands::Stats { clear_cache } => {
-            handle_stats(context, clear_cache)
-        }
+        ScopeLoaderSubcommands::Stats { clear_cache } => handle_stats(context, clear_cache),
     }
 }
 
@@ -143,9 +149,12 @@ fn handle_discover(
     format: OutputFormat,
 ) -> RhemaResult<()> {
     let target_path = path.unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
-    
-    println!("🔍 Discovering package boundaries in: {}", target_path.display());
-    
+
+    println!(
+        "🔍 Discovering package boundaries in: {}",
+        target_path.display()
+    );
+
     // Create scope loader service
     let registry = create_plugin_registry()?;
     let config = ScopeLoaderConfig {
@@ -157,27 +166,34 @@ fn handle_discover(
         cache_duration: 3600,
         cache_path: None,
     };
-    
+
     let service = ScopeLoaderService::new(registry, config);
-    
+
     // Detect boundaries
     match tokio::runtime::Runtime::new()?.block_on(service.detect_boundaries(&target_path)) {
         Ok(boundaries) => {
             println!("✅ Discovered {} package boundaries", boundaries.len());
-            
+
             match format {
                 OutputFormat::Table => {
                     if verbose {
                         println!("\n📦 Package Boundaries:");
-                        println!("{:<30} {:<15} {:<20} {:<10}", "Name", "Manager", "Path", "Confidence");
+                        println!(
+                            "{:<30} {:<15} {:<20} {:<10}",
+                            "Name", "Manager", "Path", "Confidence"
+                        );
                         println!("{}", "-".repeat(75));
-                        
+
                         for boundary in &boundaries {
                             println!(
                                 "{:<30} {:<15} {:<20}",
                                 boundary.package_info.name,
                                 boundary.package_manager.as_str(),
-                                boundary.path.file_name().unwrap_or_default().to_string_lossy(),
+                                boundary
+                                    .path
+                                    .file_name()
+                                    .unwrap_or_default()
+                                    .to_string_lossy(),
                             );
                         }
                     } else {
@@ -216,11 +232,13 @@ fn handle_discover(
             }
         }
         Err(e) => {
-            context.error_handler.display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
+            context
+                .error_handler
+                .display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
             return Err(rhema_core::RhemaError::ConfigError(e.to_string()));
         }
     }
-    
+
     Ok(())
 }
 
@@ -232,10 +250,13 @@ fn handle_suggest(
     format: OutputFormat,
 ) -> RhemaResult<()> {
     let target_path = path.unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
-    
-    println!("💡 Generating scope suggestions for: {}", target_path.display());
+
+    println!(
+        "💡 Generating scope suggestions for: {}",
+        target_path.display()
+    );
     println!("🎯 Confidence threshold: {:.2}", confidence);
-    
+
     // Create scope loader service
     let registry = create_plugin_registry()?;
     let config = ScopeLoaderConfig {
@@ -247,21 +268,24 @@ fn handle_suggest(
         cache_duration: 3600,
         cache_path: None,
     };
-    
+
     let service = ScopeLoaderService::new(registry, config);
-    
+
     // Generate suggestions
     match tokio::runtime::Runtime::new()?.block_on(service.suggest_scopes(&target_path)) {
         Ok(suggestions) => {
             println!("✅ Generated {} scope suggestions", suggestions.len());
-            
+
             match format {
                 OutputFormat::Table => {
                     if verbose {
                         println!("\n🎯 Scope Suggestions:");
-                        println!("{:<30} {:<15} {:<10} {:<50}", "Name", "Type", "Confidence", "Reasoning");
+                        println!(
+                            "{:<30} {:<15} {:<10} {:<50}",
+                            "Name", "Type", "Confidence", "Reasoning"
+                        );
                         println!("{}", "-".repeat(105));
-                        
+
                         for suggestion in &suggestions {
                             println!(
                                 "{:<30} {:<15} {:.2} {:<50}",
@@ -308,11 +332,13 @@ fn handle_suggest(
             }
         }
         Err(e) => {
-            context.error_handler.display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
+            context
+                .error_handler
+                .display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
             return Err(rhema_core::RhemaError::ConfigError(e.to_string()));
         }
     }
-    
+
     Ok(())
 }
 
@@ -324,14 +350,17 @@ fn handle_create(
     dry_run: bool,
 ) -> RhemaResult<()> {
     let target_path = path.unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
-    
+
     if dry_run {
-        println!("🧪 DRY RUN: Would create scopes in: {}", target_path.display());
+        println!(
+            "🧪 DRY RUN: Would create scopes in: {}",
+            target_path.display()
+        );
     } else {
         println!("🚀 Creating scopes in: {}", target_path.display());
     }
     println!("🎯 Confidence threshold: {:.2}", confidence);
-    
+
     // Create scope loader service
     let registry = create_plugin_registry()?;
     let config = ScopeLoaderConfig {
@@ -343,23 +372,29 @@ fn handle_create(
         cache_duration: 3600,
         cache_path: None,
     };
-    
+
     let service = ScopeLoaderService::new(registry, config);
-    
+
     // Generate suggestions first
-    let suggestions = match tokio::runtime::Runtime::new()?.block_on(service.suggest_scopes(&target_path)) {
-        Ok(s) => s,
-        Err(e) => {
-            context.error_handler.display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
-            return Err(rhema_core::RhemaError::ConfigError(e.to_string()));
-        }
-    };
-    
+    let suggestions =
+        match tokio::runtime::Runtime::new()?.block_on(service.suggest_scopes(&target_path)) {
+            Ok(s) => s,
+            Err(e) => {
+                context
+                    .error_handler
+                    .display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
+                return Err(rhema_core::RhemaError::ConfigError(e.to_string()));
+            }
+        };
+
     if suggestions.is_empty() {
-        println!("ℹ️  No scope suggestions found with confidence >= {:.2}", confidence);
+        println!(
+            "ℹ️  No scope suggestions found with confidence >= {:.2}",
+            confidence
+        );
         return Ok(());
     }
-    
+
     println!("📋 Found {} scope suggestions:", suggestions.len());
     for (i, suggestion) in suggestions.iter().enumerate() {
         println!(
@@ -370,12 +405,12 @@ fn handle_create(
             suggestion.confidence
         );
     }
-    
+
     if dry_run {
         println!("\n🧪 DRY RUN: Would create {} scopes", suggestions.len());
         return Ok(());
     }
-    
+
     // Create scopes
     match tokio::runtime::Runtime::new()?.block_on(service.auto_create_scopes(&target_path)) {
         Ok(scopes) => {
@@ -385,38 +420,45 @@ fn handle_create(
             }
         }
         Err(e) => {
-            context.error_handler.display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
+            context
+                .error_handler
+                .display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
             return Err(rhema_core::RhemaError::ConfigError(e.to_string()));
         }
     }
-    
+
     Ok(())
 }
 
-fn handle_plugins(
-    _context: &CliContext,
-    verbose: bool,
-    format: OutputFormat,
-) -> RhemaResult<()> {
+fn handle_plugins(_context: &CliContext, verbose: bool, format: OutputFormat) -> RhemaResult<()> {
     println!("🔌 Available Scope Loader Plugins");
-    
+
     let registry = create_plugin_registry()?;
     let plugins = registry.list_plugins();
-    
+
     match format {
         OutputFormat::Table => {
             if verbose {
                 println!("\n📦 Plugin Details:");
-                println!("{:<20} {:<10} {:<50} {:<20}", "Name", "Version", "Description", "Package Managers");
+                println!(
+                    "{:<20} {:<10} {:<50} {:<20}",
+                    "Name", "Version", "Description", "Package Managers"
+                );
                 println!("{}", "-".repeat(100));
-                
+
                 for plugin_info in &plugins {
                     let managers = plugin_info.metadata.supported_package_managers.join(", ");
                     println!(
                         "{:<20} {:<10} {:<50} {:<20}",
                         plugin_info.metadata.name,
                         plugin_info.metadata.version,
-                        plugin_info.metadata.description.chars().take(47).collect::<String>() + "...",
+                        plugin_info
+                            .metadata
+                            .description
+                            .chars()
+                            .take(47)
+                            .collect::<String>()
+                            + "...",
                         managers
                     );
                 }
@@ -456,16 +498,13 @@ fn handle_plugins(
             }
         }
     }
-    
+
     Ok(())
 }
 
-fn handle_stats(
-    _context: &CliContext,
-    clear_cache: bool,
-) -> RhemaResult<()> {
+fn handle_stats(_context: &CliContext, clear_cache: bool) -> RhemaResult<()> {
     println!("📊 Scope Loader Statistics");
-    
+
     // Create scope loader service
     let registry = create_plugin_registry()?;
     let config = ScopeLoaderConfig {
@@ -477,36 +516,39 @@ fn handle_stats(
         cache_duration: 3600,
         cache_path: None,
     };
-    
+
     let service = ScopeLoaderService::new(registry, config);
-    
+
     // Get cache stats
     let stats = tokio::runtime::Runtime::new()?.block_on(service.cache_stats());
-    
+
     println!("\n💾 Cache Statistics:");
     println!("  • Boundaries cached: {}", stats.boundaries_count);
     println!("  • Suggestions cached: {}", stats.suggestions_count);
     println!("  • Scopes cached: {}", stats.scopes_count);
-    
+
     if clear_cache {
         println!("\n🧹 Clearing cache...");
         tokio::runtime::Runtime::new()?.block_on(service.clear_cache());
         println!("✅ Cache cleared");
     }
-    
+
     Ok(())
 }
 
 fn create_plugin_registry() -> RhemaResult<PluginRegistry> {
     let mut registry = PluginRegistry::new();
-    
+
     // Register built-in plugins
-    registry.register_plugin(Box::new(CargoPlugin::new()))
+    registry
+        .register_plugin(Box::new(CargoPlugin::new()))
         .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-    registry.register_plugin(Box::new(NodePackagePlugin::new()))
+    registry
+        .register_plugin(Box::new(NodePackagePlugin::new()))
         .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-    registry.register_plugin(Box::new(NxPlugin::new()))
+    registry
+        .register_plugin(Box::new(NxPlugin::new()))
         .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-    
+
     Ok(registry)
 }

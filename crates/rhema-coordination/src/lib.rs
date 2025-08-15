@@ -50,7 +50,7 @@ pub use agent::task_scoring::{
 pub use coordination_integration::{CoordinationConfig, CoordinationIntegration, IntegrationStats};
 pub use distributed::{DistributedConfig, DistributedManager, NodeInfo, ServiceInfo};
 pub use grpc::{
-    GrpcClientConfig, LocalGrpcCoordinationClient, GrpcCoordinationServer, GrpcServerConfig,
+    GrpcClientConfig, GrpcCoordinationServer, GrpcServerConfig, LocalGrpcCoordinationClient,
 };
 pub use persistence::{PersistenceConfig, PersistenceManager, StorageStats};
 pub use production_config::{ProductionAIService, ProductionConfig, ServiceHealth, ServiceStats};

@@ -1,17 +1,17 @@
 //! Knowledge visualization module for Rhema
-//! 
+//!
 //! This module provides capabilities to visualize knowledge relationships,
 //! networks, patterns, and insights from the knowledge system.
 
-use crate::types::{ContentType, KnowledgeResult, SemanticResult};
 use crate::temporal::types::{ContentAccess, TemporalRelationshipType};
+use crate::types::{ContentType, KnowledgeResult, SemanticResult};
 use crate::TemporalContextRelationship;
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Datelike, Timelike, Utc};
 
-pub mod graph;
 pub mod charts;
+pub mod graph;
 pub mod network;
 pub mod patterns;
 
@@ -269,10 +269,7 @@ impl KnowledgeVisualizer {
     }
 
     /// Export visualization to the configured format
-    pub async fn export_visualization(
-        &self,
-        graph: &KnowledgeGraph,
-    ) -> KnowledgeResult<String> {
+    pub async fn export_visualization(&self, graph: &KnowledgeGraph) -> KnowledgeResult<String> {
         match self.config.output_format {
             VisualizationFormat::Json => self.export_as_json(graph),
             VisualizationFormat::Svg => self.export_as_svg(graph),
@@ -287,8 +284,8 @@ impl KnowledgeVisualizer {
         match &self.config.color_scheme {
             ColorScheme::Default => {
                 let colors = vec![
-                    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
-                    "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9",
+                    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8",
+                    "#F7DC6F", "#BB8FCE", "#85C1E9",
                 ];
                 colors[index % colors.len()].to_string()
             }
@@ -298,16 +295,15 @@ impl KnowledgeVisualizer {
             }
             ColorScheme::ColorblindFriendly => {
                 let colors = vec![
-                    "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
-                    "#D55E00", "#CC79A7", "#999999",
+                    "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7",
+                    "#999999",
                 ];
                 colors[index % colors.len()].to_string()
             }
-            ColorScheme::Custom(colors) => {
-                colors.get(&index.to_string())
-                    .cloned()
-                    .unwrap_or_else(|| "#000000".to_string())
-            }
+            ColorScheme::Custom(colors) => colors
+                .get(&index.to_string())
+                .cloned()
+                .unwrap_or_else(|| "#000000".to_string()),
         }
     }
 
@@ -320,9 +316,8 @@ impl KnowledgeVisualizer {
     /// Export graph as SVG
     fn export_as_svg(&self, graph: &KnowledgeGraph) -> KnowledgeResult<String> {
         // Simple SVG generation - in a real implementation, this would be more sophisticated
-        let mut svg = String::from(
-            r#"<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">"#,
-        );
+        let mut svg =
+            String::from(r#"<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">"#);
 
         // Add nodes
         for node in &graph.nodes {
@@ -330,11 +325,16 @@ impl KnowledgeVisualizer {
             let y = 100.0 + (node.weight * 50.0);
             svg.push_str(&format!(
                 r#"<circle cx="{}" cy="{}" r="{}" fill="{}" stroke="black" stroke-width="2"/>"#,
-                x, y, node.size * 10.0, node.color
+                x,
+                y,
+                node.size * 10.0,
+                node.color
             ));
             svg.push_str(&format!(
                 r#"<text x="{}" y="{}" text-anchor="middle" font-size="12">{}</text>"#,
-                x, y + 5.0, node.label
+                x,
+                y + 5.0,
+                node.label
             ));
         }
 
@@ -342,7 +342,8 @@ impl KnowledgeVisualizer {
         for edge in &graph.edges {
             svg.push_str(&format!(
                 r#"<line x1="100" y1="100" x2="200" y2="200" stroke="{}" stroke-width="{}"/>"#,
-                edge.color, edge.thickness * 2.0
+                edge.color,
+                edge.thickness * 2.0
             ));
         }
 
@@ -462,32 +463,28 @@ mod tests {
     async fn test_relationship_graph_generation() {
         let visualizer = KnowledgeVisualizer::default();
         let content_ids = vec!["content1".to_string(), "content2".to_string()];
-        let semantic_results = vec![
-            SemanticResult {
-                cache_key: "content1".to_string(),
-                content: "content1".to_string(),
-                embedding: vec![0.1, 0.2, 0.3],
-                relevance_score: 0.8,
-                semantic_tags: vec!["tag1".to_string()],
-                metadata: crate::types::SearchResultMetadata::default(),
-                cache_info: None,
-            },
-        ];
-        let temporal_relationships = vec![
-            (
-                "content1".to_string(),
-                TemporalContextRelationship {
-                    relationship_type: TemporalRelationshipType::Sequential {
-                        order: 1,
-                        gap_duration: std::time::Duration::from_secs(3600),
-                    },
-                    target_content_id: "content2".to_string(),
-                    confidence: 0.8,
-                    temporal_distance: std::time::Duration::from_secs(3600),
-                    relevance_score: 0.8,
+        let semantic_results = vec![SemanticResult {
+            cache_key: "content1".to_string(),
+            content: "content1".to_string(),
+            embedding: vec![0.1, 0.2, 0.3],
+            relevance_score: 0.8,
+            semantic_tags: vec!["tag1".to_string()],
+            metadata: crate::types::SearchResultMetadata::default(),
+            cache_info: None,
+        }];
+        let temporal_relationships = vec![(
+            "content1".to_string(),
+            TemporalContextRelationship {
+                relationship_type: TemporalRelationshipType::Sequential {
+                    order: 1,
+                    gap_duration: std::time::Duration::from_secs(3600),
                 },
-            ),
-        ];
+                target_content_id: "content2".to_string(),
+                confidence: 0.8,
+                temporal_distance: std::time::Duration::from_secs(3600),
+                relevance_score: 0.8,
+            },
+        )];
 
         let graph = visualizer
             .generate_relationship_graph(&content_ids, &semantic_results, &temporal_relationships)

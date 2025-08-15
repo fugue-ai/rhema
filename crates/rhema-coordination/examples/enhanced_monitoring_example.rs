@@ -31,16 +31,17 @@
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error, Level};
+use tracing::{error, info, warn, Level};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use rhema_coordination::grpc::{
-    SyneidesisCoordinationClient, SyneidesisConfig, CoordinationError,
-    ClientMetrics, ConnectionStatus, CoordinationMonitor, MonitoringConfig,
-    AlertHandler, Alert, AlertSeverity, AlertType, LoggingAlertHandler,
-    PrometheusExporter, HealthStatus
+use rhema_coordination::agent::real_time_coordination::{
+    AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType,
 };
-use rhema_coordination::agent::real_time_coordination::{AgentInfo, AgentMessage, AgentStatus, MessageType, MessagePriority};
+use rhema_coordination::grpc::{
+    Alert, AlertHandler, AlertSeverity, AlertType, ClientMetrics, ConnectionStatus,
+    CoordinationError, CoordinationMonitor, HealthStatus, LoggingAlertHandler, MonitoringConfig,
+    PrometheusExporter, SyneidesisConfig, SyneidesisCoordinationClient,
+};
 
 /// Custom alert handler that sends alerts to a webhook
 struct WebhookAlertHandler {
@@ -49,14 +50,19 @@ struct WebhookAlertHandler {
 
 #[async_trait::async_trait]
 impl AlertHandler for WebhookAlertHandler {
-    async fn handle_alert(&self, alert: Alert) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn handle_alert(
+        &self,
+        alert: Alert,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // In a real implementation, this would send the alert to a webhook
-        info!("Webhook Alert - Severity: {:?}, Type: {:?}, Message: {}", 
-              alert.severity, alert.alert_type, alert.message);
-        
+        info!(
+            "Webhook Alert - Severity: {:?}, Type: {:?}, Message: {}",
+            alert.severity, alert.alert_type, alert.message
+        );
+
         // Simulate webhook call
         tokio::time::sleep(Duration::from_millis(100)).await;
-        
+
         Ok(())
     }
 }
@@ -68,7 +74,10 @@ struct SlackAlertHandler {
 
 #[async_trait::async_trait]
 impl AlertHandler for SlackAlertHandler {
-    async fn handle_alert(&self, alert: Alert) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn handle_alert(
+        &self,
+        alert: Alert,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // In a real implementation, this would send the alert to Slack
         let emoji = match alert.severity {
             AlertSeverity::Info => "ℹ️",
@@ -76,13 +85,15 @@ impl AlertHandler for SlackAlertHandler {
             AlertSeverity::Error => "❌",
             AlertSeverity::Critical => "🚨",
         };
-        
-        info!("Slack Alert {} - Channel: {}, Message: {}", 
-              emoji, self.channel, alert.message);
-        
+
+        info!(
+            "Slack Alert {} - Channel: {}, Message: {}",
+            emoji, self.channel, alert.message
+        );
+
         // Simulate Slack API call
         tokio::time::sleep(Duration::from_millis(200)).await;
-        
+
         Ok(())
     }
 }
@@ -123,7 +134,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     monitoring_config.connection_monitoring_enabled = true;
 
     // Configure performance thresholds
-    monitoring_config.performance_thresholds.max_response_time_ms = 3000;
+    monitoring_config
+        .performance_thresholds
+        .max_response_time_ms = 3000;
     monitoring_config.performance_thresholds.max_error_rate = 0.05;
     monitoring_config.performance_thresholds.min_success_rate = 0.95;
 
@@ -159,13 +172,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Add custom alert handlers
-    monitor.add_alert_handler(Box::new(LoggingAlertHandler)).await;
-    monitor.add_alert_handler(Box::new(WebhookAlertHandler {
-        webhook_url: "https://api.example.com/webhook".to_string(),
-    })).await;
-    monitor.add_alert_handler(Box::new(SlackAlertHandler {
-        channel: "#alerts".to_string(),
-    })).await;
+    monitor
+        .add_alert_handler(Box::new(LoggingAlertHandler))
+        .await;
+    monitor
+        .add_alert_handler(Box::new(WebhookAlertHandler {
+            webhook_url: "https://api.example.com/webhook".to_string(),
+        }))
+        .await;
+    monitor
+        .add_alert_handler(Box::new(SlackAlertHandler {
+            channel: "#alerts".to_string(),
+        }))
+        .await;
 
     // Start monitoring
     monitor.start().await?;
@@ -187,7 +206,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Demonstrate error handling and resilience
     info!("🔄 Demonstrating error handling and resilience...");
-    
+
     // Attempt to register agent (this will fail since server is not running)
     match client.register_agent(agent_info.clone()).await {
         Ok(()) => {
@@ -195,7 +214,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => {
             warn!("⚠️ Agent registration failed (expected): {}", e);
-            
+
             // Demonstrate error type handling
             match e {
                 CoordinationError::ConnectionFailed(msg) => {
@@ -204,8 +223,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 CoordinationError::NotConnected => {
                     info!("🔍 Not connected to server");
                 }
-                CoordinationError::RetryLimitExceeded { operation, attempts } => {
-                    info!("🔍 Retry limit exceeded for {} after {} attempts", operation, attempts);
+                CoordinationError::RetryLimitExceeded {
+                    operation,
+                    attempts,
+                } => {
+                    info!(
+                        "🔍 Retry limit exceeded for {} after {} attempts",
+                        operation, attempts
+                    );
                 }
                 _ => {
                     info!("🔍 Other error: {}", e);
@@ -216,7 +241,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Demonstrate metrics collection
     info!("📊 Demonstrating metrics collection...");
-    
+
     // Simulate some operations to generate metrics
     for i in 0..10 {
         let message = AgentMessage {
@@ -237,27 +262,52 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let start_time = std::time::Instant::now();
         let success = i % 3 != 0; // Simulate some failures
         let response_time = Duration::from_millis(100 + (i * 50) as u64);
-        
-        monitor.record_operation_result("send_message", success, response_time).await;
-        
+
+        monitor
+            .record_operation_result("send_message", success, response_time)
+            .await;
+
         if success {
             info!("✅ Simulated successful message send {}", i);
         } else {
             warn!("⚠️ Simulated failed message send {}", i);
         }
-        
+
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
     // Get and display current metrics
     info!("📈 Current Metrics:");
     let metrics = client_metrics.as_ref();
-    info!("  Total Requests: {}", metrics.total_requests.load(std::sync::atomic::Ordering::Relaxed));
-    info!("  Successful Requests: {}", metrics.successful_requests.load(std::sync::atomic::Ordering::Relaxed));
-    info!("  Failed Requests: {}", metrics.failed_requests.load(std::sync::atomic::Ordering::Relaxed));
+    info!(
+        "  Total Requests: {}",
+        metrics
+            .total_requests
+            .load(std::sync::atomic::Ordering::Relaxed)
+    );
+    info!(
+        "  Successful Requests: {}",
+        metrics
+            .successful_requests
+            .load(std::sync::atomic::Ordering::Relaxed)
+    );
+    info!(
+        "  Failed Requests: {}",
+        metrics
+            .failed_requests
+            .load(std::sync::atomic::Ordering::Relaxed)
+    );
     info!("  Success Rate: {:.2}%", metrics.get_success_rate() * 100.0);
-    info!("  Average Response Time: {}ms", metrics.average_response_time.load(std::sync::atomic::Ordering::Relaxed));
-    info!("  Connection Success Rate: {:.2}%", metrics.get_connection_success_rate() * 100.0);
+    info!(
+        "  Average Response Time: {}ms",
+        metrics
+            .average_response_time
+            .load(std::sync::atomic::Ordering::Relaxed)
+    );
+    info!(
+        "  Connection Success Rate: {:.2}%",
+        metrics.get_connection_success_rate() * 100.0
+    );
 
     // Get health status
     info!("🏥 Health Status:");
@@ -278,9 +328,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("  Server Address: {}", diagnostics.server_address);
     info!("  Connection Status: {:?}", diagnostics.connection_status);
     info!("  Connection Attempts: {}", diagnostics.connection_attempts);
-    info!("  Successful Connections: {}", diagnostics.successful_connections);
+    info!(
+        "  Successful Connections: {}",
+        diagnostics.successful_connections
+    );
     info!("  Failed Connections: {}", diagnostics.failed_connections);
-    info!("  Connection Success Rate: {:.2}%", diagnostics.connection_success_rate * 100.0);
+    info!(
+        "  Connection Success Rate: {:.2}%",
+        diagnostics.connection_success_rate * 100.0
+    );
 
     // Get performance metrics
     info!("⚡ Performance Metrics:");
@@ -288,14 +344,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for metric in performance_metrics.iter().take(3) {
         info!("  Operation: {}", metric.operation_name);
         info!("    Total Operations: {}", metric.total_operations);
-        info!("    Success Rate: {:.2}%", (metric.successful_operations as f64 / metric.total_operations as f64) * 100.0);
-        info!("    Average Response Time: {:?}", metric.average_response_time);
-        info!("    Throughput: {:.2} ops/sec", metric.throughput_ops_per_second);
+        info!(
+            "    Success Rate: {:.2}%",
+            (metric.successful_operations as f64 / metric.total_operations as f64) * 100.0
+        );
+        info!(
+            "    Average Response Time: {:?}",
+            metric.average_response_time
+        );
+        info!(
+            "    Throughput: {:.2} ops/sec",
+            metric.throughput_ops_per_second
+        );
     }
 
     // Demonstrate health monitoring
     info!("🏥 Demonstrating health monitoring...");
-    
+
     // Perform health check
     match client.health_check().await {
         Ok(()) => {
@@ -312,17 +377,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Demonstrate alerting
     info!("🚨 Demonstrating alerting system...");
-    
+
     // Simulate a high response time alert
-    monitor.record_operation_result(
-        "slow_operation",
-        true,
-        Duration::from_millis(5000), // Above threshold
-    ).await;
+    monitor
+        .record_operation_result(
+            "slow_operation",
+            true,
+            Duration::from_millis(5000), // Above threshold
+        )
+        .await;
 
     // Simulate a high error rate alert
     for _ in 0..5 {
-        monitor.record_operation_result("failing_operation", false, Duration::from_millis(100)).await;
+        monitor
+            .record_operation_result("failing_operation", false, Duration::from_millis(100))
+            .await;
     }
 
     // Wait for alerts to be processed
@@ -330,7 +399,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Demonstrate graceful shutdown
     info!("🛑 Demonstrating graceful shutdown...");
-    
+
     // Shutdown client
     client.shutdown().await?;
     info!("✅ Client shutdown completed");

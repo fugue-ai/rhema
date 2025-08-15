@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,12 +44,23 @@ impl NotionIntegration {
             },
         }
     }
-    
+
     /// Create a Notion page
-    pub async fn create_page(&self, parent_id: &str, title: &str, content: Option<&str>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Notion not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn create_page(
+        &self,
+        parent_id: &str,
+        title: &str,
+        content: Option<&str>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Notion not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let mut page_data = serde_json::json!({
             "parent": {
                 "database_id": parent_id
@@ -63,7 +77,7 @@ impl NotionIntegration {
                 }
             }
         });
-        
+
         if let Some(content) = content {
             page_data["children"] = serde_json::json!([
                 {
@@ -82,60 +96,78 @@ impl NotionIntegration {
                 }
             ]);
         }
-        
+
         let url = "https://api.notion.com/v1/pages";
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         headers.insert("Notion-Version".to_string(), "2022-06-28".to_string());
-        
-        let response = self.http_client.post(url, &page_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(url, &page_data.to_string(), Some(headers))
+            .await?;
         let page: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(page["id"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Get Notion page content
     pub async fn get_page(&self, page_id: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Notion not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Notion not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let url = format!("https://api.notion.com/v1/pages/{}", page_id);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         headers.insert("Notion-Version".to_string(), "2022-06-28".to_string());
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let page: serde_json::Value = serde_json::from_str(&response)?;
         Ok(page)
     }
-    
+
     /// Get Notion page blocks
     pub async fn get_page_blocks(&self, page_id: &str) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Notion not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Notion not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let url = format!("https://api.notion.com/v1/blocks/{}/children", page_id);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         headers.insert("Notion-Version".to_string(), "2022-06-28".to_string());
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
-        let blocks = result["results"]
-            .as_array()
-            .unwrap_or(&Vec::new())
-            .clone();
-        
+
+        let blocks = result["results"].as_array().unwrap_or(&Vec::new()).clone();
+
         Ok(blocks)
     }
-    
+
     /// Search Notion pages
     pub async fn search_pages(&self, query: &str) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Notion not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Notion not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let search_data = serde_json::json!({
             "query": query,
             "filter": {
@@ -143,21 +175,21 @@ impl NotionIntegration {
                 "value": "page"
             }
         });
-        
+
         let url = "https://api.notion.com/v1/search";
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
         headers.insert("Notion-Version".to_string(), "2022-06-28".to_string());
-        
-        let response = self.http_client.post(url, &search_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(url, &search_data.to_string(), Some(headers))
+            .await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
-        let pages = result["results"]
-            .as_array()
-            .unwrap_or(&Vec::new())
-            .clone();
-        
+
+        let pages = result["results"].as_array().unwrap_or(&Vec::new()).clone();
+
         Ok(pages)
     }
 }
@@ -181,7 +213,10 @@ impl ExternalIntegration for NotionIntegration {
             version: "1.0.0".to_string(),
             description: "Notion integration for documentation".to_string(),
             integration_type: IntegrationType::Notion,
-            capabilities: vec!["page_management".to_string(), "database_management".to_string()],
+            capabilities: vec![
+                "page_management".to_string(),
+                "database_management".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

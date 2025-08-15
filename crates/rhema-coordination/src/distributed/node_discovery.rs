@@ -32,13 +32,13 @@ impl NodeDiscovery {
     /// Start node discovery
     pub async fn start(&self) -> RhemaResult<()> {
         info!("Starting node discovery with config: {:?}", self.config);
-        
+
         // In a real implementation, this would:
         // 1. Start listening for node announcements
         // 2. Begin periodic node scanning
         // 3. Register with discovery service
         // 4. Start heartbeat monitoring
-        
+
         info!("✅ Node discovery started successfully");
         Ok(())
     }
@@ -46,13 +46,13 @@ impl NodeDiscovery {
     /// Stop node discovery
     pub async fn stop(&self) -> RhemaResult<()> {
         info!("Stopping node discovery...");
-        
+
         // In a real implementation, this would:
         // 1. Stop listening for announcements
         // 2. Stop periodic scanning
         // 3. Deregister from discovery service
         // 4. Stop heartbeat monitoring
-        
+
         info!("✅ Node discovery stopped successfully");
         Ok(())
     }

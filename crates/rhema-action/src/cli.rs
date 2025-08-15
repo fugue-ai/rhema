@@ -53,7 +53,10 @@ async fn execute_action(intent: &ActionIntent) -> ActionResult<ExecutionResult> 
                 if result.passed {
                     changes.push(format!("Pre-execution check passed: {}", check));
                 } else {
-                    warnings.push(format!("Pre-execution check warning: {} - {}", check, result.message));
+                    warnings.push(format!(
+                        "Pre-execution check warning: {} - {}",
+                        check, result.message
+                    ));
                 }
             }
             Err(e) => {
@@ -82,7 +85,10 @@ async fn execute_action(intent: &ActionIntent) -> ActionResult<ExecutionResult> 
                 if result.passed {
                     changes.push(format!("Post-execution check passed: {}", check));
                 } else {
-                    warnings.push(format!("Post-execution check warning: {} - {}", check, result.message));
+                    warnings.push(format!(
+                        "Post-execution check warning: {} - {}",
+                        check, result.message
+                    ));
                 }
             }
             Err(e) => {
@@ -98,7 +104,10 @@ async fn execute_action(intent: &ActionIntent) -> ActionResult<ExecutionResult> 
                 if result.passed {
                     changes.push(format!("Validation passed: {}", validation));
                 } else {
-                    errors.push(format!("Validation failed: {} - {}", validation, result.message));
+                    errors.push(format!(
+                        "Validation failed: {} - {}",
+                        validation, result.message
+                    ));
                 }
             }
             Err(e) => {
@@ -172,7 +181,7 @@ async fn run_transformation_tool(
                         .args(&["prettier", "--write", path])
                         .output()
                         .await;
-                    
+
                     match output {
                         Ok(_) => changes.push(format!("Formatted file: {}", path)),
                         Err(e) => warnings.push(format!("Prettier failed for {}: {}", path, e)),
@@ -188,7 +197,7 @@ async fn run_transformation_tool(
                         .args(&["eslint", "--fix", path])
                         .output()
                         .await;
-                    
+
                     match output {
                         Ok(_) => changes.push(format!("Linted file: {}", path)),
                         Err(e) => warnings.push(format!("ESLint failed for {}: {}", path, e)),
@@ -202,7 +211,7 @@ async fn run_transformation_tool(
                 .args(&["fmt"])
                 .output()
                 .await;
-            
+
             match output {
                 Ok(_) => changes.push("Formatted Rust code with cargo fmt".to_string()),
                 Err(e) => warnings.push(format!("Cargo fmt failed: {}", e)),
@@ -214,14 +223,17 @@ async fn run_transformation_tool(
                 .args(&["clippy", "--fix"])
                 .output()
                 .await;
-            
+
             match output {
                 Ok(_) => changes.push("Fixed Rust code with cargo clippy".to_string()),
                 Err(e) => warnings.push(format!("Cargo clippy failed: {}", e)),
             }
         }
         _ => {
-            warnings.push(format!("Transformation tool skipped: {} - tool not found", tool_name));
+            warnings.push(format!(
+                "Transformation tool skipped: {} - tool not found",
+                tool_name
+            ));
         }
     }
 
@@ -279,32 +291,31 @@ struct ExecutionResult {
 
 async fn list_active_actions() -> ActionResult<Vec<(String, String)>> {
     info!("Listing active actions");
-    
+
     // In a real implementation, this would query a database or state store
     // For now, we'll simulate by reading from a state file
     let state_file = PathBuf::from(".rhema/actions/state.json");
-    
+
     if !state_file.exists() {
         return Ok(Vec::new());
     }
-    
+
     let content = tokio::fs::read_to_string(&state_file).await.map_err(|e| {
         ActionError::file_operation(
             state_file.clone(),
             format!("Failed to read state file: {}", e),
         )
     })?;
-    
-    let actions: Vec<ActionState> = serde_json::from_str(&content).map_err(|e| {
-        ActionError::deserialization(format!("Failed to parse state file: {}", e))
-    })?;
-    
+
+    let actions: Vec<ActionState> = serde_json::from_str(&content)
+        .map_err(|e| ActionError::deserialization(format!("Failed to parse state file: {}", e)))?;
+
     let active_actions: Vec<(String, String)> = actions
         .into_iter()
         .filter(|action| action.status == "active" || action.status == "pending")
         .map(|action| (action.intent_id, action.status))
         .collect();
-    
+
     Ok(active_actions)
 }
 
@@ -318,32 +329,34 @@ struct ActionState {
 
 async fn get_action_status(intent_id: &str) -> ActionResult<String> {
     info!("Getting status for action: {}", intent_id);
-    
+
     // In a real implementation, this would query a database or state store
     // For now, we'll simulate by reading from a state file
     let state_file = PathBuf::from(".rhema/actions/state.json");
-    
+
     if !state_file.exists() {
-        return Err(ActionError::not_found(format!("Action {} not found", intent_id)));
+        return Err(ActionError::not_found(format!(
+            "Action {} not found",
+            intent_id
+        )));
     }
-    
+
     let content = tokio::fs::read_to_string(&state_file).await.map_err(|e| {
         ActionError::file_operation(
             state_file.clone(),
             format!("Failed to read state file: {}", e),
         )
     })?;
-    
-    let actions: Vec<ActionState> = serde_json::from_str(&content).map_err(|e| {
-        ActionError::deserialization(format!("Failed to parse state file: {}", e))
-    })?;
-    
+
+    let actions: Vec<ActionState> = serde_json::from_str(&content)
+        .map_err(|e| ActionError::deserialization(format!("Failed to parse state file: {}", e)))?;
+
     // Find the specific action
     let action = actions
         .into_iter()
         .find(|action| action.intent_id == intent_id)
         .ok_or_else(|| ActionError::not_found(format!("Action {} not found", intent_id)))?;
-    
+
     // Check if there's a backup for this action
     let backup_dir = PathBuf::from(".rhema/backups");
     let backup_exists = if backup_dir.exists() {
@@ -353,7 +366,7 @@ async fn get_action_status(intent_id: &str) -> ActionResult<String> {
                 format!("Failed to read backup directory: {}", e),
             )
         })?;
-        
+
         let mut found = false;
         while let Some(entry) = entries.next_entry().await.map_err(|e| {
             ActionError::file_operation(
@@ -378,7 +391,7 @@ async fn get_action_status(intent_id: &str) -> ActionResult<String> {
     } else {
         false
     };
-    
+
     // Build status string
     let mut status = format!("Status: {}", action.status);
     if backup_exists {
@@ -386,7 +399,7 @@ async fn get_action_status(intent_id: &str) -> ActionResult<String> {
     }
     status.push_str(&format!("\nCreated: {}", action.created_at));
     status.push_str(&format!("\nUpdated: {}", action.updated_at));
-    
+
     Ok(status)
 }
 
@@ -801,9 +814,13 @@ impl ActionCli {
         } else {
             println!("❌ Action execution failed!");
             println!("Errors: {}", result.errors.join(", "));
-            
+
             // Display rollback information
-            if result.changes.iter().any(|change| change.contains("Rollback")) {
+            if result
+                .changes
+                .iter()
+                .any(|change| change.contains("Rollback"))
+            {
                 println!("🔄 Rollback Information:");
                 for change in &result.changes {
                     if change.contains("Rollback") || change.contains("Backup") {
@@ -812,9 +829,12 @@ impl ActionCli {
                 }
             } else {
                 println!("💡 No automatic rollback was performed");
-                println!("   Use 'rhema action rollback {}' to manually rollback", intent.id);
+                println!(
+                    "   Use 'rhema action rollback {}' to manually rollback",
+                    intent.id
+                );
             }
-            
+
             if !result.warnings.is_empty() {
                 println!("⚠️  Warnings: {}", result.warnings.join(", "));
             }
@@ -837,10 +857,13 @@ impl ActionCli {
 
         // Find backups for this intent
         let backups = rollback_manager.list_backups_for_intent(&intent_id).await;
-        
+
         if backups.is_empty() {
             if force {
-                println!("⚠️  No backups found for intent {}, but force flag is set", intent_id);
+                println!(
+                    "⚠️  No backups found for intent {}, but force flag is set",
+                    intent_id
+                );
                 println!("Proceeding with rollback without backup...");
                 return Ok(());
             } else {
@@ -857,18 +880,25 @@ impl ActionCli {
             .max_by_key(|backup| backup.created_at)
             .unwrap();
 
-        println!("Found backup: {} (created: {})", latest_backup.id, latest_backup.created_at);
+        println!(
+            "Found backup: {} (created: {})",
+            latest_backup.id, latest_backup.created_at
+        );
         println!("Backup method: {:?}", latest_backup.backup_method);
         println!("Files backed up: {}", latest_backup.files_backed_up.len());
 
         if !force {
-            println!("⚠️  This will restore {} files to their previous state.", latest_backup.files_backed_up.len());
+            println!(
+                "⚠️  This will restore {} files to their previous state.",
+                latest_backup.files_backed_up.len()
+            );
             println!("Are you sure you want to proceed? (y/N)");
-            
+
             // Read user confirmation from stdin
             let mut input = String::new();
             if let Ok(_) = std::io::stdin().read_line(&mut input) {
-                let confirmed = input.trim().to_lowercase() == "y" || input.trim().to_lowercase() == "yes";
+                let confirmed =
+                    input.trim().to_lowercase() == "y" || input.trim().to_lowercase() == "yes";
                 if !confirmed {
                     println!("Rollback cancelled by user");
                     return Ok(());
@@ -887,7 +917,7 @@ impl ActionCli {
             println!("✅ Rollback completed successfully!");
             println!("Duration: {:?}", rollback_result.duration);
             println!("Files restored: {}", rollback_result.files_restored.len());
-            
+
             // Clean up backup if requested
             if !keep_backup {
                 println!("🗑️  Cleaning up backup...");
@@ -927,7 +957,7 @@ impl ActionCli {
         }
 
         println!("=== ACTIONS ===");
-        
+
         // Apply filters
         let mut filtered_actions = Vec::new();
         for (intent_id, status) in actions {
@@ -948,7 +978,7 @@ impl ActionCli {
                 // Try to load intent details for additional filtering
                 let intent_file = format!(".rhema/actions/{}.yaml", intent_id);
                 let mut include_action = true;
-                
+
                 if let Ok(intent) = Self::load_intent_from_file(&intent_file).await {
                     // Action type filter
                     if let Some(filter_type) = &action_type {
@@ -956,7 +986,7 @@ impl ActionCli {
                             include_action = false;
                         }
                     }
-                    
+
                     // Safety level filter
                     if let Some(filter_safety) = &safety_level {
                         if intent.safety_level != *filter_safety {
@@ -964,7 +994,7 @@ impl ActionCli {
                         }
                     }
                 }
-                
+
                 if include_action {
                     filtered_actions.push((intent_id, status));
                 }
@@ -980,7 +1010,7 @@ impl ActionCli {
         println!("Found {} action(s):", filtered_actions.len());
         println!("{:<20} {:<15} {:<20}", "Intent ID", "Status", "Type");
         println!("{:-<55}", "");
-        
+
         for (intent_id, status) in filtered_actions {
             let intent_file = format!(".rhema/actions/{}.yaml", intent_id);
             let action_type = if let Ok(intent) = Self::load_intent_from_file(&intent_file).await {
@@ -988,8 +1018,9 @@ impl ActionCli {
             } else {
                 "Unknown".to_string()
             };
-            
-            println!("{:<20} {:<15} {:<20}", 
+
+            println!(
+                "{:<20} {:<15} {:<20}",
                 &intent_id[..std::cmp::min(20, intent_id.len())],
                 &status[..std::cmp::min(15, status.len())],
                 &action_type[..std::cmp::min(20, action_type.len())]
@@ -1014,14 +1045,14 @@ impl ActionCli {
 
         if detailed {
             println!("\n=== DETAILED STATUS ===");
-            
+
             // Parse the status to extract more information
             let status_lines: Vec<&str> = status.split('\n').collect();
             for line in status_lines {
                 if line.starts_with("Status:") {
                     let status_value = line.replace("Status:", "").trim().to_string();
                     println!("Current State: {}", status_value);
-                    
+
                     // Provide additional context based on status
                     match status_value.as_str() {
                         "active" => println!("  • Action is currently being executed"),
@@ -1039,7 +1070,7 @@ impl ActionCli {
                     println!("Backup: Available for rollback");
                 }
             }
-            
+
             // Show additional metadata if available
             let intent_file = format!(".rhema/actions/{}.yaml", intent_id);
             if PathBuf::from(&intent_file).exists() {
@@ -1048,28 +1079,36 @@ impl ActionCli {
                     println!("  Type: {:?}", intent.action_type);
                     println!("  Safety Level: {:?}", intent.safety_level);
                     println!("  Scope: {} files", intent.scope.len());
-                    println!("  Tools: {} transformation tools", intent.transformation.tools.len());
-                    println!("  Validations: {} validation checks", intent.transformation.validation.len());
+                    println!(
+                        "  Tools: {} transformation tools",
+                        intent.transformation.tools.len()
+                    );
+                    println!(
+                        "  Validations: {} validation checks",
+                        intent.transformation.validation.len()
+                    );
                 }
             }
         }
 
         if validation {
             println!("\n=== VALIDATION RESULTS ===");
-            
+
             // Check if there are validation results stored
             let validation_file = format!(".rhema/actions/{}.validation.json", intent_id);
             if PathBuf::from(&validation_file).exists() {
                 match tokio::fs::read_to_string(&validation_file).await {
                     Ok(content) => {
-                        if let Ok(validation_data) = serde_json::from_str::<serde_json::Value>(&content) {
+                        if let Ok(validation_data) =
+                            serde_json::from_str::<serde_json::Value>(&content)
+                        {
                             if let Some(results) = validation_data.get("results") {
                                 if let Some(results_array) = results.as_array() {
                                     for result in results_array {
                                         if let (Some(check), Some(passed), Some(message)) = (
                                             result.get("check").and_then(|v| v.as_str()),
                                             result.get("passed").and_then(|v| v.as_bool()),
-                                            result.get("message").and_then(|v| v.as_str())
+                                            result.get("message").and_then(|v| v.as_str()),
                                         ) {
                                             let status_icon = if passed { "✅" } else { "❌" };
                                             println!("{} {}: {}", status_icon, check, message);
@@ -1118,12 +1157,12 @@ impl ActionCli {
             for (i, path) in intent.scope.iter().enumerate() {
                 println!("  {}. {}", i + 1, path);
             }
-            
+
             println!("\nTransformation tools that would run:");
             for tool in &intent.transformation.tools {
                 println!("  • {}", tool);
             }
-            
+
             println!("\nValidation checks that would run:");
             for validation in &intent.transformation.validation {
                 println!("  • {}", validation);
@@ -1133,17 +1172,23 @@ impl ActionCli {
         if safety {
             println!("\n=== SAFETY ANALYSIS ===");
             println!("Requires Approval: {}", intent.requires_approval());
-            
+
             if let Some(approvers) = &intent.approval_workflow.approvers {
                 println!("Approvers: {}", approvers.join(", "));
             }
-            
-            println!("Pre-execution safety checks: {}", intent.safety_checks.pre_execution.len());
+
+            println!(
+                "Pre-execution safety checks: {}",
+                intent.safety_checks.pre_execution.len()
+            );
             for check in &intent.safety_checks.pre_execution {
                 println!("  • {}", check);
             }
-            
-            println!("Post-execution safety checks: {}", intent.safety_checks.post_execution.len());
+
+            println!(
+                "Post-execution safety checks: {}",
+                intent.safety_checks.post_execution.len()
+            );
             for check in &intent.safety_checks.post_execution {
                 println!("  • {}", check);
             }
@@ -1151,21 +1196,25 @@ impl ActionCli {
 
         if validation {
             println!("\n=== VALIDATION CHECKS ===");
-            
+
             let mut validation_results = Vec::new();
             let mut passed_checks = 0;
             let mut failed_checks = 0;
-            
+
             // Run validation checks
             for validation_name in &intent.transformation.validation {
                 println!("🔍 Running validation: {}", validation_name);
-                
+
                 let result = match validation_name.as_str() {
                     "file_exists" => check_file_exists(&intent).await,
-                    "file_content" => check_file_content_safety(&intent).await.map(|r| ValidationResult {
-                        passed: r.passed,
-                        message: r.message,
-                    }),
+                    "file_content" => {
+                        check_file_content_safety(&intent)
+                            .await
+                            .map(|r| ValidationResult {
+                                passed: r.passed,
+                                message: r.message,
+                            })
+                    }
                     "dependency_version" => check_dependency_version(&intent).await,
                     _ => {
                         println!("⚠️  Unknown validation: {}", validation_name);
@@ -1180,7 +1229,7 @@ impl ActionCli {
                         continue;
                     }
                 };
-                
+
                 match result {
                     Ok(validation_result) => {
                         if validation_result.passed {
@@ -1207,7 +1256,7 @@ impl ActionCli {
                     }
                 }
             }
-            
+
             // Save validation results
             let validation_data = serde_json::json!({
                 "intent_id": intent.id,
@@ -1230,28 +1279,31 @@ impl ActionCli {
                     })
                 }).collect::<Vec<_>>()
             });
-            
+
             let validation_file = format!(".rhema/actions/{}.validation.json", intent.id);
             let validation_content = serde_json::to_string_pretty(&validation_data)?;
-            tokio::fs::write(&validation_file, validation_content).await.map_err(|e| {
-                ActionError::file_operation(
-                    PathBuf::from(&validation_file),
-                    format!("Failed to write validation file: {}", e),
-                )
-            })?;
-            
+            tokio::fs::write(&validation_file, validation_content)
+                .await
+                .map_err(|e| {
+                    ActionError::file_operation(
+                        PathBuf::from(&validation_file),
+                        format!("Failed to write validation file: {}", e),
+                    )
+                })?;
+
             println!("\nValidation Summary:");
             println!("  Total checks: {}", intent.transformation.validation.len());
             println!("  Passed: {}", passed_checks);
             println!("  Failed: {}", failed_checks);
-            println!("  Success rate: {:.1}%", 
+            println!(
+                "  Success rate: {:.1}%",
                 if intent.transformation.validation.is_empty() {
                     100.0
                 } else {
                     (passed_checks as f64 / intent.transformation.validation.len() as f64) * 100.0
                 }
             );
-            
+
             if failed_checks > 0 {
                 println!("⚠️  Some validation checks failed. Review the results above.");
             }
@@ -1272,27 +1324,27 @@ impl ActionCli {
 
         // Calculate the cutoff date
         let cutoff_date = chrono::Utc::now() - chrono::Duration::days(days as i64);
-        
+
         // In a real implementation, this would query a database or state store
         // For now, we'll simulate by reading from a state file
         let state_file = PathBuf::from(".rhema/actions/state.json");
-        
+
         if !state_file.exists() {
             println!("No action history found");
             return Ok(());
         }
-        
+
         let content = tokio::fs::read_to_string(&state_file).await.map_err(|e| {
             ActionError::file_operation(
                 state_file.clone(),
                 format!("Failed to read state file: {}", e),
             )
         })?;
-        
+
         let actions: Vec<ActionState> = serde_json::from_str(&content).map_err(|e| {
             ActionError::deserialization(format!("Failed to parse state file: {}", e))
         })?;
-        
+
         // Filter actions by date and other criteria
         let filtered_actions: Vec<&ActionState> = actions
             .iter()
@@ -1305,31 +1357,34 @@ impl ActionCli {
                 }
             })
             .collect();
-        
+
         if filtered_actions.is_empty() {
             println!("No actions found in the last {} days", days);
             return Ok(());
         }
-        
+
         println!("=== ACTION HISTORY (Last {} days) ===", days);
         println!("Total actions: {}", filtered_actions.len());
-        
+
         // Group actions by status
         let mut status_counts = std::collections::HashMap::new();
         for action in &filtered_actions {
             *status_counts.entry(&action.status).or_insert(0) += 1;
         }
-        
+
         println!("\nStatus Summary:");
         for (status, count) in status_counts {
             println!("  {}: {}", status, count);
         }
-        
+
         if detailed {
             println!("\nDetailed History:");
-            println!("{:<20} {:<15} {:<20} {:<20}", "Intent ID", "Status", "Created", "Updated");
+            println!(
+                "{:<20} {:<15} {:<20} {:<20}",
+                "Intent ID", "Status", "Created", "Updated"
+            );
             println!("{:-<75}", "");
-            
+
             for action in filtered_actions {
                 println!(
                     "{:<20} {:<15} {:<20} {:<20}",
@@ -1342,14 +1397,17 @@ impl ActionCli {
         } else {
             println!("\nRecent Actions:");
             for action in filtered_actions.iter().take(10) {
-                println!("  {} - {} ({})", action.intent_id, action.status, action.created_at);
+                println!(
+                    "  {} - {} ({})",
+                    action.intent_id, action.status, action.created_at
+                );
             }
-            
+
             if filtered_actions.len() > 10 {
                 println!("  ... and {} more actions", filtered_actions.len() - 10);
             }
         }
-        
+
         // Show action type and safety level filters if specified
         if action_type.is_some() || safety_level.is_some() {
             println!("\nFilters Applied:");
@@ -1360,7 +1418,7 @@ impl ActionCli {
                 println!("  Safety Level: {:?}", safety_level);
             }
         }
-        
+
         println!("=====================");
 
         info!("History display completed");
@@ -1400,12 +1458,17 @@ impl ActionCli {
                 "rollback_capability",
             ]
         } else {
-            intent.safety_checks.pre_execution.iter().map(|s| s.as_str()).collect()
+            intent
+                .safety_checks
+                .pre_execution
+                .iter()
+                .map(|s| s.as_str())
+                .collect()
         };
 
         for check_name in &checks_to_run {
             println!("\n🔍 Running check: {}", check_name);
-            
+
             let result = match *check_name {
                 "file_permissions" => check_file_permissions(&intent).await,
                 "file_content" => check_file_content_safety(&intent).await,
@@ -1432,7 +1495,7 @@ impl ActionCli {
                         println!("   Reason: {}", check_result.message);
                         failed_checks += 1;
                     }
-                    
+
                     all_results.push((*check_name, check_result));
                 }
                 Err(e) => {
@@ -1456,15 +1519,19 @@ impl ActionCli {
         println!("Passed: {}", passed_checks);
         println!("Failed: {}", failed_checks);
         println!("Warnings: {}", warnings);
-        println!("Success rate: {:.1}%", 
-            (passed_checks as f64 / checks_to_run.len() as f64) * 100.0);
+        println!(
+            "Success rate: {:.1}%",
+            (passed_checks as f64 / checks_to_run.len() as f64) * 100.0
+        );
 
         if detailed {
             println!("\n=== DETAILED RESULTS ===");
             for (check_name, result) in &all_results {
-                println!("{}: {}", 
-                    if result.passed { "✅" } else { "❌" }, 
-                    check_name);
+                println!(
+                    "{}: {}",
+                    if result.passed { "✅" } else { "❌" },
+                    check_name
+                );
                 if !result.passed {
                     println!("   {}", result.message);
                 }
@@ -1493,13 +1560,15 @@ impl ActionCli {
             });
 
             let export_content = serde_json::to_string_pretty(&export_data)?;
-            tokio::fs::write(&export_file, export_content).await.map_err(|e| {
-                ActionError::file_operation(
-                    PathBuf::from(&export_file),
-                    format!("Failed to write export file: {}", e),
-                )
-            })?;
-            
+            tokio::fs::write(&export_file, export_content)
+                .await
+                .map_err(|e| {
+                    ActionError::file_operation(
+                        PathBuf::from(&export_file),
+                        format!("Failed to write export file: {}", e),
+                    )
+                })?;
+
             println!("📄 Results exported to: {}", export_file);
         }
 
@@ -1527,30 +1596,33 @@ impl ActionCli {
         // In a real implementation, this would update a database or state store
         // For now, we'll simulate by updating a state file
         let state_file = PathBuf::from(".rhema/actions/state.json");
-        
+
         if !state_file.exists() {
-            return Err(ActionError::not_found(format!("Action {} not found", intent_id)));
+            return Err(ActionError::not_found(format!(
+                "Action {} not found",
+                intent_id
+            )));
         }
-        
+
         let content = tokio::fs::read_to_string(&state_file).await.map_err(|e| {
             ActionError::file_operation(
                 state_file.clone(),
                 format!("Failed to read state file: {}", e),
             )
         })?;
-        
+
         let mut actions: Vec<ActionState> = serde_json::from_str(&content).map_err(|e| {
             ActionError::deserialization(format!("Failed to parse state file: {}", e))
         })?;
-        
+
         // Find and update the specific action
         let action_index = actions
             .iter()
             .position(|action| action.intent_id == intent_id)
             .ok_or_else(|| ActionError::not_found(format!("Action {} not found", intent_id)))?;
-        
+
         let action = &mut actions[action_index];
-        
+
         // Check if action is in a state that can be approved
         if action.status != "pending" && action.status != "review" {
             return Err(ActionError::invalid_state(format!(
@@ -1558,20 +1630,22 @@ impl ActionCli {
                 intent_id, action.status
             )));
         }
-        
+
         // Update action status
         action.status = "approved".to_string();
         action.updated_at = chrono::Utc::now().to_rfc3339();
-        
+
         // Save updated state
         let updated_content = serde_json::to_string_pretty(&actions)?;
-        tokio::fs::write(&state_file, updated_content).await.map_err(|e| {
-            ActionError::file_operation(
-                state_file.clone(),
-                format!("Failed to write state file: {}", e),
-            )
-        })?;
-        
+        tokio::fs::write(&state_file, updated_content)
+            .await
+            .map_err(|e| {
+                ActionError::file_operation(
+                    state_file.clone(),
+                    format!("Failed to write state file: {}", e),
+                )
+            })?;
+
         // Save approval record
         let approval_record = ApprovalRecord {
             intent_id: intent_id.clone(),
@@ -1579,7 +1653,7 @@ impl ActionCli {
             comment: comment.clone(),
             approver: "cli_user".to_string(), // In real implementation, this would be the actual user
         };
-        
+
         let approvals_file = PathBuf::from(".rhema/actions/approvals.json");
         let mut approvals = if approvals_file.exists() {
             let content = tokio::fs::read_to_string(&approvals_file).await?;
@@ -1587,25 +1661,27 @@ impl ActionCli {
         } else {
             Vec::new()
         };
-        
+
         approvals.push(approval_record);
         let approvals_content = serde_json::to_string_pretty(&approvals)?;
-        tokio::fs::write(&approvals_file, approvals_content).await.map_err(|e| {
-            ActionError::file_operation(
-                approvals_file.clone(),
-                format!("Failed to write approvals file: {}", e),
-            )
-        })?;
-        
+        tokio::fs::write(&approvals_file, approvals_content)
+            .await
+            .map_err(|e| {
+                ActionError::file_operation(
+                    approvals_file.clone(),
+                    format!("Failed to write approvals file: {}", e),
+                )
+            })?;
+
         println!("✅ Intent {} approved successfully!", intent_id);
         if let Some(comment) = comment {
             println!("Comment: {}", comment);
         }
-        
+
         // Auto-execute if requested
         if auto_execute {
             println!("🚀 Auto-executing approved intent...");
-            
+
             // Find the intent file
             let intent_file = format!(".rhema/actions/{}.yaml", intent_id);
             if PathBuf::from(&intent_file).exists() {
@@ -1621,7 +1697,7 @@ impl ActionCli {
                 println!("⚠️  Intent file not found for auto-execution");
             }
         }
-        
+
         info!("Approval completed");
         Ok(())
     }
@@ -1633,30 +1709,33 @@ impl ActionCli {
         // In a real implementation, this would update a database or state store
         // For now, we'll simulate by updating a state file
         let state_file = PathBuf::from(".rhema/actions/state.json");
-        
+
         if !state_file.exists() {
-            return Err(ActionError::not_found(format!("Action {} not found", intent_id)));
+            return Err(ActionError::not_found(format!(
+                "Action {} not found",
+                intent_id
+            )));
         }
-        
+
         let content = tokio::fs::read_to_string(&state_file).await.map_err(|e| {
             ActionError::file_operation(
                 state_file.clone(),
                 format!("Failed to read state file: {}", e),
             )
         })?;
-        
+
         let mut actions: Vec<ActionState> = serde_json::from_str(&content).map_err(|e| {
             ActionError::deserialization(format!("Failed to parse state file: {}", e))
         })?;
-        
+
         // Find and update the specific action
         let action_index = actions
             .iter()
             .position(|action| action.intent_id == intent_id)
             .ok_or_else(|| ActionError::not_found(format!("Action {} not found", intent_id)))?;
-        
+
         let action = &mut actions[action_index];
-        
+
         // Check if action is in a state that can be rejected
         if action.status != "pending" && action.status != "review" {
             return Err(ActionError::invalid_state(format!(
@@ -1664,20 +1743,22 @@ impl ActionCli {
                 intent_id, action.status
             )));
         }
-        
+
         // Update action status
         action.status = "rejected".to_string();
         action.updated_at = chrono::Utc::now().to_rfc3339();
-        
+
         // Save updated state
         let updated_content = serde_json::to_string_pretty(&actions)?;
-        tokio::fs::write(&state_file, updated_content).await.map_err(|e| {
-            ActionError::file_operation(
-                state_file.clone(),
-                format!("Failed to write state file: {}", e),
-            )
-        })?;
-        
+        tokio::fs::write(&state_file, updated_content)
+            .await
+            .map_err(|e| {
+                ActionError::file_operation(
+                    state_file.clone(),
+                    format!("Failed to write state file: {}", e),
+                )
+            })?;
+
         // Save rejection record
         let rejection_record = RejectionRecord {
             intent_id: intent_id.clone(),
@@ -1685,7 +1766,7 @@ impl ActionCli {
             reason: reason.clone(),
             rejector: "cli_user".to_string(), // In real implementation, this would be the actual user
         };
-        
+
         let rejections_file = PathBuf::from(".rhema/actions/rejections.json");
         let mut rejections = if rejections_file.exists() {
             let content = tokio::fs::read_to_string(&rejections_file).await?;
@@ -1693,19 +1774,21 @@ impl ActionCli {
         } else {
             Vec::new()
         };
-        
+
         rejections.push(rejection_record);
         let rejections_content = serde_json::to_string_pretty(&rejections)?;
-        tokio::fs::write(&rejections_file, rejections_content).await.map_err(|e| {
-            ActionError::file_operation(
-                rejections_file.clone(),
-                format!("Failed to write rejections file: {}", e),
-            )
-        })?;
-        
+        tokio::fs::write(&rejections_file, rejections_content)
+            .await
+            .map_err(|e| {
+                ActionError::file_operation(
+                    rejections_file.clone(),
+                    format!("Failed to write rejections file: {}", e),
+                )
+            })?;
+
         println!("❌ Intent {} rejected successfully!", intent_id);
         println!("Reason: {}", reason);
-        
+
         info!("Rejection completed");
         Ok(())
     }
@@ -1734,140 +1817,368 @@ impl ActionCli {
         match intent.action_type {
             ActionType::Refactor => {
                 // For refactoring, add code quality tools
-                if !intent.transformation.tools.contains(&"prettier".to_string()) {
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"prettier".to_string())
+                {
                     intent.transformation.tools.push("prettier".to_string());
                 }
                 if !intent.transformation.tools.contains(&"eslint".to_string()) {
                     intent.transformation.tools.push("eslint".to_string());
                 }
-                if !intent.transformation.validation.contains(&"syntax_check".to_string()) {
-                    intent.transformation.validation.push("syntax_check".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"syntax_check".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("syntax_check".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"file_permissions".to_string()) {
-                    intent.safety_checks.pre_execution.push("file_permissions".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"file_permissions".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("file_permissions".to_string());
                 }
             }
             ActionType::Feature => {
                 // For feature development, add testing tools
-                if !intent.transformation.tools.contains(&"test_generation".to_string()) {
-                    intent.transformation.tools.push("test_generation".to_string());
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"test_generation".to_string())
+                {
+                    intent
+                        .transformation
+                        .tools
+                        .push("test_generation".to_string());
                 }
-                if !intent.transformation.validation.contains(&"test_coverage".to_string()) {
-                    intent.transformation.validation.push("test_coverage".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"test_coverage".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("test_coverage".to_string());
                 }
-                if !intent.safety_checks.post_execution.contains(&"regression_test".to_string()) {
-                    intent.safety_checks.post_execution.push("regression_test".to_string());
+                if !intent
+                    .safety_checks
+                    .post_execution
+                    .contains(&"regression_test".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .post_execution
+                        .push("regression_test".to_string());
                 }
             }
             ActionType::BugFix => {
                 // For bug fixes, add debugging and validation tools
-                if !intent.transformation.tools.contains(&"debug_analysis".to_string()) {
-                    intent.transformation.tools.push("debug_analysis".to_string());
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"debug_analysis".to_string())
+                {
+                    intent
+                        .transformation
+                        .tools
+                        .push("debug_analysis".to_string());
                 }
-                if !intent.transformation.validation.contains(&"bug_validation".to_string()) {
-                    intent.transformation.validation.push("bug_validation".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"bug_validation".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("bug_validation".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"backup_availability".to_string()) {
-                    intent.safety_checks.pre_execution.push("backup_availability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"backup_availability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("backup_availability".to_string());
                 }
             }
             ActionType::Documentation => {
                 // For documentation, add formatting and link checking
-                if !intent.transformation.tools.contains(&"markdown_formatter".to_string()) {
-                    intent.transformation.tools.push("markdown_formatter".to_string());
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"markdown_formatter".to_string())
+                {
+                    intent
+                        .transformation
+                        .tools
+                        .push("markdown_formatter".to_string());
                 }
-                if !intent.transformation.validation.contains(&"link_checker".to_string()) {
-                    intent.transformation.validation.push("link_checker".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"link_checker".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("link_checker".to_string());
                 }
             }
             ActionType::Test => {
                 // For test creation, add test framework tools
-                if !intent.transformation.tools.contains(&"test_framework_setup".to_string()) {
-                    intent.transformation.tools.push("test_framework_setup".to_string());
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"test_framework_setup".to_string())
+                {
+                    intent
+                        .transformation
+                        .tools
+                        .push("test_framework_setup".to_string());
                 }
-                if !intent.transformation.validation.contains(&"test_execution".to_string()) {
-                    intent.transformation.validation.push("test_execution".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"test_execution".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("test_execution".to_string());
                 }
             }
             ActionType::Configuration => {
                 // For configuration changes, add validation tools
-                if !intent.transformation.tools.contains(&"config_validator".to_string()) {
-                    intent.transformation.tools.push("config_validator".to_string());
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"config_validator".to_string())
+                {
+                    intent
+                        .transformation
+                        .tools
+                        .push("config_validator".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"config_backup".to_string()) {
-                    intent.safety_checks.pre_execution.push("config_backup".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"config_backup".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("config_backup".to_string());
                 }
             }
             ActionType::Dependency => {
                 // For dependency updates, add security and compatibility checks
-                if !intent.transformation.tools.contains(&"dependency_updater".to_string()) {
-                    intent.transformation.tools.push("dependency_updater".to_string());
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"dependency_updater".to_string())
+                {
+                    intent
+                        .transformation
+                        .tools
+                        .push("dependency_updater".to_string());
                 }
-                if !intent.transformation.validation.contains(&"security_scan".to_string()) {
-                    intent.transformation.validation.push("security_scan".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"security_scan".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("security_scan".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"compatibility_check".to_string()) {
-                    intent.safety_checks.pre_execution.push("compatibility_check".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"compatibility_check".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("compatibility_check".to_string());
                 }
             }
             ActionType::Security => {
                 // For security updates, add comprehensive security checks
-                if !intent.transformation.tools.contains(&"security_patch".to_string()) {
-                    intent.transformation.tools.push("security_patch".to_string());
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"security_patch".to_string())
+                {
+                    intent
+                        .transformation
+                        .tools
+                        .push("security_patch".to_string());
                 }
-                if !intent.transformation.validation.contains(&"vulnerability_scan".to_string()) {
-                    intent.transformation.validation.push("vulnerability_scan".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"vulnerability_scan".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("vulnerability_scan".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"security_audit".to_string()) {
-                    intent.safety_checks.pre_execution.push("security_audit".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"security_audit".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("security_audit".to_string());
                 }
-                if !intent.safety_checks.post_execution.contains(&"security_validation".to_string()) {
-                    intent.safety_checks.post_execution.push("security_validation".to_string());
+                if !intent
+                    .safety_checks
+                    .post_execution
+                    .contains(&"security_validation".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .post_execution
+                        .push("security_validation".to_string());
                 }
             }
             ActionType::Performance => {
                 // For performance improvements, add benchmarking tools
-                if !intent.transformation.tools.contains(&"performance_analyzer".to_string()) {
-                    intent.transformation.tools.push("performance_analyzer".to_string());
+                if !intent
+                    .transformation
+                    .tools
+                    .contains(&"performance_analyzer".to_string())
+                {
+                    intent
+                        .transformation
+                        .tools
+                        .push("performance_analyzer".to_string());
                 }
-                if !intent.transformation.validation.contains(&"benchmark_test".to_string()) {
-                    intent.transformation.validation.push("benchmark_test".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"benchmark_test".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("benchmark_test".to_string());
                 }
-                if !intent.safety_checks.post_execution.contains(&"performance_validation".to_string()) {
-                    intent.safety_checks.post_execution.push("performance_validation".to_string());
+                if !intent
+                    .safety_checks
+                    .post_execution
+                    .contains(&"performance_validation".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .post_execution
+                        .push("performance_validation".to_string());
                 }
             }
             ActionType::Cleanup => {
                 // For cleanup operations, add backup and validation tools
-                if !intent.safety_checks.pre_execution.contains(&"backup_availability".to_string()) {
-                    intent.safety_checks.pre_execution.push("backup_availability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"backup_availability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("backup_availability".to_string());
                 }
-                if !intent.transformation.validation.contains(&"cleanup_validation".to_string()) {
-                    intent.transformation.validation.push("cleanup_validation".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"cleanup_validation".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("cleanup_validation".to_string());
                 }
             }
             ActionType::Migration => {
                 // For migrations, add comprehensive backup and rollback tools
-                if !intent.safety_checks.pre_execution.contains(&"backup_availability".to_string()) {
-                    intent.safety_checks.pre_execution.push("backup_availability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"backup_availability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("backup_availability".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"rollback_capability".to_string()) {
-                    intent.safety_checks.pre_execution.push("rollback_capability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"rollback_capability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("rollback_capability".to_string());
                 }
-                if !intent.transformation.validation.contains(&"migration_validation".to_string()) {
-                    intent.transformation.validation.push("migration_validation".to_string());
+                if !intent
+                    .transformation
+                    .validation
+                    .contains(&"migration_validation".to_string())
+                {
+                    intent
+                        .transformation
+                        .validation
+                        .push("migration_validation".to_string());
                 }
-                if !intent.safety_checks.post_execution.contains(&"migration_verification".to_string()) {
-                    intent.safety_checks.post_execution.push("migration_verification".to_string());
+                if !intent
+                    .safety_checks
+                    .post_execution
+                    .contains(&"migration_verification".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .post_execution
+                        .push("migration_verification".to_string());
                 }
             }
             ActionType::Custom(_) => {
                 // For custom actions, add basic safety checks
-                if !intent.safety_checks.pre_execution.contains(&"file_permissions".to_string()) {
-                    intent.safety_checks.pre_execution.push("file_permissions".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"file_permissions".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("file_permissions".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"backup_availability".to_string()) {
-                    intent.safety_checks.pre_execution.push("backup_availability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"backup_availability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("backup_availability".to_string());
                 }
             }
         }
@@ -1877,53 +2188,140 @@ impl ActionCli {
             SafetyLevel::Low => {
                 // Low safety level - minimal checks
                 if intent.safety_checks.pre_execution.is_empty() {
-                    intent.safety_checks.pre_execution.push("basic_validation".to_string());
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("basic_validation".to_string());
                 }
             }
             SafetyLevel::Medium => {
                 // Medium safety level - standard checks
-                if !intent.safety_checks.pre_execution.contains(&"file_permissions".to_string()) {
-                    intent.safety_checks.pre_execution.push("file_permissions".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"file_permissions".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("file_permissions".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"backup_availability".to_string()) {
-                    intent.safety_checks.pre_execution.push("backup_availability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"backup_availability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("backup_availability".to_string());
                 }
             }
             SafetyLevel::High => {
                 // High safety level - comprehensive checks
-                if !intent.safety_checks.pre_execution.contains(&"file_permissions".to_string()) {
-                    intent.safety_checks.pre_execution.push("file_permissions".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"file_permissions".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("file_permissions".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"backup_availability".to_string()) {
-                    intent.safety_checks.pre_execution.push("backup_availability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"backup_availability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("backup_availability".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"security_scan".to_string()) {
-                    intent.safety_checks.pre_execution.push("security_scan".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"security_scan".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("security_scan".to_string());
                 }
-                if !intent.safety_checks.post_execution.contains(&"regression_test".to_string()) {
-                    intent.safety_checks.post_execution.push("regression_test".to_string());
+                if !intent
+                    .safety_checks
+                    .post_execution
+                    .contains(&"regression_test".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .post_execution
+                        .push("regression_test".to_string());
                 }
             }
             SafetyLevel::Critical => {
                 // Critical safety level - maximum checks and approval required
                 intent.set_approval_required(true);
-                if !intent.safety_checks.pre_execution.contains(&"file_permissions".to_string()) {
-                    intent.safety_checks.pre_execution.push("file_permissions".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"file_permissions".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("file_permissions".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"backup_availability".to_string()) {
-                    intent.safety_checks.pre_execution.push("backup_availability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"backup_availability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("backup_availability".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"security_scan".to_string()) {
-                    intent.safety_checks.pre_execution.push("security_scan".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"security_scan".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("security_scan".to_string());
                 }
-                if !intent.safety_checks.pre_execution.contains(&"rollback_capability".to_string()) {
-                    intent.safety_checks.pre_execution.push("rollback_capability".to_string());
+                if !intent
+                    .safety_checks
+                    .pre_execution
+                    .contains(&"rollback_capability".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .pre_execution
+                        .push("rollback_capability".to_string());
                 }
-                if !intent.safety_checks.post_execution.contains(&"regression_test".to_string()) {
-                    intent.safety_checks.post_execution.push("regression_test".to_string());
+                if !intent
+                    .safety_checks
+                    .post_execution
+                    .contains(&"regression_test".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .post_execution
+                        .push("regression_test".to_string());
                 }
-                if !intent.safety_checks.post_execution.contains(&"comprehensive_validation".to_string()) {
-                    intent.safety_checks.post_execution.push("comprehensive_validation".to_string());
+                if !intent
+                    .safety_checks
+                    .post_execution
+                    .contains(&"comprehensive_validation".to_string())
+                {
+                    intent
+                        .safety_checks
+                        .post_execution
+                        .push("comprehensive_validation".to_string());
                 }
             }
         }
@@ -2025,7 +2423,7 @@ async fn check_dependency_version(intent: &ActionIntent) -> ActionResult<Validat
             .arg("check")
             .output()
             .await;
-        
+
         match output {
             Ok(output) => {
                 if !output.status.success() {
@@ -2073,7 +2471,9 @@ async fn check_dependency_updates(intent: &ActionIntent) -> ActionResult<SafetyC
     // Check if there are any dependency-related files in scope
     let dependency_files = vec!["Cargo.toml", "package.json", "requirements.txt", "go.mod"];
     let has_dependency_files = intent.scope.iter().any(|path| {
-        dependency_files.iter().any(|dep_file| path.contains(dep_file))
+        dependency_files
+            .iter()
+            .any(|dep_file| path.contains(dep_file))
     });
 
     if has_dependency_files {
@@ -2091,7 +2491,11 @@ async fn check_security_vulnerabilities(intent: &ActionIntent) -> ActionResult<S
 
     // In a real implementation, this would run security scans
     // For now, we'll simulate a basic check
-    if intent.scope.iter().any(|path| path.contains("node_modules") || path.contains("target")) {
+    if intent
+        .scope
+        .iter()
+        .any(|path| path.contains("node_modules") || path.contains("target"))
+    {
         message.push_str("Vendor directories detected - consider security scanning\n");
     }
 
@@ -2111,8 +2515,12 @@ async fn check_performance_impact(intent: &ActionIntent) -> ActionResult<SafetyC
         }
     }
 
-    if total_size > 100 * 1024 * 1024 { // 100MB
-        message.push_str(&format!("Large files detected ({} bytes) - consider performance impact\n", total_size));
+    if total_size > 100 * 1024 * 1024 {
+        // 100MB
+        message.push_str(&format!(
+            "Large files detected ({} bytes) - consider performance impact\n",
+            total_size
+        ));
     }
 
     Ok(SafetyCheckResult { passed, message })
@@ -2127,7 +2535,10 @@ async fn check_data_integrity(intent: &ActionIntent) -> ActionResult<SafetyCheck
     for path in &intent.scope {
         if let Err(_) = tokio::fs::read_to_string(path).await {
             passed = false;
-            message.push_str(&format!("Cannot read file {} - possible corruption\n", path));
+            message.push_str(&format!(
+                "Cannot read file {} - possible corruption\n",
+                path
+            ));
         }
     }
 

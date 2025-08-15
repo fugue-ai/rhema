@@ -1,10 +1,10 @@
+use rustls_pemfile::certs;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tonic::transport::{Channel, ClientTlsConfig, Endpoint};
-use rustls_pemfile::certs;
 use tracing::{debug, info, warn};
-use serde::{Deserialize, Serialize};
 
 use super::coordination_client::CoordinationError;
 
@@ -118,14 +118,14 @@ impl ConnectionPool {
     /// Get a connection from the pool
     pub async fn get_connection(&self) -> Result<Channel, CoordinationError> {
         let mut connections = self.connections.write().await;
-        
+
         if let Some(channel) = connections.pop() {
             debug!("Reusing connection from pool");
             return Ok(channel);
         }
 
         drop(connections);
-        
+
         // Create new connection if pool is empty
         debug!("Creating new connection for pool");
         Err(CoordinationError::NotConnected)
@@ -134,7 +134,7 @@ impl ConnectionPool {
     /// Return a connection to the pool
     pub async fn return_connection(&self, channel: Channel) {
         let mut connections = self.connections.write().await;
-        
+
         if connections.len() < self.max_connections {
             debug!("Returning connection to pool");
             connections.push(channel);
@@ -146,7 +146,7 @@ impl ConnectionPool {
     /// Initialize pool with connections
     pub async fn initialize_pool(&self, endpoint: Endpoint) -> Result<(), CoordinationError> {
         let mut connections = self.connections.write().await;
-        
+
         for _ in 0..self.max_connections {
             match endpoint.connect().await {
                 Ok(channel) => connections.push(channel),
@@ -157,7 +157,10 @@ impl ConnectionPool {
             }
         }
 
-        info!("Initialized connection pool with {} connections", connections.len());
+        info!(
+            "Initialized connection pool with {} connections",
+            connections.len()
+        );
         Ok(())
     }
 }
@@ -180,7 +183,10 @@ impl SecurityManager {
     }
 
     /// Create a TLS-enabled endpoint
-    pub async fn create_tls_endpoint(&self, server_address: &str) -> Result<Endpoint, CoordinationError> {
+    pub async fn create_tls_endpoint(
+        &self,
+        server_address: &str,
+    ) -> Result<Endpoint, CoordinationError> {
         if !self.config.enable_tls {
             return Ok(Endpoint::from_shared(format!("http://{}", server_address))
                 .map_err(|e| CoordinationError::TransportError(e.to_string()))?);
@@ -195,7 +201,9 @@ impl SecurityManager {
         }
 
         // Load client certificates if provided
-        if let (Some(cert_path), Some(key_path)) = (&self.config.client_cert_path, &self.config.client_key_path) {
+        if let (Some(cert_path), Some(key_path)) =
+            (&self.config.client_cert_path, &self.config.client_key_path)
+        {
             let identity = self.load_client_identity(cert_path, key_path)?;
             tls_config = tls_config.identity(identity);
         }
@@ -216,27 +224,43 @@ impl SecurityManager {
     }
 
     /// Load CA certificates from file
-    fn load_ca_certificates(&self, path: &str) -> Result<tonic::transport::Certificate, CoordinationError> {
-        let cert_data = std::fs::read(path)
-            .map_err(|e| CoordinationError::ConfigurationError(format!("Failed to read CA certificate: {}", e)))?;
-        
-        let certs = certs(&mut &cert_data[..])
-            .map_err(|e| CoordinationError::ConfigurationError(format!("Failed to parse CA certificates: {}", e)))?;
-        
+    fn load_ca_certificates(
+        &self,
+        path: &str,
+    ) -> Result<tonic::transport::Certificate, CoordinationError> {
+        let cert_data = std::fs::read(path).map_err(|e| {
+            CoordinationError::ConfigurationError(format!("Failed to read CA certificate: {}", e))
+        })?;
+
+        let certs = certs(&mut &cert_data[..]).map_err(|e| {
+            CoordinationError::ConfigurationError(format!("Failed to parse CA certificates: {}", e))
+        })?;
+
         if certs.is_empty() {
-            return Err(CoordinationError::ConfigurationError("No certificates found in CA file".to_string()));
+            return Err(CoordinationError::ConfigurationError(
+                "No certificates found in CA file".to_string(),
+            ));
         }
 
         Ok(tonic::transport::Certificate::from_pem(cert_data))
     }
 
     /// Load client identity from files
-    fn load_client_identity(&self, cert_path: &str, key_path: &str) -> Result<tonic::transport::Identity, CoordinationError> {
-        let cert_data = std::fs::read(cert_path)
-            .map_err(|e| CoordinationError::ConfigurationError(format!("Failed to read client certificate: {}", e)))?;
-        
-        let key_data = std::fs::read(key_path)
-            .map_err(|e| CoordinationError::ConfigurationError(format!("Failed to read client key: {}", e)))?;
+    fn load_client_identity(
+        &self,
+        cert_path: &str,
+        key_path: &str,
+    ) -> Result<tonic::transport::Identity, CoordinationError> {
+        let cert_data = std::fs::read(cert_path).map_err(|e| {
+            CoordinationError::ConfigurationError(format!(
+                "Failed to read client certificate: {}",
+                e
+            ))
+        })?;
+
+        let key_data = std::fs::read(key_path).map_err(|e| {
+            CoordinationError::ConfigurationError(format!("Failed to read client key: {}", e))
+        })?;
 
         let identity = tonic::transport::Identity::from_pem(cert_data, key_data);
 
@@ -261,10 +285,10 @@ impl SecurityManager {
         if let Some(secret) = &self.config.jwt_secret {
             let token = self.generate_jwt_token(secret)?;
             let expiry = Duration::from_secs(self.config.token_refresh_interval);
-            
+
             *self.current_token.write().await = Some(token.clone());
             *self.token_expiry.write().await = Some(expiry);
-            
+
             Ok(Some(token))
         } else {
             Ok(self.config.auth_token.clone())
@@ -288,7 +312,9 @@ impl SecurityManager {
             &payload,
             &EncodingKey::from_secret(secret.as_ref()),
         )
-        .map_err(|e| CoordinationError::ConfigurationError(format!("Failed to generate JWT token: {}", e)))?;
+        .map_err(|e| {
+            CoordinationError::ConfigurationError(format!("Failed to generate JWT token: {}", e))
+        })?;
 
         Ok(token)
     }
@@ -297,12 +323,12 @@ impl SecurityManager {
     pub fn validate_token(&self, token: &str) -> Result<bool, CoordinationError> {
         if let Some(secret) = &self.config.jwt_secret {
             use jsonwebtoken::{decode, DecodingKey, Validation};
-            
+
             // Create validation with more permissive settings
             let mut validation = Validation::default();
             validation.validate_aud = false; // Don't validate audience
             validation.validate_exp = false; // Don't validate expiration for testing
-            
+
             let _decoded = decode::<serde_json::Value>(
                 token,
                 &DecodingKey::from_secret(secret.as_ref()),
@@ -327,7 +353,10 @@ pub struct PerformanceManager {
 impl PerformanceManager {
     pub fn new(config: PerformanceConfig) -> Self {
         let compression_encoder = if config.enable_compression {
-            Some(CompressionEncoder::new(config.compression_algorithm.clone(), config.compression_level))
+            Some(CompressionEncoder::new(
+                config.compression_algorithm.clone(),
+                config.compression_level,
+            ))
         } else {
             None
         };
@@ -398,23 +427,38 @@ impl CompressionEncoder {
                 use std::io::Write;
 
                 let mut encoder = GzEncoder::new(Vec::new(), Compression::new(self.level));
-                encoder.write_all(data)
-                    .map_err(|e| CoordinationError::ConfigurationError(format!("Gzip compression failed: {}", e)))?;
-                encoder.finish()
-                    .map_err(|e| CoordinationError::ConfigurationError(format!("Gzip compression finish failed: {}", e)))
+                encoder.write_all(data).map_err(|e| {
+                    CoordinationError::ConfigurationError(format!("Gzip compression failed: {}", e))
+                })?;
+                encoder.finish().map_err(|e| {
+                    CoordinationError::ConfigurationError(format!(
+                        "Gzip compression finish failed: {}",
+                        e
+                    ))
+                })
             }
             CompressionAlgorithm::Brotli => {
                 let mut output = Vec::new();
-                brotli::BrotliCompress(&mut &data[..], &mut output, &brotli::enc::BrotliEncoderParams {
-                    quality: self.level as i32,
-                    ..Default::default()
-                })
-                .map_err(|e| CoordinationError::ConfigurationError(format!("Brotli compression failed: {}", e)))?;
+                brotli::BrotliCompress(
+                    &mut &data[..],
+                    &mut output,
+                    &brotli::enc::BrotliEncoderParams {
+                        quality: self.level as i32,
+                        ..Default::default()
+                    },
+                )
+                .map_err(|e| {
+                    CoordinationError::ConfigurationError(format!(
+                        "Brotli compression failed: {}",
+                        e
+                    ))
+                })?;
                 Ok(output)
             }
             CompressionAlgorithm::Zstd => {
-                zstd::bulk::compress(data, self.level as i32)
-                    .map_err(|e| CoordinationError::ConfigurationError(format!("Zstd compression failed: {}", e)))
+                zstd::bulk::compress(data, self.level as i32).map_err(|e| {
+                    CoordinationError::ConfigurationError(format!("Zstd compression failed: {}", e))
+                })
             }
             CompressionAlgorithm::None => Ok(data.to_vec()),
         }
@@ -428,23 +472,39 @@ impl CompressionEncoder {
 
                 let mut decoder = GzDecoder::new(data);
                 let mut output = Vec::new();
-                decoder.read_to_end(&mut output)
-                    .map_err(|e| CoordinationError::ConfigurationError(format!("Gzip decompression failed: {}", e)))?;
+                decoder.read_to_end(&mut output).map_err(|e| {
+                    CoordinationError::ConfigurationError(format!(
+                        "Gzip decompression failed: {}",
+                        e
+                    ))
+                })?;
                 Ok(output)
             }
             CompressionAlgorithm::Brotli => {
                 let mut output = Vec::new();
-                brotli::BrotliDecompress(&mut &data[..], &mut output)
-                    .map_err(|e| CoordinationError::ConfigurationError(format!("Brotli decompression failed: {}", e)))?;
+                brotli::BrotliDecompress(&mut &data[..], &mut output).map_err(|e| {
+                    CoordinationError::ConfigurationError(format!(
+                        "Brotli decompression failed: {}",
+                        e
+                    ))
+                })?;
                 Ok(output)
             }
             CompressionAlgorithm::Zstd => {
                 use std::io::Read;
-                let mut decoder = zstd::Decoder::new(data)
-                    .map_err(|e| CoordinationError::ConfigurationError(format!("Zstd decoder creation failed: {}", e)))?;
+                let mut decoder = zstd::Decoder::new(data).map_err(|e| {
+                    CoordinationError::ConfigurationError(format!(
+                        "Zstd decoder creation failed: {}",
+                        e
+                    ))
+                })?;
                 let mut output = Vec::new();
-                decoder.read_to_end(&mut output)
-                    .map_err(|e| CoordinationError::ConfigurationError(format!("Zstd decompression failed: {}", e)))?;
+                decoder.read_to_end(&mut output).map_err(|e| {
+                    CoordinationError::ConfigurationError(format!(
+                        "Zstd decompression failed: {}",
+                        e
+                    ))
+                })?;
                 Ok(output)
             }
             CompressionAlgorithm::None => Ok(data.to_vec()),
@@ -475,10 +535,10 @@ mod tests {
     fn test_compression_encoder() {
         let encoder = CompressionEncoder::new(CompressionAlgorithm::Gzip, 6);
         let data = b"Hello, World! This is a test message for compression.";
-        
+
         let compressed = encoder.compress(data).unwrap();
         let decompressed = encoder.decompress(&compressed).unwrap();
-        
+
         assert_eq!(data, decompressed.as_slice());
     }
 }

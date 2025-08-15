@@ -94,7 +94,9 @@ impl MessageCompressor {
     /// Decompress data
     pub async fn decompress(&self, data: &[u8]) -> RhemaResult<Vec<u8>> {
         if data.is_empty() {
-            return Err(rhema_core::RhemaError::InvalidInput("Empty data".to_string()));
+            return Err(rhema_core::RhemaError::InvalidInput(
+                "Empty data".to_string(),
+            ));
         }
 
         match data[0] {
@@ -114,7 +116,9 @@ impl MessageCompressor {
                 // Snappy decompression
                 Ok(data[1..].to_vec())
             }
-            _ => Err(rhema_core::RhemaError::InvalidInput("Unknown compression format".to_string())),
+            _ => Err(rhema_core::RhemaError::InvalidInput(
+                "Unknown compression format".to_string(),
+            )),
         }
     }
 }

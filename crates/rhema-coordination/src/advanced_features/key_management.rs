@@ -75,14 +75,14 @@ impl KeyManager {
     /// Rotate keys
     pub async fn rotate_keys(&self) -> RhemaResult<()> {
         info!("Rotating encryption keys");
-        
+
         // In a real implementation, this would:
         // 1. Generate new encryption keys
         // 2. Update active key references
         // 3. Re-encrypt sensitive data with new keys
         // 4. Update key metadata and timestamps
         // 5. Notify dependent systems of key rotation
-        
+
         info!("✅ Key rotation completed successfully");
         Ok(())
     }
@@ -90,14 +90,14 @@ impl KeyManager {
     /// Backup keys
     pub async fn backup_keys(&self) -> RhemaResult<()> {
         info!("Backing up encryption keys");
-        
+
         // In a real implementation, this would:
         // 1. Export current keys securely
         // 2. Encrypt backup with master key
         // 3. Store backup in secure location
         // 4. Update backup metadata
         // 5. Verify backup integrity
-        
+
         info!("✅ Key backup completed successfully");
         Ok(())
     }
@@ -105,14 +105,14 @@ impl KeyManager {
     /// Restore keys from backup
     pub async fn restore_keys(&self, backup_path: &PathBuf) -> RhemaResult<()> {
         info!("Restoring encryption keys from: {:?}", backup_path);
-        
+
         // In a real implementation, this would:
         // 1. Load backup from secure location
         // 2. Decrypt backup with master key
         // 3. Validate key integrity
         // 4. Replace current keys with restored keys
         // 5. Update key metadata
-        
+
         info!("✅ Key restoration completed successfully");
         Ok(())
     }
@@ -120,14 +120,14 @@ impl KeyManager {
     /// Get key statistics
     pub async fn get_stats(&self) -> RhemaResult<KeyStats> {
         info!("Getting key statistics");
-        
+
         // In a real implementation, this would:
         // 1. Count total keys in storage
         // 2. Count active/expired keys
         // 3. Get last rotation timestamp
         // 4. Calculate next rotation time
         // 5. Return comprehensive statistics
-        
+
         Ok(KeyStats {
             total_keys: 1,
             active_keys: 1,

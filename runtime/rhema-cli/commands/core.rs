@@ -28,14 +28,13 @@ pub fn handle_init(
 ) -> RhemaResult<()> {
     // Create a new Rhema instance
     let rhema = rhema_api::Rhema::new()?;
-    
+
     // Get the repository root path
     let repo_root = rhema.repo_root();
-    
+
     // Determine the scope path based on current directory vs repo root
-    let current_dir = std::env::current_dir()
-        .map_err(|e| RhemaError::IoError(e))?;
-    
+    let current_dir = std::env::current_dir().map_err(|e| RhemaError::IoError(e))?;
+
     let scope_path = if current_dir == *repo_root {
         // Initialize at repository root
         repo_root.join(".rhema")
@@ -43,18 +42,18 @@ pub fn handle_init(
         // Initialize in current directory
         current_dir.join(".rhema")
     };
-    
+
     // Check if rhema files already exist
     let rhema_files = [
         "rhema.yaml",
-        "scope.yaml", 
+        "scope.yaml",
         "knowledge.yaml",
         "todos.yaml",
         "decisions.yaml",
         "patterns.yaml",
         "conventions.yaml",
     ];
-    
+
     let existing_files: Vec<String> = rhema_files
         .iter()
         .filter_map(|&file| {
@@ -66,7 +65,7 @@ pub fn handle_init(
             }
         })
         .collect();
-    
+
     if !existing_files.is_empty() {
         return Err(RhemaError::ConfigError(format!(
             "Rhema files already exist at {}: {}",
@@ -74,41 +73,44 @@ pub fn handle_init(
             existing_files.join(", ")
         )));
     }
-    
+
     // Create scope directory
-    std::fs::create_dir_all(&scope_path)
-        .map_err(|e| RhemaError::IoError(e))?;
-    
+    std::fs::create_dir_all(&scope_path).map_err(|e| RhemaError::IoError(e))?;
+
     // Determine scope type and name
     let (final_scope_type, final_scope_name) = if auto_config {
         // Auto-detect configuration from repository
         context.display_info("🔍 Analyzing repository structure for auto-configuration...")?;
-        
+
         // For now, use basic detection logic
         let scope_type = scope_type.unwrap_or("service").to_string();
-        let scope_name = scope_name.unwrap_or_else(|| {
-            scope_path
-                .parent()
-                .and_then(|p| p.file_name())
-                .and_then(|n| n.to_str())
-                .unwrap_or("unknown")
-        }).to_string();
-        
+        let scope_name = scope_name
+            .unwrap_or_else(|| {
+                scope_path
+                    .parent()
+                    .and_then(|p| p.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown")
+            })
+            .to_string();
+
         (scope_type, scope_name)
     } else {
         // Use provided or default values
         let scope_type = scope_type.unwrap_or("service").to_string();
-        let scope_name = scope_name.unwrap_or_else(|| {
-            scope_path
-                .parent()
-                .and_then(|p| p.file_name())
-                .and_then(|n| n.to_str())
-                .unwrap_or("unknown")
-        }).to_string();
-        
+        let scope_name = scope_name
+            .unwrap_or_else(|| {
+                scope_path
+                    .parent()
+                    .and_then(|p| p.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown")
+            })
+            .to_string();
+
         (scope_type, scope_name)
     };
-    
+
     // Create basic rhema.yaml file
     let rhema_scope = rhema_core::schema::RhemaScope {
         name: final_scope_name.clone(),
@@ -120,16 +122,16 @@ pub fn handle_init(
         protocol_info: None,
         custom: std::collections::HashMap::new(),
     };
-    
-    let rhema_content = serde_yaml::to_string(&rhema_scope)
-        .map_err(|e| RhemaError::YamlError(e))?;
-    
+
+    let rhema_content =
+        serde_yaml::to_string(&rhema_scope).map_err(|e| RhemaError::YamlError(e))?;
+
     std::fs::write(scope_path.join("rhema.yaml"), rhema_content)
         .map_err(|e| RhemaError::IoError(e))?;
-    
+
     // Create template files
     create_template_files(&scope_path)?;
-    
+
     println!("✅ Rhema repository initialized successfully!");
     println!("📁 Repository: {}", repo_root.display());
     println!("📁 Scope path: {}", scope_path.display());
@@ -138,7 +140,7 @@ pub fn handle_init(
     if auto_config {
         println!("🤖 Auto-configuration enabled");
     }
-    
+
     Ok(())
 }
 
@@ -156,7 +158,7 @@ pub fn handle_query(
             "Query cannot be empty".to_string(),
         ));
     }
-    
+
     // Execute the actual query using the Rhema instance
     let (query_result, query_stats) = if provenance || field_provenance {
         // Use query with provenance if requested
@@ -177,19 +179,25 @@ pub fn handle_query(
         };
         (result, stats)
     };
-    
+
     // Format and display results
     match format.to_lowercase().as_str() {
         "json" => {
             let mut output = serde_json::Map::new();
-            output.insert("query".to_string(), serde_json::Value::String(query.to_string()));
+            output.insert(
+                "query".to_string(),
+                serde_json::Value::String(query.to_string()),
+            );
             output.insert("result".to_string(), serde_json::to_value(query_result)?);
-            
+
             if let Some(stats) = query_stats {
                 output.insert("stats".to_string(), serde_json::to_value(stats)?);
             }
-            
-            println!("{}", serde_json::to_string_pretty(&serde_json::Value::Object(output))?);
+
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::Value::Object(output))?
+            );
         }
         "yaml" => {
             let mut output = serde_yaml::Mapping::new();
@@ -201,15 +209,18 @@ pub fn handle_query(
                 serde_yaml::Value::String("result".to_string()),
                 query_result,
             );
-            
+
             if let Some(stats) = query_stats {
                 output.insert(
                     serde_yaml::Value::String("stats".to_string()),
                     serde_yaml::to_value(stats)?,
                 );
             }
-            
-            println!("{}", serde_yaml::to_string(&serde_yaml::Value::Mapping(output))?);
+
+            println!(
+                "{}",
+                serde_yaml::to_string(&serde_yaml::Value::Mapping(output))?
+            );
         }
         "table" => {
             // For table format, we need to extract structured data
@@ -221,11 +232,14 @@ pub fn handle_query(
                             .keys()
                             .filter_map(|k| k.as_str().map(|s| s.to_string()))
                             .collect();
-                        
+
                         // Print headers
                         println!("| {} |", headers.join(" | "));
-                        println!("|{}|", headers.iter().map(|_| "---").collect::<Vec<_>>().join("|"));
-                        
+                        println!(
+                            "|{}|",
+                            headers.iter().map(|_| "---").collect::<Vec<_>>().join("|")
+                        );
+
                         // Print each result
                         for result in results {
                             if let serde_yaml::Value::Mapping(mapping) = result {
@@ -252,7 +266,7 @@ pub fn handle_query(
                 println!("|-------|--------|");
                 println!("| {} | {:?} |", query, query_result);
             }
-            
+
             // Print stats if available
             if let Some(stats) = query_stats {
                 println!("\n📊 Query Statistics:");
@@ -272,7 +286,7 @@ pub fn handle_query(
             ));
         }
     }
-    
+
     Ok(())
 }
 
@@ -287,12 +301,11 @@ fn create_template_files(scope_path: &PathBuf) -> RhemaResult<()> {
         ("patterns.yaml", "# Pattern definitions\n"),
         ("conventions.yaml", "# Development conventions\n"),
     ];
-    
+
     for (filename, content) in template_files {
         let file_path = scope_path.join(filename);
-        std::fs::write(file_path, content)
-            .map_err(|e| RhemaError::IoError(e))?;
+        std::fs::write(file_path, content).map_err(|e| RhemaError::IoError(e))?;
     }
-    
+
     Ok(())
 }

@@ -1413,12 +1413,13 @@ impl SecurityManager {
                 // Implement database key storage
                 let key_id = "default_key".to_string();
                 let key_data = self.generate_encryption_key()?;
-                self.store_key_in_database(&key_id, &key_data).map_err(|e| {
-                    RhemaError::GitError(git2::Error::from_str(&format!(
-                        "Database key storage failed: {}",
-                        e
-                    )))
-                })?;
+                self.store_key_in_database(&key_id, &key_data)
+                    .map_err(|e| {
+                        RhemaError::GitError(git2::Error::from_str(&format!(
+                            "Database key storage failed: {}",
+                            e
+                        )))
+                    })?;
                 Ok(key_data)
             }
             KeyStorage::Cloud => {
@@ -2107,7 +2108,7 @@ impl SecurityManager {
     fn store_key_in_database(&self, key_id: &str, key_data: &[u8]) -> RhemaResult<()> {
         // In a real implementation, this would connect to a database
         // For now, we'll simulate database storage with a local file
-        
+
         let db_file = self
             .repo
             .path()
@@ -2115,30 +2116,30 @@ impl SecurityManager {
             .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
             .join(".rhema")
             .join("keys.db");
-        
+
         // Create directory if it doesn't exist
         if let Some(parent) = db_file.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         // Store key data in a simple format
         let key_entry = format!("{}:{}\n", key_id, base64::encode(key_data));
-        
+
         std::fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(db_file)?
             .write_all(key_entry.as_bytes())?;
-        
+
         eprintln!("Key {} stored in database", key_id);
         Ok(())
     }
-    
+
     /// Store key in cloud
     fn store_key_in_cloud(&self, key_id: &str, key_data: &[u8]) -> RhemaResult<()> {
         // In a real implementation, this would use cloud storage APIs
         // For now, we'll simulate cloud storage with a local file
-        
+
         let cloud_file = self
             .repo
             .path()
@@ -2146,21 +2147,21 @@ impl SecurityManager {
             .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
             .join(".rhema")
             .join("cloud_keys");
-        
+
         // Create directory if it doesn't exist
         if let Some(parent) = cloud_file.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         // Store key data in cloud format
         let key_entry = format!("{}:{}\n", key_id, base64::encode(key_data));
-        
+
         std::fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(cloud_file)?
             .write_all(key_entry.as_bytes())?;
-        
+
         eprintln!("Key {} stored in cloud", key_id);
         Ok(())
     }

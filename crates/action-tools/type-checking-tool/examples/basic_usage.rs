@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-use rhema_action_type_checking::TypeCheckingTool;
 use rhema_action_tool::{ActionIntent, ActionType, SafetyLevel, SafetyTool};
+use rhema_action_type_checking::TypeCheckingTool;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the type checking tool
     let tool = TypeCheckingTool;
-    
+
     println!("Type Checking Tool Example");
     println!("==========================");
-    
+
     // Check if the tool is available
     let is_available = tool.is_available().await;
     println!("Tool available: {}", is_available);
-    
+
     if !is_available {
         println!("Warning: No type checking tools are available on this system");
         println!("Install the required tools for the languages you want to check:");
@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  - Swift: Install Xcode Command Line Tools (macOS)");
         return Ok(());
     }
-    
+
     // Example 1: TypeScript files
     println!("\nExample 1: TypeScript files");
     let ts_intent = ActionIntent::new(
@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ],
         SafetyLevel::Medium,
     );
-    
+
     match tool.check(&ts_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -75,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {:?}", e),
     }
-    
+
     // Example 2: Mixed language files
     println!("\nExample 2: Mixed language files");
     let mixed_intent = ActionIntent::new(
@@ -93,7 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ],
         SafetyLevel::High,
     );
-    
+
     match tool.check(&mixed_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -118,7 +118,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {:?}", e),
     }
-    
+
     // Example 3: Empty scope
     println!("\nExample 3: Empty scope");
     let empty_intent = ActionIntent::new(
@@ -128,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         vec![],
         SafetyLevel::Low,
     );
-    
+
     match tool.check(&empty_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -136,7 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {:?}", e),
     }
-    
+
     // Example 4: Unknown file types
     println!("\nExample 4: Unknown file types");
     let unknown_intent = ActionIntent::new(
@@ -150,7 +150,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ],
         SafetyLevel::Low,
     );
-    
+
     match tool.check(&unknown_intent).await {
         Ok(result) => {
             println!("Success: {}", result.success);
@@ -164,7 +164,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => println!("Error: {:?}", e),
     }
-    
+
     println!("\nExample completed successfully!");
     Ok(())
 }

@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,12 +44,24 @@ impl AsanaIntegration {
             },
         }
     }
-    
+
     /// Create an Asana task
-    pub async fn create_task(&self, workspace_id: &str, project_id: &str, name: &str, notes: Option<&str>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Asana not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn create_task(
+        &self,
+        workspace_id: &str,
+        project_id: &str,
+        name: &str,
+        notes: Option<&str>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Asana not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let mut task_data = serde_json::json!({
             "data": {
                 "workspace": workspace_id,
@@ -54,71 +69,94 @@ impl AsanaIntegration {
                 "name": name,
             }
         });
-        
+
         if let Some(notes) = notes {
             task_data["data"]["notes"] = serde_json::Value::String(notes.to_string());
         }
-        
+
         let url = "https://app.asana.com/api/1.0/tasks";
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
-        
-        let response = self.http_client.post(url, &task_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(url, &task_data.to_string(), Some(headers))
+            .await?;
         let task: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(task["data"]["gid"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Get Asana task details
     pub async fn get_task(&self, task_id: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Asana not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Asana not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let url = format!("https://app.asana.com/api/1.0/tasks/{}", task_id);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let task: serde_json::Value = serde_json::from_str(&response)?;
         Ok(task)
     }
-    
+
     /// Update Asana task
     pub async fn update_task(&self, task_id: &str, fields: serde_json::Value) -> RhemaResult<()> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Asana not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Asana not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let update_data = serde_json::json!({
             "data": fields
         });
-        
+
         let url = format!("https://app.asana.com/api/1.0/tasks/{}", task_id);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
-        
-        self.http_client.put(&url, &update_data.to_string(), Some(headers)).await?;
+
+        self.http_client
+            .put(&url, &update_data.to_string(), Some(headers))
+            .await?;
         Ok(())
     }
-    
+
     /// Get tasks from a project
     pub async fn get_project_tasks(&self, project_id: &str) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Asana not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("https://app.asana.com/api/1.0/projects/{}/tasks", project_id);
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Asana not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "https://app.asana.com/api/1.0/projects/{}/tasks",
+            project_id
+        );
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
-        let tasks = result["data"]
-            .as_array()
-            .unwrap_or(&Vec::new())
-            .clone();
-        
+
+        let tasks = result["data"].as_array().unwrap_or(&Vec::new()).clone();
+
         Ok(tasks)
     }
 }
@@ -142,7 +180,10 @@ impl ExternalIntegration for AsanaIntegration {
             version: "1.0.0".to_string(),
             description: "Asana integration for project management".to_string(),
             integration_type: IntegrationType::Asana,
-            capabilities: vec!["task_management".to_string(), "project_tracking".to_string()],
+            capabilities: vec![
+                "task_management".to_string(),
+                "project_tracking".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

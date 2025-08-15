@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,100 +44,151 @@ impl SlackIntegration {
             },
         }
     }
-    
+
     /// Send a message to a Slack channel
-    pub async fn send_message(&self, channel: &str, text: &str, attachments: Option<Vec<serde_json::Value>>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Slack not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn send_message(
+        &self,
+        channel: &str,
+        text: &str,
+        attachments: Option<Vec<serde_json::Value>>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Slack not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let mut message_data = serde_json::json!({
             "channel": channel,
             "text": text
         });
-        
+
         if let Some(attachments) = attachments {
             message_data["attachments"] = serde_json::Value::Array(attachments);
         }
-        
+
         let url = "https://slack.com/api/chat.postMessage";
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
-        
-        let response = self.http_client.post(url, &message_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(url, &message_data.to_string(), Some(headers))
+            .await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         if result["ok"].as_bool().unwrap_or(false) {
             Ok(result["ts"].as_str().unwrap_or("").to_string())
         } else {
-            Err(RhemaError::ExternalServiceError(format!("Slack API error: {}", result["error"].as_str().unwrap_or("Unknown error"))))
+            Err(RhemaError::ExternalServiceError(format!(
+                "Slack API error: {}",
+                result["error"].as_str().unwrap_or("Unknown error")
+            )))
         }
     }
-    
+
     /// Send a message with blocks (rich formatting)
-    pub async fn send_blocks(&self, channel: &str, blocks: Vec<serde_json::Value>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Slack not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+    pub async fn send_blocks(
+        &self,
+        channel: &str,
+        blocks: Vec<serde_json::Value>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Slack not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let message_data = serde_json::json!({
             "channel": channel,
             "blocks": blocks
         });
-        
+
         let url = "https://slack.com/api/chat.postMessage";
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
-        
-        let response = self.http_client.post(url, &message_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(url, &message_data.to_string(), Some(headers))
+            .await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         if result["ok"].as_bool().unwrap_or(false) {
             Ok(result["ts"].as_str().unwrap_or("").to_string())
         } else {
-            Err(RhemaError::ExternalServiceError(format!("Slack API error: {}", result["error"].as_str().unwrap_or("Unknown error"))))
+            Err(RhemaError::ExternalServiceError(format!(
+                "Slack API error: {}",
+                result["error"].as_str().unwrap_or("Unknown error")
+            )))
         }
     }
-    
+
     /// Get channel information
     pub async fn get_channel_info(&self, channel: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Slack not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
-        let url = format!("https://slack.com/api/conversations.info?channel={}", channel);
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Slack not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
+        let url = format!(
+            "https://slack.com/api/conversations.info?channel={}",
+            channel
+        );
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         if result["ok"].as_bool().unwrap_or(false) {
             Ok(result["channel"].clone())
         } else {
-            Err(RhemaError::ExternalServiceError(format!("Slack API error: {}", result["error"].as_str().unwrap_or("Unknown error"))))
+            Err(RhemaError::ExternalServiceError(format!(
+                "Slack API error: {}",
+                result["error"].as_str().unwrap_or("Unknown error")
+            )))
         }
     }
-    
+
     /// List channels
     pub async fn list_channels(&self) -> RhemaResult<Vec<serde_json::Value>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Slack not configured".to_string()))?;
-        let token = config.token.as_ref().ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Slack not configured".to_string()))?;
+        let token = config
+            .token
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Token not configured".to_string()))?;
+
         let url = "https://slack.com/api/conversations.list";
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", token));
-        
+
         let response = self.http_client.get(url, Some(headers)).await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         if result["ok"].as_bool().unwrap_or(false) {
-            let channels = result["channels"]
-                .as_array()
-                .unwrap_or(&Vec::new())
-                .clone();
+            let channels = result["channels"].as_array().unwrap_or(&Vec::new()).clone();
             Ok(channels)
         } else {
-            Err(RhemaError::ExternalServiceError(format!("Slack API error: {}", result["error"].as_str().unwrap_or("Unknown error"))))
+            Err(RhemaError::ExternalServiceError(format!(
+                "Slack API error: {}",
+                result["error"].as_str().unwrap_or("Unknown error")
+            )))
         }
     }
 }

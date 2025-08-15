@@ -1,4 +1,4 @@
-use crate::{Config, ConfigError, ValidationResult, GlobalConfig, ConfigEnvironment};
+use crate::{Config, ConfigEnvironment, ConfigError, GlobalConfig, ValidationResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -229,20 +229,19 @@ impl ConfigWizard {
         WizardStep {
             id: "welcome".to_string(),
             title: "Welcome to Rhema Configuration Wizard".to_string(),
-            description: "This wizard will help you set up your Rhema configuration step by step.".to_string(),
+            description: "This wizard will help you set up your Rhema configuration step by step."
+                .to_string(),
             step_type: StepType::Welcome,
-            questions: vec![
-                WizardQuestion {
-                    id: "proceed".to_string(),
-                    text: "Are you ready to begin the configuration setup?".to_string(),
-                    question_type: QuestionType::Boolean,
-                    default_value: Some(serde_json::Value::Bool(true)),
-                    options: None,
-                    validation_rules: vec![],
-                    required: true,
-                    help_text: Some("Click 'Yes' to proceed with the configuration setup.".to_string()),
-                },
-            ],
+            questions: vec![WizardQuestion {
+                id: "proceed".to_string(),
+                text: "Are you ready to begin the configuration setup?".to_string(),
+                question_type: QuestionType::Boolean,
+                default_value: Some(serde_json::Value::Bool(true)),
+                options: None,
+                validation_rules: vec![],
+                required: true,
+                help_text: Some("Click 'Yes' to proceed with the configuration setup.".to_string()),
+            }],
             validation_rules: vec![],
             required: true,
             dependencies: vec![],
@@ -273,7 +272,10 @@ impl ConfigWizard {
                             rule_type: ValidationRuleType::MinLength,
                             parameters: {
                                 let mut params = HashMap::new();
-                                params.insert("min_length".to_string(), serde_json::Value::Number(3.into()));
+                                params.insert(
+                                    "min_length".to_string(),
+                                    serde_json::Value::Number(3.into()),
+                                );
                                 params
                             },
                             error_message: "User ID must be at least 3 characters long".to_string(),
@@ -288,15 +290,15 @@ impl ConfigWizard {
                     question_type: QuestionType::Text,
                     default_value: None,
                     options: None,
-                    validation_rules: vec![
-                        QuestionValidationRule {
-                            rule_type: ValidationRuleType::Required,
-                            parameters: HashMap::new(),
-                            error_message: "Full name is required".to_string(),
-                        },
-                    ],
+                    validation_rules: vec![QuestionValidationRule {
+                        rule_type: ValidationRuleType::Required,
+                        parameters: HashMap::new(),
+                        error_message: "Full name is required".to_string(),
+                    }],
                     required: true,
-                    help_text: Some("Enter your full name as it should appear in the system.".to_string()),
+                    help_text: Some(
+                        "Enter your full name as it should appear in the system.".to_string(),
+                    ),
                 },
                 WizardQuestion {
                     id: "user_email".to_string(),
@@ -317,7 +319,10 @@ impl ConfigWizard {
                         },
                     ],
                     required: true,
-                    help_text: Some("Enter your email address for notifications and account recovery.".to_string()),
+                    help_text: Some(
+                        "Enter your email address for notifications and account recovery."
+                            .to_string(),
+                    ),
                 },
             ],
             validation_rules: vec![],
@@ -340,13 +345,11 @@ impl ConfigWizard {
                     question_type: QuestionType::Text,
                     default_value: Some(serde_json::Value::String("My Rhema Project".to_string())),
                     options: None,
-                    validation_rules: vec![
-                        QuestionValidationRule {
-                            rule_type: ValidationRuleType::Required,
-                            parameters: HashMap::new(),
-                            error_message: "Application name is required".to_string(),
-                        },
-                    ],
+                    validation_rules: vec![QuestionValidationRule {
+                        rule_type: ValidationRuleType::Required,
+                        parameters: HashMap::new(),
+                        error_message: "Application name is required".to_string(),
+                    }],
                     required: true,
                     help_text: Some("Enter a descriptive name for your Rhema project.".to_string()),
                 },
@@ -372,13 +375,11 @@ impl ConfigWizard {
                             description: Some("For production deployment".to_string()),
                         },
                     ]),
-                    validation_rules: vec![
-                        QuestionValidationRule {
-                            rule_type: ValidationRuleType::Required,
-                            parameters: HashMap::new(),
-                            error_message: "Environment selection is required".to_string(),
-                        },
-                    ],
+                    validation_rules: vec![QuestionValidationRule {
+                        rule_type: ValidationRuleType::Required,
+                        parameters: HashMap::new(),
+                        error_message: "Environment selection is required".to_string(),
+                    }],
                     required: true,
                     help_text: Some("Select the environment for your configuration.".to_string()),
                 },
@@ -419,15 +420,15 @@ impl ConfigWizard {
                             description: Some("No version control repository".to_string()),
                         },
                     ]),
-                    validation_rules: vec![
-                        QuestionValidationRule {
-                            rule_type: ValidationRuleType::Required,
-                            parameters: HashMap::new(),
-                            error_message: "Repository type selection is required".to_string(),
-                        },
-                    ],
+                    validation_rules: vec![QuestionValidationRule {
+                        rule_type: ValidationRuleType::Required,
+                        parameters: HashMap::new(),
+                        error_message: "Repository type selection is required".to_string(),
+                    }],
                     required: true,
-                    help_text: Some("Select the type of version control repository you're using.".to_string()),
+                    help_text: Some(
+                        "Select the type of version control repository you're using.".to_string(),
+                    ),
                 },
                 WizardQuestion {
                     id: "repo_url".to_string(),
@@ -435,15 +436,16 @@ impl ConfigWizard {
                     question_type: QuestionType::Text,
                     default_value: None,
                     options: None,
-                    validation_rules: vec![
-                        QuestionValidationRule {
-                            rule_type: ValidationRuleType::Url,
-                            parameters: HashMap::new(),
-                            error_message: "Please enter a valid repository URL".to_string(),
-                        },
-                    ],
+                    validation_rules: vec![QuestionValidationRule {
+                        rule_type: ValidationRuleType::Url,
+                        parameters: HashMap::new(),
+                        error_message: "Please enter a valid repository URL".to_string(),
+                    }],
                     required: false,
-                    help_text: Some("Enter the URL of your repository (e.g., https://github.com/user/repo)".to_string()),
+                    help_text: Some(
+                        "Enter the URL of your repository (e.g., https://github.com/user/repo)"
+                            .to_string(),
+                    ),
                 },
             ],
             validation_rules: vec![],
@@ -462,13 +464,16 @@ impl ConfigWizard {
             questions: vec![
                 WizardQuestion {
                     id: "enable_encryption".to_string(),
-                    text: "Do you want to enable encryption for sensitive configuration data?".to_string(),
+                    text: "Do you want to enable encryption for sensitive configuration data?"
+                        .to_string(),
                     question_type: QuestionType::Boolean,
                     default_value: Some(serde_json::Value::Bool(true)),
                     options: None,
                     validation_rules: vec![],
                     required: true,
-                    help_text: Some("Encryption helps protect sensitive configuration data.".to_string()),
+                    help_text: Some(
+                        "Encryption helps protect sensitive configuration data.".to_string(),
+                    ),
                 },
                 WizardQuestion {
                     id: "enable_access_control".to_string(),
@@ -478,7 +483,9 @@ impl ConfigWizard {
                     options: None,
                     validation_rules: vec![],
                     required: true,
-                    help_text: Some("Access control restricts who can modify configuration.".to_string()),
+                    help_text: Some(
+                        "Access control restricts who can modify configuration.".to_string(),
+                    ),
                 },
                 WizardQuestion {
                     id: "enable_audit_logging".to_string(),
@@ -488,7 +495,9 @@ impl ConfigWizard {
                     options: None,
                     validation_rules: vec![],
                     required: true,
-                    help_text: Some("Audit logging tracks configuration changes for security.".to_string()),
+                    help_text: Some(
+                        "Audit logging tracks configuration changes for security.".to_string(),
+                    ),
                 },
             ],
             validation_rules: vec![],
@@ -537,13 +546,11 @@ impl ConfigWizard {
                             description: Some("Create backups every week".to_string()),
                         },
                     ]),
-                    validation_rules: vec![
-                        QuestionValidationRule {
-                            rule_type: ValidationRuleType::Required,
-                            parameters: HashMap::new(),
-                            error_message: "Backup frequency selection is required".to_string(),
-                        },
-                    ],
+                    validation_rules: vec![QuestionValidationRule {
+                        rule_type: ValidationRuleType::Required,
+                        parameters: HashMap::new(),
+                        error_message: "Backup frequency selection is required".to_string(),
+                    }],
                     required: true,
                     help_text: Some("Select how often you want backups to be created.".to_string()),
                 },
@@ -575,18 +582,16 @@ impl ConfigWizard {
             title: "Review Configuration".to_string(),
             description: "Review your configuration settings before completing setup.".to_string(),
             step_type: StepType::Review,
-            questions: vec![
-                WizardQuestion {
-                    id: "confirm_config".to_string(),
-                    text: "Do you want to proceed with this configuration?".to_string(),
-                    question_type: QuestionType::Boolean,
-                    default_value: Some(serde_json::Value::Bool(true)),
-                    options: None,
-                    validation_rules: vec![],
-                    required: true,
-                    help_text: Some("Review your settings and confirm to proceed.".to_string()),
-                },
-            ],
+            questions: vec![WizardQuestion {
+                id: "confirm_config".to_string(),
+                text: "Do you want to proceed with this configuration?".to_string(),
+                question_type: QuestionType::Boolean,
+                default_value: Some(serde_json::Value::Bool(true)),
+                options: None,
+                validation_rules: vec![],
+                required: true,
+                help_text: Some("Review your settings and confirm to proceed.".to_string()),
+            }],
             validation_rules: vec![],
             required: true,
             dependencies: vec!["validation".to_string()],
@@ -633,7 +638,9 @@ impl ConfigWizard {
             self.current_step += 1;
             Ok(self.get_progress())
         } else {
-            Err(ConfigError::ValidationError("Already at the last step".to_string()))
+            Err(ConfigError::ValidationError(
+                "Already at the last step".to_string(),
+            ))
         }
     }
 
@@ -643,12 +650,18 @@ impl ConfigWizard {
             self.current_step -= 1;
             Ok(self.get_progress())
         } else {
-            Err(ConfigError::ValidationError("Already at the first step".to_string()))
+            Err(ConfigError::ValidationError(
+                "Already at the first step".to_string(),
+            ))
         }
     }
 
     /// Answer a question
-    pub fn answer_question(&mut self, question_id: &str, answer: serde_json::Value) -> Result<(), ConfigError> {
+    pub fn answer_question(
+        &mut self,
+        question_id: &str,
+        answer: serde_json::Value,
+    ) -> Result<(), ConfigError> {
         // Validate the answer
         if let Some(step) = self.steps.get(self.current_step) {
             if let Some(question) = step.questions.iter().find(|q| q.id == question_id) {
@@ -656,7 +669,10 @@ impl ConfigWizard {
                 self.collected_data.insert(question_id.to_string(), answer);
                 Ok(())
             } else {
-                Err(ConfigError::ValidationError(format!("Question '{}' not found", question_id)))
+                Err(ConfigError::ValidationError(format!(
+                    "Question '{}' not found",
+                    question_id
+                )))
             }
         } else {
             Err(ConfigError::ValidationError("Invalid step".to_string()))
@@ -664,7 +680,11 @@ impl ConfigWizard {
     }
 
     /// Validate an answer
-    fn validate_answer(&self, question: &WizardQuestion, answer: &serde_json::Value) -> Result<(), ConfigError> {
+    fn validate_answer(
+        &self,
+        question: &WizardQuestion,
+        answer: &serde_json::Value,
+    ) -> Result<(), ConfigError> {
         for rule in &question.validation_rules {
             if !self.validate_rule(rule, answer) {
                 return Err(ConfigError::ValidationError(rule.error_message.clone()));
@@ -680,25 +700,32 @@ impl ConfigWizard {
                 !answer.is_null() && answer.as_str().map(|s| !s.is_empty()).unwrap_or(true)
             }
             ValidationRuleType::MinLength => {
-                if let Some(min_length) = rule.parameters.get("min_length").and_then(|v| v.as_u64()) {
-                    answer.as_str().map(|s| s.len() >= min_length as usize).unwrap_or(false)
+                if let Some(min_length) = rule.parameters.get("min_length").and_then(|v| v.as_u64())
+                {
+                    answer
+                        .as_str()
+                        .map(|s| s.len() >= min_length as usize)
+                        .unwrap_or(false)
                 } else {
                     true
                 }
             }
             ValidationRuleType::MaxLength => {
-                if let Some(max_length) = rule.parameters.get("max_length").and_then(|v| v.as_u64()) {
-                    answer.as_str().map(|s| s.len() <= max_length as usize).unwrap_or(false)
+                if let Some(max_length) = rule.parameters.get("max_length").and_then(|v| v.as_u64())
+                {
+                    answer
+                        .as_str()
+                        .map(|s| s.len() <= max_length as usize)
+                        .unwrap_or(false)
                 } else {
                     true
                 }
             }
-            ValidationRuleType::Email => {
-                answer.as_str().map(|s| s.contains('@')).unwrap_or(false)
-            }
-            ValidationRuleType::Url => {
-                answer.as_str().map(|s| s.starts_with("http")).unwrap_or(false)
-            }
+            ValidationRuleType::Email => answer.as_str().map(|s| s.contains('@')).unwrap_or(false),
+            ValidationRuleType::Url => answer
+                .as_str()
+                .map(|s| s.starts_with("http"))
+                .unwrap_or(false),
             _ => true, // Other validation types would be implemented here
         }
     }
@@ -751,28 +778,40 @@ impl ConfigWizard {
     fn generate_configuration(&self) -> Result<GlobalConfig, ConfigError> {
         // This is a simplified implementation
         // In a real implementation, you would map the collected data to a proper Config struct
-        
+
         let mut config = GlobalConfig::new();
-        
+
         // Set user information
         if let Some(user_id) = self.collected_data.get("user_id").and_then(|v| v.as_str()) {
             config.user.id = user_id.to_string();
         }
-        
-        if let Some(user_name) = self.collected_data.get("user_name").and_then(|v| v.as_str()) {
+
+        if let Some(user_name) = self
+            .collected_data
+            .get("user_name")
+            .and_then(|v| v.as_str())
+        {
             config.user.name = user_name.to_string();
         }
-        
-        if let Some(user_email) = self.collected_data.get("user_email").and_then(|v| v.as_str()) {
+
+        if let Some(user_email) = self
+            .collected_data
+            .get("user_email")
+            .and_then(|v| v.as_str())
+        {
             config.user.email = user_email.to_string();
         }
-        
+
         // Set application information
         if let Some(app_name) = self.collected_data.get("app_name").and_then(|v| v.as_str()) {
             config.application.name = app_name.to_string();
         }
-        
-        if let Some(environment) = self.collected_data.get("environment").and_then(|v| v.as_str()) {
+
+        if let Some(environment) = self
+            .collected_data
+            .get("environment")
+            .and_then(|v| v.as_str())
+        {
             // Parse environment string to ConfigEnvironment enum
             config.environment.current = match environment {
                 "development" => ConfigEnvironment::Development,
@@ -782,23 +821,30 @@ impl ConfigWizard {
                 _ => ConfigEnvironment::Custom(environment.to_string()),
             };
         }
-        
+
         // Note: Repository configuration would need to be handled separately
         // as GlobalConfig doesn't have a repository field
-        
+
         // Set security settings
-        if let Some(enable_encryption) = self.collected_data.get("enable_encryption").and_then(|v| v.as_bool()) {
+        if let Some(enable_encryption) = self
+            .collected_data
+            .get("enable_encryption")
+            .and_then(|v| v.as_bool())
+        {
             config.security.encryption.enabled = enable_encryption;
         }
-        
+
         // Note: Access control and audit logging would need to be configured
         // based on the actual SecurityConfig structure
-        
+
         Ok(config)
     }
 
     /// Validate generated configuration
-    async fn validate_configuration<T: Config>(&self, config: &T) -> Result<ValidationResult, ConfigError> {
+    async fn validate_configuration<T: Config>(
+        &self,
+        config: &T,
+    ) -> Result<ValidationResult, ConfigError> {
         // This would use the actual validation system
         // For now, return a simple validation result
         Ok(ValidationResult {
@@ -841,7 +887,7 @@ mod tests {
         let settings = WizardSettings::default();
         let wizard = ConfigWizard::new(settings);
         let progress = wizard.get_progress();
-        
+
         assert_eq!(progress.current_step, 0);
         assert!(progress.total_steps > 0);
         assert!(progress.can_go_forward);
@@ -852,11 +898,11 @@ mod tests {
     async fn test_wizard_navigation() {
         let settings = WizardSettings::default();
         let mut wizard = ConfigWizard::new(settings);
-        
+
         // Test next step
         let progress = wizard.next_step().unwrap();
         assert_eq!(progress.current_step, 1);
-        
+
         // Test previous step
         let progress = wizard.previous_step().unwrap();
         assert_eq!(progress.current_step, 0);
@@ -866,7 +912,7 @@ mod tests {
     async fn test_wizard_question_answering() {
         let settings = WizardSettings::default();
         let mut wizard = ConfigWizard::new(settings);
-        
+
         // Answer a question
         let answer = serde_json::Value::String("test_user".to_string());
         let result = wizard.answer_question("user_id", answer);
@@ -877,7 +923,7 @@ mod tests {
     async fn test_wizard_completion() {
         let settings = WizardSettings::default();
         let wizard = ConfigWizard::new(settings);
-        
+
         // This would require answering all questions first
         // For now, just test that the method exists
         let _result = wizard.complete().await;

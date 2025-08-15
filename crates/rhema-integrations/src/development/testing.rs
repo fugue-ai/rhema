@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 use std::process::Command;
@@ -42,20 +45,26 @@ impl TestingIntegration {
             },
         }
     }
-    
+
     /// Run tests
     pub async fn run_tests(&self, test_command: Option<&str>) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Testing not configured".to_string()))?;
-        let command = test_command.unwrap_or_else(|| config.custom_headers.get("test_command").map(|s| s.as_str()).unwrap_or("cargo test"));
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(command)
-            .output()?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Testing not configured".to_string()))?;
+        let command = test_command.unwrap_or_else(|| {
+            config
+                .custom_headers
+                .get("test_command")
+                .map(|s| s.as_str())
+                .unwrap_or("cargo test")
+        });
+
+        let output = Command::new("sh").arg("-c").arg(command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -64,21 +73,25 @@ impl TestingIntegration {
             "command": command
         }))
     }
-    
+
     /// Run specific test
     pub async fn run_specific_test(&self, test_name: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Testing not configured".to_string()))?;
-        let base_command = config.custom_headers.get("test_command").map(|s| s.as_str()).unwrap_or("cargo test");
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Testing not configured".to_string()))?;
+        let base_command = config
+            .custom_headers
+            .get("test_command")
+            .map(|s| s.as_str())
+            .unwrap_or("cargo test");
         let command = format!("{} {}", base_command, test_name);
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(&command)
-            .output()?;
-        
+
+        let output = Command::new("sh").arg("-c").arg(&command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -88,20 +101,27 @@ impl TestingIntegration {
             "command": command
         }))
     }
-    
+
     /// Get test coverage
     pub async fn get_coverage(&self) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Testing not configured".to_string()))?;
-        let coverage_command = config.custom_headers.get("coverage_command").map(|s| s.as_str()).unwrap_or("cargo tarpaulin");
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Testing not configured".to_string()))?;
+        let coverage_command = config
+            .custom_headers
+            .get("coverage_command")
+            .map(|s| s.as_str())
+            .unwrap_or("cargo tarpaulin");
+
         let output = Command::new("sh")
             .arg("-c")
             .arg(coverage_command)
             .output()?;
-        
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -110,24 +130,28 @@ impl TestingIntegration {
             "command": coverage_command
         }))
     }
-    
+
     /// List available tests
     pub async fn list_tests(&self) -> RhemaResult<Vec<String>> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Testing not configured".to_string()))?;
-        let list_command = config.custom_headers.get("list_command").map(|s| s.as_str()).unwrap_or("cargo test --list");
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(list_command)
-            .output()?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Testing not configured".to_string()))?;
+        let list_command = config
+            .custom_headers
+            .get("list_command")
+            .map(|s| s.as_str())
+            .unwrap_or("cargo test --list");
+
+        let output = Command::new("sh").arg("-c").arg(list_command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let tests: Vec<String> = stdout
             .lines()
             .filter(|line| line.contains("test"))
             .map(|line| line.split_whitespace().next().unwrap_or("").to_string())
             .collect();
-        
+
         Ok(tests)
     }
 }

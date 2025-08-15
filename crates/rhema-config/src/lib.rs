@@ -92,9 +92,8 @@ pub use feedback::{
 
 // Re-export documentation types
 pub use documentation::{
-    ConfigDocumentation, ConfigDocumentationGenerator, DocumentationResult,
-    DocumentationSection, DocumentationStatistics, DocumentationSummary,
-    DocumentationTemplate, SectionType,
+    ConfigDocumentation, ConfigDocumentationGenerator, DocumentationResult, DocumentationSection,
+    DocumentationStatistics, DocumentationSummary, DocumentationTemplate, SectionType,
 };
 
 // Re-export wizard types

@@ -15,13 +15,13 @@
  */
 
 use crate::CliContext;
+use chrono::Utc;
 use clap::Subcommand;
-use rhema_api::{RhemaResult, AgentInfo, MessageType};
+use rhema_api::{AgentInfo, MessageType, RhemaResult};
 use rhema_coordination::agent::real_time_coordination::{AgentStatus, MessagePriority};
 use serde_json::json;
 use std::collections::HashMap;
 use uuid::Uuid;
-use chrono::Utc;
 
 #[derive(Subcommand)]
 pub enum AgentSubcommands {
@@ -308,15 +308,12 @@ pub fn handle_coordination(
 }
 
 fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaResult<()> {
-    let coordination_system = context
-        .rhema
-        .get_coordination_system()
-        .ok_or_else(|| {
-            rhema_api::RhemaError::InvalidYaml {
-                file: "coordination".to_string(),
-                message: "Coordination system not initialized. Run 'rhema init' first.".to_string(),
-            }
-        })?;
+    let coordination_system = context.rhema.get_coordination_system().ok_or_else(|| {
+        rhema_api::RhemaError::InvalidYaml {
+            file: "coordination".to_string(),
+            message: "Coordination system not initialized. Run 'rhema init' first.".to_string(),
+        }
+    })?;
 
     match subcommand {
         AgentSubcommands::Register {
@@ -344,13 +341,11 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
                 performance_metrics: rhema_coordination::agent::real_time_coordination::AgentPerformanceMetrics::default(),
             };
 
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    coordination_system.register_agent(agent_info).await?;
-                    println!("✅ Agent registered successfully: {}", agent_id);
-                    Ok(())
-                })
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                coordination_system.register_agent(agent_info).await?;
+                println!("✅ Agent registered successfully: {}", agent_id);
+                Ok(())
+            })
         }
 
         AgentSubcommands::List {
@@ -368,7 +363,9 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
                 .filter(|agent| {
                     agent_type.as_ref().map_or(true, |t| agent.agent_type == *t)
                         && status.as_ref().map_or(true, |s| agent.status == *s)
-                        && scope.as_ref().map_or(true, |sc| agent.assigned_scope == *sc)
+                        && scope
+                            .as_ref()
+                            .map_or(true, |sc| agent.assigned_scope == *sc)
                 })
                 .collect();
 
@@ -389,8 +386,10 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
                         println!("  Last Heartbeat: {:?}", agent.last_heartbeat);
                         println!("---");
                     } else {
-                        println!("  {} ({}) - {:?} - {}", 
-                            agent.name, agent.id, agent.status, agent.agent_type);
+                        println!(
+                            "  {} ({}) - {:?} - {}",
+                            agent.name, agent.id, agent.status, agent.agent_type
+                        );
                     }
                 }
             }
@@ -398,25 +397,21 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
         }
 
         AgentSubcommands::Unregister { agent_id } => {
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    coordination_system.unregister_agent(&agent_id).await?;
-                    println!("✅ Agent unregistered successfully: {}", agent_id);
-                    Ok(())
-                })
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                coordination_system.unregister_agent(&agent_id).await?;
+                println!("✅ Agent unregistered successfully: {}", agent_id);
+                Ok(())
+            })
         }
 
         AgentSubcommands::Status { agent_id, status } => {
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    coordination_system
-                        .update_agent_status(&agent_id, status.clone())
-                        .await?;
-                    println!("✅ Agent status updated: {} -> {:?}", agent_id, status);
-                    Ok(())
-                })
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                coordination_system
+                    .update_agent_status(&agent_id, status.clone())
+                    .await?;
+                println!("✅ Agent status updated: {} -> {:?}", agent_id, status);
+                Ok(())
+            })
         }
 
         AgentSubcommands::Info { agent_id } => {
@@ -466,13 +461,11 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
                 metadata: HashMap::new(),
             };
 
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    coordination_system.send_message(message).await?;
-                    println!("✅ Message sent to agent: {}", to);
-                    Ok(())
-                })
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                coordination_system.send_message(message).await?;
+                println!("✅ Message sent to agent: {}", to);
+                Ok(())
+            })
         }
 
         AgentSubcommands::Broadcast {
@@ -510,46 +503,42 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
                 metadata: HashMap::new(),
             };
 
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    coordination_system.send_message(message).await?;
-                    println!("✅ Message broadcasted to {} agents", recipient_ids.len());
-                    Ok(())
-                })
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                coordination_system.send_message(message).await?;
+                println!("✅ Message broadcasted to {} agents", recipient_ids.len());
+                Ok(())
+            })
         }
     }
 }
 
 fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> RhemaResult<()> {
-    let coordination_system = context
-        .rhema
-        .get_coordination_system()
-        .ok_or_else(|| {
-            rhema_api::RhemaError::InvalidYaml {
-                file: "coordination".to_string(),
-                message: "Coordination system not initialized. Run 'rhema init' first.".to_string(),
-            }
-        })?;
+    let coordination_system = context.rhema.get_coordination_system().ok_or_else(|| {
+        rhema_api::RhemaError::InvalidYaml {
+            file: "coordination".to_string(),
+            message: "Coordination system not initialized. Run 'rhema init' first.".to_string(),
+        }
+    })?;
 
     match subcommand {
-        SessionSubcommands::CreateSession { topic, participants } => {
+        SessionSubcommands::CreateSession {
+            topic,
+            participants,
+        } => {
             let participant_ids: Vec<String> = participants
                 .split(',')
                 .map(|s| s.trim().to_string())
                 .collect();
 
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    let session_id = coordination_system
-                        .create_session(topic.clone(), participant_ids.clone())
-                        .await?;
-                    println!("✅ Session created: {}", session_id);
-                    println!("  Topic: {}", topic);
-                    println!("  Participants: {}", participants);
-                    Ok(())
-                })
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                let session_id = coordination_system
+                    .create_session(topic.clone(), participant_ids.clone())
+                    .await?;
+                println!("✅ Session created: {}", session_id);
+                println!("  Topic: {}", topic);
+                println!("  Participants: {}", participants);
+                Ok(())
+            })
         }
 
         SessionSubcommands::ListSessions { active, detailed } => {
@@ -560,29 +549,27 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
             Ok(())
         }
 
-        SessionSubcommands::JoinSession { session_id, agent_id } => {
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    coordination_system
-                        .join_session(session_id, agent_id)
-                        .await?;
-                    println!("✅ Agent {} joined session {}", agent_id, session_id);
-                    Ok(())
-                })
-        }
+        SessionSubcommands::JoinSession {
+            session_id,
+            agent_id,
+        } => tokio::runtime::Runtime::new().unwrap().block_on(async {
+            coordination_system
+                .join_session(session_id, agent_id)
+                .await?;
+            println!("✅ Agent {} joined session {}", agent_id, session_id);
+            Ok(())
+        }),
 
-        SessionSubcommands::LeaveSession { session_id, agent_id } => {
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    coordination_system
-                        .leave_session(session_id, agent_id)
-                        .await?;
-                    println!("✅ Agent {} left session {}", agent_id, session_id);
-                    Ok(())
-                })
-        }
+        SessionSubcommands::LeaveSession {
+            session_id,
+            agent_id,
+        } => tokio::runtime::Runtime::new().unwrap().block_on(async {
+            coordination_system
+                .leave_session(session_id, agent_id)
+                .await?;
+            println!("✅ Agent {} left session {}", agent_id, session_id);
+            Ok(())
+        }),
 
         SessionSubcommands::SendSessionMessage {
             session_id,
@@ -605,15 +592,13 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
                 metadata: HashMap::new(),
             };
 
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    coordination_system
-                        .send_session_message(session_id, message)
-                        .await?;
-                    println!("✅ Session message sent to {}", session_id);
-                    Ok(())
-                })
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                coordination_system
+                    .send_session_message(session_id, message)
+                    .await?;
+                println!("✅ Session message sent to {}", session_id);
+                Ok(())
+            })
         }
 
         SessionSubcommands::SessionInfo { session_id } => {
@@ -626,15 +611,12 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
 }
 
 fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaResult<()> {
-    let coordination_system = context
-        .rhema
-        .get_coordination_system()
-        .ok_or_else(|| {
-            rhema_api::RhemaError::InvalidYaml {
-                file: "coordination".to_string(),
-                message: "Coordination system not initialized. Run 'rhema init' first.".to_string(),
-            }
-        })?;
+    let coordination_system = context.rhema.get_coordination_system().ok_or_else(|| {
+        rhema_api::RhemaError::InvalidYaml {
+            file: "coordination".to_string(),
+            message: "Coordination system not initialized. Run 'rhema init' first.".to_string(),
+        }
+    })?;
 
     match subcommand {
         SystemSubcommands::Stats { detailed, export } => {
@@ -644,9 +626,18 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
 
             let total_agents = agents.len();
             let online_agents = agents.iter().filter(|a| a.is_online).count();
-            let idle_agents = agents.iter().filter(|a| a.status == AgentStatus::Idle).count();
-            let busy_agents = agents.iter().filter(|a| a.status == AgentStatus::Busy).count();
-            let working_agents = agents.iter().filter(|a| a.status == AgentStatus::Working).count();
+            let idle_agents = agents
+                .iter()
+                .filter(|a| a.status == AgentStatus::Idle)
+                .count();
+            let busy_agents = agents
+                .iter()
+                .filter(|a| a.status == AgentStatus::Busy)
+                .count();
+            let working_agents = agents
+                .iter()
+                .filter(|a| a.status == AgentStatus::Working)
+                .count();
 
             println!("📊 Coordination System Statistics");
             println!("  Total Agents: {}", total_agents);
@@ -658,8 +649,10 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
             if *detailed {
                 println!("\nDetailed Statistics:");
                 for agent in &agents {
-                    println!("  {}: {:?} - {}", 
-                        agent.name, agent.status, agent.agent_type);
+                    println!(
+                        "  {}: {:?} - {}",
+                        agent.name, agent.status, agent.agent_type
+                    );
                 }
             }
 
@@ -673,7 +666,7 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
                     "timestamp": Utc::now(),
                     "agents": agents
                 });
-                
+
                 std::fs::write(export_path, serde_json::to_string_pretty(&stats)?)?;
                 println!("✅ Statistics exported to: {}", export_path);
             }
@@ -708,21 +701,36 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
             println!("  Monitor messages: {}", messages);
             println!("  Monitor sessions: {}", sessions);
             println!("  Press Ctrl+C to stop monitoring");
-            
+
             // Note: This would require implementing a monitoring stream in the coordination system
             println!("📋 Real-time monitoring not yet implemented in coordination system");
             Ok(())
         }
 
-        SystemSubcommands::Health { detailed, components } => {
+        SystemSubcommands::Health {
+            detailed,
+            components,
+        } => {
             let agents = tokio::runtime::Runtime::new()
                 .unwrap()
                 .block_on(async { coordination_system.get_all_agents().await });
 
-            let healthy_agents = agents.iter().filter(|a| a.status == AgentStatus::Idle).count();
-            let busy_agents = agents.iter().filter(|a| a.status == AgentStatus::Busy).count();
-            let working_agents = agents.iter().filter(|a| a.status == AgentStatus::Working).count();
-            let offline_agents = agents.iter().filter(|a| a.status == AgentStatus::Offline).count();
+            let healthy_agents = agents
+                .iter()
+                .filter(|a| a.status == AgentStatus::Idle)
+                .count();
+            let busy_agents = agents
+                .iter()
+                .filter(|a| a.status == AgentStatus::Busy)
+                .count();
+            let working_agents = agents
+                .iter()
+                .filter(|a| a.status == AgentStatus::Working)
+                .count();
+            let offline_agents = agents
+                .iter()
+                .filter(|a| a.status == AgentStatus::Offline)
+                .count();
 
             println!("🏥 Coordination System Health Check");
             println!("  Total Agents: {}", agents.len());
@@ -754,8 +762,10 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
                         AgentStatus::Collaborating => "🤝",
                         AgentStatus::Failed => "❌",
                     };
-                    println!("  {} {}: {:?} - {}", 
-                        status_icon, agent.name, agent.status, agent.agent_type);
+                    println!(
+                        "  {} {}: {:?} - {}",
+                        status_icon, agent.name, agent.status, agent.agent_type
+                    );
                 }
             }
 

@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
-use serde_json;
 use tracing::{info, warn};
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::schema::{ActionIntent, SafetyLevel};
 use crate::error::{ActionError, ActionResult};
+use crate::schema::{ActionIntent, SafetyLevel};
 
 /// Approval request
 #[derive(Debug, Clone)]
@@ -160,13 +160,13 @@ impl ApprovalWorkflow {
     /// Create a new approval workflow
     pub async fn new() -> ActionResult<Self> {
         info!("Initializing Approval Workflow");
-        
+
         let workflow = Self {
             requests: Arc::new(RwLock::new(HashMap::new())),
             notification_channels: vec!["console".to_string(), "email".to_string()],
             default_timeout: 3600, // 1 hour
         };
-        
+
         info!("Approval Workflow initialized successfully");
         Ok(workflow)
     }
@@ -182,44 +182,52 @@ impl ApprovalWorkflow {
         info!("ApprovalWorkflow shutdown (stub)");
         Ok(())
     }
-    
+
     /// Request approval for an action intent
     pub async fn request_approval(&self, intent: &ActionIntent) -> ActionResult<bool> {
         info!("Requesting approval for intent: {}", intent.id);
-        
+
         let request_id = Uuid::new_v4().simple().to_string();
-        let expires_at = Utc::now() + chrono::Duration::seconds(intent.approval_workflow.timeout as i64);
-        
-        let approvers = intent.approval_workflow.approvers.clone().unwrap_or_default();
+        let expires_at =
+            Utc::now() + chrono::Duration::seconds(intent.approval_workflow.timeout as i64);
+
+        let approvers = intent
+            .approval_workflow
+            .approvers
+            .clone()
+            .unwrap_or_default();
         if approvers.is_empty() {
             warn!("No approvers specified for intent: {}", intent.id);
             return Ok(false);
         }
-        
+
         let request = ApprovalRequest {
             id: request_id.clone(),
             intent_id: intent.id.clone(),
-            requested_by: intent.created_by.clone().unwrap_or_else(|| "system".to_string()),
+            requested_by: intent
+                .created_by
+                .clone()
+                .unwrap_or_else(|| "system".to_string()),
             requested_at: Utc::now(),
             approvers: approvers.clone(),
             status: ApprovalStatus::Pending,
             comments: Vec::new(),
             expires_at,
         };
-        
+
         // Store the request
         {
             let mut requests = self.requests.write().await;
             requests.insert(request_id.clone(), request.clone());
         }
-        
+
         // Send notifications
         self.send_approval_notifications(&request, &intent).await?;
-        
+
         // For now, simulate approval process
         // In a real implementation, this would wait for human input
         let approved = self.simulate_approval_process(&request).await?;
-        
+
         // Update request status
         {
             let mut requests = self.requests.write().await;
@@ -231,36 +239,40 @@ impl ApprovalWorkflow {
                 };
             }
         }
-        
+
         if approved {
             info!("Approval granted for intent: {}", intent.id);
         } else {
             info!("Approval denied for intent: {}", intent.id);
         }
-        
+
         Ok(approved)
     }
-    
+
     /// Simulate approval process (placeholder for real implementation)
     async fn simulate_approval_process(&self, request: &ApprovalRequest) -> ActionResult<bool> {
         info!("Simulating approval process for request: {}", request.id);
-        
+
         // For now, auto-approve low-risk actions and reject high-risk ones
         // In a real implementation, this would present a UI or wait for external input
-        
+
         // Simulate some processing time
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        
+
         // Simple logic: approve if there are multiple approvers (indicating lower risk)
         let approved = request.approvers.len() > 1;
-        
+
         Ok(approved)
     }
-    
+
     /// Send approval notifications
-    async fn send_approval_notifications(&self, request: &ApprovalRequest, intent: &ActionIntent) -> ActionResult<()> {
+    async fn send_approval_notifications(
+        &self,
+        request: &ApprovalRequest,
+        intent: &ActionIntent,
+    ) -> ActionResult<()> {
         info!("Sending approval notifications for request: {}", request.id);
-        
+
         for channel in &self.notification_channels {
             match channel.as_str() {
                 "console" => {
@@ -274,12 +286,16 @@ impl ApprovalWorkflow {
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Send console notification
-    async fn send_console_notification(&self, request: &ApprovalRequest, intent: &ActionIntent) -> ActionResult<()> {
+    async fn send_console_notification(
+        &self,
+        request: &ApprovalRequest,
+        intent: &ActionIntent,
+    ) -> ActionResult<()> {
         info!("=== APPROVAL REQUEST ===");
         info!("Request ID: {}", request.id);
         info!("Intent ID: {}", request.intent_id);
@@ -288,93 +304,117 @@ impl ApprovalWorkflow {
         info!("Approvers: {}", request.approvers.join(", "));
         info!("Expires at: {}", request.expires_at);
         info!("========================");
-        
+
         Ok(())
     }
-    
+
     /// Send email notification
-    async fn send_email_notification(&self, request: &ApprovalRequest, intent: &ActionIntent) -> ActionResult<()> {
+    async fn send_email_notification(
+        &self,
+        request: &ApprovalRequest,
+        intent: &ActionIntent,
+    ) -> ActionResult<()> {
         info!("Sending email notification for request: {}", request.id);
-        
+
         // Create email content
         let subject = format!("Approval Request: {}", intent.description);
         let body = self.create_email_body(request, intent);
-        
+
         // In a real implementation, this would use an email service like:
         // - SMTP with libraries like lettre
         // - Email service APIs (SendGrid, AWS SES, etc.)
         // - Internal notification systems
-        
+
         // For now, we'll simulate email sending with detailed logging
-        self.simulate_email_send(&subject, &body, &request.approvers).await?;
-        
-        info!("Email notification sent successfully for request: {}", request.id);
+        self.simulate_email_send(&subject, &body, &request.approvers)
+            .await?;
+
+        info!(
+            "Email notification sent successfully for request: {}",
+            request.id
+        );
         Ok(())
     }
-    
+
     /// Create email body content
     fn create_email_body(&self, request: &ApprovalRequest, intent: &ActionIntent) -> String {
         let mut body = String::new();
-        
+
         body.push_str(&format!("Approval Request: {}\n", request.id));
         body.push_str(&format!("Intent ID: {}\n", request.intent_id));
         body.push_str(&format!("Description: {}\n", intent.description));
         body.push_str(&format!("Action Type: {:?}\n", intent.action_type));
         body.push_str(&format!("Safety Level: {:?}\n", intent.safety_level));
         body.push_str(&format!("Requested By: {}\n", request.requested_by));
-        body.push_str(&format!("Requested At: {}\n", request.requested_at.format("%Y-%m-%d %H:%M:%S UTC")));
-        body.push_str(&format!("Expires At: {}\n", request.expires_at.format("%Y-%m-%d %H:%M:%S UTC")));
-        
+        body.push_str(&format!(
+            "Requested At: {}\n",
+            request.requested_at.format("%Y-%m-%d %H:%M:%S UTC")
+        ));
+        body.push_str(&format!(
+            "Expires At: {}\n",
+            request.expires_at.format("%Y-%m-%d %H:%M:%S UTC")
+        ));
+
         if !intent.scope.is_empty() {
             body.push_str(&format!("Scope: {}\n", intent.scope.join(", ")));
         }
-        
+
         body.push_str("\n=== APPROVAL INSTRUCTIONS ===\n");
         body.push_str("Please review this action request and respond with your decision.\n");
         body.push_str("You can approve, reject, or add comments to this request.\n");
         body.push_str("If no response is received before the expiration time, the request will be automatically rejected.\n");
-        
+
         body.push_str("\n=== RESPONSE FORMAT ===\n");
         body.push_str("To approve: Reply with 'APPROVE' or 'YES'\n");
         body.push_str("To reject: Reply with 'REJECT' or 'NO' followed by a reason\n");
         body.push_str("To add a comment: Reply with 'COMMENT: <your comment>'\n");
-        
+
         body.push_str("\n=== REQUEST DETAILS ===\n");
         if let Some(metadata) = &intent.metadata {
             for (key, value) in metadata {
                 body.push_str(&format!("{}: {}\n", key, value));
             }
         }
-        
+
         body
     }
-    
+
     /// Simulate email sending (placeholder for real email implementation)
-    async fn simulate_email_send(&self, subject: &str, body: &str, recipients: &[String]) -> ActionResult<()> {
+    async fn simulate_email_send(
+        &self,
+        subject: &str,
+        body: &str,
+        recipients: &[String],
+    ) -> ActionResult<()> {
         info!("=== EMAIL NOTIFICATION SIMULATION ===");
         info!("To: {}", recipients.join(", "));
         info!("Subject: {}", subject);
         info!("Body:\n{}", body);
         info!("=== END EMAIL SIMULATION ===");
-        
+
         // In a real implementation, this would:
         // 1. Use an email library like lettre for SMTP
         // 2. Or use an email service API (SendGrid, AWS SES, etc.)
         // 3. Handle email delivery status and retries
         // 4. Log email delivery metrics
-        
+
         // Simulate some processing time
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-        
+
         Ok(())
     }
-    
+
     /// Approve a request
-    pub async fn approve_request(&self, request_id: &str, approver: &str, comment: Option<&str>) -> ActionResult<()> {
+    pub async fn approve_request(
+        &self,
+        request_id: &str,
+        approver: &str,
+        comment: Option<&str>,
+    ) -> ActionResult<()> {
         info!("Approving request: {} by {}", request_id, approver);
-        
+
         let mut requests = self.requests.write().await;
-        
+
         if let Some(request) = requests.get_mut(request_id) {
             // Check if the approver is authorized
             if !request.approvers.contains(&approver.to_string()) {
@@ -383,7 +423,7 @@ impl ApprovalWorkflow {
                     approver
                 )));
             }
-            
+
             // Check if request is still pending
             if request.status != ApprovalStatus::Pending {
                 return Err(ActionError::approval(format!(
@@ -391,16 +431,16 @@ impl ApprovalWorkflow {
                     request.status
                 )));
             }
-            
+
             // Check if request has expired
             if Utc::now() > request.expires_at {
                 request.status = ApprovalStatus::Expired;
                 return Err(ActionError::approval("Request has expired"));
             }
-            
+
             // Update status
             request.status = ApprovalStatus::Approved;
-            
+
             // Add approval comment
             if let Some(comment_text) = comment {
                 let comment = ApprovalComment {
@@ -412,21 +452,29 @@ impl ApprovalWorkflow {
                 };
                 request.comments.push(comment);
             }
-            
+
             info!("Request approved successfully: {}", request_id);
         } else {
-            return Err(ActionError::approval(format!("Request not found: {}", request_id)));
+            return Err(ActionError::approval(format!(
+                "Request not found: {}",
+                request_id
+            )));
         }
-        
+
         Ok(())
     }
-    
+
     /// Reject a request
-    pub async fn reject_request(&self, request_id: &str, approver: &str, reason: &str) -> ActionResult<()> {
+    pub async fn reject_request(
+        &self,
+        request_id: &str,
+        approver: &str,
+        reason: &str,
+    ) -> ActionResult<()> {
         info!("Rejecting request: {} by {}", request_id, approver);
-        
+
         let mut requests = self.requests.write().await;
-        
+
         if let Some(request) = requests.get_mut(request_id) {
             // Check if the approver is authorized
             if !request.approvers.contains(&approver.to_string()) {
@@ -435,7 +483,7 @@ impl ApprovalWorkflow {
                     approver
                 )));
             }
-            
+
             // Check if request is still pending
             if request.status != ApprovalStatus::Pending {
                 return Err(ActionError::approval(format!(
@@ -443,16 +491,16 @@ impl ApprovalWorkflow {
                     request.status
                 )));
             }
-            
+
             // Check if request has expired
             if Utc::now() > request.expires_at {
                 request.status = ApprovalStatus::Expired;
                 return Err(ActionError::approval("Request has expired"));
             }
-            
+
             // Update status
             request.status = ApprovalStatus::Rejected;
-            
+
             // Add rejection comment
             let comment = ApprovalComment {
                 id: Uuid::new_v4().simple().to_string(),
@@ -462,21 +510,29 @@ impl ApprovalWorkflow {
                 is_decision: true,
             };
             request.comments.push(comment);
-            
+
             info!("Request rejected successfully: {}", request_id);
         } else {
-            return Err(ActionError::approval(format!("Request not found: {}", request_id)));
+            return Err(ActionError::approval(format!(
+                "Request not found: {}",
+                request_id
+            )));
         }
-        
+
         Ok(())
     }
-    
+
     /// Add a comment to a request
-    pub async fn add_comment(&self, request_id: &str, author: &str, content: &str) -> ActionResult<()> {
+    pub async fn add_comment(
+        &self,
+        request_id: &str,
+        author: &str,
+        content: &str,
+    ) -> ActionResult<()> {
         info!("Adding comment to request: {} by {}", request_id, author);
-        
+
         let mut requests = self.requests.write().await;
-        
+
         if let Some(request) = requests.get_mut(request_id) {
             let comment = ApprovalComment {
                 id: Uuid::new_v4().simple().to_string(),
@@ -486,27 +542,30 @@ impl ApprovalWorkflow {
                 is_decision: false,
             };
             request.comments.push(comment);
-            
+
             info!("Comment added successfully to request: {}", request_id);
         } else {
-            return Err(ActionError::approval(format!("Request not found: {}", request_id)));
+            return Err(ActionError::approval(format!(
+                "Request not found: {}",
+                request_id
+            )));
         }
-        
+
         Ok(())
     }
-    
+
     /// Get approval request by ID
     pub async fn get_request(&self, request_id: &str) -> Option<ApprovalRequest> {
         let requests = self.requests.read().await;
         requests.get(request_id).cloned()
     }
-    
+
     /// List all approval requests
     pub async fn list_requests(&self) -> Vec<ApprovalRequest> {
         let requests = self.requests.read().await;
         requests.values().cloned().collect()
     }
-    
+
     /// List pending approval requests
     pub async fn list_pending_requests(&self) -> Vec<ApprovalRequest> {
         let requests = self.requests.read().await;
@@ -516,7 +575,7 @@ impl ApprovalWorkflow {
             .cloned()
             .collect()
     }
-    
+
     /// List requests for an intent
     pub async fn list_requests_for_intent(&self, intent_id: &str) -> Vec<ApprovalRequest> {
         let requests = self.requests.read().await;
@@ -526,13 +585,13 @@ impl ApprovalWorkflow {
             .cloned()
             .collect()
     }
-    
+
     /// Cancel a request
     pub async fn cancel_request(&self, request_id: &str, cancelled_by: &str) -> ActionResult<()> {
         info!("Cancelling request: {} by {}", request_id, cancelled_by);
-        
+
         let mut requests = self.requests.write().await;
-        
+
         if let Some(request) = requests.get_mut(request_id) {
             // Check if request is still pending
             if request.status != ApprovalStatus::Pending {
@@ -541,10 +600,10 @@ impl ApprovalWorkflow {
                     request.status
                 )));
             }
-            
+
             // Update status
             request.status = ApprovalStatus::Cancelled;
-            
+
             // Add cancellation comment
             let comment = ApprovalComment {
                 id: Uuid::new_v4().simple().to_string(),
@@ -554,22 +613,25 @@ impl ApprovalWorkflow {
                 is_decision: true,
             };
             request.comments.push(comment);
-            
+
             info!("Request cancelled successfully: {}", request_id);
         } else {
-            return Err(ActionError::approval(format!("Request not found: {}", request_id)));
+            return Err(ActionError::approval(format!(
+                "Request not found: {}",
+                request_id
+            )));
         }
-        
+
         Ok(())
     }
-    
+
     /// Clean up expired requests
     pub async fn cleanup_expired_requests(&self) -> ActionResult<usize> {
         info!("Cleaning up expired approval requests");
-        
+
         let mut requests = self.requests.write().await;
         let mut expired_count = 0;
-        
+
         let now = Utc::now();
         let expired_requests: Vec<String> = requests
             .iter()
@@ -578,29 +640,44 @@ impl ApprovalWorkflow {
             })
             .map(|(id, _)| id.clone())
             .collect();
-        
+
         for request_id in expired_requests {
             if let Some(request) = requests.get_mut(&request_id) {
                 request.status = ApprovalStatus::Expired;
                 expired_count += 1;
             }
         }
-        
+
         info!("Cleaned up {} expired requests", expired_count);
         Ok(expired_count)
     }
-    
+
     /// Get approval statistics
     pub async fn get_approval_stats(&self) -> ApprovalStats {
         let requests = self.requests.read().await;
-        
+
         let total_requests = requests.len();
-        let pending_requests = requests.values().filter(|r| r.status == ApprovalStatus::Pending).count();
-        let approved_requests = requests.values().filter(|r| r.status == ApprovalStatus::Approved).count();
-        let rejected_requests = requests.values().filter(|r| r.status == ApprovalStatus::Rejected).count();
-        let expired_requests = requests.values().filter(|r| r.status == ApprovalStatus::Expired).count();
-        let cancelled_requests = requests.values().filter(|r| r.status == ApprovalStatus::Cancelled).count();
-        
+        let pending_requests = requests
+            .values()
+            .filter(|r| r.status == ApprovalStatus::Pending)
+            .count();
+        let approved_requests = requests
+            .values()
+            .filter(|r| r.status == ApprovalStatus::Approved)
+            .count();
+        let rejected_requests = requests
+            .values()
+            .filter(|r| r.status == ApprovalStatus::Rejected)
+            .count();
+        let expired_requests = requests
+            .values()
+            .filter(|r| r.status == ApprovalStatus::Expired)
+            .count();
+        let cancelled_requests = requests
+            .values()
+            .filter(|r| r.status == ApprovalStatus::Cancelled)
+            .count();
+
         ApprovalStats {
             total_requests,
             pending_requests,
@@ -612,12 +689,19 @@ impl ApprovalWorkflow {
     }
 
     /// Create an enhanced approval request with policy-based approval
-    pub async fn create_enhanced_approval_request(&self, intent: &ActionIntent, policy: &ApprovalPolicy) -> ActionResult<EnhancedApprovalRequest> {
-        info!("Creating enhanced approval request for intent: {}", intent.id);
-        
+    pub async fn create_enhanced_approval_request(
+        &self,
+        intent: &ActionIntent,
+        policy: &ApprovalPolicy,
+    ) -> ActionResult<EnhancedApprovalRequest> {
+        info!(
+            "Creating enhanced approval request for intent: {}",
+            intent.id
+        );
+
         let request_id = Uuid::new_v4().simple().to_string();
         let expires_at = Utc::now() + chrono::Duration::seconds(policy.timeout_seconds as i64);
-        
+
         // Create approvers based on policy
         let mut approvers = Vec::new();
         for i in 0..policy.required_approvers {
@@ -631,25 +715,24 @@ impl ApprovalWorkflow {
                 response: None,
             });
         }
-        
+
         // Check if auto-approval applies
-        let auto_approved = policy.auto_approve && self.check_auto_approval_conditions(intent, policy).await?;
-        
+        let auto_approved =
+            policy.auto_approve && self.check_auto_approval_conditions(intent, policy).await?;
+
         let status = if auto_approved {
             ApprovalStatus::Approved
         } else {
             ApprovalStatus::Pending
         };
-        
-        let mut approval_history = vec![
-            ApprovalEvent {
-                event_type: ApprovalEventType::RequestCreated,
-                actor: "system".to_string(),
-                timestamp: Utc::now(),
-                details: format!("Created approval request for intent: {}", intent.id),
-            }
-        ];
-        
+
+        let mut approval_history = vec![ApprovalEvent {
+            event_type: ApprovalEventType::RequestCreated,
+            actor: "system".to_string(),
+            timestamp: Utc::now(),
+            details: format!("Created approval request for intent: {}", intent.id),
+        }];
+
         if auto_approved {
             approval_history.push(ApprovalEvent {
                 event_type: ApprovalEventType::ApprovalGranted,
@@ -658,7 +741,7 @@ impl ApprovalWorkflow {
                 details: "Auto-approved based on policy".to_string(),
             });
         }
-        
+
         let enhanced_request = EnhancedApprovalRequest {
             id: request_id,
             intent_id: intent.id.clone(),
@@ -673,30 +756,42 @@ impl ApprovalWorkflow {
             auto_approved,
             approval_history,
         };
-        
+
         // Store the request
         let mut requests = self.requests.write().await;
-        requests.insert(enhanced_request.id.clone(), ApprovalRequest {
-            id: enhanced_request.id.clone(),
-            intent_id: enhanced_request.intent_id.clone(),
-            requested_by: enhanced_request.requested_by.clone(),
-            requested_at: enhanced_request.requested_at,
-            approvers: enhanced_request.approvers.iter().map(|a| a.name.clone()).collect(),
-            status: enhanced_request.status.clone(),
-            comments: enhanced_request.comments.clone(),
-            expires_at: enhanced_request.expires_at,
-        });
-        
+        requests.insert(
+            enhanced_request.id.clone(),
+            ApprovalRequest {
+                id: enhanced_request.id.clone(),
+                intent_id: enhanced_request.intent_id.clone(),
+                requested_by: enhanced_request.requested_by.clone(),
+                requested_at: enhanced_request.requested_at,
+                approvers: enhanced_request
+                    .approvers
+                    .iter()
+                    .map(|a| a.name.clone())
+                    .collect(),
+                status: enhanced_request.status.clone(),
+                comments: enhanced_request.comments.clone(),
+                expires_at: enhanced_request.expires_at,
+            },
+        );
+
         // Send notifications if not auto-approved
         if !auto_approved {
-            self.send_enhanced_notifications(&enhanced_request, intent).await?;
+            self.send_enhanced_notifications(&enhanced_request, intent)
+                .await?;
         }
-        
+
         Ok(enhanced_request)
     }
 
     /// Check auto-approval conditions
-    async fn check_auto_approval_conditions(&self, intent: &ActionIntent, policy: &ApprovalPolicy) -> ActionResult<bool> {
+    async fn check_auto_approval_conditions(
+        &self,
+        intent: &ActionIntent,
+        policy: &ApprovalPolicy,
+    ) -> ActionResult<bool> {
         for condition in &policy.conditions {
             let condition_met = match condition.field.as_str() {
                 "safety_level" => {
@@ -715,46 +810,60 @@ impl ApprovalWorkflow {
                         _ => false,
                     }
                 }
-                "description" => {
-                    match condition.operator.as_str() {
-                        "contains" => intent.description.contains(&condition.value),
-                        "not_contains" => !intent.description.contains(&condition.value),
-                        _ => false,
-                    }
-                }
+                "description" => match condition.operator.as_str() {
+                    "contains" => intent.description.contains(&condition.value),
+                    "not_contains" => !intent.description.contains(&condition.value),
+                    _ => false,
+                },
                 _ => false,
             };
-            
+
             if !condition_met {
                 return Ok(false);
             }
         }
-        
+
         Ok(true)
     }
 
     /// Send enhanced notifications
-    async fn send_enhanced_notifications(&self, request: &EnhancedApprovalRequest, intent: &ActionIntent) -> ActionResult<()> {
-        info!("Sending enhanced notifications for approval request: {}", request.id);
-        
+    async fn send_enhanced_notifications(
+        &self,
+        request: &EnhancedApprovalRequest,
+        intent: &ActionIntent,
+    ) -> ActionResult<()> {
+        info!(
+            "Sending enhanced notifications for approval request: {}",
+            request.id
+        );
+
         for approver in &request.approvers {
             // Send notification to each approver
-            self.send_approver_notification(approver, request, intent).await?;
-            
+            self.send_approver_notification(approver, request, intent)
+                .await?;
+
             // Update approver status
             // In a real implementation, this would be done after successful notification
         }
-        
+
         Ok(())
     }
 
     /// Send notification to a specific approver
-    async fn send_approver_notification(&self, approver: &Approver, request: &EnhancedApprovalRequest, intent: &ActionIntent) -> ActionResult<()> {
-        info!("Sending notification to approver: {} ({})", approver.name, approver.email);
-        
+    async fn send_approver_notification(
+        &self,
+        approver: &Approver,
+        request: &EnhancedApprovalRequest,
+        intent: &ActionIntent,
+    ) -> ActionResult<()> {
+        info!(
+            "Sending notification to approver: {} ({})",
+            approver.name, approver.email
+        );
+
         // In a real implementation, this would send actual notifications
         // For now, we'll just log the notification
-        
+
         let notification_message = format!(
             "Approval Request: {}\nIntent: {}\nAction: {:?}\nSafety Level: {:?}\nExpires: {}\n\nPlease review and approve/reject this action.",
             request.id,
@@ -763,9 +872,12 @@ impl ApprovalWorkflow {
             intent.safety_level,
             request.expires_at.format("%Y-%m-%d %H:%M:%S UTC")
         );
-        
-        info!("Notification sent to {}: {}", approver.email, notification_message);
-        
+
+        info!(
+            "Notification sent to {}: {}",
+            approver.email, notification_message
+        );
+
         Ok(())
     }
 
@@ -781,14 +893,12 @@ impl ApprovalWorkflow {
                 required_approvers: 2,
                 timeout_seconds: 7200, // 2 hours
                 auto_approve: false,
-                conditions: vec![
-                    ApprovalCondition {
-                        field: "safety_level".to_string(),
-                        operator: "equals".to_string(),
-                        value: "high".to_string(),
-                        description: "High safety level actions".to_string(),
-                    }
-                ],
+                conditions: vec![ApprovalCondition {
+                    field: "safety_level".to_string(),
+                    operator: "equals".to_string(),
+                    value: "high".to_string(),
+                    description: "High safety level actions".to_string(),
+                }],
             },
             ApprovalPolicy {
                 id: "low_safety_policy".to_string(),
@@ -799,14 +909,12 @@ impl ApprovalWorkflow {
                 required_approvers: 0,
                 timeout_seconds: 3600, // 1 hour
                 auto_approve: true,
-                conditions: vec![
-                    ApprovalCondition {
-                        field: "safety_level".to_string(),
-                        operator: "equals".to_string(),
-                        value: "low".to_string(),
-                        description: "Low safety level actions".to_string(),
-                    }
-                ],
+                conditions: vec![ApprovalCondition {
+                    field: "safety_level".to_string(),
+                    operator: "equals".to_string(),
+                    value: "low".to_string(),
+                    description: "Low safety level actions".to_string(),
+                }],
             },
         ]
     }
@@ -837,7 +945,7 @@ mod tests {
     #[tokio::test]
     async fn test_approval_request() {
         let workflow = ApprovalWorkflow::new().await.unwrap();
-        
+
         let mut intent = ActionIntent::new(
             "test-approval",
             ActionType::Refactor,
@@ -845,13 +953,13 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::High,
         );
-        
+
         intent.add_approver("user1");
         intent.add_approver("user2");
-        
+
         let approved = workflow.request_approval(&intent).await;
         assert!(approved.is_ok());
-        
+
         // Should be approved since there are multiple approvers
         let approved = approved.unwrap();
         assert!(approved);
@@ -860,7 +968,7 @@ mod tests {
     #[tokio::test]
     async fn test_approval_request_single_approver() {
         let workflow = ApprovalWorkflow::new().await.unwrap();
-        
+
         let mut intent = ActionIntent::new(
             "test-single-approver",
             ActionType::Refactor,
@@ -868,12 +976,12 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::High,
         );
-        
+
         intent.add_approver("user1");
-        
+
         let approved = workflow.request_approval(&intent).await;
         assert!(approved.is_ok());
-        
+
         // Should be rejected since there's only one approver
         let approved = approved.unwrap();
         assert!(!approved);
@@ -882,7 +990,7 @@ mod tests {
     #[tokio::test]
     async fn test_approval_request_no_approvers() {
         let workflow = ApprovalWorkflow::new().await.unwrap();
-        
+
         let intent = ActionIntent::new(
             "test-no-approvers",
             ActionType::Refactor,
@@ -890,10 +998,10 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::High,
         );
-        
+
         let approved = workflow.request_approval(&intent).await;
         assert!(approved.is_ok());
-        
+
         // Should be rejected since there are no approvers
         let approved = approved.unwrap();
         assert!(!approved);
@@ -902,7 +1010,7 @@ mod tests {
     #[tokio::test]
     async fn test_approval_stats() {
         let workflow = ApprovalWorkflow::new().await.unwrap();
-        
+
         let mut intent = ActionIntent::new(
             "test-stats",
             ActionType::Refactor,
@@ -910,12 +1018,12 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::High,
         );
-        
+
         intent.add_approver("user1");
         intent.add_approver("user2");
-        
+
         let _approved = workflow.request_approval(&intent).await.unwrap();
-        
+
         let stats = workflow.get_approval_stats().await;
         assert!(stats.total_requests > 0);
         assert!(stats.approved_requests > 0 || stats.rejected_requests > 0);
@@ -924,11 +1032,11 @@ mod tests {
     #[tokio::test]
     async fn test_cleanup_expired_requests() {
         let workflow = ApprovalWorkflow::new().await.unwrap();
-        
+
         // Create a request manually with a short expiration time
         let request_id = Uuid::new_v4().simple().to_string();
         let expires_at = Utc::now() - chrono::Duration::seconds(1); // Already expired
-        
+
         let request = ApprovalRequest {
             id: request_id.clone(),
             intent_id: "test-expired".to_string(),
@@ -939,20 +1047,20 @@ mod tests {
             comments: Vec::new(),
             expires_at,
         };
-        
+
         // Store the request directly
         {
             let mut requests = workflow.requests.write().await;
             requests.insert(request_id.clone(), request);
         }
-        
+
         // Run cleanup
         let expired_count = workflow.cleanup_expired_requests().await;
         assert!(expired_count.is_ok());
-        
+
         let expired_count = expired_count.unwrap();
         assert!(expired_count > 0);
-        
+
         // Verify the request was marked as expired
         let updated_request = workflow.get_request(&request_id).await;
         assert!(updated_request.is_some());
@@ -962,7 +1070,7 @@ mod tests {
     #[tokio::test]
     async fn test_email_notification() {
         let workflow = ApprovalWorkflow::new().await.unwrap();
-        
+
         let mut intent = ActionIntent::new(
             "test-email",
             ActionType::Refactor,
@@ -970,24 +1078,30 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::High,
         );
-        
+
         intent.add_approver("user1@example.com");
         intent.add_approver("user2@example.com");
-        
+
         // Add some metadata to test email body generation
         intent.metadata = Some(std::collections::HashMap::from([
-            ("priority".to_string(), serde_json::Value::String("high".to_string())),
-            ("team".to_string(), serde_json::Value::String("backend".to_string())),
+            (
+                "priority".to_string(),
+                serde_json::Value::String("high".to_string()),
+            ),
+            (
+                "team".to_string(),
+                serde_json::Value::String("backend".to_string()),
+            ),
         ]));
-        
+
         let approved = workflow.request_approval(&intent).await;
         assert!(approved.is_ok());
-        
+
         // The email notification should be sent as part of the approval process
         // We can verify this by checking that the request was created
         let requests = workflow.list_requests().await;
         assert!(!requests.is_empty());
-        
+
         // Find our test request
         let test_request = requests.iter().find(|r| r.intent_id == "test-email");
         assert!(test_request.is_some());
@@ -996,7 +1110,7 @@ mod tests {
     #[tokio::test]
     async fn test_enhanced_approval_with_policy() {
         let workflow = ApprovalWorkflow::new().await.unwrap();
-        
+
         let intent = ActionIntent::new(
             "test-enhanced",
             ActionType::Refactor,
@@ -1004,16 +1118,21 @@ mod tests {
             vec!["src/".to_string()],
             SafetyLevel::Low,
         );
-        
+
         let policies = workflow.get_default_policies().await;
-        let low_safety_policy = policies.iter().find(|p| p.id == "low_safety_policy").unwrap();
-        
-        let enhanced_request = workflow.create_enhanced_approval_request(&intent, low_safety_policy).await;
+        let low_safety_policy = policies
+            .iter()
+            .find(|p| p.id == "low_safety_policy")
+            .unwrap();
+
+        let enhanced_request = workflow
+            .create_enhanced_approval_request(&intent, low_safety_policy)
+            .await;
         assert!(enhanced_request.is_ok());
-        
+
         let enhanced_request = enhanced_request.unwrap();
         assert_eq!(enhanced_request.intent_id, "test-enhanced");
         assert!(enhanced_request.auto_approved);
         assert_eq!(enhanced_request.status, ApprovalStatus::Approved);
     }
-} 
+}

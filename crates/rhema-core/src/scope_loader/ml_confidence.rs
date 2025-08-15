@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
+use crate::scope_loader::pattern_recognition::*;
+use crate::scope_loader::types::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
-use crate::scope_loader::types::*;
-use crate::scope_loader::pattern_recognition::*;
 
 /// Features used for ML confidence scoring
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -158,39 +158,51 @@ impl MLConfidenceEngine {
     /// Create a new ML confidence engine
     pub fn new() -> Self {
         let mut feature_weights = HashMap::new();
-        
+
         // Default weights for different scope types
-        feature_weights.insert(ScopeType::Library, FeatureWeights {
-            file_weight: 0.25,
-            content_weight: 0.30,
-            structure_weight: 0.20,
-            historical_weight: 0.15,
-            context_weight: 0.10,
-        });
-        
-        feature_weights.insert(ScopeType::Service, FeatureWeights {
-            file_weight: 0.20,
-            content_weight: 0.25,
-            structure_weight: 0.25,
-            historical_weight: 0.20,
-            context_weight: 0.10,
-        });
-        
-        feature_weights.insert(ScopeType::Application, FeatureWeights {
-            file_weight: 0.30,
-            content_weight: 0.25,
-            structure_weight: 0.20,
-            historical_weight: 0.15,
-            context_weight: 0.10,
-        });
-        
-        feature_weights.insert(ScopeType::Workspace, FeatureWeights {
-            file_weight: 0.35,
-            content_weight: 0.15,
-            structure_weight: 0.30,
-            historical_weight: 0.10,
-            context_weight: 0.10,
-        });
+        feature_weights.insert(
+            ScopeType::Library,
+            FeatureWeights {
+                file_weight: 0.25,
+                content_weight: 0.30,
+                structure_weight: 0.20,
+                historical_weight: 0.15,
+                context_weight: 0.10,
+            },
+        );
+
+        feature_weights.insert(
+            ScopeType::Service,
+            FeatureWeights {
+                file_weight: 0.20,
+                content_weight: 0.25,
+                structure_weight: 0.25,
+                historical_weight: 0.20,
+                context_weight: 0.10,
+            },
+        );
+
+        feature_weights.insert(
+            ScopeType::Application,
+            FeatureWeights {
+                file_weight: 0.30,
+                content_weight: 0.25,
+                structure_weight: 0.20,
+                historical_weight: 0.15,
+                context_weight: 0.10,
+            },
+        );
+
+        feature_weights.insert(
+            ScopeType::Workspace,
+            FeatureWeights {
+                file_weight: 0.35,
+                content_weight: 0.15,
+                structure_weight: 0.30,
+                historical_weight: 0.10,
+                context_weight: 0.10,
+            },
+        );
 
         Self {
             feature_weights,
@@ -208,19 +220,22 @@ impl MLConfidenceEngine {
     ) -> Result<f64, Box<dyn std::error::Error>> {
         // Extract features
         let features = self.extract_features(suggestion, path)?;
-        
+
         // Calculate base confidence
         let base_confidence = self.calculate_base_confidence(&features, &suggestion.scope_type)?;
-        
+
         // Apply pattern recognition
-        let pattern_confidence = self.apply_pattern_recognition(&features, &suggestion.scope_type)?;
-        
+        let pattern_confidence =
+            self.apply_pattern_recognition(&features, &suggestion.scope_type)?;
+
         // Apply historical learning
-        let historical_confidence = self.apply_historical_learning(&features, &suggestion.scope_type)?;
-        
+        let historical_confidence =
+            self.apply_historical_learning(&features, &suggestion.scope_type)?;
+
         // Combine confidences with weights
-        let final_confidence = (base_confidence * 0.6) + (pattern_confidence * 0.25) + (historical_confidence * 0.15);
-        
+        let final_confidence =
+            (base_confidence * 0.6) + (pattern_confidence * 0.25) + (historical_confidence * 0.15);
+
         // Clamp to valid range
         Ok(final_confidence.max(0.0).min(1.0))
     }
@@ -247,7 +262,10 @@ impl MLConfidenceEngine {
     }
 
     /// Extract file-based features
-    fn extract_file_features(&self, path: &Path) -> Result<FileFeatures, Box<dyn std::error::Error>> {
+    fn extract_file_features(
+        &self,
+        path: &Path,
+    ) -> Result<FileFeatures, Box<dyn std::error::Error>> {
         let mut source_files = 0;
         let mut config_files = 0;
         let mut doc_files = 0;
@@ -257,9 +275,18 @@ impl MLConfidenceEngine {
 
         // Common key files for different project types
         let key_file_patterns = [
-            "package.json", "Cargo.toml", "pom.xml", "build.gradle", 
-            "requirements.txt", "setup.py", "go.mod", "composer.json",
-            "Gemfile", "mix.exs", "project.clj", "build.sbt"
+            "package.json",
+            "Cargo.toml",
+            "pom.xml",
+            "build.gradle",
+            "requirements.txt",
+            "setup.py",
+            "go.mod",
+            "composer.json",
+            "Gemfile",
+            "mix.exs",
+            "project.clj",
+            "build.sbt",
         ];
 
         for entry in walkdir::WalkDir::new(path)
@@ -269,7 +296,7 @@ impl MLConfidenceEngine {
             .filter_map(|e| e.ok())
         {
             let entry_path = entry.path();
-            
+
             if entry_path.is_file() {
                 // Count file size
                 if let Ok(metadata) = entry_path.metadata() {
@@ -279,9 +306,10 @@ impl MLConfidenceEngine {
                 // Categorize files
                 if let Some(extension) = entry_path.extension() {
                     extensions.insert(extension.to_string_lossy().to_string());
-                    
+
                     match extension.to_string_lossy().to_lowercase().as_str() {
-                        "rs" | "js" | "ts" | "py" | "java" | "go" | "rb" | "php" | "cs" | "swift" => {
+                        "rs" | "js" | "ts" | "py" | "java" | "go" | "rb" | "php" | "cs"
+                        | "swift" => {
                             source_files += 1;
                         }
                         "json" | "toml" | "yaml" | "yml" | "xml" | "gradle" | "properties" => {
@@ -323,10 +351,13 @@ impl MLConfidenceEngine {
     }
 
     /// Extract content-based features
-    fn extract_content_features(&self, path: &Path) -> Result<ContentFeatures, Box<dyn std::error::Error>> {
+    fn extract_content_features(
+        &self,
+        path: &Path,
+    ) -> Result<ContentFeatures, Box<dyn std::error::Error>> {
         // For now, use simplified metrics
         // In a full implementation, this would analyze code complexity, documentation, etc.
-        
+
         let mut complexity_score: f64 = 0.0;
         let mut documentation_coverage: f64 = 0.0;
         let mut test_coverage: f64 = 0.0;
@@ -341,7 +372,7 @@ impl MLConfidenceEngine {
             .filter_map(|e| e.ok())
         {
             let entry_path = entry.path();
-            
+
             if entry_path.is_file() {
                 if let Some(extension) = entry_path.extension() {
                     match extension.to_string_lossy().to_lowercase().as_str() {
@@ -351,11 +382,13 @@ impl MLConfidenceEngine {
                                 let lines = content.lines().count();
                                 let functions = content.matches("fn ").count();
                                 complexity_score += (functions as f64 / lines.max(1) as f64) * 0.1;
-                                
+
                                 // Check for documentation comments
-                                let doc_comments = content.matches("///").count() + content.matches("//!").count();
-                                documentation_coverage += (doc_comments as f64 / lines.max(1) as f64) * 0.3;
-                                
+                                let doc_comments =
+                                    content.matches("///").count() + content.matches("//!").count();
+                                documentation_coverage +=
+                                    (doc_comments as f64 / lines.max(1) as f64) * 0.3;
+
                                 // Check for tests
                                 if content.contains("#[cfg(test)]") || content.contains("#[test]") {
                                     test_coverage += 0.2;
@@ -366,15 +399,20 @@ impl MLConfidenceEngine {
                             // JavaScript/TypeScript metrics
                             if let Ok(content) = std::fs::read_to_string(entry_path) {
                                 let lines = content.lines().count();
-                                let functions = content.matches("function ").count() + content.matches("=>").count();
+                                let functions = content.matches("function ").count()
+                                    + content.matches("=>").count();
                                 complexity_score += (functions as f64 / lines.max(1) as f64) * 0.1;
-                                
+
                                 // Check for JSDoc comments
                                 let doc_comments = content.matches("/**").count();
-                                documentation_coverage += (doc_comments as f64 / lines.max(1) as f64) * 0.3;
-                                
+                                documentation_coverage +=
+                                    (doc_comments as f64 / lines.max(1) as f64) * 0.3;
+
                                 // Check for tests
-                                if content.contains("describe(") || content.contains("test(") || content.contains("it(") {
+                                if content.contains("describe(")
+                                    || content.contains("test(")
+                                    || content.contains("it(")
+                                {
                                     test_coverage += 0.2;
                                 }
                             }
@@ -385,11 +423,13 @@ impl MLConfidenceEngine {
                                 let lines = content.lines().count();
                                 let functions = content.matches("def ").count();
                                 complexity_score += (functions as f64 / lines.max(1) as f64) * 0.1;
-                                
+
                                 // Check for docstrings
-                                let doc_comments = content.matches("\"\"\"").count() + content.matches("'''").count();
-                                documentation_coverage += (doc_comments as f64 / lines.max(1) as f64) * 0.3;
-                                
+                                let doc_comments = content.matches("\"\"\"").count()
+                                    + content.matches("'''").count();
+                                documentation_coverage +=
+                                    (doc_comments as f64 / lines.max(1) as f64) * 0.3;
+
                                 // Check for tests
                                 if content.contains("def test_") || content.contains("unittest") {
                                     test_coverage += 0.2;
@@ -422,7 +462,10 @@ impl MLConfidenceEngine {
     }
 
     /// Extract structure-based features
-    fn extract_structure_features(&self, path: &Path) -> Result<StructureFeatures, Box<dyn std::error::Error>> {
+    fn extract_structure_features(
+        &self,
+        path: &Path,
+    ) -> Result<StructureFeatures, Box<dyn std::error::Error>> {
         let mut directory_depth = 0;
         let mut module_organization: f64 = 0.0;
         let mut dependency_complexity: f64 = 0.0;
@@ -460,8 +503,14 @@ impl MLConfidenceEngine {
 
         // Check build system sophistication
         let build_files = [
-            "Cargo.toml", "package.json", "pom.xml", "build.gradle",
-            "Makefile", "CMakeLists.txt", "Dockerfile", "docker-compose.yml"
+            "Cargo.toml",
+            "package.json",
+            "pom.xml",
+            "build.gradle",
+            "Makefile",
+            "CMakeLists.txt",
+            "Dockerfile",
+            "docker-compose.yml",
         ];
 
         for build_file in &build_files {
@@ -484,13 +533,16 @@ impl MLConfidenceEngine {
     }
 
     /// Extract historical features
-    fn extract_historical_features(&self, _path: &Path) -> Result<HistoricalFeatures, Box<dyn std::error::Error>> {
+    fn extract_historical_features(
+        &self,
+        _path: &Path,
+    ) -> Result<HistoricalFeatures, Box<dyn std::error::Error>> {
         // For now, use simplified metrics
         // In a full implementation, this would analyze git history
-        
+
         Ok(HistoricalFeatures {
-            commit_frequency: 0.5, // Placeholder
-            recent_activity: 0.5,  // Placeholder
+            commit_frequency: 0.5,  // Placeholder
+            recent_activity: 0.5,   // Placeholder
             contributor_count: 1,   // Placeholder
             issue_activity: 0.5,    // Placeholder
             release_frequency: 0.5, // Placeholder
@@ -526,7 +578,12 @@ impl MLConfidenceEngine {
 
         // Check for maturity indicators
         let maturity_files = [
-            "docs/", "tests/", "examples/", "benchmarks/", "ci/", ".github/"
+            "docs/",
+            "tests/",
+            "examples/",
+            "benchmarks/",
+            "ci/",
+            ".github/",
         ];
 
         for maturity_file in &maturity_files {
@@ -554,15 +611,21 @@ impl MLConfidenceEngine {
         features: &ConfidenceFeatures,
         scope_type: &ScopeType,
     ) -> Result<f64, Box<dyn std::error::Error>> {
-        let weights = self.feature_weights.get(scope_type)
+        let weights = self
+            .feature_weights
+            .get(scope_type)
             .ok_or("Unknown scope type")?;
 
         // Calculate weighted scores for each feature category
         let file_score = self.calculate_file_score(&features.file_features) * weights.file_weight;
-        let content_score = self.calculate_content_score(&features.content_features) * weights.content_weight;
-        let structure_score = self.calculate_structure_score(&features.structure_features) * weights.structure_weight;
-        let historical_score = self.calculate_historical_score(&features.historical_features) * weights.historical_weight;
-        let context_score = self.calculate_context_score(&features.context_features) * weights.context_weight;
+        let content_score =
+            self.calculate_content_score(&features.content_features) * weights.content_weight;
+        let structure_score =
+            self.calculate_structure_score(&features.structure_features) * weights.structure_weight;
+        let historical_score = self.calculate_historical_score(&features.historical_features)
+            * weights.historical_weight;
+        let context_score =
+            self.calculate_context_score(&features.context_features) * weights.context_weight;
 
         Ok(file_score + content_score + structure_score + historical_score + context_score)
     }
@@ -671,7 +734,7 @@ impl MLConfidenceEngine {
         // Use the pattern recognition engine to detect patterns
         // For now, use current directory - in a full implementation, this would use the actual project path
         let detected_patterns = self.pattern_engine.detect_patterns(&Path::new("."))?;
-        
+
         if detected_patterns.is_empty() {
             return Ok(0.5); // Base confidence if no patterns detected
         }
@@ -751,13 +814,21 @@ impl MLConfidenceEngine {
         };
 
         let avg_predicted_confidence = if total_predictions > 0 {
-            self.historical_data.iter().map(|r| r.predicted_confidence).sum::<f64>() / total_predictions as f64
+            self.historical_data
+                .iter()
+                .map(|r| r.predicted_confidence)
+                .sum::<f64>()
+                / total_predictions as f64
         } else {
             0.0
         };
 
         let avg_actual_confidence = if total_predictions > 0 {
-            self.historical_data.iter().map(|r| r.actual_confidence).sum::<f64>() / total_predictions as f64
+            self.historical_data
+                .iter()
+                .map(|r| r.actual_confidence)
+                .sum::<f64>()
+                / total_predictions as f64
         } else {
             0.0
         };

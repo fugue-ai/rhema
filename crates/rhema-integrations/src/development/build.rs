@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 use std::process::Command;
@@ -42,24 +45,36 @@ impl BuildIntegration {
             },
         }
     }
-    
+
     /// Build the project
     pub async fn build(&self, build_type: Option<&str>) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Build not configured".to_string()))?;
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Build not configured".to_string()))?;
         let build_command = match build_type {
-            Some("release") => config.custom_headers.get("release_command").map(|s| s.as_str()).unwrap_or("cargo build --release"),
-            Some("debug") => config.custom_headers.get("debug_command").map(|s| s.as_str()).unwrap_or("cargo build"),
-            _ => config.custom_headers.get("build_command").map(|s| s.as_str()).unwrap_or("cargo build"),
+            Some("release") => config
+                .custom_headers
+                .get("release_command")
+                .map(|s| s.as_str())
+                .unwrap_or("cargo build --release"),
+            Some("debug") => config
+                .custom_headers
+                .get("debug_command")
+                .map(|s| s.as_str())
+                .unwrap_or("cargo build"),
+            _ => config
+                .custom_headers
+                .get("build_command")
+                .map(|s| s.as_str())
+                .unwrap_or("cargo build"),
         };
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(build_command)
-            .output()?;
-        
+
+        let output = Command::new("sh").arg("-c").arg(build_command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -69,20 +84,24 @@ impl BuildIntegration {
             "command": build_command
         }))
     }
-    
+
     /// Clean build artifacts
     pub async fn clean(&self) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Build not configured".to_string()))?;
-        let clean_command = config.custom_headers.get("clean_command").map(|s| s.as_str()).unwrap_or("cargo clean");
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(clean_command)
-            .output()?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Build not configured".to_string()))?;
+        let clean_command = config
+            .custom_headers
+            .get("clean_command")
+            .map(|s| s.as_str())
+            .unwrap_or("cargo clean");
+
+        let output = Command::new("sh").arg("-c").arg(clean_command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -91,20 +110,24 @@ impl BuildIntegration {
             "command": clean_command
         }))
     }
-    
+
     /// Check if project builds successfully
     pub async fn check(&self) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Build not configured".to_string()))?;
-        let check_command = config.custom_headers.get("check_command").map(|s| s.as_str()).unwrap_or("cargo check");
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(check_command)
-            .output()?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Build not configured".to_string()))?;
+        let check_command = config
+            .custom_headers
+            .get("check_command")
+            .map(|s| s.as_str())
+            .unwrap_or("cargo check");
+
+        let output = Command::new("sh").arg("-c").arg(check_command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -113,20 +136,24 @@ impl BuildIntegration {
             "command": check_command
         }))
     }
-    
+
     /// Get build information
     pub async fn get_build_info(&self) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Build not configured".to_string()))?;
-        let info_command = config.custom_headers.get("info_command").map(|s| s.as_str()).unwrap_or("cargo --version");
-        
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(info_command)
-            .output()?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Build not configured".to_string()))?;
+        let info_command = config
+            .custom_headers
+            .get("info_command")
+            .map(|s| s.as_str())
+            .unwrap_or("cargo --version");
+
+        let output = Command::new("sh").arg("-c").arg(info_command).output()?;
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         Ok(serde_json::json!({
             "success": output.status.success(),
             "exit_code": output.status.code(),
@@ -156,7 +183,10 @@ impl ExternalIntegration for BuildIntegration {
             version: "1.0.0".to_string(),
             description: "Build integration for development".to_string(),
             integration_type: IntegrationType::Build,
-            capabilities: vec!["build_management".to_string(), "artifact_management".to_string()],
+            capabilities: vec![
+                "build_management".to_string(),
+                "artifact_management".to_string(),
+            ],
             required_config: vec!["api_key".to_string()],
             optional_config: vec!["base_url".to_string()],
         }

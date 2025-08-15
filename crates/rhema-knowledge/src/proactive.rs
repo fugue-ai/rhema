@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+use chrono::Timelike;
 use notify::{RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -22,7 +23,6 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, instrument, warn};
-use chrono::Timelike;
 
 use crate::types::{
     AgentSessionContext, ContentType, ContextSuggestion, KnowledgeResult, Priority,
@@ -1030,7 +1030,7 @@ impl SuggestionEngine {
                     let now = chrono::Utc::now();
                     let current_hour = now.hour() as u8;
                     let current_minute = now.minute() as u8;
-                    
+
                     // Check if current time matches the specified time (with some tolerance)
                     let time_tolerance = 30; // 30 minutes tolerance
                     let current_time_minutes = current_hour * 60 + current_minute;
@@ -1040,7 +1040,7 @@ impl SuggestionEngine {
                     } else {
                         target_time_minutes - current_time_minutes
                     };
-                    
+
                     if time_diff <= time_tolerance {
                         return Ok(true);
                     }

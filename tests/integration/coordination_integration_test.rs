@@ -18,8 +18,9 @@
 
 use rhema_core::{
     coordination::{
-        AgentInfo, AgentMessage, CoordinationConfig, CoordinationManager, MessagePriority, MessageType,
-        create_coordination_manager, CoordinationClient, MockCoordinationClient,
+        create_coordination_manager, AgentInfo, AgentMessage, CoordinationClient,
+        CoordinationConfig, CoordinationManager, MessagePriority, MessageType,
+        MockCoordinationClient,
     },
     RhemaResult,
 };
@@ -55,7 +56,7 @@ async fn test_disabled_coordination() -> RhemaResult<()> {
 #[tokio::test]
 async fn test_coordination_config() {
     let config = CoordinationConfig::default();
-    
+
     assert!(!config.enabled);
     assert_eq!(config.server_endpoint, "http://localhost:50051");
     assert_eq!(config.timeout_seconds, 30);
@@ -96,7 +97,10 @@ async fn test_agent_message_creation() {
     assert_eq!(message.recipient_ids, vec!["recipient-1", "recipient-2"]);
     assert!(matches!(message.priority, MessagePriority::High));
     assert_eq!(message.content, "Test message content");
-    assert_eq!(message.metadata.get("task_id"), Some(&"task-123".to_string()));
+    assert_eq!(
+        message.metadata.get("task_id"),
+        Some(&"task-123".to_string())
+    );
 }
 
 /// Test message type variants
@@ -152,7 +156,7 @@ async fn test_message_priorities() {
 async fn test_coordination_manager_creation() -> RhemaResult<()> {
     let config = CoordinationConfig::default();
     let manager = CoordinationManager::new(config);
-    
+
     assert!(!manager.is_enabled());
     assert_eq!(manager.get_connection_stats().await.is_connected, false);
     assert_eq!(manager.get_connection_stats().await.messages_sent, 0);
@@ -166,7 +170,7 @@ async fn test_coordination_manager_creation() -> RhemaResult<()> {
 async fn test_connection_statistics() -> RhemaResult<()> {
     let config = CoordinationConfig::default();
     let manager = CoordinationManager::new(config);
-    
+
     let stats = manager.get_connection_stats().await;
     assert!(!stats.is_connected);
     assert_eq!(stats.uptime_seconds, 0);
@@ -283,10 +287,10 @@ async fn test_session_workflow() -> RhemaResult<()> {
     // This would create a session if coordination was enabled
     // For now, we just verify the manager handles the request gracefully
     let stats_before = manager.get_connection_stats().await;
-    
+
     // Simulate session creation (would be implemented in the actual client)
     sleep(Duration::from_millis(100)).await;
-    
+
     let stats_after = manager.get_connection_stats().await;
     assert_eq!(stats_before.messages_sent, stats_after.messages_sent);
 
@@ -314,7 +318,10 @@ async fn test_metadata_handling() {
     .with_metadata("task_id".to_string(), "task-123".to_string())
     .with_metadata("priority".to_string(), "high".to_string());
 
-    assert_eq!(message.metadata.get("task_id"), Some(&"task-123".to_string()));
+    assert_eq!(
+        message.metadata.get("task_id"),
+        Some(&"task-123".to_string())
+    );
     assert_eq!(message.metadata.get("priority"), Some(&"high".to_string()));
     assert_eq!(message.metadata.len(), 2);
 }
@@ -327,7 +334,7 @@ async fn test_agent_id_generation() {
 
     // Each agent should have a unique ID
     assert_ne!(agent1.id, agent2.id);
-    
+
     // IDs should be valid UUIDs
     assert!(uuid::Uuid::parse_str(&agent1.id).is_ok());
     assert!(uuid::Uuid::parse_str(&agent2.id).is_ok());
@@ -349,7 +356,7 @@ async fn test_message_id_generation() {
 
     // Each message should have a unique ID
     assert_ne!(message1.id, message2.id);
-    
+
     // IDs should be valid UUIDs
     assert!(uuid::Uuid::parse_str(&message1.id).is_ok());
     assert!(uuid::Uuid::parse_str(&message2.id).is_ok());
@@ -359,15 +366,15 @@ async fn test_message_id_generation() {
 #[tokio::test]
 async fn test_timestamp_handling() {
     let before = chrono::Utc::now();
-    
+
     let message = AgentMessage::new(
         "sender".to_string(),
         MessageType::TaskAssignment,
         "Test message".to_string(),
     );
-    
+
     let after = chrono::Utc::now();
-    
+
     // Message timestamp should be between before and after
     assert!(message.timestamp >= before);
     assert!(message.timestamp <= after);
@@ -377,10 +384,10 @@ async fn test_timestamp_handling() {
 #[tokio::test]
 async fn test_mock_coordination_client_creation() {
     let client = MockCoordinationClient::new();
-    
+
     // Test that the client is created successfully
     assert!(client.is_connected().await);
-    
+
     // Test connection stats
     let stats = client.get_connection_stats().await.unwrap();
     assert!(!stats.is_connected); // Initially false
@@ -412,12 +419,18 @@ async fn test_config_serialization() {
     // Test JSON serialization
     let json = serde_json::to_string(&config).unwrap();
     let deserialized: CoordinationConfig = serde_json::from_str(&json).unwrap();
-    
+
     assert_eq!(config.enabled, deserialized.enabled);
     assert_eq!(config.server_endpoint, deserialized.server_endpoint);
     assert_eq!(config.timeout_seconds, deserialized.timeout_seconds);
-    assert_eq!(config.retry_config.max_retries, deserialized.retry_config.max_retries);
-    assert_eq!(config.health_check_config.enabled, deserialized.health_check_config.enabled);
+    assert_eq!(
+        config.retry_config.max_retries,
+        deserialized.retry_config.max_retries
+    );
+    assert_eq!(
+        config.health_check_config.enabled,
+        deserialized.health_check_config.enabled
+    );
 }
 
 /// Test agent info serialization
@@ -432,7 +445,7 @@ async fn test_agent_info_serialization() {
     // Test JSON serialization
     let json = serde_json::to_string(&agent).unwrap();
     let deserialized: AgentInfo = serde_json::from_str(&json).unwrap();
-    
+
     assert_eq!(agent.name, deserialized.name);
     assert_eq!(agent.agent_type, deserialized.agent_type);
     assert_eq!(agent.current_task_id, deserialized.current_task_id);
@@ -456,10 +469,13 @@ async fn test_message_serialization() {
     // Test JSON serialization
     let json = serde_json::to_string(&message).unwrap();
     let deserialized: AgentMessage = serde_json::from_str(&json).unwrap();
-    
+
     assert_eq!(message.sender_id, deserialized.sender_id);
     assert_eq!(message.recipient_ids, deserialized.recipient_ids);
-    assert!(matches!(deserialized.message_type, MessageType::TaskAssignment));
+    assert!(matches!(
+        deserialized.message_type,
+        MessageType::TaskAssignment
+    ));
     assert!(matches!(deserialized.priority, MessagePriority::High));
     assert_eq!(message.content, deserialized.content);
     assert_eq!(message.metadata, deserialized.metadata);

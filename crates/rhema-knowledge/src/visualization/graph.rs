@@ -1,14 +1,14 @@
 //! Graph visualization and analysis module
-//! 
+//!
 //! This module provides advanced graph analysis and visualization capabilities
 //! for knowledge graphs, including centrality analysis, community detection,
 //! and graph layout algorithms.
 
-use super::{KnowledgeGraph, KnowledgeNode, KnowledgeEdge};
+use super::{KnowledgeEdge, KnowledgeGraph, KnowledgeNode};
 use crate::types::KnowledgeResult;
-use std::collections::{HashMap, HashSet};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 /// Graph analysis metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,7 +83,7 @@ impl GraphAnalyzer {
     pub fn calculate_metrics(&self, graph: &KnowledgeGraph) -> GraphMetrics {
         let node_count = graph.nodes.len();
         let edge_count = graph.edges.len();
-        
+
         // Calculate density
         let possible_edges = if node_count > 1 {
             node_count * (node_count - 1) / 2
@@ -97,7 +97,9 @@ impl GraphAnalyzer {
         };
 
         // Calculate average degree
-        let total_degree = graph.edges.iter()
+        let total_degree = graph
+            .edges
+            .iter()
             .fold(HashMap::new(), |mut acc, edge| {
                 *acc.entry(edge.source.clone()).or_insert(0) += 1;
                 *acc.entry(edge.target.clone()).or_insert(0) += 1;
@@ -152,7 +154,13 @@ impl GraphAnalyzer {
 
         for node in &graph.nodes {
             if !visited.contains(&node.id) {
-                self.dfs_community_detection(graph, &node.id, community_id, &mut communities, &mut visited);
+                self.dfs_community_detection(
+                    graph,
+                    &node.id,
+                    community_id,
+                    &mut communities,
+                    &mut visited,
+                );
                 community_id += 1;
             }
         }
@@ -165,7 +173,11 @@ impl GraphAnalyzer {
     }
 
     /// Apply layout algorithm to graph
-    pub fn apply_layout(&self, graph: &KnowledgeGraph, algorithm: LayoutAlgorithm) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
+    pub fn apply_layout(
+        &self,
+        graph: &KnowledgeGraph,
+        algorithm: LayoutAlgorithm,
+    ) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
         match algorithm {
             LayoutAlgorithm::ForceDirected => self.force_directed_layout(graph),
             LayoutAlgorithm::Circular => self.circular_layout(graph),
@@ -178,7 +190,7 @@ impl GraphAnalyzer {
     /// Calculate degree centrality for all nodes
     fn calculate_degree_centrality(&self, graph: &KnowledgeGraph) -> HashMap<String, f64> {
         let mut degree_counts = HashMap::new();
-        
+
         // Count degrees
         for edge in &graph.edges {
             *degree_counts.entry(edge.source.clone()).or_insert(0) += 1;
@@ -192,10 +204,9 @@ impl GraphAnalyzer {
             1
         };
 
-        degree_counts.into_iter()
-            .map(|(node_id, degree)| {
-                (node_id, degree as f64 / max_degree as f64)
-            })
+        degree_counts
+            .into_iter()
+            .map(|(node_id, degree)| (node_id, degree as f64 / max_degree as f64))
             .collect()
     }
 
@@ -279,22 +290,31 @@ impl GraphAnalyzer {
 
             if let Some(neighbor_id) = neighbor {
                 if !visited.contains(neighbor_id) {
-                    self.dfs_community_detection(graph, neighbor_id, community_id, communities, visited);
+                    self.dfs_community_detection(
+                        graph,
+                        neighbor_id,
+                        community_id,
+                        communities,
+                        visited,
+                    );
                 }
             }
         }
     }
 
     /// Force-directed layout algorithm
-    fn force_directed_layout(&self, graph: &KnowledgeGraph) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
+    fn force_directed_layout(
+        &self,
+        graph: &KnowledgeGraph,
+    ) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
         let mut positions = HashMap::new();
-        
+
         // Initialize random positions
         for node in &graph.nodes {
-            positions.insert(node.id.clone(), (
-                rand::random::<f64>() * 800.0,
-                rand::random::<f64>() * 600.0,
-            ));
+            positions.insert(
+                node.id.clone(),
+                (rand::random::<f64>() * 800.0, rand::random::<f64>() * 600.0),
+            );
         }
 
         // Simple force-directed layout (simplified)
@@ -305,7 +325,10 @@ impl GraphAnalyzer {
     }
 
     /// Circular layout algorithm
-    fn circular_layout(&self, graph: &KnowledgeGraph) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
+    fn circular_layout(
+        &self,
+        graph: &KnowledgeGraph,
+    ) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
         let mut positions = HashMap::new();
         let center_x = 400.0;
         let center_y = 300.0;
@@ -322,9 +345,12 @@ impl GraphAnalyzer {
     }
 
     /// Hierarchical layout algorithm
-    fn hierarchical_layout(&self, graph: &KnowledgeGraph) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
+    fn hierarchical_layout(
+        &self,
+        graph: &KnowledgeGraph,
+    ) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
         let mut positions = HashMap::new();
-        
+
         // Simple hierarchical layout
         // In a real implementation, this would use proper hierarchical algorithms
         for (i, node) in graph.nodes.iter().enumerate() {
@@ -338,14 +364,17 @@ impl GraphAnalyzer {
     }
 
     /// Random layout algorithm
-    fn random_layout(&self, graph: &KnowledgeGraph) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
+    fn random_layout(
+        &self,
+        graph: &KnowledgeGraph,
+    ) -> KnowledgeResult<HashMap<String, (f64, f64)>> {
         let mut positions = HashMap::new();
-        
+
         for node in &graph.nodes {
-            positions.insert(node.id.clone(), (
-                rand::random::<f64>() * 800.0,
-                rand::random::<f64>() * 600.0,
-            ));
+            positions.insert(
+                node.id.clone(),
+                (rand::random::<f64>() * 800.0, rand::random::<f64>() * 600.0),
+            );
         }
 
         Ok(positions)
@@ -380,17 +409,15 @@ mod tests {
                     metadata: HashMap::new(),
                 },
             ],
-            edges: vec![
-                KnowledgeEdge {
-                    source: "node1".to_string(),
-                    target: "node2".to_string(),
-                    label: "edge1".to_string(),
-                    weight: 1.0,
-                    color: "#0000FF".to_string(),
-                    thickness: 1.0,
-                    metadata: HashMap::new(),
-                },
-            ],
+            edges: vec![KnowledgeEdge {
+                source: "node1".to_string(),
+                target: "node2".to_string(),
+                label: "edge1".to_string(),
+                weight: 1.0,
+                color: "#0000FF".to_string(),
+                thickness: 1.0,
+                metadata: HashMap::new(),
+            }],
             metadata: HashMap::new(),
         };
 
@@ -427,17 +454,15 @@ mod tests {
                     metadata: HashMap::new(),
                 },
             ],
-            edges: vec![
-                KnowledgeEdge {
-                    source: "node1".to_string(),
-                    target: "node2".to_string(),
-                    label: "edge1".to_string(),
-                    weight: 1.0,
-                    color: "#0000FF".to_string(),
-                    thickness: 1.0,
-                    metadata: HashMap::new(),
-                },
-            ],
+            edges: vec![KnowledgeEdge {
+                source: "node1".to_string(),
+                target: "node2".to_string(),
+                label: "edge1".to_string(),
+                weight: 1.0,
+                color: "#0000FF".to_string(),
+                thickness: 1.0,
+                metadata: HashMap::new(),
+            }],
             metadata: HashMap::new(),
         };
 
@@ -474,7 +499,9 @@ mod tests {
             metadata: HashMap::new(),
         };
 
-        let positions = analyzer.apply_layout(&graph, LayoutAlgorithm::Circular).unwrap();
+        let positions = analyzer
+            .apply_layout(&graph, LayoutAlgorithm::Circular)
+            .unwrap();
         assert_eq!(positions.len(), 2);
     }
 }

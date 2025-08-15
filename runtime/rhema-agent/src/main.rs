@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use rhema_api::{Rhema, RhemaResult};
 use rhema_coordination::agent::real_time_coordination::{
-    AgentInfo, AgentStatus, AgentMessage, MessageType, MessagePriority, AgentPerformanceMetrics,
+    AgentInfo, AgentMessage, AgentPerformanceMetrics, AgentStatus, MessagePriority, MessageType,
 };
 
 #[derive(Parser)]
@@ -1008,9 +1008,10 @@ async fn handle_coordination_commands(
         CoordinationSubcommands::System { subcommand } => {
             handle_system_commands(rhema, subcommand).await
         }
-        CoordinationSubcommands::Status { verbose, prometheus } => {
-            handle_coordination_status(rhema, verbose, prometheus).await
-        }
+        CoordinationSubcommands::Status {
+            verbose,
+            prometheus,
+        } => handle_coordination_status(rhema, verbose, prometheus).await,
     }
 }
 
@@ -1100,10 +1101,13 @@ async fn handle_agent_commands(rhema: &Rhema, subcommand: AgentSubcommands) -> R
             if let Some(integration) = rhema.get_coordination_integration() {
                 let agents = integration.list_rhema_agents().await?;
                 println!("Found {} registered agents:", agents.len());
-                
+
                 for agent in agents {
                     if verbose {
-                        println!("  - {} ({}) - {:?} - {}", agent.id, agent.name, agent.status, agent.agent_type);
+                        println!(
+                            "  - {} ({}) - {:?} - {}",
+                            agent.id, agent.name, agent.status, agent.agent_type
+                        );
                     } else {
                         println!("  - {} ({})", agent.id, agent.name);
                     }
@@ -1135,7 +1139,9 @@ async fn handle_agent_commands(rhema: &Rhema, subcommand: AgentSubcommands) -> R
             };
 
             if let Some(integration) = rhema.get_coordination_integration() {
-                integration.update_rhema_agent_status(&agent_id, agent_status).await?;
+                integration
+                    .update_rhema_agent_status(&agent_id, agent_status)
+                    .await?;
                 println!("✅ Agent status updated successfully");
             } else {
                 return Err(rhema_api::RhemaError::SystemError(
@@ -1150,7 +1156,10 @@ async fn handle_agent_commands(rhema: &Rhema, subcommand: AgentSubcommands) -> R
 
 async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) -> RhemaResult<()> {
     match subcommand {
-        SessionSubcommands::Create { topic, participants } => {
+        SessionSubcommands::Create {
+            topic,
+            participants,
+        } => {
             println!("Creating coordination session: {}", topic);
 
             let participant_list = participants
@@ -1158,7 +1167,9 @@ async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) 
                 .unwrap_or_default();
 
             if let Some(integration) = rhema.get_coordination_integration() {
-                let session_id = integration.create_rhema_session(topic, participant_list).await?;
+                let session_id = integration
+                    .create_rhema_session(topic, participant_list)
+                    .await?;
                 println!("✅ Session created successfully with ID: {}", session_id);
             } else {
                 return Err(rhema_api::RhemaError::SystemError(
@@ -1176,7 +1187,9 @@ async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) 
             println!("Joining session: {} with agent: {}", session_id, agent_id);
 
             if let Some(integration) = rhema.get_coordination_integration() {
-                integration.join_rhema_session(&session_id, &agent_id).await?;
+                integration
+                    .join_rhema_session(&session_id, &agent_id)
+                    .await?;
                 println!("✅ Agent joined session successfully");
             } else {
                 return Err(rhema_api::RhemaError::SystemError(
@@ -1194,7 +1207,9 @@ async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) 
             println!("Leaving session: {} with agent: {}", session_id, agent_id);
 
             if let Some(integration) = rhema.get_coordination_integration() {
-                integration.leave_rhema_session(&session_id, &agent_id).await?;
+                integration
+                    .leave_rhema_session(&session_id, &agent_id)
+                    .await?;
                 println!("✅ Agent left session successfully");
             } else {
                 return Err(rhema_api::RhemaError::SystemError(
@@ -1234,7 +1249,9 @@ async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) 
             };
 
             if let Some(integration) = rhema.get_coordination_integration() {
-                integration.send_rhema_session_message(&session_id, &message).await?;
+                integration
+                    .send_rhema_session_message(&session_id, &message)
+                    .await?;
                 println!("✅ Message sent to session successfully");
             } else {
                 return Err(rhema_api::RhemaError::SystemError(
@@ -1251,7 +1268,7 @@ async fn handle_session_commands(rhema: &Rhema, subcommand: SessionSubcommands) 
             if let Some(integration) = rhema.get_coordination_integration() {
                 let sessions = integration.list_rhema_sessions().await?;
                 println!("Found {} active sessions:", sessions.len());
-                
+
                 for session_id in sessions {
                     if verbose {
                         println!("  - Session ID: {}", session_id);
@@ -1281,34 +1298,39 @@ async fn handle_system_commands(rhema: &Rhema, subcommand: SystemSubcommands) ->
 
             if syneidesis {
                 println!("Enabling Syneidesis integration");
-                let server_addr = server_address.unwrap_or_else(|| "http://127.0.0.1:50051".to_string());
+                let server_addr =
+                    server_address.unwrap_or_else(|| "http://127.0.0.1:50051".to_string());
                 println!("Server address: {}", server_addr);
 
-                let coordination_config = rhema_coordination::coordination_integration::CoordinationConfig {
-                    enabled: true,
-                    server_address: Some(server_addr),
-                    auto_register_agents: true,
-                    sync_messages: true,
-                    enable_health_monitoring: true,
-                    timeout_seconds: 30,
-                    max_retries: 3,
-                    enable_tls: tls,
-                    tls_cert_path: None,
-                };
+                let coordination_config =
+                    rhema_coordination::coordination_integration::CoordinationConfig {
+                        enabled: true,
+                        server_address: Some(server_addr),
+                        auto_register_agents: true,
+                        sync_messages: true,
+                        enable_health_monitoring: true,
+                        timeout_seconds: 30,
+                        max_retries: 3,
+                        enable_tls: tls,
+                        tls_cert_path: None,
+                    };
 
-                rhema.init_coordination_integration(Some(coordination_config)).await?;
+                rhema
+                    .init_coordination_integration(Some(coordination_config))
+                    .await?;
                 println!("✅ Coordination system initialized with Syneidesis integration");
             } else {
                 println!("Initializing basic coordination system");
-                let coordination_config = rhema_coordination::agent::real_time_coordination::CoordinationConfig {
-                    max_message_history: 1000,
-                    message_timeout_seconds: 30,
-                    heartbeat_interval_seconds: 10,
-                    agent_timeout_seconds: 60,
-                    max_session_participants: 10,
-                    enable_encryption: false,
-                    enable_compression: true,
-                };
+                let coordination_config =
+                    rhema_coordination::agent::real_time_coordination::CoordinationConfig {
+                        max_message_history: 1000,
+                        message_timeout_seconds: 30,
+                        heartbeat_interval_seconds: 10,
+                        agent_timeout_seconds: 60,
+                        max_session_participants: 10,
+                        enable_encryption: false,
+                        enable_compression: true,
+                    };
 
                 rhema.init_coordination(Some(coordination_config)).await?;
                 println!("✅ Basic coordination system initialized");
@@ -1326,10 +1348,17 @@ async fn handle_system_commands(rhema: &Rhema, subcommand: SystemSubcommands) ->
                 println!("  Rhema Agents: {}", health.rhema_agents);
                 println!("  Syneidesis Agents: {}", health.syneidesis_agents);
                 println!("  Bridge Messages Sent: {}", health.bridge_messages_sent);
-                
+
                 if verbose {
                     println!("  Integration Status: Active");
-                    println!("  Message Sync: {}", if rhema.has_coordination_integration() { "Enabled" } else { "Disabled" });
+                    println!(
+                        "  Message Sync: {}",
+                        if rhema.has_coordination_integration() {
+                            "Enabled"
+                        } else {
+                            "Disabled"
+                        }
+                    );
                 }
             } else {
                 return Err(rhema_api::RhemaError::SystemError(
@@ -1340,12 +1369,15 @@ async fn handle_system_commands(rhema: &Rhema, subcommand: SystemSubcommands) ->
             Ok(())
         }
 
-        SystemSubcommands::Metrics { prometheus, performance } => {
+        SystemSubcommands::Metrics {
+            prometheus,
+            performance,
+        } => {
             println!("Showing coordination metrics");
 
             if let Some(integration) = rhema.get_coordination_integration() {
                 let metrics = integration.get_metrics().await?;
-                
+
                 if prometheus {
                     println!("Prometheus Metrics:");
                     println!("{}", metrics);
@@ -1353,7 +1385,7 @@ async fn handle_system_commands(rhema: &Rhema, subcommand: SystemSubcommands) ->
                     println!("Coordination Metrics:");
                     println!("{}", metrics);
                 }
-                
+
                 if performance {
                     println!("Performance Summary:");
                     println!("  System is operational and ready for coordination");

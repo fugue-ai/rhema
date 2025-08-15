@@ -291,10 +291,14 @@ impl ScopeLoaderService {
                         let mut ml_suggestions = Vec::new();
                         for mut suggestion in suggestions {
                             // Calculate ML-based confidence
-                            match self.ml_engine.calculate_confidence(&suggestion, &suggestion.path) {
+                            match self
+                                .ml_engine
+                                .calculate_confidence(&suggestion, &suggestion.path)
+                            {
                                 Ok(ml_confidence) => {
                                     // Blend original confidence with ML confidence
-                                    let blended_confidence = (suggestion.confidence * 0.3) + (ml_confidence * 0.7);
+                                    let blended_confidence =
+                                        (suggestion.confidence * 0.3) + (ml_confidence * 0.7);
                                     suggestion.confidence = blended_confidence;
                                 }
                                 Err(e) => {

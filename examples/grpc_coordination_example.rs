@@ -37,8 +37,8 @@
 
 use rhema_core::{
     coordination::{
-        AgentInfo, AgentMessage, CoordinationConfig, CoordinationManager, MessagePriority, MessageType,
-        create_coordination_manager,
+        create_coordination_manager, AgentInfo, AgentMessage, CoordinationConfig,
+        CoordinationManager, MessagePriority, MessageType,
     },
     RhemaResult,
 };
@@ -63,7 +63,10 @@ async fn main() -> RhemaResult<()> {
         tls_config: None, // Disable TLS for local development
     };
 
-    println!("📡 Connecting to coordination server at {}", config.server_endpoint);
+    println!(
+        "📡 Connecting to coordination server at {}",
+        config.server_endpoint
+    );
 
     // Create coordination manager with gRPC client
     let mut manager = create_coordination_manager(config).await?;
@@ -78,7 +81,10 @@ async fn main() -> RhemaResult<()> {
     ];
 
     for agent in &agents {
-        println!("🤖 Registering agent: {} ({})", agent.name, agent.agent_type);
+        println!(
+            "🤖 Registering agent: {} ({})",
+            agent.name, agent.agent_type
+        );
         manager.register_agent(agent.clone()).await?;
         sleep(Duration::from_millis(100)).await;
     }
@@ -147,7 +153,9 @@ async fn main() -> RhemaResult<()> {
 
     for message in &session_messages {
         println!("📤 Sending session message: {:?}", message.message_type);
-        manager.send_session_message(&session_id, message.clone()).await?;
+        manager
+            .send_session_message(&session_id, message.clone())
+            .await?;
         sleep(Duration::from_millis(200)).await;
     }
 
@@ -156,7 +164,10 @@ async fn main() -> RhemaResult<()> {
     let all_agents = manager.get_all_agents().await?;
     println!("Found {} agents:", all_agents.len());
     for agent in &all_agents {
-        println!("  - {} ({}) - Status: {:?}", agent.name, agent.agent_type, agent.status);
+        println!(
+            "  - {} ({}) - Status: {:?}",
+            agent.name, agent.agent_type, agent.status
+        );
     }
 
     // Get connection statistics
@@ -189,7 +200,10 @@ async fn main() -> RhemaResult<()> {
     println!("📊 Final Statistics:");
     let final_stats = manager.get_connection_stats().await?;
     println!("  Total Messages Sent: {}", final_stats.messages_sent);
-    println!("  Total Messages Received: {}", final_stats.messages_received);
+    println!(
+        "  Total Messages Received: {}",
+        final_stats.messages_received
+    );
 
     Ok(())
 }
@@ -215,11 +229,14 @@ mod tests {
     #[tokio::test]
     async fn test_agent_creation() {
         let agent = AgentInfo::new("test-agent".to_string(), "testing".to_string());
-        
+
         assert_eq!(agent.name, "test-agent");
         assert_eq!(agent.agent_type, "testing");
         assert!(agent.is_online);
-        assert!(matches!(agent.status, rhema_core::coordination::AgentStatus::Idle));
+        assert!(matches!(
+            agent.status,
+            rhema_core::coordination::AgentStatus::Idle
+        ));
     }
 
     #[tokio::test]

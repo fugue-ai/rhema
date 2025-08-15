@@ -44,10 +44,9 @@ pub use tools::ToolRegistry;
 
 // Re-export approval types
 pub use approval::{
-    ApprovalWorkflow, ApprovalRequest, ApprovalStatus, ApprovalComment,
-    ApprovalPolicy, ApprovalCondition, EnhancedApprovalRequest,
-    Approver, ApproverStatus, ApproverResponse, ApprovalEvent, ApprovalEventType,
-    ApprovalStats
+    ApprovalComment, ApprovalCondition, ApprovalEvent, ApprovalEventType, ApprovalPolicy,
+    ApprovalRequest, ApprovalStats, ApprovalStatus, ApprovalWorkflow, Approver, ApproverResponse,
+    ApproverStatus, EnhancedApprovalRequest,
 };
 
 use anyhow::Result;

@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{ExternalIntegration, IntegrationConfig, IntegrationStatus, IntegrationMetadata, IntegrationHttpClient, IntegrationType};
-use rhema_core::{RhemaResult, RhemaError};
+use crate::{
+    ExternalIntegration, IntegrationConfig, IntegrationHttpClient, IntegrationMetadata,
+    IntegrationStatus, IntegrationType,
+};
+use rhema_core::{RhemaError, RhemaResult};
 
 use std::collections::HashMap;
 
@@ -41,13 +44,28 @@ impl EmailIntegration {
             },
         }
     }
-    
+
     /// Send an email using a service like SendGrid or Mailgun
-    pub async fn send_email(&self, to: &str, subject: &str, body: &str, from: Option<&str>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Email not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+    pub async fn send_email(
+        &self,
+        to: &str,
+        subject: &str,
+        body: &str,
+        from: Option<&str>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Email not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let email_data = serde_json::json!({
             "personalizations": [
                 {
@@ -69,38 +87,55 @@ impl EmailIntegration {
                 }
             ]
         });
-        
+
         let url = format!("{}/v3/mail/send", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        let response = self.http_client.post(&url, &email_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &email_data.to_string(), Some(headers))
+            .await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(result["id"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Send an HTML email
-    pub async fn send_html_email(&self, to: &str, subject: &str, html_body: &str, text_body: Option<&str>, from: Option<&str>) -> RhemaResult<String> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Email not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
-        let mut content = vec![
-            serde_json::json!({
-                "type": "text/html",
-                "value": html_body
-            })
-        ];
-        
+    pub async fn send_html_email(
+        &self,
+        to: &str,
+        subject: &str,
+        html_body: &str,
+        text_body: Option<&str>,
+        from: Option<&str>,
+    ) -> RhemaResult<String> {
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Email not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
+        let mut content = vec![serde_json::json!({
+            "type": "text/html",
+            "value": html_body
+        })];
+
         if let Some(text_body) = text_body {
             content.push(serde_json::json!({
                 "type": "text/plain",
                 "value": text_body
             }));
         }
-        
+
         let email_data = serde_json::json!({
             "personalizations": [
                 {
@@ -117,28 +152,40 @@ impl EmailIntegration {
             "subject": subject,
             "content": content
         });
-        
+
         let url = format!("{}/v3/mail/send", base_url);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
-        let response = self.http_client.post(&url, &email_data.to_string(), Some(headers)).await?;
+
+        let response = self
+            .http_client
+            .post(&url, &email_data.to_string(), Some(headers))
+            .await?;
         let result: serde_json::Value = serde_json::from_str(&response)?;
-        
+
         Ok(result["id"].as_str().unwrap_or("").to_string())
     }
-    
+
     /// Get email delivery status
     pub async fn get_delivery_status(&self, message_id: &str) -> RhemaResult<serde_json::Value> {
-        let config = self.config.as_ref().ok_or_else(|| RhemaError::ConfigError("Email not configured".to_string()))?;
-        let api_key = config.api_key.as_ref().ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
-        let base_url = config.base_url.as_ref().ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
-        
+        let config = self
+            .config
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Email not configured".to_string()))?;
+        let api_key = config
+            .api_key
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("API key not configured".to_string()))?;
+        let base_url = config
+            .base_url
+            .as_ref()
+            .ok_or_else(|| RhemaError::ConfigError("Base URL not configured".to_string()))?;
+
         let url = format!("{}/v3/messages/{}", base_url, message_id);
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", api_key));
-        
+
         let response = self.http_client.get(&url, Some(headers)).await?;
         let status: serde_json::Value = serde_json::from_str(&response)?;
         Ok(status)

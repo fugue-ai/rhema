@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-pub mod types;
-pub mod provider;
-pub mod validation;
-pub mod cache;
-pub mod sync;
 pub mod backup;
+pub mod cache;
+pub mod provider;
+pub mod sync;
+pub mod types;
+pub mod validation;
 pub mod versioning;
 
 // Re-export main types for convenience
