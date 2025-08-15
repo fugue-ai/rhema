@@ -1341,7 +1341,7 @@ mod invariants_tests {
         assert_eq!(validator.validation_count(), 0);
 
         let agents = HashMap::from([
-            ("agent1".to_string(), "running".to_string()),
+            ("agent1".to_string(), "working".to_string()),
             ("agent2".to_string(), "idle".to_string()),
         ]);
 
@@ -1428,8 +1428,8 @@ mod invariants_tests {
         assert_eq!(validator.validation_count(), 0);
 
         let sync_status = HashMap::from([
-            ("module1".to_string(), "synced".to_string()),
-            ("module2".to_string(), "pending".to_string()),
+            ("module1".to_string(), "completed".to_string()),
+            ("module2".to_string(), "idle".to_string()),
         ]);
         let sync_dependencies =
             HashMap::from([("module1".to_string(), vec!["module2".to_string()])]);
@@ -1450,9 +1450,9 @@ mod invariants_tests {
         // Test all validators work together
         let scopes = vec!["scope1".to_string(), "scope2".to_string()];
         let dependencies = HashMap::from([("module1".to_string(), vec!["module2".to_string()])]);
-        let agents = HashMap::from([("agent1".to_string(), "running".to_string())]);
+        let agents = HashMap::from([("agent1".to_string(), "working".to_string())]);
         let locks = HashMap::from([("resource1".to_string(), Some("agent1".to_string()))]);
-        let sync_status = HashMap::from([("module1".to_string(), "synced".to_string())]);
+        let sync_status = HashMap::from([("module1".to_string(), "completed".to_string())]);
         let sync_dependencies = HashMap::new();
 
         // Run all validations

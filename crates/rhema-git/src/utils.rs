@@ -485,9 +485,8 @@ impl AdvancedGitIntegration {
     /// Create a new advanced Git integration instance
     pub fn new(repo: Repository) -> RhemaResult<Self> {
         let repo_path = repo
-            .path()
-            .parent()
-            .unwrap_or_else(|| Path::new(""))
+            .workdir()
+            .unwrap_or_else(|| repo.path().parent().unwrap_or_else(|| Path::new("")))
             .to_path_buf();
         let hooks_manager = crate::git_hooks::GitHooksManager::new(&repo_path).ok();
 
@@ -1443,7 +1442,10 @@ impl AdvancedGitIntegration {
         hook_type: crate::git_hooks::HookType,
     ) -> RhemaResult<crate::git_hooks::HookResult> {
         // Implement proper hook execution
-        let hook_manager = crate::git_hooks::GitHooksManager::new(self.repo.path())?;
+        let repo_path = self.repo
+            .workdir()
+            .unwrap_or_else(|| self.repo.path().parent().unwrap_or_else(|| Path::new("")));
+        let hook_manager = crate::git_hooks::GitHooksManager::new(repo_path)?;
 
         match hook_manager.execute_hook(&hook_type) {
             Ok(result) => Ok(result),
@@ -1553,14 +1555,39 @@ monitoring:
 
     pub fn create_context_version(
         &self,
-        _version: &str,
-        _version_type: &str,
-        _description: &str,
+        version: &str,
+        version_type: &str,
+        description: &str,
     ) -> RhemaResult<ContextVersion> {
+        // Create backup directory
+        let backup_dir = self
+            .repo
+            .path()
+            .parent()
+            .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
+            .join(".rhema")
+            .join("backups");
+        std::fs::create_dir_all(&backup_dir)?;
+
+        // Create backup file
+        let backup_file = backup_dir.join(format!("{}.json", version));
+        let backup_data = serde_json::json!({
+            "version": version,
+            "version_type": version_type,
+            "description": description,
+            "created_at": Utc::now().to_rfc3339(),
+            "context": {
+                "scopes": {},
+                "knowledge": {},
+                "todos": {}
+            }
+        });
+        std::fs::write(backup_file, serde_json::to_string_pretty(&backup_data)?)?;
+
         Ok(ContextVersion {
-            version: _version.to_string(),
-            version_type: _version_type.to_string(),
-            description: _description.to_string(),
+            version: version.to_string(),
+            version_type: version_type.to_string(),
+            description: description.to_string(),
             created_at: Utc::now(),
         })
     }
@@ -2420,13 +2447,17 @@ monitoring:
         };
 
         // Write to operation log file
-        let log_file = self
+        let rhema_dir = self
             .repo
             .path()
             .parent()
             .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
-            .join(".rhema")
-            .join("git_operations.log");
+            .join(".rhema");
+        
+        // Create .rhema directory if it doesn't exist
+        std::fs::create_dir_all(&rhema_dir)?;
+        
+        let log_file = rhema_dir.join("git_operations.log");
 
         let log_entry = format!(
             "{} | {} | {}ms | {}\n",
@@ -2459,13 +2490,17 @@ monitoring:
         };
 
         // Write to context operation log file
-        let log_file = self
+        let rhema_dir = self
             .repo
             .path()
             .parent()
             .ok_or_else(|| RhemaError::GitError(git2::Error::from_str("Invalid repository path")))?
-            .join(".rhema")
-            .join("context_operations.log");
+            .join(".rhema");
+        
+        // Create .rhema directory if it doesn't exist
+        std::fs::create_dir_all(&rhema_dir)?;
+        
+        let log_file = rhema_dir.join("context_operations.log");
 
         let log_entry = format!(
             "{} | {} | {}ms | {}\n",

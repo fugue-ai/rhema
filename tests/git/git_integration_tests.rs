@@ -36,6 +36,10 @@ impl GitIntegrationTestFixture {
         // Initialize Git repository
         let repo = Repository::init(repo_path)?;
 
+        // Create hooks directory
+        let hooks_dir = repo_path.join(".git").join("hooks");
+        fs::create_dir_all(&hooks_dir)?;
+
         // Create a basic Cargo.toml file for testing
         let cargo_toml_content = r#"[package]
 name = "test-project"

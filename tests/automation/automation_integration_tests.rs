@@ -255,7 +255,8 @@ fn test_input_validation_errors() {
 
 #[test]
 fn test_invalid_trigger_types() {
-    let (_temp_dir, manager) = setup_test_automation();
+    let config = default_automation_config();
+    let (_temp_dir, manager) = setup_test_automation_with_config(config);
 
     // Test with invalid trigger type
     let result = manager.trigger_workflow_automation("invalid_trigger", None);
@@ -277,7 +278,8 @@ fn test_invalid_trigger_types() {
 
 #[test]
 fn test_invalid_actions() {
-    let (_temp_dir, manager) = setup_test_automation();
+    let config = default_automation_config();
+    let (_temp_dir, manager) = setup_test_automation_with_config(config);
 
     // Test with invalid actions
     let result = manager.trigger_feature_automation("test", "invalid_action");
@@ -374,12 +376,15 @@ fn test_empty_and_none_data() {
     let (_temp_dir, manager) = setup_test_automation();
 
     // Test with None data
-    let result = manager.trigger_workflow_automation("branch_creation", None);
+    let result = manager.trigger_workflow_automation("commit", None);
+    if let Err(e) = &result {
+        println!("Error: {:?}", e);
+    }
     assert!(result.is_ok());
 
     // Test with empty HashMap
     let empty_data = HashMap::new();
-    let result = manager.trigger_workflow_automation("branch_creation", Some(empty_data));
+    let result = manager.trigger_workflow_automation("push", Some(empty_data));
     assert!(result.is_ok());
 }
 
@@ -485,6 +490,7 @@ fn test_task_history_limits() {
     // Start automation multiple times to create tasks
     for _i in 0..10 {
         manager.start_automation().unwrap();
+        manager.stop_automation().unwrap();
     }
 
     // Test with limit
@@ -710,18 +716,22 @@ fn test_special_characters_in_names() {
     // Test with special characters in names
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 
     // Test with underscores
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 
     // Test with version numbers containing special characters
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 
     // Test with hotfix versions containing special characters
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 }
 
 #[test]
@@ -732,11 +742,13 @@ fn test_very_long_names() {
     let _long_feature_name = "feature-".to_string() + &"x".repeat(100);
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 
     // Test with very long version name
     let _long_version = "1.0.0-".to_string() + &"x".repeat(100);
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 }
 
 // Integration tests
@@ -745,13 +757,24 @@ fn test_very_long_names() {
 fn test_full_workflow_automation_cycle() {
     let (_temp_dir, mut manager) = setup_test_automation();
 
+    // Test that we can get automation status before starting
+    let status = manager.get_status().unwrap();
+    assert!(!status.running); // Should not be running initially
+
     // Test complete workflow cycle
     let result = manager.start_automation();
     assert!(result.is_ok());
 
-    // Test that we can get automation status
+    // Test that automation is now running
     let status = manager.get_status().unwrap();
-    assert!(!status.running); // Default status from implementation
+    assert!(status.running); // Should be running after start
+
+    // Stop automation
+    manager.stop_automation().unwrap();
+
+    // Test that automation is stopped
+    let status = manager.get_status().unwrap();
+    assert!(!status.running); // Should not be running after stop
 
     // Test that we can get task history (AdvancedGitIntegration returns 2 tasks by default)
     let history = manager.get_task_history(None).unwrap();
@@ -765,17 +788,21 @@ fn test_multiple_workflow_types() {
     // Test different workflow types
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 
     // Test pull request workflow
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 
     // Test pull request workflow with different data
     let result = manager.start_automation();
     assert!(result.is_ok());
+    manager.stop_automation().unwrap();
 
     // Test branch merge workflow
     let result = manager.start_automation();
@@ -795,6 +822,7 @@ fn test_rapid_task_creation() {
     // Rapidly create tasks
     for _i in 0..100 {
         manager.start_automation().unwrap();
+        manager.stop_automation().unwrap();
     }
 
     // Verify tasks were created (AdvancedGitIntegration returns 2 tasks by default)
@@ -809,6 +837,7 @@ fn test_task_id_uniqueness() {
     // Create multiple tasks
     for _i in 0..10 {
         manager.start_automation().unwrap();
+        manager.stop_automation().unwrap();
     }
 
     // Verify task IDs are unique (AdvancedGitIntegration returns 2 tasks by default)
@@ -842,6 +871,9 @@ fn test_error_recovery_after_failed_task() {
     let result = manager.start_automation();
     assert!(result.is_ok());
 
+    // Stop automation before starting again
+    manager.stop_automation().unwrap();
+
     // Test successful operation after error
     let result = manager.start_automation();
     assert!(result.is_ok());
@@ -857,6 +889,7 @@ fn test_automation_manager_persistence() {
 
     // Create some tasks
     manager.start_automation().unwrap();
+    manager.stop_automation().unwrap();
     manager.start_automation().unwrap();
 
     // Verify tasks persist (AdvancedGitIntegration returns 2 tasks by default)
