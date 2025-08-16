@@ -1,7 +1,12 @@
 // Mock VS Code API for testing
 export const Uri = {
   file: (path: string) => ({ scheme: 'file', path }),
-  parse: (uri: string) => ({ scheme: 'file', path: uri }),
+  parse: (uri: string) => {
+    if (uri.startsWith('http://') || uri.startsWith('https://')) {
+      return { scheme: uri.startsWith('https://') ? 'https' : 'http', path: uri };
+    }
+    return { scheme: 'file', path: uri };
+  },
 };
 
 export const Range = class {
@@ -10,6 +15,10 @@ export const Range = class {
 
 export const Position = class {
   constructor(public line: number, public character: number) {}
+};
+
+export const Location = class {
+  constructor(public uri: any, public range: any) {}
 };
 
 export const Diagnostic = class {
@@ -53,6 +62,35 @@ export const CompletionItemKind = {
   Event: 23,
   Operator: 24,
   TypeParameter: 25,
+};
+
+export const SymbolKind = {
+  File: 1,
+  Module: 2,
+  Namespace: 3,
+  Package: 4,
+  Class: 5,
+  Method: 6,
+  Property: 7,
+  Field: 8,
+  Constructor: 9,
+  Enum: 10,
+  Interface: 11,
+  Function: 12,
+  Variable: 13,
+  Constant: 14,
+  String: 15,
+  Number: 16,
+  Boolean: 17,
+  Array: 18,
+  Object: 19,
+  Key: 20,
+  Null: 21,
+  EnumMember: 22,
+  Struct: 23,
+  Event: 24,
+  Operator: 25,
+  TypeParameter: 26,
 };
 
 export const MarkdownString = class {
@@ -106,6 +144,42 @@ export const WorkspaceEdit = class {
   has(uri: any) {
     return this.replacements.has(uri);
   }
+};
+
+export const DocumentSymbol = class {
+  constructor(
+    public name: string,
+    public detail: string,
+    public kind: any,
+    public range: any,
+    public selectionRange: any
+  ) {}
+};
+
+export const SymbolInformation = class {
+  constructor(
+    public name: string,
+    public kind: any,
+    public containerName: string,
+    public location: any
+  ) {}
+};
+
+export const FoldingRange = class {
+  constructor(public start: number, public end: number, public kind?: any) {}
+};
+
+export const SelectionRange = class {
+  constructor(public range: any, public parent?: any) {}
+};
+
+export const DocumentHighlight = class {
+  constructor(public range: any, public kind?: any) {}
+};
+
+export const DocumentLink = class {
+  constructor(public range: any) {}
+  target?: any;
 };
 
 export const TreeItem = class {

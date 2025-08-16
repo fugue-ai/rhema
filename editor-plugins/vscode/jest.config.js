@@ -7,7 +7,9 @@ module.exports = {
     '**/?(*.)+(spec|test).ts'
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: 'tsconfig.json',
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -19,11 +21,6 @@ module.exports = {
     '/node_modules/',
     '/dist/',
   ],
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-    },
-  },
   moduleNameMapper: {
     '^vscode$': '<rootDir>/tests/mock-vscode.ts',
   },

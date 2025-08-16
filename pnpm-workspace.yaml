@@ -2,6 +2,11 @@ packages:
   - docs
   - runtime/editor-plugins/vscode
   - runtime/language-server
-modulesDir: 'target/node_modules'
+
+modulesDir: target/node_modules
+
 onlyBuiltDependencies:
+  - esbuild
+  - nx
+  - sharp
   - unrs-resolver

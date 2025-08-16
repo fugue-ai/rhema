@@ -22,7 +22,6 @@ export interface RhemaCompletionItem extends CompletionItem {
   context?: string[];
   priority?: number;
   category?: 'keyword' | 'snippet' | 'value' | 'field' | 'enum';
-  label?: string;
 }
 
 export class RhemaCompleter {
@@ -1504,7 +1503,7 @@ export class RhemaCompleter {
     // Only apply filtering if we have a meaningful prefix and we're not in a context where we should show all
     if (prefix.length > 0 && !shouldShowAll && !prefix.includes(':')) {
       return filtered.filter((item) => {
-        const label = item.label.toLowerCase();
+        const label = item.label?.toLowerCase() || '';
         const searchTerm = prefix.toLowerCase();
         
         // Exact prefix match (highest priority)
