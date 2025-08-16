@@ -9,19 +9,17 @@
 use rhema_config::{
     documentation::{
         ConfigDocumentationGenerator, DocumentationFormat, DocumentationSettings,
-        DocumentationStatistics,
     },
     feedback::{
-        ConfigFeedback, ConfigFeedbackProvider, ConfigurationSuggestion, FeedbackSummary,
-        SuggestionPriority, ValidationFeedback,
+        ConfigFeedbackProvider,
+        SuggestionPriority,
     },
     wizard::{
-        ConfigWizard, QuestionType, StepType, ValidationRuleType, WizardProgress, WizardSettings,
+        ConfigWizard, WizardSettings,
     },
     Config, ConfigEnvironment, ConfigIssue, ConfigIssueSeverity, GlobalConfig, ValidationResult,
 };
 use serde_json::json;
-use std::collections::HashMap;
 
 /// Test fixtures for comprehensive tests
 mod fixtures {

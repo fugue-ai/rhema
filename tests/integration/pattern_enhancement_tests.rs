@@ -781,7 +781,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
         let pattern_id = format!("config_test_{}", i);
 
         // Create executor with specific config
-        let mut registry = PatternRegistry::new();
+        let registry = PatternRegistry::new();
         let _monitor = rhema_coordination::agent::patterns::PatternMonitor::new(config.clone());
         let mut executor = PatternExecutor::new(registry);
 

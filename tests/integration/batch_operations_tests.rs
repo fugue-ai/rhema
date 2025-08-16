@@ -53,13 +53,12 @@ enum BatchSubcommands {
     },
 }
 use std::path::Path;
-use tempfile::TempDir;
 
 // Mock implementations for commands module
 mod commands {
     use super::*;
     use std::fs;
-    use std::path::Path;
+    
 
     pub mod batch {
         use super::*;

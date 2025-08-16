@@ -1,7 +1,6 @@
 use chrono::{Duration, Utc};
-use rhema_core::{schema::*, scope::Scope, RhemaError, RhemaResult};
+use rhema_core::RhemaResult;
 use rhema_mcp::context::{ChangeType, ContextChange, ContextProvider, ResourceType};
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 #[tokio::test]

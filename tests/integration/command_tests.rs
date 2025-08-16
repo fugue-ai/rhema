@@ -1,10 +1,9 @@
 //! Integration tests for Rhema CLI commands
 
-use crate::common::{helpers::TestHelpers, TestEnv};
+use crate::common::TestEnv;
 use git2;
 use rhema_cli::Rhema;
 use rhema_core::RhemaResult;
-use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tempfile::TempDir;

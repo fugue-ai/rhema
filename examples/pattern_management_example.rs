@@ -16,7 +16,7 @@
 
 use rhema_core::{
     fileops::pattern_management::*,
-    schema::knowledge::{PatternEntry, PatternMaturity, PatternUsage, ReviewStatus},
+    schema::knowledge::{PatternMaturity, PatternUsage, ReviewStatus},
     RhemaResult,
 };
 use std::path::Path;

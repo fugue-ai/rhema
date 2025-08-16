@@ -1,7 +1,6 @@
 //! Security tests for Rhema Coordination CLI
 
 use crate::common::TestEnv;
-use std::process::Command;
 
 /// Test CLI command execution for coordination commands
 fn run_coordination_command(args: &[&str]) -> Result<String, Box<dyn std::error::Error>> {

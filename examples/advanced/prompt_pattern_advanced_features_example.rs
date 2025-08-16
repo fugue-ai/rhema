@@ -1,6 +1,5 @@
 use rhema_core::schema::{
     ContextInjectionMethod, ContextRule, PromptInjectionMethod, PromptPattern, Prompts,
-    UsageAnalytics,
 };
 use std::collections::HashMap;
 

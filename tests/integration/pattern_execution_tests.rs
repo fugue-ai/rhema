@@ -171,7 +171,7 @@ struct PatternTestFixture {
 
 impl PatternTestFixture {
     fn new() -> Self {
-        let mut registry = PatternRegistry::new();
+        let registry = PatternRegistry::new();
         let executor = PatternExecutor::new(registry);
 
         let context = PatternContext {

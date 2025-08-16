@@ -20,7 +20,7 @@ use rhema_knowledge::{
     },
     types::{
         AgentSessionContext, CacheEntryMetadata, ContentType, ContextRequirement,
-        ContextRequirementType, Priority, UnifiedEngineConfig, WorkflowContext, WorkflowType,
+        ContextRequirementType, Priority, WorkflowContext, WorkflowType,
     },
 };
 use std::time::Duration;
