@@ -140,12 +140,12 @@ items:
     // Test basic query
     let result = rhema.query("simple").unwrap();
     let result_str = serde_yaml::to_string(&result).unwrap();
-    println!("Basic query result: {}", result_str);
+    println!("Basic query result: {result_str}");
 
     // Test WHERE query
     let where_result = rhema.query("simple.items WHERE active=true").unwrap();
     let where_result_str = serde_yaml::to_string(&where_result).unwrap();
-    println!("WHERE query result: {}", where_result_str);
+    println!("WHERE query result: {where_result_str}");
 
     assert!(result_str.contains("item1"));
     assert!(where_result_str.contains("item1"));
@@ -161,7 +161,7 @@ fn test_query_parsing() {
     let query = "simple.items WHERE active=true";
     let parsed = parse_cql_query(query).unwrap();
 
-    println!("Parsed query: {:?}", parsed);
+    println!("Parsed query: {parsed:?}");
     assert_eq!(parsed.target, "simple");
     assert_eq!(parsed.yaml_path, Some("items".to_string()));
     assert_eq!(parsed.conditions.len(), 1);
@@ -171,7 +171,7 @@ fn test_query_parsing() {
     let query = "simple.items WHERE value>15";
     let parsed = parse_cql_query(query).unwrap();
 
-    println!("Parsed comparison query: {:?}", parsed);
+    println!("Parsed comparison query: {parsed:?}");
     assert_eq!(parsed.target, "simple");
     assert_eq!(parsed.yaml_path, Some("items".to_string()));
     assert_eq!(parsed.conditions.len(), 1);

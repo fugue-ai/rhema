@@ -543,7 +543,7 @@ mod migration_tests {
             .await
             .unwrap();
 
-        assert!(result.migrations_applied.len() > 0);
+        assert!(!result.migrations_applied.is_empty());
         assert!(result.migrations_failed.is_empty());
         assert!(result.summary.successful_migrations > 0);
         assert!(result.summary.failed_migrations == 0);
@@ -560,7 +560,7 @@ mod migration_tests {
             .unwrap();
 
         assert!(result.migrations_applied.is_empty());
-        assert!(result.migrations_skipped.len() > 0);
+        assert!(!result.migrations_skipped.is_empty());
         assert!(result.summary.skipped_migrations > 0);
     }
 
@@ -584,7 +584,7 @@ mod migration_tests {
                 .await
                 .unwrap();
 
-            assert!(rollback_result.migrations_applied.len() > 0);
+            assert!(!rollback_result.migrations_applied.is_empty());
             assert!(rollback_result.migrations_failed.is_empty());
         }
     }
@@ -1176,7 +1176,7 @@ mod tools_tests {
             duration_ms: 100,
         };
 
-        assert_eq!(report.overall_valid, true);
+        assert!(report.overall_valid);
         assert_eq!(report.summary.total_configs, 1);
     }
 

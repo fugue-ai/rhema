@@ -198,16 +198,16 @@ pub mod utils {
 
         let elapsed = start.elapsed();
         if elapsed > timeout {
-            return Err(format!("Test timed out after {:?}", elapsed));
+            return Err(format!("Test timed out after {elapsed:?}"));
         }
 
         match result {
             Ok(value) => Ok(value),
             Err(panic_info) => {
                 if let Some(s) = panic_info.downcast_ref::<String>() {
-                    Err(format!("Test panicked: {}", s))
+                    Err(format!("Test panicked: {s}"))
                 } else if let Some(s) = panic_info.downcast_ref::<&str>() {
-                    Err(format!("Test panicked: {}", s))
+                    Err(format!("Test panicked: {s}"))
                 } else {
                     Err("Test panicked with unknown error".to_string())
                 }
@@ -227,7 +227,7 @@ pub mod utils {
     /// Skip test if condition is not met
     pub fn skip_if_not(condition: bool, reason: &str) {
         if !condition {
-            panic!("Test skipped: {}", reason);
+            panic!("Test skipped: {reason}");
         }
     }
 
@@ -302,8 +302,8 @@ macro_rules! test_with_timeout {
     ($timeout:expr, $test_fn:expr) => {
         #[test]
         fn test_with_timeout() {
-            use crate::tests::test_config::utils::run_test_with_timeout;
             use std::time::Duration;
+            use $crate::tests::test_config::utils::run_test_with_timeout;
 
             let result = run_test_with_timeout(Duration::from_secs($timeout), $test_fn);
             assert!(result.is_ok(), "Test failed: {:?}", result.err());
@@ -316,7 +316,7 @@ macro_rules! slow_test {
     ($test_name:ident, $test_fn:expr) => {
         #[test]
         fn $test_name() {
-            use crate::tests::test_config::utils::skip_slow_tests;
+            use $crate::tests::test_config::utils::skip_slow_tests;
             skip_slow_tests();
             $test_fn
         }
@@ -328,7 +328,7 @@ macro_rules! integration_test {
     ($test_name:ident, $test_fn:expr) => {
         #[test]
         fn $test_name() {
-            use crate::tests::test_config::utils::skip_integration_tests;
+            use $crate::tests::test_config::utils::skip_integration_tests;
             skip_integration_tests();
             $test_fn
         }
@@ -340,7 +340,7 @@ macro_rules! performance_test {
     ($test_name:ident, $test_fn:expr) => {
         #[test]
         fn $test_name() {
-            use crate::tests::test_config::utils::skip_performance_tests;
+            use $crate::tests::test_config::utils::skip_performance_tests;
             skip_performance_tests();
             $test_fn
         }
@@ -352,7 +352,7 @@ macro_rules! security_test {
     ($test_name:ident, $test_fn:expr) => {
         #[test]
         fn $test_name() {
-            use crate::tests::test_config::utils::skip_security_tests;
+            use $crate::tests::test_config::utils::skip_security_tests;
             skip_security_tests();
             $test_fn
         }
@@ -364,7 +364,7 @@ macro_rules! benchmark_test {
     ($test_name:ident, $test_fn:expr) => {
         #[test]
         fn $test_name() {
-            use crate::tests::test_config::utils::skip_benchmarks;
+            use $crate::tests::test_config::utils::skip_benchmarks;
             skip_benchmarks();
             $test_fn
         }
@@ -376,7 +376,7 @@ macro_rules! property_test {
     ($test_name:ident, $test_fn:expr) => {
         #[test]
         fn $test_name() {
-            use crate::tests::test_config::utils::skip_property_tests;
+            use $crate::tests::test_config::utils::skip_property_tests;
             skip_property_tests();
             $test_fn
         }
@@ -388,7 +388,7 @@ macro_rules! stress_test {
     ($test_name:ident, $test_fn:expr) => {
         #[test]
         fn $test_name() {
-            use crate::tests::test_config::utils::skip_stress_tests;
+            use $crate::tests::test_config::utils::skip_stress_tests;
             skip_stress_tests();
             $test_fn
         }
@@ -400,7 +400,7 @@ macro_rules! load_test {
     ($test_name:ident, $test_fn:expr) => {
         #[test]
         fn $test_name() {
-            use crate::tests::test_config::utils::skip_load_tests;
+            use $crate::tests::test_config::utils::skip_load_tests;
             skip_load_tests();
             $test_fn
         }

@@ -718,7 +718,7 @@ pub fn handle_pattern(
                 review_status.clone(),
             )?;
 
-            println!("✅ Pattern '{}' added with ID: {}", name, id);
+            println!("✅ Pattern '{name}' added with ID: {id}");
             Ok(())
         }
         PatternSubcommands::List {
@@ -755,13 +755,13 @@ pub fn handle_pattern(
                     println!("🏷️  Type: {}", pattern.pattern_type);
 
                     if let Some(category) = &pattern.category {
-                        println!("📂 Category: {}", category);
+                        println!("📂 Category: {category}");
                     }
 
                     println!("📊 Usage: {:?}", pattern.usage);
 
                     if let Some(maturity) = &pattern.maturity {
-                        println!("🌱 Maturity: {:?}", maturity);
+                        println!("🌱 Maturity: {maturity:?}");
                     }
 
                     if let Some(eff) = pattern.effectiveness {
@@ -774,12 +774,12 @@ pub fn handle_pattern(
                         };
                         println!(
                             "⭐ Effectiveness: {}",
-                            format!("{}/10", eff).color(effectiveness_color)
+                            format!("{eff}/10").color(effectiveness_color)
                         );
                     }
 
                     if let Some(complexity) = pattern.complexity {
-                        println!("🔧 Complexity: {}/10", complexity);
+                        println!("🔧 Complexity: {complexity}/10");
                     }
 
                     if let Some(review_status) = &pattern.review_status {
@@ -792,7 +792,7 @@ pub fn handle_pattern(
                         };
                         println!(
                             "📋 Review Status: {}",
-                            format!("{:?}", review_status).color(status_color)
+                            format!("{review_status:?}").color(status_color)
                         );
                     }
 
@@ -804,11 +804,11 @@ pub fn handle_pattern(
                     }
 
                     if let Some(author) = &pattern.author {
-                        println!("👤 Author: {}", author);
+                        println!("👤 Author: {author}");
                     }
 
                     if let Some(version) = &pattern.version {
-                        println!("📦 Version: {}", version);
+                        println!("📦 Version: {version}");
                     }
 
                     println!(
@@ -871,12 +871,12 @@ pub fn handle_pattern(
                 review_status.clone(),
             )?;
 
-            println!("✅ Pattern '{}' updated successfully", id);
+            println!("✅ Pattern '{id}' updated successfully");
             Ok(())
         }
         PatternSubcommands::Delete { id } => {
             fileops::delete_pattern_entry(&scope.path, id)?;
-            println!("✅ Pattern '{}' deleted successfully", id);
+            println!("✅ Pattern '{id}' deleted successfully");
             Ok(())
         }
         PatternSubcommands::Review {
@@ -892,7 +892,7 @@ pub fn handle_pattern(
                 comments.clone(),
                 reviewer.clone(),
             )?;
-            println!("✅ Pattern '{}' reviewed with status: {:?}", id, status);
+            println!("✅ Pattern '{id}' reviewed with status: {status:?}");
             Ok(())
         }
         PatternSubcommands::Analyze { id, report, export } => {
@@ -914,7 +914,7 @@ pub fn handle_pattern(
                 if !analysis.patterns_by_category.is_empty() {
                     println!("\n📂 By Category:");
                     for (category, count) in &analysis.patterns_by_category {
-                        println!("  {}: {}", category, count);
+                        println!("  {category}: {count}");
                     }
                 }
 
@@ -931,7 +931,7 @@ pub fn handle_pattern(
                 if !analysis.recommendations.is_empty() {
                     println!("\n💡 Recommendations:");
                     for rec in &analysis.recommendations {
-                        println!("  • {}", rec);
+                        println!("  • {rec}");
                     }
                 }
             }
@@ -940,7 +940,7 @@ pub fn handle_pattern(
                 // Export analysis to file
                 let export_content = serde_json::to_string_pretty(&analysis)?;
                 std::fs::write(export_path, export_content)?;
-                println!("📁 Analysis exported to: {}", export_path);
+                println!("📁 Analysis exported to: {export_path}");
             }
 
             Ok(())
@@ -963,7 +963,7 @@ pub fn handle_pattern(
             )?;
 
             if patterns.is_empty() {
-                println!("🔍 No patterns found matching '{}'", query);
+                println!("🔍 No patterns found matching '{query}'");
             } else {
                 println!(
                     "🔍 Found {} pattern(s) matching '{}':",
@@ -978,11 +978,11 @@ pub fn handle_pattern(
                     println!("📄 Description: {}", pattern.description);
                     println!("🏷️  Type: {}", pattern.pattern_type);
                     if let Some(category) = &pattern.category {
-                        println!("📂 Category: {}", category);
+                        println!("📂 Category: {category}");
                     }
                     println!("📊 Usage: {:?}", pattern.usage);
                     if let Some(eff) = pattern.effectiveness {
-                        println!("⭐ Effectiveness: {}/10", eff);
+                        println!("⭐ Effectiveness: {eff}/10");
                     }
                     println!();
                 }
@@ -1019,15 +1019,15 @@ pub fn handle_pattern(
 
             if *compress {
                 // Implement compression
-                let compressed_path = format!("{}.gz", output_path);
+                let compressed_path = format!("{output_path}.gz");
                 let file = std::fs::File::create(&compressed_path)?;
                 let mut encoder = GzEncoder::new(file, Compression::default());
                 encoder.write_all(export_data.as_bytes())?;
                 encoder.finish()?;
-                println!("✅ Patterns exported to: {} (compressed)", compressed_path);
+                println!("✅ Patterns exported to: {compressed_path} (compressed)");
             } else {
                 std::fs::write(&output_path, export_data)?;
-                println!("✅ Patterns exported to: {}", output_path);
+                println!("✅ Patterns exported to: {output_path}");
             }
             Ok(())
         }
@@ -1046,7 +1046,7 @@ pub fn handle_pattern(
                     chrono::Utc::now().format("%Y%m%d_%H%M%S")
                 );
                 fileops::backup_patterns(&scope.path, &backup_path)?;
-                println!("💾 Backup created: {}", backup_path);
+                println!("💾 Backup created: {backup_path}");
             }
 
             if *validate {
@@ -1054,7 +1054,7 @@ pub fn handle_pattern(
                 if !validation_result.is_valid {
                     println!("❌ Import validation failed:");
                     for error in &validation_result.errors {
-                        println!("   • {}", error);
+                        println!("   • {error}");
                     }
                     return Ok(());
                 }
@@ -1119,21 +1119,21 @@ pub fn handle_pattern(
             if !validation_result.errors.is_empty() {
                 println!("\n❌ Errors:");
                 for error in &validation_result.errors {
-                    println!("   • {}", error);
+                    println!("   • {error}");
                 }
             }
 
             if !validation_result.warnings.is_empty() {
                 println!("\n⚠️  Warnings:");
                 for warning in &validation_result.warnings {
-                    println!("   • {}", warning);
+                    println!("   • {warning}");
                 }
             }
 
             if let Some(report_path) = report_file {
                 let report_content = serde_json::to_string_pretty(&validation_result)?;
-                std::fs::write(&report_path, report_content)?;
-                println!("\n📄 Validation report saved to: {}", report_path);
+                std::fs::write(report_path, report_content)?;
+                println!("\n📄 Validation report saved to: {report_path}");
             }
 
             Ok(())
@@ -1148,7 +1148,7 @@ pub fn handle_pattern(
         } => {
             let docs_result = fileops::generate_pattern_documentation(
                 &scope.path,
-                output_dir.as_deref().map(|s| std::path::Path::new(s)),
+                output_dir.as_deref().map(std::path::Path::new),
                 format.clone(),
                 *include_examples,
                 *include_templates,
@@ -1206,28 +1206,28 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
         } => {
             // Parse variables
             let template_variables = if let Some(vars_str) = variables {
-                parse_template_variables(&vars_str)?
+                parse_template_variables(vars_str)?
             } else {
                 Vec::new()
             };
 
             // Parse snippets
             let code_snippets = if let Some(snippets_str) = snippets {
-                parse_code_snippets(&snippets_str)?
+                parse_code_snippets(snippets_str)?
             } else {
                 None
             };
 
             // Parse configurations
             let configurations = if let Some(configs_str) = configs {
-                parse_configurations(&configs_str)?
+                parse_configurations(configs_str)?
             } else {
                 None
             };
 
             // Parse tests
             let test_templates = if let Some(tests_str) = tests {
-                parse_test_templates(&tests_str)?
+                parse_test_templates(tests_str)?
             } else {
                 None
             };
@@ -1278,7 +1278,7 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
                     .map(|t| t.split(',').map(|s| s.trim().to_string()).collect()),
             )?;
 
-            println!("✅ Template '{}' created with ID: {}", name, id);
+            println!("✅ Template '{name}' created with ID: {id}");
             Ok(())
         }
 
@@ -1308,14 +1308,14 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
                 println!("📊 Usage Count: {}", template.usage_count);
 
                 if let Some(rating) = template.rating {
-                    println!("⭐ Rating: {:.1}/5.0", rating);
+                    println!("⭐ Rating: {rating:.1}/5.0");
                 }
 
                 println!("🌱 Maturity: {:?}", template.metadata.maturity);
                 println!("🔧 Complexity: {}/10", template.metadata.complexity);
 
                 if let Some(author) = &template.author {
-                    println!("👤 Author: {}", author);
+                    println!("👤 Author: {author}");
                 }
 
                 println!("📦 Version: {}", template.version);
@@ -1348,7 +1348,7 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
 
         TemplateSubcommands::Show { id } => {
             let template = fileops::get_pattern_template(scope, id)?.ok_or_else(|| {
-                rhema_api::RhemaError::ConfigError(format!("Template with ID {} not found", id))
+                rhema_api::RhemaError::ConfigError(format!("Template with ID {id} not found"))
             })?;
 
             println!("📋 Template Details");
@@ -1363,11 +1363,11 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
             println!("📊 Usage Count: {}", template.usage_count);
 
             if let Some(rating) = template.rating {
-                println!("⭐ Rating: {:.1}/5.0", rating);
+                println!("⭐ Rating: {rating:.1}/5.0");
             }
 
             if let Some(author) = &template.author {
-                println!("👤 Author: {}", author);
+                println!("👤 Author: {author}");
             }
 
             if let Some(tags) = &template.tags {
@@ -1384,7 +1384,7 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
                     println!("     Required: Yes");
                 }
                 if let Some(default) = &var.default_value {
-                    println!("     Default: {}", default);
+                    println!("     Default: {default}");
                 }
                 if let Some(examples) = &var.examples {
                     println!("     Examples: {}", examples.join(", "));
@@ -1470,7 +1470,7 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
                 }
             } else {
                 // Apply mode - write files
-                let output_path = output_dir.as_ref().map(|d| std::path::Path::new(d));
+                let output_path = output_dir.as_ref().map(std::path::Path::new);
                 let applied =
                     fileops::apply_pattern_template(scope, id, variables_map, output_path)?;
 
@@ -1530,7 +1530,7 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
             )?;
 
             if templates.is_empty() {
-                println!("🔍 No templates found matching '{}'", query);
+                println!("🔍 No templates found matching '{query}'");
             } else {
                 println!(
                     "🔍 Found {} template(s) matching '{}':",
@@ -1547,7 +1547,7 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
                     println!("📊 Usage Count: {}", template.usage_count);
 
                     if let Some(rating) = template.rating {
-                        println!("⭐ Rating: {:.1}/5.0", rating);
+                        println!("⭐ Rating: {rating:.1}/5.0");
                     }
 
                     println!("🌱 Maturity: {:?}", template.metadata.maturity);
@@ -1584,16 +1584,13 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
                     .map(|t| t.split(',').map(|s| s.trim().to_string()).collect()),
             )?;
 
-            println!("✅ Template '{}' updated successfully", id);
+            println!("✅ Template '{id}' updated successfully");
             Ok(())
         }
 
         TemplateSubcommands::Delete { id, force } => {
             if !*force {
-                println!(
-                    "⚠️  Are you sure you want to delete template '{}'? (y/N)",
-                    id
-                );
+                println!("⚠️  Are you sure you want to delete template '{id}'? (y/N)");
                 let mut input = String::new();
                 std::io::stdin().read_line(&mut input)?;
 
@@ -1604,7 +1601,7 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
             }
 
             fileops::delete_pattern_template(scope, id)?;
-            println!("✅ Template '{}' deleted successfully", id);
+            println!("✅ Template '{id}' deleted successfully");
             Ok(())
         }
 
@@ -1620,14 +1617,14 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
             if !stats.templates_by_category.is_empty() {
                 println!("\n📂 By Category:");
                 for (category, count) in &stats.templates_by_category {
-                    println!("   • {}: {}", category, count);
+                    println!("   • {category}: {count}");
                 }
             }
 
             if !stats.templates_by_maturity.is_empty() {
                 println!("\n🌱 By Maturity:");
                 for (maturity, count) in &stats.templates_by_maturity {
-                    println!("   • {}: {}", maturity, count);
+                    println!("   • {maturity}: {count}");
                 }
             }
 
@@ -1641,7 +1638,7 @@ fn handle_template(scope: &std::path::Path, subcommand: &TemplateSubcommands) ->
                         template.usage_count
                     );
                     if let Some(rating) = template.rating {
-                        println!("      Rating: {:.1}/5.0", rating);
+                        println!("      Rating: {rating:.1}/5.0");
                     }
                 }
             }
@@ -1741,7 +1738,7 @@ fn generate_code_snippet_content(language: &str, snippet_type: &SnippetType, nam
             "// TODO: Add {} implementation for {}\n// This is a {} snippet\n",
             language,
             name,
-            format!("{:?}", snippet_type).to_lowercase()
+            format!("{snippet_type:?}").to_lowercase()
         ),
     }
 }
@@ -1775,8 +1772,7 @@ fn generate_configuration_content(format: &ConfigFormat, name: &str) -> String {
             name.to_lowercase().replace(' ', "_")
         ),
         ConfigFormat::Custom => format!(
-            "# Custom configuration for {}\n# TODO: Define custom configuration format\n",
-            name
+            "# Custom configuration for {name}\n# TODO: Define custom configuration format\n"
         ),
     }
 }
@@ -1784,12 +1780,10 @@ fn generate_configuration_content(format: &ConfigFormat, name: &str) -> String {
 fn generate_test_content(framework: &str, test_type: &TestType, name: &str) -> String {
     match (framework.to_lowercase().as_str(), test_type) {
         ("jest", TestType::Unit) => format!(
-            "describe('{}', () => {{\n  test('should work correctly', () => {{\n    // TODO: Add test implementation\n    expect(true).toBe(true);\n  }});\n}});",
-            name
+            "describe('{name}', () => {{\n  test('should work correctly', () => {{\n    // TODO: Add test implementation\n    expect(true).toBe(true);\n  }});\n}});"
         ),
         ("jest", TestType::Integration) => format!(
-            "describe('{} Integration', () => {{\n  beforeAll(async () => {{\n    // TODO: Setup integration test environment\n  }});\n\n  test('should integrate correctly', async () => {{\n    // TODO: Add integration test implementation\n    expect(true).toBe(true);\n  }});\n}});",
-            name
+            "describe('{name} Integration', () => {{\n  beforeAll(async () => {{\n    // TODO: Setup integration test environment\n  }});\n\n  test('should integrate correctly', async () => {{\n    // TODO: Add integration test implementation\n    expect(true).toBe(true);\n  }});\n}});"
         ),
         ("pytest", TestType::Unit) => format!(
             "import pytest\n\n\ndef test_{}():\n    \"\"\"Test {}\"\"\"\n    # TODO: Add test implementation\n    assert True\n",
@@ -1816,7 +1810,7 @@ fn generate_test_content(framework: &str, test_type: &TestType, name: &str) -> S
             "// TODO: Add {} test implementation for {}\n// This is a {} test\n",
             framework,
             name,
-            format!("{:?}", test_type).to_lowercase()
+            format!("{test_type:?}").to_lowercase()
         ),
     }
 }
@@ -1968,8 +1962,7 @@ fn parse_variables_string(variables_str: &str) -> RhemaResult<HashMap<String, St
             variables.insert(key, value);
         } else {
             return Err(rhema_api::RhemaError::ConfigError(format!(
-                "Invalid variable format: '{}'. Expected 'key=value'",
-                pair
+                "Invalid variable format: '{pair}'. Expected 'key=value'"
             )));
         }
     }

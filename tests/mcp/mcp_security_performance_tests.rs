@@ -51,7 +51,7 @@ async fn test_enhanced_jwt_token_validation() {
 
     // Test JWT token validation
     let auth_result = auth_manager
-        .authenticate(Some(&format!("Bearer {}", token)), None)
+        .authenticate(Some(&format!("Bearer {token}")), None)
         .await;
     assert!(auth_result.is_ok(), "JWT token validation should succeed");
 
@@ -90,7 +90,7 @@ async fn test_refresh_token_functionality() {
 
     // Test refresh token validation
     let auth_result = auth_manager
-        .authenticate(Some(&format!("Bearer {}", refresh_token)), None)
+        .authenticate(Some(&format!("Bearer {refresh_token}")), None)
         .await;
     assert!(
         auth_result.is_ok(),
@@ -115,7 +115,7 @@ async fn test_refresh_token_functionality() {
 
     // Validate the new access token
     let auth_result = auth_manager
-        .authenticate(Some(&format!("Bearer {}", new_token)), None)
+        .authenticate(Some(&format!("Bearer {new_token}")), None)
         .await;
     assert!(auth_result.is_ok(), "New access token should be valid");
 }
@@ -154,7 +154,7 @@ async fn test_enhanced_api_key_management() {
 
     // Test API key validation
     let auth_result = auth_manager
-        .authenticate(Some(&format!("ApiKey {}", api_key)), None)
+        .authenticate(Some(&format!("ApiKey {api_key}")), None)
         .await;
     assert!(
         auth_result.is_ok(),
@@ -268,7 +268,7 @@ async fn test_rate_limiting_functionality() {
     // Test rate limiting
     for i in 0..10 {
         let allowed = auth_manager.check_rate_limit(client_id, "http").await;
-        assert!(allowed, "Request {} should be allowed", i);
+        assert!(allowed, "Request {i} should be allowed");
     }
 
     // The 11th request should be rate limited
@@ -362,7 +362,7 @@ async fn test_connection_pool_performance() {
         let mut guards = Vec::new();
         for i in 0..max_connections {
             let guard = pool.acquire().await;
-            assert!(guard.is_ok(), "Connection {} should be acquired", i);
+            assert!(guard.is_ok(), "Connection {i} should be acquired");
             guards.push(guard.unwrap());
         }
 
@@ -593,7 +593,7 @@ async fn test_performance_optimization_features() {
     for i in 0..10 {
         let cache_manager = cache_manager.clone();
         let handle = tokio::spawn(async move {
-            let key = format!("load-test-{}", i);
+            let key = format!("load-test-{i}");
             let value = serde_json::json!({"index": i, "data": "load test"});
             cache_manager.set(&key, value).await.unwrap();
             cache_manager.get(&key).await

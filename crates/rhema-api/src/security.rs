@@ -158,8 +158,7 @@ impl InputSanitizer {
                 .contains(&ext.to_string())
             {
                 return Err(RhemaError::SecurityError(format!(
-                    "File extension '{}' not allowed",
-                    ext
+                    "File extension '{ext}' not allowed"
                 )));
             }
         }
@@ -177,8 +176,7 @@ impl InputSanitizer {
             if let Ok(regex) = Regex::new(pattern) {
                 if regex.is_match(&sanitized) {
                     return Err(RhemaError::SecurityError(format!(
-                        "Query pattern '{}' is blocked",
-                        pattern
+                        "Query pattern '{pattern}' is blocked"
                     )));
                 }
             }
@@ -395,8 +393,7 @@ impl SecurityManager {
             .await?
         {
             return Err(RhemaError::AuthorizationError(format!(
-                "User '{}' not authorized for operation '{}'",
-                user_id, operation
+                "User '{user_id}' not authorized for operation '{operation}'"
             )));
         }
 
@@ -435,8 +432,7 @@ impl SecurityManager {
             .await?
         {
             return Err(RhemaError::AuthorizationError(format!(
-                "User '{}' not authorized for file access",
-                user_id
+                "User '{user_id}' not authorized for file access"
             )));
         }
 
@@ -471,8 +467,7 @@ impl SecurityManager {
             .await?
         {
             return Err(RhemaError::AuthorizationError(format!(
-                "User '{}' not authorized for query execution",
-                user_id
+                "User '{user_id}' not authorized for query execution"
             )));
         }
 

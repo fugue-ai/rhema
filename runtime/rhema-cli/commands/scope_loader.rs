@@ -211,12 +211,12 @@ fn handle_discover(
                 OutputFormat::Json => {
                     let json = serde_json::to_string_pretty(&boundaries)
                         .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-                    println!("{}", json);
+                    println!("{json}");
                 }
                 OutputFormat::Yaml => {
                     let yaml = serde_yaml::to_string(&boundaries)
                         .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-                    println!("{}", yaml);
+                    println!("{yaml}");
                 }
                 OutputFormat::Csv => {
                     println!("name,manager,path");
@@ -255,7 +255,7 @@ fn handle_suggest(
         "💡 Generating scope suggestions for: {}",
         target_path.display()
     );
-    println!("🎯 Confidence threshold: {:.2}", confidence);
+    println!("🎯 Confidence threshold: {confidence:.2}");
 
     // Create scope loader service
     let registry = create_plugin_registry()?;
@@ -310,12 +310,12 @@ fn handle_suggest(
                 OutputFormat::Json => {
                     let json = serde_json::to_string_pretty(&suggestions)
                         .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-                    println!("{}", json);
+                    println!("{json}");
                 }
                 OutputFormat::Yaml => {
                     let yaml = serde_yaml::to_string(&suggestions)
                         .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-                    println!("{}", yaml);
+                    println!("{yaml}");
                 }
                 OutputFormat::Csv => {
                     println!("name,type,confidence,reasoning");
@@ -359,7 +359,7 @@ fn handle_create(
     } else {
         println!("🚀 Creating scopes in: {}", target_path.display());
     }
-    println!("🎯 Confidence threshold: {:.2}", confidence);
+    println!("🎯 Confidence threshold: {confidence:.2}");
 
     // Create scope loader service
     let registry = create_plugin_registry()?;
@@ -388,10 +388,7 @@ fn handle_create(
         };
 
     if suggestions.is_empty() {
-        println!(
-            "ℹ️  No scope suggestions found with confidence >= {:.2}",
-            confidence
-        );
+        println!("ℹ️  No scope suggestions found with confidence >= {confidence:.2}");
         return Ok(());
     }
 
@@ -477,12 +474,12 @@ fn handle_plugins(_context: &CliContext, verbose: bool, format: OutputFormat) ->
         OutputFormat::Json => {
             let json = serde_json::to_string_pretty(&plugins)
                 .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-            println!("{}", json);
+            println!("{json}");
         }
         OutputFormat::Yaml => {
             let yaml = serde_yaml::to_string(&plugins)
                 .map_err(|e| rhema_core::RhemaError::ConfigError(e.to_string()))?;
-            println!("{}", yaml);
+            println!("{yaml}");
         }
         OutputFormat::Csv => {
             println!("name,version,description,package_managers");

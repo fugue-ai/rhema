@@ -1886,7 +1886,7 @@ fn validate_csv_format(csv_content: &str, result: &mut ValidationResult) -> Rhem
         .map(|s| s.trim().trim_matches('"'))
         .collect();
 
-    let mut required_headers = vec![
+    let required_headers = vec![
         "id",
         "name",
         "description",
@@ -1894,7 +1894,7 @@ fn validate_csv_format(csv_content: &str, result: &mut ValidationResult) -> Rhem
         "usage",
         "effectiveness",
     ];
-    let mut optional_headers = vec![
+    let optional_headers = vec![
         "examples",
         "anti_patterns",
         "category",

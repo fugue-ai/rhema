@@ -38,7 +38,7 @@ fn test_auto_config_analysis() {
             assert_eq!(scope.version, "1.0.0");
         }
         Err(e) => {
-            panic!("❌ Analysis failed: {}", e);
+            panic!("❌ Analysis failed: {e}");
         }
     }
 }
@@ -64,7 +64,7 @@ fn test_rust_project_detection() {
             assert!(!analysis.suggested_scope_name.is_empty());
         }
         Err(e) => {
-            panic!("Analysis failed: {}", e);
+            panic!("Analysis failed: {e}");
         }
     }
 }

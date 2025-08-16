@@ -397,10 +397,10 @@ impl CoordinationPattern for ValidationTestPattern {
                 .count();
 
             if agents_with_capability == 0 {
-                errors.push(format!("No agent found with capability: {}", capability));
+                errors.push(format!("No agent found with capability: {capability}"));
             } else {
                 details.insert(
-                    format!("capability_{}", capability),
+                    format!("capability_{capability}"),
                     serde_json::json!({
                         "available_agents": agents_with_capability,
                         "required": true
@@ -419,7 +419,7 @@ impl CoordinationPattern for ValidationTestPattern {
             };
 
             if !resource_available {
-                errors.push(format!("Required resource not available: {}", resource));
+                errors.push(format!("Required resource not available: {resource}"));
             }
         }
 
@@ -428,9 +428,9 @@ impl CoordinationPattern for ValidationTestPattern {
             if !context
                 .state
                 .data
-                .contains_key(&format!("dependency_{}", dependency))
+                .contains_key(&format!("dependency_{dependency}"))
             {
-                errors.push(format!("Required dependency not available: {}", dependency));
+                errors.push(format!("Required dependency not available: {dependency}"));
             }
         }
 
@@ -691,7 +691,7 @@ async fn test_pattern_execution_success() {
 
     let result = fixture.execute_pattern("success_pattern").await;
     if let Err(ref e) = result {
-        println!("Pattern execution failed: {:?}", e);
+        println!("Pattern execution failed: {e:?}");
     }
     assert!(result.is_ok());
 
@@ -1037,8 +1037,8 @@ async fn test_pattern_concurrent_execution() {
     // Register multiple patterns
     for i in 0..3 {
         let pattern = MockPattern::new(
-            &format!("concurrent_pattern_{}", i),
-            &format!("Concurrent Pattern {}", i),
+            &format!("concurrent_pattern_{i}"),
+            &format!("Concurrent Pattern {i}"),
             PatternCategory::TaskDistribution,
         )
         .with_execution_time(100);
@@ -1052,7 +1052,7 @@ async fn test_pattern_concurrent_execution() {
     for i in 0..3 {
         let executor_clone = executor.clone();
         let context = fixture.context.clone();
-        let pattern_id = format!("concurrent_pattern_{}", i);
+        let pattern_id = format!("concurrent_pattern_{i}");
 
         let handle = tokio::spawn(async move {
             let mut executor = executor_clone.lock().await;
@@ -1229,7 +1229,7 @@ async fn test_pattern_validation_with_configuration() {
     // Test validation
     let result = fixture.execute_pattern("config_test").await;
     if let Err(ref e) = result {
-        println!("Pattern execution failed: {:?}", e);
+        println!("Pattern execution failed: {e:?}");
     }
     assert!(result.is_ok());
 
@@ -1435,7 +1435,7 @@ async fn test_pattern_validation_engine_integration() {
     // Test comprehensive validation
     let result = fixture.execute_pattern("complex_test").await;
     if let Err(ref e) = result {
-        println!("Pattern execution failed: {:?}", e);
+        println!("Pattern execution failed: {e:?}");
     }
     assert!(result.is_ok());
 
@@ -1511,7 +1511,7 @@ async fn test_pattern_monitoring_integration() {
     // Test monitoring integration
     let result = fixture.execute_pattern("monitoring_test").await;
     if let Err(ref e) = result {
-        println!("Pattern execution failed: {:?}", e);
+        println!("Pattern execution failed: {e:?}");
     }
     assert!(result.is_ok());
 
@@ -1686,7 +1686,7 @@ async fn test_pattern_performance_under_load() {
 
     for i in 0..iterations {
         let result = fixture.execute_pattern("performance_test").await;
-        assert!(result.is_ok(), "Iteration {} failed", i);
+        assert!(result.is_ok(), "Iteration {i} failed");
     }
 
     let total_time = start_time.elapsed();
@@ -1695,7 +1695,6 @@ async fn test_pattern_performance_under_load() {
     // Verify performance is reasonable (less than 100ms per iteration on average)
     assert!(
         avg_time < 100,
-        "Average execution time {}ms exceeds 100ms",
-        avg_time
+        "Average execution time {avg_time}ms exceeds 100ms"
     );
 }

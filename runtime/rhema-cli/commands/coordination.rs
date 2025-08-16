@@ -343,7 +343,7 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
 
             tokio::runtime::Runtime::new().unwrap().block_on(async {
                 coordination_system.register_agent(agent_info).await?;
-                println!("✅ Agent registered successfully: {}", agent_id);
+                println!("✅ Agent registered successfully: {agent_id}");
                 Ok(())
             })
         }
@@ -361,11 +361,9 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
             let filtered_agents: Vec<_> = agents
                 .into_iter()
                 .filter(|agent| {
-                    agent_type.as_ref().map_or(true, |t| agent.agent_type == *t)
-                        && status.as_ref().map_or(true, |s| agent.status == *s)
-                        && scope
-                            .as_ref()
-                            .map_or(true, |sc| agent.assigned_scope == *sc)
+                    agent_type.as_ref().is_none_or(|t| agent.agent_type == *t)
+                        && status.as_ref().is_none_or(|s| agent.status == *s)
+                        && scope.as_ref().is_none_or(|sc| agent.assigned_scope == *sc)
                 })
                 .collect();
 
@@ -398,8 +396,8 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
 
         AgentSubcommands::Unregister { agent_id } => {
             tokio::runtime::Runtime::new().unwrap().block_on(async {
-                coordination_system.unregister_agent(&agent_id).await?;
-                println!("✅ Agent unregistered successfully: {}", agent_id);
+                coordination_system.unregister_agent(agent_id).await?;
+                println!("✅ Agent unregistered successfully: {agent_id}");
                 Ok(())
             })
         }
@@ -407,9 +405,9 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
         AgentSubcommands::Status { agent_id, status } => {
             tokio::runtime::Runtime::new().unwrap().block_on(async {
                 coordination_system
-                    .update_agent_status(&agent_id, status.clone())
+                    .update_agent_status(agent_id, status.clone())
                     .await?;
-                println!("✅ Agent status updated: {} -> {:?}", agent_id, status);
+                println!("✅ Agent status updated: {agent_id} -> {status:?}");
                 Ok(())
             })
         }
@@ -431,10 +429,10 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
                 println!("  Online: {}", agent.is_online);
                 println!("  Last Heartbeat: {:?}", agent.last_heartbeat);
                 if let Some(task_id) = &agent.current_task_id {
-                    println!("  Current Task: {}", task_id);
+                    println!("  Current Task: {task_id}");
                 }
             } else {
-                println!("❌ Agent not found: {}", agent_id);
+                println!("❌ Agent not found: {agent_id}");
             }
             Ok(())
         }
@@ -468,7 +466,7 @@ fn handle_agent(context: &CliContext, subcommand: &AgentSubcommands) -> RhemaRes
 
             tokio::runtime::Runtime::new().unwrap().block_on(async {
                 coordination_system.send_message(message).await?;
-                println!("✅ Message sent to agent: {}", to);
+                println!("✅ Message sent to agent: {to}");
                 Ok(())
             })
         }
@@ -544,9 +542,9 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
                 let session_id = coordination_system
                     .create_session(topic.clone(), participant_ids.clone())
                     .await?;
-                println!("✅ Session created: {}", session_id);
-                println!("  Topic: {}", topic);
-                println!("  Participants: {}", participants);
+                println!("✅ Session created: {session_id}");
+                println!("  Topic: {topic}");
+                println!("  Participants: {participants}");
                 Ok(())
             })
         }
@@ -554,8 +552,8 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
         SessionSubcommands::ListSessions { active, detailed } => {
             // Note: This would require implementing get_sessions() in the coordination system
             println!("📋 Session listing not yet implemented in coordination system");
-            println!("  Active only: {}", active);
-            println!("  Detailed: {}", detailed);
+            println!("  Active only: {active}");
+            println!("  Detailed: {detailed}");
             Ok(())
         }
 
@@ -566,7 +564,7 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
             coordination_system
                 .join_session(session_id, agent_id)
                 .await?;
-            println!("✅ Agent {} joined session {}", agent_id, session_id);
+            println!("✅ Agent {agent_id} joined session {session_id}");
             Ok(())
         }),
 
@@ -577,7 +575,7 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
             coordination_system
                 .leave_session(session_id, agent_id)
                 .await?;
-            println!("✅ Agent {} left session {}", agent_id, session_id);
+            println!("✅ Agent {agent_id} left session {session_id}");
             Ok(())
         }),
 
@@ -606,7 +604,7 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
                 coordination_system
                     .send_session_message(session_id, message)
                     .await?;
-                println!("✅ Session message sent to {}", session_id);
+                println!("✅ Session message sent to {session_id}");
                 Ok(())
             })
         }
@@ -614,7 +612,7 @@ fn handle_session(context: &CliContext, subcommand: &SessionSubcommands) -> Rhem
         SessionSubcommands::SessionInfo { session_id } => {
             // Note: This would require implementing get_session_info() in the coordination system
             println!("📋 Session info not yet implemented in coordination system");
-            println!("  Session ID: {}", session_id);
+            println!("  Session ID: {session_id}");
             Ok(())
         }
     }
@@ -650,11 +648,11 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
                 .count();
 
             println!("📊 Coordination System Statistics");
-            println!("  Total Agents: {}", total_agents);
-            println!("  Online Agents: {}", online_agents);
-            println!("  Idle Agents: {}", idle_agents);
-            println!("  Busy Agents: {}", busy_agents);
-            println!("  Working Agents: {}", working_agents);
+            println!("  Total Agents: {total_agents}");
+            println!("  Online Agents: {online_agents}");
+            println!("  Idle Agents: {idle_agents}");
+            println!("  Busy Agents: {busy_agents}");
+            println!("  Working Agents: {working_agents}");
 
             if *detailed {
                 println!("\nDetailed Statistics:");
@@ -678,7 +676,7 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
                 });
 
                 std::fs::write(export_path, serde_json::to_string_pretty(&stats)?)?;
-                println!("✅ Statistics exported to: {}", export_path);
+                println!("✅ Statistics exported to: {export_path}");
             }
 
             Ok(())
@@ -692,10 +690,10 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
         } => {
             // Note: This would require implementing get_message_history() in the coordination system
             println!("📋 Message history not yet implemented in coordination system");
-            println!("  Limit: {}", limit);
-            println!("  Agent ID filter: {:?}", agent_id);
-            println!("  Message type filter: {:?}", message_type);
-            println!("  Show payloads: {}", show_payloads);
+            println!("  Limit: {limit}");
+            println!("  Agent ID filter: {agent_id:?}");
+            println!("  Message type filter: {message_type:?}");
+            println!("  Show payloads: {show_payloads}");
             Ok(())
         }
 
@@ -706,10 +704,10 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
             sessions,
         } => {
             println!("🔍 Starting real-time monitoring...");
-            println!("  Interval: {} seconds", interval);
-            println!("  Monitor agent status: {}", agent_status);
-            println!("  Monitor messages: {}", messages);
-            println!("  Monitor sessions: {}", sessions);
+            println!("  Interval: {interval} seconds");
+            println!("  Monitor agent status: {agent_status}");
+            println!("  Monitor messages: {messages}");
+            println!("  Monitor sessions: {sessions}");
             println!("  Press Ctrl+C to stop monitoring");
 
             // Note: This would require implementing a monitoring stream in the coordination system
@@ -744,10 +742,10 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
 
             println!("🏥 Coordination System Health Check");
             println!("  Total Agents: {}", agents.len());
-            println!("  Idle: {}", healthy_agents);
-            println!("  Busy: {}", busy_agents);
-            println!("  Working: {}", working_agents);
-            println!("  Offline: {}", offline_agents);
+            println!("  Idle: {healthy_agents}");
+            println!("  Busy: {busy_agents}");
+            println!("  Working: {working_agents}");
+            println!("  Offline: {offline_agents}");
 
             let overall_health = if offline_agents > 0 {
                 "🔴 Offline"
@@ -758,7 +756,7 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
             } else {
                 "❌ No Agents"
             };
-            println!("  Overall Status: {}", overall_health);
+            println!("  Overall Status: {overall_health}");
 
             if *detailed {
                 println!("\nDetailed Health Information:");
@@ -784,10 +782,10 @@ fn handle_system(context: &CliContext, subcommand: &SystemSubcommands) -> RhemaR
                 for component in comps.split(',') {
                     let component = component.trim();
                     match component {
-                        "agents" => println!("  Agents: {} healthy", healthy_agents),
+                        "agents" => println!("  Agents: {healthy_agents} healthy"),
                         "coordination" => println!("  Coordination: ✅ Operational"),
                         "messaging" => println!("  Messaging: ✅ Operational"),
-                        _ => println!("  {}: ❓ Unknown component", component),
+                        _ => println!("  {component}: ❓ Unknown component"),
                     }
                 }
             }

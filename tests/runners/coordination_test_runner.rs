@@ -27,6 +27,12 @@ pub struct CoordinationTestReport {
     pub test_results: Vec<(String, CoordinationTestResult, Duration)>,
 }
 
+impl Default for CoordinationTestReport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CoordinationTestReport {
     pub fn new() -> Self {
         Self {
@@ -63,10 +69,10 @@ impl CoordinationTestReport {
             for (test_name, result, duration) in &self.test_results {
                 match result {
                     CoordinationTestResult::Failed => {
-                        println!("  ❌ {} ({:?})", test_name, duration);
+                        println!("  ❌ {test_name} ({duration:?})");
                     }
                     CoordinationTestResult::Error(e) => {
-                        println!("  💥 {} ({:?}) - {}", test_name, duration, e);
+                        println!("  💥 {test_name} ({duration:?}) - {e}");
                     }
                     _ => {}
                 }
@@ -173,11 +179,11 @@ impl CoordinationTestRunner {
         for (test_name, result) in test_results {
             let test_result = match result {
                 Ok(_) => {
-                    println!("  ✅ {} - passed", test_name);
+                    println!("  ✅ {test_name} - passed");
                     CoordinationTestResult::Passed
                 }
                 Err(e) => {
-                    println!("  ❌ {} - failed: {}", test_name, e);
+                    println!("  ❌ {test_name} - failed: {e}");
                     CoordinationTestResult::Failed
                 }
             };
@@ -233,11 +239,11 @@ impl CoordinationTestRunner {
         for (benchmark_name, result) in benchmark_results {
             let benchmark_result = match result {
                 Ok(_) => {
-                    println!("  ✅ {} - passed", benchmark_name);
+                    println!("  ✅ {benchmark_name} - passed");
                     CoordinationTestResult::Passed
                 }
                 Err(e) => {
-                    println!("  ❌ {} - failed: {}", benchmark_name, e);
+                    println!("  ❌ {benchmark_name} - failed: {e}");
                     CoordinationTestResult::Failed
                 }
             };
@@ -290,11 +296,11 @@ impl CoordinationTestRunner {
         for (test_name, result) in security_test_results {
             let test_result = match result {
                 Ok(_) => {
-                    println!("  ✅ {} - passed", test_name);
+                    println!("  ✅ {test_name} - passed");
                     CoordinationTestResult::Passed
                 }
                 Err(e) => {
-                    println!("  ❌ {} - failed: {}", test_name, e);
+                    println!("  ❌ {test_name} - failed: {e}");
                     CoordinationTestResult::Failed
                 }
             };
@@ -360,7 +366,7 @@ impl CoordinationTestRunner {
 
         // Simulate multiple agent registrations
         for i in 0..10 {
-            let _agent_name = format!("bench-agent-{}", i);
+            let _agent_name = format!("bench-agent-{i}");
             // This would call the actual coordination CLI command
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -390,7 +396,7 @@ impl CoordinationTestRunner {
 
         // Simulate message sending
         for i in 0..20 {
-            let _message = format!("Benchmark message {}", i);
+            let _message = format!("Benchmark message {i}");
             tokio::time::sleep(Duration::from_millis(5)).await;
         }
 
@@ -405,7 +411,7 @@ impl CoordinationTestRunner {
 
         // Simulate session creation
         for i in 0..5 {
-            let _session_topic = format!("Benchmark Session {}", i);
+            let _session_topic = format!("Benchmark Session {i}");
             tokio::time::sleep(Duration::from_millis(30)).await;
         }
 

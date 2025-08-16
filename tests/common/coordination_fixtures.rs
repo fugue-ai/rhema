@@ -37,9 +37,7 @@ impl CoordinationAssertions {
         let duration_ms = duration.as_millis() as u64;
         assert!(
             duration_ms <= max_milliseconds,
-            "Performance requirement not met: {}ms > {}ms",
-            duration_ms,
-            max_milliseconds
+            "Performance requirement not met: {duration_ms}ms > {max_milliseconds}ms"
         );
     }
 }

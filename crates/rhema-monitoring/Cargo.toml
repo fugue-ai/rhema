@@ -12,6 +12,9 @@ description = "Performance monitoring and analytics for the Rhema Protocol"
 keywords = ["monitoring", "performance", "analytics", "metrics"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 rhema-locomo = { path = "../rhema-locomo" }

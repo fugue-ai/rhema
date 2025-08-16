@@ -16,6 +16,9 @@ categories = ["command-line-utilities", "development-tools", "configuration"]
 name = "rhema"
 path = "main.rs"
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-api = { path = "../../crates/rhema-api" }
 rhema-core = { path = "../../crates/rhema-core" }

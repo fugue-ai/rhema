@@ -294,14 +294,11 @@ async fn demonstrate_timezone_awareness(
     // Note: Timezone adjustments would be available through public methods
     // For now, we'll demonstrate the concept without accessing private fields
     for timezone in timezones {
-        println!(
-            "    🌍 {}: Timezone adjustment would be calculated",
-            timezone
-        );
+        println!("    🌍 {timezone}: Timezone adjustment would be calculated");
     }
 
     // Test collaborative timezone adjustment
-    let team_timezones = vec![
+    let team_timezones = [
         "America/New_York".to_string(),
         "Europe/London".to_string(),
         "Asia/Tokyo".to_string(),

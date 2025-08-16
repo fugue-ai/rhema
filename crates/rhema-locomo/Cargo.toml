@@ -5,6 +5,9 @@ edition = "2021"
 description = "LOCOMO (Language Model Context Optimization) benchmarks integration for Rhema"
 license = "Apache-2.0"
 
+[lints]
+workspace = true
+
 [dependencies]
 # Core dependencies
 serde = { version = "1.0", features = ["derive"] }

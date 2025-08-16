@@ -155,7 +155,7 @@ async fn main() -> RhemaResult<()> {
     println!("  Messages Received: {}", stats.messages_received);
     println!("  Uptime: {} seconds", stats.uptime_seconds);
     if let Some(latency) = stats.latency_ms {
-        println!("  Average Latency: {}ms", latency);
+        println!("  Average Latency: {latency}ms");
     }
 
     println!("✅ gRPC Coordination Example completed successfully!");

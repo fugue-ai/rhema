@@ -401,7 +401,7 @@ impl Rhema {
     #[instrument(skip_all)]
     async fn query_with_error_recovery(&self, query: &str) -> RhemaResult<serde_yaml::Value> {
         // Check cache first
-        let cache_key = format!("query:{}", query);
+        let cache_key = format!("query:{query}");
         if let Some(cached_result) = self.cache.read().await.get(&cache_key) {
             info!("Cache hit for query: {}", query);
             return Ok(cached_result.clone());
@@ -460,7 +460,7 @@ impl Rhema {
     #[instrument(skip_all)]
     pub async fn get_scope_optimized(&self, path: &str) -> RhemaResult<Scope> {
         // Check cache first
-        let cache_key = format!("scope:{}", path);
+        let cache_key = format!("scope:{path}");
         if let Some(cached_scope) = self.scope_cache.read().await.get(&cache_key) {
             info!("Using cached scope: {}", path);
             return Ok(cached_scope.clone());
@@ -507,12 +507,12 @@ impl Rhema {
 
     /// Discover all scopes in the repository (legacy sync version)
     pub fn discover_scopes(&self) -> RhemaResult<Vec<Scope>> {
-        Ok(scope::discover_scopes(&self.repo_root)?)
+        scope::discover_scopes(&self.repo_root)
     }
 
     /// Get a specific scope by path (legacy sync version)
     pub fn get_scope(&self, path: &str) -> RhemaResult<Scope> {
-        println!("DEBUG: get_scope called with path: '{}'", path);
+        println!("DEBUG: get_scope called with path: '{path}'");
 
         // First try to find by name
         println!("DEBUG: Trying to find scope by name...");
@@ -524,8 +524,8 @@ impl Rhema {
         println!("DEBUG: Not found by name, trying by path...");
         // If not found by name, try by path
         let result = scope::get_scope(&self.repo_root, path);
-        println!("DEBUG: Path lookup result: {:?}", result);
-        Ok(result?)
+        println!("DEBUG: Path lookup result: {result:?}");
+        result
     }
 
     /// Get the path for a specific scope
@@ -551,7 +551,7 @@ impl Rhema {
 
         // If there are multiple scopes, try to find the one at the repo root
         for scope in &scopes {
-            if scope.path.parent().unwrap() == &self.repo_root {
+            if scope.path.parent().unwrap() == self.repo_root {
                 return Ok(scope.path.clone());
             }
         }
@@ -600,10 +600,7 @@ impl Rhema {
         &self,
         query: &str,
     ) -> RhemaResult<(serde_yaml::Value, QueryProvenance)> {
-        Ok(rhema_query::execute_query_with_provenance(
-            &self.repo_root,
-            query,
-        )?)
+        rhema_query::execute_query_with_provenance(&self.repo_root, query)
     }
 
     /// Search context with regex support
@@ -612,11 +609,7 @@ impl Rhema {
         pattern: &str,
         file_filter: Option<&str>,
     ) -> RhemaResult<Vec<QueryResult>> {
-        Ok(rhema_query::search_context_regex(
-            &self.repo_root,
-            pattern,
-            file_filter,
-        )?)
+        rhema_query::search_context_regex(&self.repo_root, pattern, file_filter)
     }
 
     /// Load knowledge for a specific scope with error recovery

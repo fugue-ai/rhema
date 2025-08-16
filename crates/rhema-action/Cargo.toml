@@ -12,6 +12,9 @@ description = "Action Protocol for safe agent-assisted codebase modifications"
 keywords = ["action", "protocol", "safety", "validation", "transformation"]
 categories = ["development-tools", "command-line-utilities"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 rhema-query = { path = "../rhema-query" }

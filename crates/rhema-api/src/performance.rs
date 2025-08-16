@@ -63,6 +63,12 @@ pub struct PerformanceMonitor {
     max_metrics_per_operation: usize,
 }
 
+impl Default for PerformanceMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerformanceMonitor {
     /// Create a new performance monitor
     pub fn new() -> Self {
@@ -455,6 +461,12 @@ pub struct ResourceManager {
     cpu_limit: f64,
     connection_pool_size: usize,
     cache_size: usize,
+}
+
+impl Default for ResourceManager {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ResourceManager {

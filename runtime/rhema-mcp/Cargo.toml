@@ -12,6 +12,9 @@ description = "Model Context Protocol server for the Rhema Protocol"
 keywords = ["mcp", "server", "protocol", "model-context"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../../crates/rhema-core" }
 rhema-query = { path = "../../crates/rhema-query" }

@@ -58,7 +58,6 @@ use std::path::Path;
 mod commands {
     use super::*;
     use std::fs;
-    
 
     pub mod batch {
         use super::*;

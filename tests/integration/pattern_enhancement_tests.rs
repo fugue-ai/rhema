@@ -325,7 +325,7 @@ async fn test_enhanced_pattern_execution_with_recovery() {
 
     // Print the error if the result is not ok
     if let Err(ref error) = result {
-        println!("Pattern execution failed with error: {:?}", error);
+        println!("Pattern execution failed with error: {error:?}");
     }
 
     // The pattern should eventually succeed after recovery
@@ -610,8 +610,8 @@ async fn test_enhanced_pattern_concurrent_execution() {
     // Register multiple patterns
     for i in 1..=3 {
         let pattern = EnhancedTestPattern::new(
-            &format!("concurrent_test_{}", i),
-            &format!("Concurrent Test Pattern {}", i),
+            &format!("concurrent_test_{i}"),
+            &format!("Concurrent Test Pattern {i}"),
             PatternCategory::TaskDistribution,
         );
         _fixture.register_pattern(pattern);
@@ -620,7 +620,7 @@ async fn test_enhanced_pattern_concurrent_execution() {
     // Execute patterns sequentially since we can't clone the executor
     let mut results = Vec::new();
     for i in 1..=3 {
-        let pattern_id = format!("concurrent_test_{}", i);
+        let pattern_id = format!("concurrent_test_{i}");
         let result = _fixture.execute_pattern(&pattern_id).await;
         results.push(result);
     }
@@ -681,7 +681,7 @@ async fn test_enhanced_pattern_recovery_strategies() {
     let mut _fixture = EnhancedTestFixture::new();
 
     // Test different recovery strategies
-    let strategies = vec![
+    let strategies = [
         RecoveryStrategy::Retry {
             max_attempts: 3,
             backoff_delay_ms: 10,
@@ -699,12 +699,12 @@ async fn test_enhanced_pattern_recovery_strategies() {
     ];
 
     for (i, strategy) in strategies.iter().enumerate() {
-        let pattern_id = format!("strategy_test_{}", i);
+        let pattern_id = format!("strategy_test_{i}");
 
         // Register a pattern that will fail but can recover
         let pattern = EnhancedTestPattern::new(
             &pattern_id,
-            &format!("Strategy Test {}", i),
+            &format!("Strategy Test {i}"),
             PatternCategory::TaskDistribution,
         )
         .with_failure(true)
@@ -740,7 +740,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
     let mut _fixture = EnhancedTestFixture::new();
 
     // Test with different monitoring configurations
-    let configs = vec![
+    let configs = [
         MonitoringConfig {
             enable_real_time: true,
             metrics_interval_seconds: 1,
@@ -778,7 +778,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
     ];
 
     for (i, config) in configs.iter().enumerate() {
-        let pattern_id = format!("config_test_{}", i);
+        let pattern_id = format!("config_test_{i}");
 
         // Create executor with specific config
         let registry = PatternRegistry::new();
@@ -842,7 +842,7 @@ async fn test_enhanced_pattern_monitoring_configuration() {
         // Register pattern in the executor's registry
         let pattern = EnhancedTestPattern::new(
             &pattern_id,
-            &format!("Config Test {}", i),
+            &format!("Config Test {i}"),
             PatternCategory::TaskDistribution,
         );
         executor.register_pattern(Box::new(pattern));

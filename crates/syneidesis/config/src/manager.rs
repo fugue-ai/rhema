@@ -126,7 +126,7 @@ struct ConfigSettings {
 
 /// Configuration statistics
 #[derive(Debug, Clone, Default)]
-struct ConfigStatistics {
+pub struct ConfigStatistics {
     /// Number of configuration loads
     load_count: u64,
 

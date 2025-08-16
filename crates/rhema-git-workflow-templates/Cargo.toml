@@ -12,6 +12,9 @@ description = "Git workflow templates for Rhema"
 keywords = ["git", "workflow", "templates", "version-control"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 serde = { workspace = true, features = ["derive"] }

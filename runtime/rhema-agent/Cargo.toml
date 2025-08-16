@@ -12,6 +12,9 @@ description = "Command line interface and interactive mode for the Rhema Protoco
 keywords = ["cli", "interactive", "commands"]
 categories = ["command-line-utilities"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../../crates/rhema-core" }
 rhema-query = { path = "../../crates/rhema-query" }

@@ -1194,7 +1194,7 @@ impl ContextHistoryManager {
         // Implement specific change analysis
         // This would parse the diff to identify specific field changes
 
-        let mut changes = Vec::new();
+        let changes = Vec::new();
 
         if let Some(new_file) = delta.new_file().path() {
             if let Some(old_file) = delta.old_file().path() {

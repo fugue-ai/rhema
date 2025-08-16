@@ -12,6 +12,9 @@ description = "Unified RAG and K/V local store system for Rhema"
 keywords = ["rag", "cache", "knowledge", "semantic", "vector", "embedding"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 # Internal crates
 rhema-core = { path = "../rhema-core" }

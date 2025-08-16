@@ -61,7 +61,7 @@ async fn test_coordination_config() {
     assert_eq!(config.server_endpoint, "http://localhost:50051");
     assert_eq!(config.timeout_seconds, 30);
     assert_eq!(config.retry_config.max_retries, 3);
-    assert_eq!(config.health_check_config.enabled, true);
+    assert!(config.health_check_config.enabled);
 }
 
 /// Test agent information creation and manipulation
@@ -158,7 +158,7 @@ async fn test_coordination_manager_creation() -> RhemaResult<()> {
     let manager = CoordinationManager::new(config);
 
     assert!(!manager.is_enabled());
-    assert_eq!(manager.get_connection_stats().await.is_connected, false);
+    assert!(!manager.get_connection_stats().await.is_connected);
     assert_eq!(manager.get_connection_stats().await.messages_sent, 0);
     assert_eq!(manager.get_connection_stats().await.messages_received, 0);
 
@@ -304,7 +304,7 @@ async fn test_session_workflow() -> RhemaResult<()> {
 
     // Create session parameters
     let topic = "test-session".to_string();
-    let participants = vec!["agent-1".to_string(), "agent-2".to_string()];
+    let participants = ["agent-1".to_string(), "agent-2".to_string()];
 
     // This would create a session if coordination was enabled
     // For now, we just verify the manager handles the request gracefully

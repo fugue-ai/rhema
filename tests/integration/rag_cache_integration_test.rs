@@ -199,7 +199,7 @@ async fn test_semantic_search_with_cache(engine: &UnifiedKnowledgeEngine) {
 
     for (key, content) in documents {
         let metadata = CacheEntryMetadata {
-            key: format!("test:search:{}", key),
+            key: format!("test:search:{key}"),
             created_at: chrono::Utc::now(),
             accessed_at: chrono::Utc::now(),
             access_count: 0,
@@ -215,7 +215,7 @@ async fn test_semantic_search_with_cache(engine: &UnifiedKnowledgeEngine) {
         // Try to store document, but handle file system errors gracefully
         if let Err(e) = engine
             .set_with_semantic_indexing(
-                &format!("test:search:{}", key),
+                &format!("test:search:{key}"),
                 content.as_bytes(),
                 &Some(metadata),
             )
@@ -620,7 +620,7 @@ async fn test_performance_monitoring_optimization(engine: &UnifiedKnowledgeEngin
     // Test hit rate calculation - use metrics
     let hit_rate = metrics.cache_metrics.hit_rate;
     assert!(
-        hit_rate >= 0.0 && hit_rate <= 1.0,
+        (0.0..=1.0).contains(&hit_rate),
         "Hit rate should be between 0 and 1"
     );
 
@@ -639,7 +639,7 @@ pub fn create_test_session_context(
     workflow_type: WorkflowType,
 ) -> AgentSessionContext {
     let workflow_context = WorkflowContext {
-        workflow_id: format!("test_workflow_{}", agent_id),
+        workflow_id: format!("test_workflow_{agent_id}"),
         workflow_type,
         current_step: "testing".to_string(),
         steps_completed: vec!["setup".to_string()],
@@ -649,7 +649,7 @@ pub fn create_test_session_context(
 
     AgentSessionContext {
         agent_id: agent_id.to_string(),
-        session_id: format!("test_session_{}", agent_id),
+        session_id: format!("test_session_{agent_id}"),
         created_at: chrono::Utc::now(),
         last_active: chrono::Utc::now(),
         workflow_context: Some(workflow_context),

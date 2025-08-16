@@ -7,7 +7,7 @@ fn main() {
 
     // Start the daemon in background
     let mut daemon_process = Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--bin",
             "rhema",
@@ -28,7 +28,7 @@ fn main() {
 
     // Test health endpoint using curl
     let output = Command::new("curl")
-        .args(&["-s", "http://127.0.0.1:8081/health"])
+        .args(["-s", "http://127.0.0.1:8081/health"])
         .output();
 
     match output {
@@ -42,13 +42,13 @@ fn main() {
             }
         }
         Err(e) => {
-            println!("❌ Failed to test health endpoint: {}", e);
+            println!("❌ Failed to test health endpoint: {e}");
         }
     }
 
     // Test stats endpoint
     let output = Command::new("curl")
-        .args(&["-s", "http://127.0.0.1:8081/stats"])
+        .args(["-s", "http://127.0.0.1:8081/stats"])
         .output();
 
     match output {
@@ -62,7 +62,7 @@ fn main() {
             }
         }
         Err(e) => {
-            println!("❌ Failed to test stats endpoint: {}", e);
+            println!("❌ Failed to test stats endpoint: {e}");
         }
     }
 

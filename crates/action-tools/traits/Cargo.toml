@@ -4,6 +4,9 @@ edition = "2021"
 description = "Shared traits for Rhema action tools"
 license = "Apache-2.0"
 
+[lints]
+workspace = true
+
 [dependencies]
 async-trait = "0.1"
 rhema-action-tool = { path = "../../rhema-action-tool" } 

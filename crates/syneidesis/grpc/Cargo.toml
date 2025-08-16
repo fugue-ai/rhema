@@ -9,6 +9,9 @@ repository.workspace = true
 keywords = ["grpc", "agent", "coordination", "real-time", "communication"]
 categories = ["asynchronous", "network-programming", "api-bindings"]
 
+[lints]
+workspace = true
+
 [dependencies]
 # Core dependencies
 syneidesis-core = { path = "../core" }

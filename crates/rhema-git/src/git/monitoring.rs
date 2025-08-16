@@ -1522,8 +1522,8 @@ impl MetricsCollector {
         if let Ok(head) = repo.head() {
             if let Ok(commit) = head.peel_to_commit() {
                 if let Ok(tree) = commit.tree() {
-                    let mut file_count = 0;
-                    let mut total_size = 0u64;
+                    let file_count = 0;
+                    let total_size = 0u64;
 
                     // Implement tree walking to count files and calculate total size
                     let mut file_count = 0;

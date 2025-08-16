@@ -1,4 +1,3 @@
-use reqwest;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -25,11 +24,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 response.status()
             );
             if let Ok(body) = response.text().await {
-                println!("Response body: {}", body);
+                println!("Response body: {body}");
             }
         }
         Err(e) => {
-            println!("❌ Health endpoint failed: {}", e);
+            println!("❌ Health endpoint failed: {e}");
         }
     }
 
@@ -46,11 +45,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 response.status()
             );
             if let Ok(body) = response.text().await {
-                println!("Response body: {}", body);
+                println!("Response body: {body}");
             }
         }
         Err(e) => {
-            println!("❌ Stats endpoint failed: {}", e);
+            println!("❌ Stats endpoint failed: {e}");
         }
     }
 

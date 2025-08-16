@@ -547,7 +547,7 @@ impl PatternDetector {
         // Group accesses by time windows
         let window_size = ChronoDuration::minutes(30);
         let mut window_groups = HashMap::new();
-        let mut current_window_start = content_access[0].access_time;
+        let current_window_start = content_access[0].access_time;
 
         for access in content_access {
             let window_key = (access.access_time - current_window_start).num_minutes() / 30;

@@ -41,7 +41,7 @@ edition = "2021"
 fn test_prepare_and_validate_release_context() {
     let (_temp_dir, manager) = setup_test_repo();
     let version = "0.1.0-test";
-    let release_branch = format!("release/{}", version);
+    let release_branch = format!("release/{version}");
     // Prepare context
     assert!(manager.prepare_release_context(&release_branch).is_ok());
     // Validate
@@ -53,7 +53,7 @@ fn test_prepare_and_validate_release_context() {
 fn test_merge_and_cleanup_release_branch() {
     let (_temp_dir, manager) = setup_test_repo();
     let version = "0.2.0-test";
-    let release_branch = format!("release/{}", version);
+    let release_branch = format!("release/{version}");
     // Prepare context
     assert!(manager.prepare_release_context(&release_branch).is_ok());
     // Merge to main

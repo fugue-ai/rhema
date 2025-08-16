@@ -102,7 +102,7 @@ pub fn run(
         (
             scope_type.clone(),
             scope_name.clone(),
-            format!("{} scope", scope_type),
+            format!("{scope_type} scope"),
             std::collections::HashMap::new(),
         )
     };
@@ -366,7 +366,7 @@ fn create_default_protocol_info(scope_type: &str) -> rhema_core::schema::Protoco
 
     rhema_core::schema::ProtocolInfo {
         version: "1.0.0".to_string(),
-        description: Some(format!("Protocol information for {} scope", scope_type)),
+        description: Some(format!("Protocol information for {scope_type} scope")),
         concepts: Some(concepts),
         cql_examples: Some(cql_examples),
         patterns: Some(patterns),

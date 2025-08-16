@@ -348,7 +348,7 @@ impl ScopeIntegrationManager {
 
     /// Auto-create scopes based on repository analysis
     pub async fn auto_create_scopes(&self) -> RhemaResult<Vec<ScopeSuggestion>> {
-        let mut suggestions = Vec::new();
+        let suggestions = Vec::new();
 
         // Analyze repository structure
         let context = ScopeContext {

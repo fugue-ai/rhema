@@ -306,6 +306,6 @@ fn test_interactive_parser_comprehensive() {
 
     for (input, expected) in test_cases {
         let parser = InteractiveCommandParser::new(input);
-        assert_eq!(parser.parts, expected, "Failed for input: {}", input);
+        assert_eq!(parser.parts, expected, "Failed for input: {input}");
     }
 }

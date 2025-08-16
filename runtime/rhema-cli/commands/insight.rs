@@ -116,17 +116,17 @@ pub fn handle_insight(
                 None,
             ) {
                 Ok(id) => {
-                    println!("💡 Insight recorded successfully with ID: {}", id);
-                    println!("📝 Title: {}", title);
-                    println!("📄 Content: {}", content);
+                    println!("💡 Insight recorded successfully with ID: {id}");
+                    println!("📝 Title: {title}");
+                    println!("📄 Content: {content}");
                     if let Some(conf) = confidence {
-                        println!("🎯 Confidence: {}/10", conf);
+                        println!("🎯 Confidence: {conf}/10");
                     }
                     if let Some(cat) = category {
-                        println!("📂 Category: {}", cat);
+                        println!("📂 Category: {cat}");
                     }
                     if let Some(tag_list) = tags {
-                        println!("🏷️  Tags: {}", tag_list);
+                        println!("🏷️  Tags: {tag_list}");
                     }
                     Ok(())
                 }
@@ -186,7 +186,7 @@ pub fn handle_insight(
                 *confidence,
             ) {
                 Ok(()) => {
-                    println!("✅ Insight {} updated successfully!", id);
+                    println!("✅ Insight {id} updated successfully!");
                     Ok(())
                 }
                 Err(e) => {
@@ -198,7 +198,7 @@ pub fn handle_insight(
         InsightSubcommands::Delete { id } => {
             match rhema_core::fileops::delete_knowledge_entry(&scope.path, id) {
                 Ok(()) => {
-                    println!("🗑️  Insight {} deleted successfully!", id);
+                    println!("🗑️  Insight {id} deleted successfully!");
                     Ok(())
                 }
                 Err(e) => {

@@ -187,7 +187,7 @@ impl CliContext {
 
     /// Find the nearest scope to the current directory
     fn find_current_scope(&self) -> RhemaResult<rhema_core::Scope> {
-        let current_dir = std::env::current_dir().map_err(|e| RhemaError::IoError(e))?;
+        let current_dir = std::env::current_dir().map_err(RhemaError::IoError)?;
 
         let scopes = self.rhema.discover_scopes()?;
 
@@ -269,7 +269,7 @@ async fn main() -> RhemaResult<()> {
 
         Some(Commands::Scope { path }) => match path {
             Some(scope_path) => {
-                context.display_info(&format!("Showing scope: {}", scope_path))?;
+                context.display_info(&format!("Showing scope: {scope_path}"))?;
                 let scope = context.handle_error(context.rhema.get_scope(scope_path))?;
                 println!("Scope: {}", scope.definition.name);
                 println!("Path: {}", scope.path.display());
@@ -302,7 +302,7 @@ async fn main() -> RhemaResult<()> {
             field_provenance,
             stats,
         }) => {
-            context.display_info(&format!("Executing query: {}", query))?;
+            context.display_info(&format!("Executing query: {query}"))?;
             handle_query(
                 &context,
                 query,
@@ -318,9 +318,9 @@ async fn main() -> RhemaResult<()> {
             in_file,
             regex,
         }) => {
-            context.display_info(&format!("Searching for: {}", term))?;
+            context.display_info(&format!("Searching for: {term}"))?;
             if let Some(file) = in_file {
-                context.display_info(&format!("In file: {}", file))?;
+                context.display_info(&format!("In file: {file}"))?;
             }
             if *regex {
                 context.display_info("Using regex search")?;
@@ -333,7 +333,7 @@ async fn main() -> RhemaResult<()> {
                 context.display_info("No results found")?;
             } else {
                 for result in results {
-                    println!("Found: {:?}", result);
+                    println!("Found: {result:?}");
                 }
             }
             Ok(())
@@ -396,7 +396,7 @@ async fn main() -> RhemaResult<()> {
                                 scope.definition.name, e
                             ));
                             if !context.quiet {
-                                println!("  ⚠️  Schema validation warning: {}", e);
+                                println!("  ⚠️  Schema validation warning: {e}");
                             }
                         }
                     }
@@ -407,7 +407,7 @@ async fn main() -> RhemaResult<()> {
             if !context.quiet {
                 println!("\n📊 Validation Summary:");
                 println!("  Total scopes: {}", scopes.len());
-                println!("  Valid scopes: {}", validated_scopes);
+                println!("  Valid scopes: {validated_scopes}");
                 println!("  Errors: {}", validation_errors.len());
                 println!("  Warnings: {}", validation_warnings.len());
             }
@@ -427,7 +427,7 @@ async fn main() -> RhemaResult<()> {
         Some(Commands::Health { scope }) => {
             context.display_info("Checking health...")?;
             if let Some(scope_name) = &scope {
-                context.display_info(&format!("For scope: {}", scope_name))?;
+                context.display_info(&format!("For scope: {scope_name}"))?;
             }
 
             // Implement actual health check logic
@@ -473,22 +473,20 @@ async fn main() -> RhemaResult<()> {
                     if !context.quiet {
                         println!("✅ Scope '{}' is healthy", scope_item.definition.name);
                     }
-                } else {
-                    if !context.quiet {
-                        println!(
-                            "⚠️  Scope '{}' has missing files: {}",
-                            scope_item.definition.name,
-                            missing_files.join(", ")
-                        );
-                    }
+                } else if !context.quiet {
+                    println!(
+                        "⚠️  Scope '{}' has missing files: {}",
+                        scope_item.definition.name,
+                        missing_files.join(", ")
+                    );
                 }
             }
 
             // Display health summary
             if !context.quiet {
                 println!("\n🏥 Health Summary:");
-                println!("  Total scopes: {}", total_scopes);
-                println!("  Healthy scopes: {}", healthy_scopes);
+                println!("  Total scopes: {total_scopes}");
+                println!("  Healthy scopes: {healthy_scopes}");
                 println!(
                     "  Health score: {:.1}%",
                     (healthy_scopes as f64 / total_scopes as f64) * 100.0
@@ -499,8 +497,7 @@ async fn main() -> RhemaResult<()> {
                 context.display_info("✅ All scopes are healthy!")?;
             } else {
                 context.display_warning(&format!(
-                    "⚠️  {} out of {} scopes are healthy",
-                    healthy_scopes, total_scopes
+                    "⚠️  {healthy_scopes} out of {total_scopes} scopes are healthy"
                 ))?;
             }
 
@@ -532,8 +529,8 @@ async fn main() -> RhemaResult<()> {
             // Display comprehensive statistics
             if !context.quiet {
                 println!("\n📊 Repository Statistics:");
-                println!("  Total scopes: {}", total_scopes);
-                println!("  Total files: {}", total_files);
+                println!("  Total scopes: {total_scopes}");
+                println!("  Total files: {total_files}");
                 println!(
                     "  Average files per scope: {:.1}",
                     if total_scopes > 0 {
@@ -545,12 +542,12 @@ async fn main() -> RhemaResult<()> {
 
                 println!("\n📁 Scope Types:");
                 for (scope_type, count) in scope_types {
-                    println!("  {}: {}", scope_type, count);
+                    println!("  {scope_type}: {count}");
                 }
 
                 println!("\n💾 Cache Statistics:");
                 for (key, value) in &cache_stats {
-                    println!("  {}: {}", key, value);
+                    println!("  {key}: {value}");
                 }
 
                 if let Ok(stats) = coordination_stats {
@@ -561,7 +558,7 @@ async fn main() -> RhemaResult<()> {
                 }
 
                 println!("\n📈 Performance Metrics:");
-                println!("  Repository size: {} scopes", total_scopes);
+                println!("  Repository size: {total_scopes} scopes");
                 println!(
                     "  File density: {:.1} files/scope",
                     if total_scopes > 0 {

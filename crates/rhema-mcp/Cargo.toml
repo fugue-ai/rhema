@@ -12,6 +12,9 @@ description = "Model Context Protocol daemon functionality for the Rhema Protoco
 keywords = ["mcp", "daemon", "protocol", "model-context"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 rhema-query = { path = "../rhema-query" }

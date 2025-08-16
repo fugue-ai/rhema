@@ -110,7 +110,7 @@ impl DependencyResolver {
         for dep in deps {
             dependency_versions
                 .entry(dep.name.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(dep.version.clone());
         }
 
@@ -723,7 +723,7 @@ fn test_fallback_strategy() {
 
     // Should succeed with fallback strategy, returning the earliest version
     let result = resolver.resolve_version(&constraint, &versions);
-    println!("Result: {:?}", result);
+    println!("Result: {result:?}");
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), Version::parse("1.0.0").unwrap());
 }
@@ -856,7 +856,7 @@ fn test_performance_under_load() {
     let mut deps = Vec::new();
     for i in 0..100 {
         deps.push(DependencySpec {
-            name: format!("dep_{}", i),
+            name: format!("dep_{i}"),
             version: "1.0.0".to_string(),
         });
     }

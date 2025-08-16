@@ -327,7 +327,7 @@ impl TemporalSearchEnhancer {
             let matches = self.matches_seasonal_preference(content_created_at, preference);
 
             if matches {
-                total_adjustment *= (1.0 + preference.weight);
+                total_adjustment *= 1.0 + preference.weight;
             }
         }
 

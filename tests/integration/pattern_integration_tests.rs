@@ -141,7 +141,7 @@ impl CoordinationPattern for IntegrationTestPattern {
         let start_time = Utc::now();
 
         // Simulate real pattern execution with multiple steps
-        for (_step_index, step) in self.execution_steps.iter().enumerate() {
+        for step in self.execution_steps.iter() {
             // Simulate step execution time
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
@@ -280,9 +280,9 @@ impl CoordinationPattern for IntegrationTestPattern {
                 _ => {
                     // For test patterns, treat unknown resources as errors
                     if resource.contains("nonexistent") || resource.contains("test") {
-                        errors.push(format!("Required resource not available: {}", resource));
+                        errors.push(format!("Required resource not available: {resource}"));
                     } else {
-                        warnings.push(format!("Unknown resource requirement: {}", resource));
+                        warnings.push(format!("Unknown resource requirement: {resource}"));
                     }
                 }
             }
@@ -392,7 +392,7 @@ impl CoordinationPattern for SlowIntegrationTestPattern {
         let start_time = Utc::now();
 
         // Simulate a slow pattern execution that takes longer than 1 second
-        for (_step_index, step) in self.execution_steps.iter().enumerate() {
+        for step in self.execution_steps.iter() {
             // Simulate step execution time - much longer than the timeout
             tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
 
@@ -531,9 +531,9 @@ impl CoordinationPattern for SlowIntegrationTestPattern {
                 _ => {
                     // For test patterns, treat unknown resources as errors
                     if resource.contains("nonexistent") || resource.contains("test") {
-                        errors.push(format!("Required resource not available: {}", resource));
+                        errors.push(format!("Required resource not available: {resource}"));
                     } else {
-                        warnings.push(format!("Unknown resource requirement: {}", resource));
+                        warnings.push(format!("Unknown resource requirement: {resource}"));
                     }
                 }
             }
@@ -763,7 +763,7 @@ async fn test_integration_pattern_execution() {
 
     let result = fixture.execute_pattern("integration_test").await;
     if let Err(ref e) = result {
-        println!("Pattern execution failed with error: {:?}", e);
+        println!("Pattern execution failed with error: {e:?}");
     }
     assert!(result.is_ok());
 
@@ -1014,8 +1014,8 @@ async fn test_integration_pattern_concurrent_execution() {
     // Register multiple patterns
     for i in 0..3 {
         let pattern = IntegrationTestPattern::new(
-            &format!("concurrent_pattern_{}", i),
-            &format!("Concurrent Pattern {}", i),
+            &format!("concurrent_pattern_{i}"),
+            &format!("Concurrent Pattern {i}"),
             PatternCategory::TaskDistribution,
         );
         fixture.register_pattern(pattern);
@@ -1028,7 +1028,7 @@ async fn test_integration_pattern_concurrent_execution() {
     for i in 0..3 {
         let executor_clone = executor.clone();
         let context = fixture.context.clone();
-        let pattern_id = format!("concurrent_pattern_{}", i);
+        let pattern_id = format!("concurrent_pattern_{i}");
 
         let handle = tokio::spawn(async move {
             let mut executor = executor_clone.lock().await;
@@ -1126,10 +1126,10 @@ async fn test_integration_pattern_complex_workflow() {
     // Execute workflow in sequence
     for (id, _, _) in &workflow_patterns {
         let result = fixture.execute_pattern(id).await;
-        assert!(result.is_ok(), "Pattern {} failed", id);
+        assert!(result.is_ok(), "Pattern {id} failed");
 
         let pattern_result = result.unwrap();
-        assert!(pattern_result.success, "Pattern {} returned failure", id);
+        assert!(pattern_result.success, "Pattern {id} returned failure");
     }
 
     // Verify workflow completion
@@ -1599,13 +1599,12 @@ impl CoordinationPattern for EnhancedIntegrationTestPattern {
 
                         if agents_with_capability == 0 {
                             errors.push(format!(
-                                "No agent found with required capability: {}",
-                                capability
+                                "No agent found with required capability: {capability}"
                             ));
                         }
 
                         details.insert(
-                            format!("capability_{}", capability),
+                            format!("capability_{capability}"),
                             serde_json::json!({
                                 "available_agents": agents_with_capability,
                                 "required": true

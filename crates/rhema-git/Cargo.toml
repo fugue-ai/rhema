@@ -12,6 +12,9 @@ description = "Git integration and automation for Rhema"
 keywords = ["git", "version-control", "workflow"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 rhema-git-workflow-templates = { path = "../rhema-git-workflow-templates" }

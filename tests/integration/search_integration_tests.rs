@@ -80,7 +80,7 @@ impl SearchIntegrationTest {
             definition: RhemaScope {
                 name: name.to_string(),
                 scope_type: "test".to_string(),
-                description: Some(format!("Test scope {}", name)),
+                description: Some(format!("Test scope {name}")),
                 version: "1.0.0".to_string(),
                 schema_version: Some("1.0.0".to_string()),
                 dependencies: None,

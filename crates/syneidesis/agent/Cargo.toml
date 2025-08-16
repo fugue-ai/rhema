@@ -9,6 +9,9 @@ repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 syneidesis-core = { path = "../core" }
 syneidesis-config = { path = "../config" }

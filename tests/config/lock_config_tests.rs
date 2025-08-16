@@ -472,7 +472,7 @@ fn test_config_value_access() {
     // Test getting values by path
     let smart_resolution = config.get_value("resolution.smart_resolution_enabled");
     assert!(smart_resolution.is_some());
-    assert_eq!(smart_resolution.unwrap().as_bool().unwrap(), true);
+    assert!(smart_resolution.unwrap().as_bool().unwrap());
 
     let version = config.get_value("version");
     assert!(version.is_some());

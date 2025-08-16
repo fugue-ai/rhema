@@ -293,7 +293,7 @@ conventions:
     }
 
     // Test get_scope_by_name directly
-    let scope = rhema_core::scope::get_scope_by_name(&temp_path, "test-scope")?;
+    let scope = rhema_core::scope::get_scope_by_name(temp_path, "test-scope")?;
     println!("Found scope by name: {}", scope.definition.name);
 
     // Test loading todos
@@ -302,11 +302,11 @@ conventions:
     // Debug: Check if todos.yaml file exists
     let scope = rhema.get_scope(".")?;
     let todos_path = scope.path.join("todos.yaml");
-    println!("Todos path: {:?}", todos_path);
+    println!("Todos path: {todos_path:?}");
     println!("Todos file exists: {}", todos_path.exists());
     if todos_path.exists() {
         let content = std::fs::read_to_string(&todos_path)?;
-        println!("Todos file content: {}", content);
+        println!("Todos file content: {content}");
     }
 
     let todos = rhema.load_todos(".")?;
@@ -540,7 +540,7 @@ dependencies: null
     }
 
     // Test get_scope_by_name directly
-    let scope = rhema_core::scope::get_scope_by_name(&temp_path, "test-scope")?;
+    let scope = rhema_core::scope::get_scope_by_name(temp_path, "test-scope")?;
     println!("Found scope by name: {}", scope.definition.name);
 
     // Test loading todos

@@ -225,7 +225,7 @@ impl TemporalFilterBuilder {
     }
 
     /// Add a filter for business hours content (Monday-Friday, 9-17)
-    pub fn business_hours(mut self) -> Self {
+    pub fn business_hours(self) -> Self {
         // This is a simplified implementation
         // In a real implementation, you might want to check the actual creation time
         // For now, we'll use a placeholder that accepts all content
@@ -234,7 +234,7 @@ impl TemporalFilterBuilder {
     }
 
     /// Add a filter for weekend content
-    pub fn weekend_content(mut self) -> Self {
+    pub fn weekend_content(self) -> Self {
         // This would require checking the day of week for creation time
         // For now, we'll use a placeholder
         self

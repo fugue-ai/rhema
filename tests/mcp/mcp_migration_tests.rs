@@ -365,21 +365,21 @@ async fn test_mcp_backward_compatibility() {
 
     // Test that legacy methods exist and don't panic
     let query_result = context_provider.query("test").await;
-    println!("Query result: {:?}", query_result);
+    println!("Query result: {query_result:?}");
     // Some methods might be implemented, others might return errors
 
     let search_result = context_provider.search_regex("test", None).await;
-    println!("Search result: {:?}", search_result);
+    println!("Search result: {search_result:?}");
     assert!(search_result.is_ok());
 
     let scope_result = context_provider.get_scope("test").await;
-    println!("Scope result: {:?}", scope_result);
+    println!("Scope result: {scope_result:?}");
 
     let scopes_result = context_provider.list_scopes().await;
-    println!("Scopes result: {:?}", scopes_result);
+    println!("Scopes result: {scopes_result:?}");
 
     let knowledge_result = context_provider.load_knowledge("test").await;
-    println!("Knowledge result: {:?}", knowledge_result);
+    println!("Knowledge result: {knowledge_result:?}");
 
     // The main goal is that these methods exist and don't panic
     // Some may be implemented, others may return errors

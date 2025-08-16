@@ -40,7 +40,7 @@ impl ErrorHandler {
         let message = self.format_error(error, severity);
 
         let mut stderr = io::stderr();
-        writeln!(stderr, "{}", message)?;
+        writeln!(stderr, "{message}")?;
 
         if self.verbose {
             self.display_error_context(error)?;
@@ -74,11 +74,11 @@ impl ErrorHandler {
         let formatted = if self.color_enabled {
             format!("⚠️  {}", message.yellow())
         } else {
-            format!("Warning: {}", message)
+            format!("Warning: {message}")
         };
 
         let mut stderr = io::stderr();
-        writeln!(stderr, "{}", formatted)?;
+        writeln!(stderr, "{formatted}")?;
         Ok(())
     }
 
@@ -91,11 +91,11 @@ impl ErrorHandler {
         let formatted = if self.color_enabled {
             format!("ℹ️  {}", message.blue())
         } else {
-            format!("Info: {}", message)
+            format!("Info: {message}")
         };
 
         let mut stderr = io::stderr();
-        writeln!(stderr, "{}", formatted)?;
+        writeln!(stderr, "{formatted}")?;
         Ok(())
     }
 
@@ -153,7 +153,7 @@ impl ErrorHandler {
                 ErrorSeverity::Info => format!("{}: {}", prefix.blue(), message.blue()),
             }
         } else {
-            format!("{}: {}", prefix, message)
+            format!("{prefix}: {message}")
         }
     }
 
@@ -169,7 +169,7 @@ impl ErrorHandler {
                 "💡 Check your configuration files and ensure they are valid"
             }
             RhemaError::FileNotFound(path) => {
-                writeln!(stderr, "📁 File path: {}", path)?;
+                writeln!(stderr, "📁 File path: {path}")?;
                 "💡 Verify the file exists and you have read permissions"
             }
             RhemaError::ScopeNotFound(_) => "💡 Run 'rhema scopes' to see available scopes",
@@ -187,7 +187,7 @@ impl ErrorHandler {
         if self.color_enabled {
             writeln!(stderr, "{}", context.cyan())?;
         } else {
-            writeln!(stderr, "{}", context)?;
+            writeln!(stderr, "{context}")?;
         }
 
         Ok(())

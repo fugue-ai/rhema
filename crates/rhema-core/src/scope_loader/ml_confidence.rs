@@ -362,7 +362,7 @@ impl MLConfidenceEngine {
         let mut documentation_coverage: f64 = 0.0;
         let mut test_coverage: f64 = 0.0;
         let mut quality_indicators = HashMap::new();
-        let mut language_metrics = HashMap::new();
+        let language_metrics = HashMap::new();
 
         // Analyze source files for complexity
         for entry in walkdir::WalkDir::new(path)
@@ -468,7 +468,7 @@ impl MLConfidenceEngine {
     ) -> Result<StructureFeatures, Box<dyn std::error::Error>> {
         let mut directory_depth = 0;
         let mut module_organization: f64 = 0.0;
-        let mut dependency_complexity: f64 = 0.0;
+        let dependency_complexity: f64 = 0.0;
         let mut architecture_patterns = Vec::new();
         let mut build_system_score: f64 = 0.0;
 
@@ -555,11 +555,11 @@ impl MLConfidenceEngine {
         suggestion: &ScopeSuggestion,
         path: &Path,
     ) -> Result<ContextFeatures, Box<dyn std::error::Error>> {
-        let mut pattern_similarity: f64 = 0.0;
+        let pattern_similarity: f64 = 0.0;
         let mut standard_compliance: f64 = 0.0;
-        let mut team_size_indicators: f64 = 0.0;
+        let team_size_indicators: f64 = 0.0;
         let mut maturity_indicators: f64 = 0.0;
-        let mut integration_complexity: f64 = 0.0;
+        let integration_complexity: f64 = 0.0;
 
         // Check for standard compliance
         let standards = [

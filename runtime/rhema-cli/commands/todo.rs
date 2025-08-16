@@ -135,17 +135,17 @@ pub fn handle_todo(
                 }),
             ) {
                 Ok(id) => {
-                    println!("✅ Todo added successfully with ID: {}", id);
-                    println!("📝 Title: {}", title);
+                    println!("✅ Todo added successfully with ID: {id}");
+                    println!("📝 Title: {title}");
                     if let Some(desc) = description {
-                        println!("📄 Description: {}", desc);
+                        println!("📄 Description: {desc}");
                     }
-                    println!("🎯 Priority: {:?}", priority);
+                    println!("🎯 Priority: {priority:?}");
                     if let Some(assign) = assignee {
-                        println!("👤 Assignee: {}", assign);
+                        println!("👤 Assignee: {assign}");
                     }
                     if let Some(date) = due_date {
-                        println!("📅 Due date: {}", date);
+                        println!("📅 Due date: {date}");
                     }
                     Ok(())
                 }
@@ -196,9 +196,9 @@ pub fn handle_todo(
                 outcome.clone(),
             ) {
                 Ok(()) => {
-                    println!("✅ Todo {} completed successfully!", id);
+                    println!("✅ Todo {id} completed successfully!");
                     if let Some(out) = outcome {
-                        println!("📊 Outcome: {}", out);
+                        println!("📊 Outcome: {out}");
                     }
                     Ok(())
                 }
@@ -233,7 +233,7 @@ pub fn handle_todo(
                 None,
             ) {
                 Ok(()) => {
-                    println!("✅ Todo {} updated successfully!", id);
+                    println!("✅ Todo {id} updated successfully!");
                     Ok(())
                 }
                 Err(e) => {
@@ -245,7 +245,7 @@ pub fn handle_todo(
         TodoSubcommands::Delete { id } => {
             match rhema_core::fileops::delete_todo_entry(&scope.path, id) {
                 Ok(()) => {
-                    println!("🗑️  Todo {} deleted successfully!", id);
+                    println!("🗑️  Todo {id} deleted successfully!");
                     Ok(())
                 }
                 Err(e) => {

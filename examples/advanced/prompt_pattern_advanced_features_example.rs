@@ -120,7 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let substituted =
         code_review_pattern.substitute_variables("fn main() { println!(\"Hello, world!\"); }");
     println!("   Original template: {}", code_review_pattern.template);
-    println!("   Substituted result: {}", substituted);
+    println!("   Substituted result: {substituted}");
 
     // Example 5: Testing context file collection
     println!("\n5️⃣ Testing context file collection:");
@@ -128,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         code_review_pattern.get_context_files(Some("code_review"), None, Some("high"));
     println!("   Context files for high-severity code review:");
     for file in &context_files {
-        println!("     - {}", file);
+        println!("     - {file}");
     }
 
     // Example 6: Testing usage tracking
@@ -217,10 +217,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 8: Demonstrating variable access
     println!("\n8️⃣ Demonstrating variable access:");
     if let Some(language) = code_review_pattern.get_variable("LANGUAGE") {
-        println!("   LANGUAGE variable: {}", language);
+        println!("   LANGUAGE variable: {language}");
     }
     if let Some(focus) = code_review_pattern.get_variable("REVIEW_FOCUS") {
-        println!("   REVIEW_FOCUS variable: {}", focus);
+        println!("   REVIEW_FOCUS variable: {focus}");
     }
 
     // Example 9: Testing multi-file context support

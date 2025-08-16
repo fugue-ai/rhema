@@ -225,7 +225,7 @@ items:
 
             // Stage and commit
             let mut index = repo.index()?;
-            index.add_path(&std::path::Path::new("test.txt"))?;
+            index.add_path(std::path::Path::new("test.txt"))?;
             let tree_id = index.write_tree()?;
             let tree = repo.find_tree(tree_id)?;
 
@@ -234,7 +234,7 @@ items:
 
             let _commit_id = if let Some(parent) = parent_commit {
                 repo.commit(
-                    Some(&repo.head()?.name().unwrap()),
+                    Some(repo.head()?.name().unwrap()),
                     &signature,
                     &signature,
                     message,

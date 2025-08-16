@@ -11,6 +11,13 @@ readme = "README.md"
 keywords = ["git", "ai", "context", "yaml", "protocol", "agent", "cli"]
 categories = ["command-line-utilities", "development-tools", "configuration"]
 
+[workspace.lints.rust]
+unused_comparisons = "allow" # allow unused comparisons for test coverage
+unused_variables = "allow"   # allow unused variables until API is stable
+unused_imports = "allow"     # allow unused imports until API is stable
+unused_assignments = "allow" # allow unused assignments until API is stable
+dead_code = "allow"          # allow dead code until API is stable
+
 [workspace.package]
 version = "0.1.0"
 edition = "2021"

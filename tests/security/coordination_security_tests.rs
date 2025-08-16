@@ -8,7 +8,7 @@ fn run_coordination_command(args: &[&str]) -> Result<String, Box<dyn std::error:
     // TODO: Implement proper CLI command testing with timeouts
 
     // Check if the args contain malicious content and return appropriate mock responses
-    let args_str = format!("{:?}", args);
+    let args_str = format!("{args:?}");
 
     if args_str.contains("DROP TABLE")
         || args_str.contains("INSERT INTO")
@@ -73,7 +73,7 @@ fn run_coordination_command(args: &[&str]) -> Result<String, Box<dyn std::error:
         return Err("Invalid JSON payload detected".into());
     }
 
-    Ok(format!("Mock response for args: {:?}", args))
+    Ok(format!("Mock response for args: {args:?}"))
 }
 
 // ============================================================================
@@ -664,7 +664,7 @@ fn test_coordination_dos_rapid_registration() {
     for i in 0..max_iterations {
         // Check if we've exceeded the time limit
         if start_time.elapsed() > max_duration {
-            println!("Test timeout reached after {} iterations", i);
+            println!("Test timeout reached after {i} iterations");
             break;
         }
 
@@ -672,7 +672,7 @@ fn test_coordination_dos_rapid_registration() {
             "agent",
             "register",
             "--name",
-            &format!("dos-agent-{}", i),
+            &format!("dos-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -689,10 +689,10 @@ fn test_coordination_dos_rapid_registration() {
     let duration = start_time.elapsed();
 
     println!("=== DoS Registration Test Results ===");
-    println!("Duration: {:?}", duration);
+    println!("Duration: {duration:?}");
     println!("Iterations: {}", success_count + error_count);
-    println!("Successful: {}", success_count);
-    println!("Errors: {}", error_count);
+    println!("Successful: {success_count}");
+    println!("Errors: {error_count}");
     if duration.as_secs() > 0 {
         println!(
             "Operations per second: {:.2}",
@@ -742,7 +742,7 @@ fn test_coordination_dos_rapid_messaging() {
     for i in 0..max_iterations {
         // Check if we've exceeded the time limit
         if start_time.elapsed() > max_duration {
-            println!("Test timeout reached after {} iterations", i);
+            println!("Test timeout reached after {i} iterations");
             break;
         }
 
@@ -751,7 +751,7 @@ fn test_coordination_dos_rapid_messaging() {
             "send-message",
             "--to",
             "agent-001",
-            &format!("DoS test message {}", i),
+            &format!("DoS test message {i}"),
             "--message-type",
             "Test",
             "--priority",
@@ -768,10 +768,10 @@ fn test_coordination_dos_rapid_messaging() {
     let duration = start_time.elapsed();
 
     println!("=== DoS Messaging Test Results ===");
-    println!("Duration: {:?}", duration);
+    println!("Duration: {duration:?}");
     println!("Iterations: {}", success_count + error_count);
-    println!("Successful: {}", success_count);
-    println!("Errors: {}", error_count);
+    println!("Successful: {success_count}");
+    println!("Errors: {error_count}");
     if duration.as_secs() > 0 {
         println!(
             "Messages per second: {:.2}",
@@ -830,7 +830,7 @@ fn test_coordination_cpu_exhaustion() {
     for i in 0..max_iterations {
         // Check if we've exceeded the time limit
         if start_time.elapsed() > max_duration {
-            println!("CPU test timeout reached after {} iterations", i);
+            println!("CPU test timeout reached after {i} iterations");
             break;
         }
 
@@ -838,13 +838,13 @@ fn test_coordination_cpu_exhaustion() {
             "agent",
             "register",
             "--name",
-            &format!("cpu-test-agent-{}", i),
+            &format!("cpu-test-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
             "cpu-testing",
             "--capabilities",
-            &format!("capability-{}", i),
+            &format!("capability-{i}"),
         ]);
 
         let _ = run_coordination_command(&["agent", "list", "--detailed"]);
@@ -857,7 +857,7 @@ fn test_coordination_cpu_exhaustion() {
     let duration = start_time.elapsed();
 
     println!("=== CPU Exhaustion Test Results ===");
-    println!("Duration: {:?}", duration);
+    println!("Duration: {duration:?}");
     println!(
         "Iterations completed: {}",
         max_iterations.min((duration.as_millis() / 10) as usize)

@@ -41,7 +41,7 @@ edition = "2021"
 fn test_setup_and_validate_hotfix_context() {
     let (_temp_dir, manager) = setup_test_repo();
     let version = "1.2.1";
-    let hotfix_branch = format!("hotfix/{}", version);
+    let hotfix_branch = format!("hotfix/{version}");
 
     // Set up hotfix context
     assert!(manager.setup_hotfix_context(&hotfix_branch).is_ok());
@@ -55,7 +55,7 @@ fn test_setup_and_validate_hotfix_context() {
 fn test_merge_and_cleanup_hotfix_branch() {
     let (_temp_dir, manager) = setup_test_repo();
     let version = "1.2.2";
-    let hotfix_branch = format!("hotfix/{}", version);
+    let hotfix_branch = format!("hotfix/{version}");
 
     // Set up hotfix context
     assert!(manager.setup_hotfix_context(&hotfix_branch).is_ok());
@@ -85,7 +85,7 @@ fn test_hotfix_validation_failure() {
 fn test_hotfix_context_setup() {
     let (_temp_dir, manager) = setup_test_repo();
     let version = "1.2.3";
-    let hotfix_branch = format!("hotfix/{}", version);
+    let hotfix_branch = format!("hotfix/{version}");
 
     // Set up hotfix context
     let result = manager.setup_hotfix_context(&hotfix_branch);

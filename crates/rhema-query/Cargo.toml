@@ -12,6 +12,9 @@ description = "Query engine and search functionality for the Rhema Protocol"
 keywords = ["query", "search", "cql", "engine"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 serde = { workspace = true, features = ["derive"] }

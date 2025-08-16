@@ -139,9 +139,9 @@ async fn create_sample_patterns(scope_path: &Path) -> RhemaResult<()> {
     )?;
 
     println!("   ✅ Created 3 sample patterns:");
-    println!("      • {} (API Design)", api_pattern_id);
-    println!("      • {} (Error Handling)", error_pattern_id);
-    println!("      • {} (Caching)", cache_pattern_id);
+    println!("      • {api_pattern_id} (API Design)");
+    println!("      • {error_pattern_id} (Error Handling)");
+    println!("      • {cache_pattern_id} (Caching)");
 
     Ok(())
 }
@@ -232,7 +232,7 @@ async fn validate_patterns_example(scope_path: &Path) -> RhemaResult<()> {
         println!("   ⚠️  Warnings found:");
         for warning in &strict_validation.warnings[..2] {
             // Show first 2 warnings
-            println!("      • {}", warning);
+            println!("      • {warning}");
         }
     }
 
@@ -280,7 +280,7 @@ async fn generate_documentation_example(scope_path: &Path) -> RhemaResult<()> {
         docs_result.patterns_documented
     );
     if let Some(index_file) = docs_result.index_file {
-        println!("      • Index file: {}", index_file);
+        println!("      • Index file: {index_file}");
     }
 
     // Check if files were actually created
@@ -381,14 +381,14 @@ async fn analyze_patterns_example(scope_path: &Path) -> RhemaResult<()> {
     if !analysis.patterns_by_category.is_empty() {
         println!("   📂 Patterns by category:");
         for (category, count) in &analysis.patterns_by_category {
-            println!("      • {}: {}", category, count);
+            println!("      • {category}: {count}");
         }
     }
 
     if !analysis.patterns_by_maturity.is_empty() {
         println!("   🌱 Patterns by maturity:");
         for (maturity, count) in &analysis.patterns_by_maturity {
-            println!("      • {}: {}", maturity, count);
+            println!("      • {maturity}: {count}");
         }
     }
 
@@ -405,7 +405,7 @@ async fn analyze_patterns_example(scope_path: &Path) -> RhemaResult<()> {
     if !analysis.recommendations.is_empty() {
         println!("   💡 Recommendations:");
         for rec in &analysis.recommendations {
-            println!("      • {}", rec);
+            println!("      • {rec}");
         }
     }
 

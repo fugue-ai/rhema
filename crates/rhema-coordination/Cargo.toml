@@ -12,6 +12,9 @@ description = "Coordination and AI service integration for Rhema"
 keywords = ["coordination", "ai", "context", "injection", "service"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 serde = { workspace = true, features = ["derive"] }

@@ -7,16 +7,9 @@
 //! - Integration between all components
 
 use rhema_config::{
-    documentation::{
-        ConfigDocumentationGenerator, DocumentationFormat, DocumentationSettings,
-    },
-    feedback::{
-        ConfigFeedbackProvider,
-        SuggestionPriority,
-    },
-    wizard::{
-        ConfigWizard, WizardSettings,
-    },
+    documentation::{ConfigDocumentationGenerator, DocumentationFormat, DocumentationSettings},
+    feedback::{ConfigFeedbackProvider, SuggestionPriority},
+    wizard::{ConfigWizard, WizardSettings},
     Config, ConfigEnvironment, ConfigIssue, ConfigIssueSeverity, GlobalConfig, ValidationResult,
 };
 use serde_json::json;
@@ -96,7 +89,7 @@ async fn test_feedback_system_integration() {
         .await;
 
     assert_eq!(feedback.validation_feedback.len(), 0);
-    assert!(feedback.suggestions.len() > 0);
+    assert!(!feedback.suggestions.is_empty());
     assert_eq!(feedback.summary.health_score, 100);
     assert_eq!(feedback.summary.total_issues, 0);
 
@@ -216,7 +209,7 @@ async fn test_feedback_templates() {
         .await;
 
     // Should have suggestions even for valid config
-    assert!(feedback.suggestions.len() > 0);
+    assert!(!feedback.suggestions.is_empty());
 
     // Test suggestion priorities
     let has_high_priority = feedback
@@ -468,7 +461,7 @@ async fn test_integration_end_to_end() {
     assert!(wizard_result.statistics.questions_answered > 0);
 
     assert_eq!(feedback.summary.health_score, 100);
-    assert!(feedback.suggestions.len() > 0);
+    assert!(!feedback.suggestions.is_empty());
 
     assert!(!doc_result.documentation.sections.is_empty());
     assert!(doc_result.statistics.generation_time_ms >= 0); // Can be 0 if very fast
@@ -576,7 +569,7 @@ async fn test_performance_metrics() {
     assert!(wizard_time.as_millis() < 1000); // Should complete within 1 second
 
     // Verify that all operations produced valid results
-    assert!(feedback.suggestions.len() > 0);
+    assert!(!feedback.suggestions.is_empty());
     assert!(!doc_result.documentation.sections.is_empty());
     assert!(wizard.get_progress().total_steps > 0);
 }

@@ -12,6 +12,9 @@ description = "Third-party service integrations for the Rhema Protocol"
 keywords = ["integrations", "services", "external"]
 categories = ["development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 rhema-core = { path = "../rhema-core" }
 reqwest = { workspace = true }

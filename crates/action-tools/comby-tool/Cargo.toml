@@ -5,6 +5,9 @@ edition = "2021"
 description = "Comby transformation tool for Rhema actions"
 license = "Apache-2.0"
 
+[lints]
+workspace = true
+
 [dependencies]
 async-trait = "0.1"
 tokio = { version = "1.0", features = ["full"] }

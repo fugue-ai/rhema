@@ -95,7 +95,7 @@ edition = "2021"
         // Switch to feature branch and add some content
         let branch_ref = repo.find_branch("feature/test-feature", BranchType::Local)?;
         let commit = branch_ref.get().peel_to_commit()?;
-        repo.checkout_tree(&commit.as_object(), None)?;
+        repo.checkout_tree(commit.as_object(), None)?;
         repo.set_head("refs/heads/feature/test-feature")?;
 
         // Add some content to the feature branch
@@ -398,11 +398,11 @@ async fn test_workflow_status() -> RhemaResult<()> {
 
     // Test get workflow status
     let status = workflow_manager.get_workflow_status()?;
-    println!("Current workflow status: {:?}", status);
+    println!("Current workflow status: {status:?}");
 
     // Test get current branch workflow
     let branch_workflow = workflow_manager.get_current_branch_workflow()?;
-    println!("Current branch workflow: {:?}", branch_workflow);
+    println!("Current branch workflow: {branch_workflow:?}");
 
     Ok(())
 }
@@ -489,8 +489,8 @@ edition = "2021"
         let commit = branch_ref.get().peel_to_commit()?;
         let mut checkout_options = git2::build::CheckoutBuilder::new();
         checkout_options.force();
-        repo.checkout_tree(&commit.as_object(), Some(&mut checkout_options))?;
-        repo.set_head(&format!("refs/heads/{}", feature_branch))?;
+        repo.checkout_tree(commit.as_object(), Some(&mut checkout_options))?;
+        repo.set_head(&format!("refs/heads/{feature_branch}"))?;
 
         // Add some content to the feature branch
         let test_file = repo_path.join("feature_test.txt");
@@ -503,7 +503,7 @@ edition = "2021"
         let tree_id = index.write_tree()?;
         let tree = repo.find_tree(tree_id)?;
         repo.commit(
-            Some(&format!("refs/heads/{}", feature_branch)),
+            Some(&format!("refs/heads/{feature_branch}")),
             &signature,
             &signature,
             "Add feature content",

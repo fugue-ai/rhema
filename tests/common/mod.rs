@@ -108,9 +108,7 @@ pub mod assertions {
         let result_str = serde_yaml::to_string(result).unwrap();
         assert!(
             result_str.contains(expected),
-            "Query result should contain '{}', but got: {}",
-            expected,
-            result_str
+            "Query result should contain '{expected}', but got: {result_str}"
         );
     }
 
@@ -119,9 +117,7 @@ pub mod assertions {
         let result_str = serde_yaml::to_string(result).unwrap();
         assert!(
             !result_str.contains(unexpected),
-            "Query result should not contain '{}', but got: {}",
-            unexpected,
-            result_str
+            "Query result should not contain '{unexpected}', but got: {result_str}"
         );
     }
 
@@ -163,9 +159,7 @@ pub mod performance {
         let (_, duration) = measure_time(f);
         assert!(
             duration <= max_duration,
-            "Execution took {:?}, expected <= {:?}",
-            duration,
-            max_duration
+            "Execution took {duration:?}, expected <= {max_duration:?}"
         );
     }
 }
@@ -188,7 +182,7 @@ pub mod security {
         for path in malicious_paths {
             let test_path = base_path.join(path);
             if test_path.exists() {
-                vulnerabilities.push(format!("Path traversal vulnerability: {}", path));
+                vulnerabilities.push(format!("Path traversal vulnerability: {path}"));
             }
         }
 
@@ -207,7 +201,7 @@ pub mod security {
 
         for yaml in malicious_yaml {
             if let Ok(_) = serde_yaml::from_str::<serde_yaml::Value>(yaml) {
-                vulnerabilities.push(format!("YAML injection vulnerability: {}", yaml));
+                vulnerabilities.push(format!("YAML injection vulnerability: {yaml}"));
             }
         }
 

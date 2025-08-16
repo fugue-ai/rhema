@@ -429,7 +429,7 @@ impl AuditEventType {
     }
 }
 
-/// Global audit logger instance
+// Global audit logger instance
 lazy_static::lazy_static! {
     static ref GLOBAL_AUDIT_LOGGER: Arc<AuditLogger> = {
         let config = AuditLoggerConfig::default();

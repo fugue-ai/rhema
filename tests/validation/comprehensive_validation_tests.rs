@@ -65,7 +65,7 @@ async fn test_schema_validation_basic() {
         }
         Err(e) => {
             // Schema not found - this is expected in some test environments
-            println!("Schema not found (expected in test environment): {:?}", e);
+            println!("Schema not found (expected in test environment): {e:?}");
             // The test should still pass as this is an expected condition
             assert!(e.to_string().contains("Schema not found"));
         }
@@ -312,9 +312,9 @@ async fn test_validation_rules_statistics() {
     // Add some rules
     for i in 0..5 {
         let rule = ValidationRule {
-            id: format!("rule-{}", i),
-            name: format!("Rule {}", i),
-            description: format!("Rule {}", i),
+            id: format!("rule-{i}"),
+            name: format!("Rule {i}"),
+            description: format!("Rule {i}"),
             rule_type: RuleType::Schema,
             severity: ConfigIssueSeverity::Warning,
             enabled: i < 3, // Only first 3 are enabled

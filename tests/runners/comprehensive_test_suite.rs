@@ -647,6 +647,12 @@ pub struct TestSuiteReport {
     pub load_tests: Option<LoadTestReport>,
 }
 
+impl Default for TestSuiteReport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TestSuiteReport {
     pub fn new() -> Self {
         Self {
@@ -782,6 +788,12 @@ pub struct UnitTestReport {
     pub coverage: Option<CoverageReport>,
 }
 
+impl Default for UnitTestReport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UnitTestReport {
     pub fn new() -> Self {
         Self {
@@ -818,6 +830,12 @@ pub struct IntegrationTestReport {
     pub file_system_integration_tests: TestResult,
     pub git_integration_tests: TestResult,
     pub cross_platform_tests: TestResult,
+}
+
+impl Default for IntegrationTestReport {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl IntegrationTestReport {
@@ -872,6 +890,12 @@ pub struct PerformanceTestReport {
     pub load_tests: TestResult,
     pub stress_tests: TestResult,
     pub regression_tests: TestResult,
+}
+
+impl Default for PerformanceTestReport {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PerformanceTestReport {
@@ -929,6 +953,12 @@ pub struct SecurityTestReport {
     pub authorization_tests: TestResult,
 }
 
+impl Default for SecurityTestReport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SecurityTestReport {
     pub fn new() -> Self {
         Self {
@@ -983,6 +1013,12 @@ pub struct PropertyTestReport {
     pub property_test_results: Vec<PropertyTestResult>,
 }
 
+impl Default for PropertyTestReport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PropertyTestReport {
     pub fn new() -> Self {
         Self {
@@ -1018,6 +1054,12 @@ pub struct StressTestReport {
     pub stress_test_results: Vec<StressTestResult>,
 }
 
+impl Default for StressTestReport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StressTestReport {
     pub fn new() -> Self {
         Self {
@@ -1048,6 +1090,12 @@ impl StressTestReport {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoadTestReport {
     pub load_test_results: Vec<LoadTestResult>,
+}
+
+impl Default for LoadTestReport {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LoadTestReport {
@@ -1122,6 +1170,12 @@ pub struct CoverageReport {
     pub total_lines: usize,
     pub covered_lines: usize,
     pub coverage_percentage: f64,
+}
+
+impl Default for CoverageReport {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CoverageReport {

@@ -98,19 +98,18 @@ scopes:
 knowledge:
   test-knowledge:
     title: "Test Knowledge"
-    content: "{}"
+    content: "{content}"
     tags: ["test", "integration"]
     
 todos:
   test-todo:
     title: "Test Todo"
-    description: "{}"
+    description: "{content}"
     priority: "medium"
     status: "pending"
-"#,
-            content, content
+"#
         );
-        self.create_test_file(&format!("context/{}.yaml", name), &context_content)
+        self.create_test_file(&format!("context/{name}.yaml"), &context_content)
     }
 }
 
@@ -370,8 +369,8 @@ fn test_context_conflict_detection() -> RhemaResult<()> {
         let repo = fixture.git_integration.repository();
         let branch_ref = repo.find_branch("feature/conflict-test", BranchType::Local)?;
         let commit = branch_ref.get().peel_to_commit()?;
-        repo.checkout_tree(&commit.as_object(), None)?;
-        repo.set_head(&format!("refs/heads/feature/conflict-test"))?;
+        repo.checkout_tree(commit.as_object(), None)?;
+        repo.set_head("refs/heads/feature/conflict-test")?;
     }
 
     // Modify file in feature branch and commit
@@ -400,7 +399,7 @@ fn test_context_conflict_detection() -> RhemaResult<()> {
         let repo = fixture.git_integration.repository();
         let main_ref = repo.find_branch("main", BranchType::Local)?;
         let commit = main_ref.get().peel_to_commit()?;
-        repo.checkout_tree(&commit.as_object(), None)?;
+        repo.checkout_tree(commit.as_object(), None)?;
         repo.set_head("refs/heads/main")?;
     }
 
@@ -607,15 +606,12 @@ changes:
             chrono::Utc::now().to_rfc3339()
         );
 
-        fixture.create_context_file(&format!("evolution-{}", i), &content)?;
+        fixture.create_context_file(&format!("evolution-{i}"), &content)?;
 
         // Commit changes
         let signature = Signature::new("Test User", "test@example.com", &git2::Time::new(0, 0))?;
         let mut index = fixture.git_integration.repository().index()?;
-        index.add_path(std::path::Path::new(&format!(
-            "context/evolution-{}.yaml",
-            i
-        )))?;
+        index.add_path(std::path::Path::new(&format!("context/evolution-{i}.yaml")))?;
         let tree_id = index.write_tree()?;
         let tree = fixture.git_integration.repository().find_tree(tree_id)?;
 
@@ -627,7 +623,7 @@ changes:
             Some("HEAD"),
             &signature,
             &signature,
-            &format!("Add evolution context {}", i),
+            &format!("Add evolution context {i}"),
             &tree,
             &[&parent_commit],
         )?;

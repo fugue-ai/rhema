@@ -96,13 +96,12 @@ mod commands {
 
             // Create primer.md
             let primer_md = format!(
-                "# Primer for {}\n\nThis is a primer for the {} scope.",
-                scope_path, scope_path
+                "# Primer for {scope_path}\n\nThis is a primer for the {scope_path} scope."
             );
             fs::write(scope_primer_dir.join("primer.md"), primer_md)?;
 
             // Create primer.txt
-            let primer_txt = format!("Primer for {} scope.", scope_path);
+            let primer_txt = format!("Primer for {scope_path} scope.");
             fs::write(scope_primer_dir.join("primer.txt"), primer_txt)?;
 
             Ok(())
@@ -127,7 +126,7 @@ mod commands {
                 }
 
                 let scope_name = scope_name.unwrap_or("test-library");
-                let readme_content = format!("# {}\n\n## Installation\n\nInstallation instructions here.\n\n## Usage\n\nUsage instructions here.\n\n## Features\n\nKey features of this library.\n\n## Context Management\n\nContext management information here.", scope_name);
+                let readme_content = format!("# {scope_name}\n\n## Installation\n\nInstallation instructions here.\n\n## Usage\n\nUsage instructions here.\n\n## Features\n\nKey features of this library.\n\n## Context Management\n\nContext management information here.");
                 fs::write(readme_file, readme_content)?;
             }
             Ok(())
@@ -187,16 +186,13 @@ mod commands {
 
                 // Create bootstrap.md
                 let bootstrap_md = format!(
-                    "# Bootstrap Context for {}\n\nThis is a bootstrap context for {} use case.",
-                    use_case, use_case
+                    "# Bootstrap Context for {use_case}\n\nThis is a bootstrap context for {use_case} use case."
                 );
                 fs::write(bootstrap_dir.join("bootstrap.md"), bootstrap_md)?;
 
                 // Create bootstrap.txt
-                let bootstrap_txt = format!(
-                    "Bootstrap context for {} use case in {} format.",
-                    use_case, format
-                );
+                let bootstrap_txt =
+                    format!("Bootstrap context for {use_case} use case in {format} format.");
                 fs::write(bootstrap_dir.join("bootstrap.txt"), bootstrap_txt)?;
 
                 // Create primer.md
@@ -220,16 +216,16 @@ mod commands {
                 let scope_path = rhema.scope_path(&scope.definition.name)?;
 
                 if scope_path.join("rhema.yaml").exists() {
-                    let content = fs::read_to_string(&scope_path.join("rhema.yaml"))?;
+                    let content = fs::read_to_string(scope_path.join("rhema.yaml"))?;
                     let mut scope_data: serde_yaml::Value = serde_yaml::from_str(&content)?;
 
                     // Add protocol info if it doesn't exist
-                    if !scope_data.get("protocol_info").is_some() {
+                    if scope_data.get("protocol_info").is_none() {
                         let protocol_info = create_test_protocol_info();
                         scope_data["protocol_info"] =
                             serde_yaml::from_str(&serde_json::to_string(&protocol_info)?)?;
                         let updated_content = serde_yaml::to_string(&scope_data)?;
-                        fs::write(&scope_path.join("rhema.yaml"), updated_content)?;
+                        fs::write(scope_path.join("rhema.yaml"), updated_content)?;
                     }
                 }
             }
@@ -679,7 +675,7 @@ fn create_test_scope(rhema: &Rhema, scope_name: &str) -> RhemaResult<()> {
     // Create rhema.yaml with protocol info
     let rhema_content = format!(
         r#"
-name: "{}"
+name: "{scope_name}"
 scope_type: "service"
 description: "Test service scope"
 version: "1.0.0"
@@ -698,8 +694,7 @@ protocol_info:
       description: "Find API-related knowledge"
       output_format: "JSON array"
       use_case: "Code review"
-"#,
-        scope_name
+"#
     );
     fs::write(scope_path.join("rhema.yaml"), rhema_content)?;
 
@@ -772,12 +767,11 @@ fn create_legacy_scope(rhema: &Rhema, scope_name: &str) -> RhemaResult<()> {
     // Create legacy rhema.yaml without protocol info
     let rhema_content = format!(
         r#"
-name: "{}"
+name: "{scope_name}"
 scope_type: "service"
 description: "Legacy service scope"
 version: "1.0.0"
-"#,
-        scope_name
+"#
     );
     fs::write(scope_path.join("rhema.yaml"), rhema_content)?;
 

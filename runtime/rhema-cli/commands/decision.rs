@@ -141,24 +141,24 @@ pub fn handle_decision(
                 consequences.as_deref(),
             ) {
                 Ok(id) => {
-                    println!("🎯 Decision recorded successfully with ID: {}", id);
-                    println!("📝 Title: {}", title);
-                    println!("📄 Description: {}", description);
-                    println!("📊 Status: {:?}", status);
+                    println!("🎯 Decision recorded successfully with ID: {id}");
+                    println!("📝 Title: {title}");
+                    println!("📄 Description: {description}");
+                    println!("📊 Status: {status:?}");
                     if let Some(ctx) = decision_context {
-                        println!("🌍 Context: {}", ctx);
+                        println!("🌍 Context: {ctx}");
                     }
                     if let Some(makers) = makers {
-                        println!("👥 Makers: {}", makers);
+                        println!("👥 Makers: {makers}");
                     }
                     if let Some(alt) = alternatives {
-                        println!("🔄 Alternatives: {}", alt);
+                        println!("🔄 Alternatives: {alt}");
                     }
                     if let Some(rat) = rationale {
-                        println!("🧠 Rationale: {}", rat);
+                        println!("🧠 Rationale: {rat}");
                     }
                     if let Some(cons) = consequences {
-                        println!("📈 Consequences: {}", cons);
+                        println!("📈 Consequences: {cons}");
                     }
                     Ok(())
                 }
@@ -218,7 +218,7 @@ pub fn handle_decision(
                 consequences.clone(),
             ) {
                 Ok(()) => {
-                    println!("✅ Decision {} updated successfully!", id);
+                    println!("✅ Decision {id} updated successfully!");
                     Ok(())
                 }
                 Err(e) => {
@@ -230,7 +230,7 @@ pub fn handle_decision(
         DecisionSubcommands::Delete { id } => {
             match rhema_core::fileops::delete_decision(&scope.path, id) {
                 Ok(()) => {
-                    println!("🗑️  Decision {} deleted successfully!", id);
+                    println!("🗑️  Decision {id} deleted successfully!");
                     Ok(())
                 }
                 Err(e) => {

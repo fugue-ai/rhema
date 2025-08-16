@@ -1120,7 +1120,7 @@ impl VectorStore for ChromaVectorStore {
             self.config.url, self.config.collection_name
         );
 
-        let mut payload = serde_json::json!({
+        let payload = serde_json::json!({
             "ids": [id],
             "embeddings": [embedding],
             "metadatas": [metadata.map(|m| {
@@ -1165,7 +1165,7 @@ impl VectorStore for ChromaVectorStore {
             self.config.url, self.config.collection_name
         );
 
-        let mut payload = serde_json::json!({
+        let payload = serde_json::json!({
             "ids": [id],
             "embeddings": [embedding],
             "documents": [content],
@@ -1484,7 +1484,7 @@ impl VectorStore for PineconeVectorStore {
             self.config.index_name, self.config.index_name, self.config.environment
         );
 
-        let mut payload = serde_json::json!({
+        let payload = serde_json::json!({
             "vectors": [{
                 "id": id,
                 "values": embedding,
@@ -1536,7 +1536,7 @@ impl VectorStore for PineconeVectorStore {
             self.config.index_name, self.config.index_name, self.config.environment
         );
 
-        let mut payload = serde_json::json!({
+        let payload = serde_json::json!({
             "vectors": [{
                 "id": id,
                 "values": embedding,

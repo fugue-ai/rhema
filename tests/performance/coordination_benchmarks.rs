@@ -11,7 +11,7 @@ fn benchmark_coordination_command(
     let start = Instant::now();
 
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "rhema", "--", "coordination"])
+        .args(["run", "--bin", "rhema", "--", "coordination"])
         .args(args)
         .output()?;
 
@@ -72,7 +72,7 @@ struct BenchmarkStats {
 
 impl BenchmarkStats {
     fn print_summary(&self, test_name: &str) {
-        println!("=== {} Benchmark Results ===", test_name);
+        println!("=== {test_name} Benchmark Results ===");
         println!("Iterations: {}", self.iterations);
         println!("Min: {:?}", self.min);
         println!("Max: {:?}", self.max);
@@ -126,7 +126,7 @@ fn benchmark_agent_listing() -> Result<(), Box<dyn std::error::Error + Send + Sy
             "agent",
             "register",
             "--name",
-            &format!("list-bench-agent-{}", i),
+            &format!("list-bench-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -163,7 +163,7 @@ fn benchmark_agent_listing_with_filters() -> Result<(), Box<dyn std::error::Erro
             "agent",
             "register",
             "--name",
-            &format!("filter-bench-agent-{}", i),
+            &format!("filter-bench-agent-{i}"),
             "--type",
             agent_type,
             "--scope",
@@ -237,7 +237,7 @@ fn benchmark_agent_broadcast() -> Result<(), Box<dyn std::error::Error + Send + 
             "agent",
             "register",
             "--name",
-            &format!("broadcast-bench-agent-{}", i),
+            &format!("broadcast-bench-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -282,7 +282,7 @@ fn benchmark_session_creation() -> Result<(), Box<dyn std::error::Error + Send +
             "agent",
             "register",
             "--name",
-            &format!("session-bench-agent-{}", i),
+            &format!("session-bench-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -320,7 +320,7 @@ fn benchmark_session_listing() -> Result<(), Box<dyn std::error::Error + Send + 
         benchmark_coordination_command(&[
             "session",
             "create",
-            &format!("List Bench Session {}", i),
+            &format!("List Bench Session {i}"),
             "--participants",
             "agent-001",
         ])?;
@@ -394,7 +394,7 @@ fn benchmark_system_stats() -> Result<(), Box<dyn std::error::Error + Send + Syn
             "agent",
             "register",
             "--name",
-            &format!("stats-bench-agent-{}", i),
+            &format!("stats-bench-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -406,7 +406,7 @@ fn benchmark_system_stats() -> Result<(), Box<dyn std::error::Error + Send + Syn
         benchmark_coordination_command(&[
             "session",
             "create",
-            &format!("Stats Bench Session {}", i),
+            &format!("Stats Bench Session {i}"),
             "--participants",
             "agent-001",
         ])?;
@@ -436,7 +436,7 @@ fn benchmark_system_stats_detailed() -> Result<(), Box<dyn std::error::Error + S
             "agent",
             "register",
             "--name",
-            &format!("detailed-stats-bench-agent-{}", i),
+            &format!("detailed-stats-bench-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -481,7 +481,7 @@ fn benchmark_message_history() -> Result<(), Box<dyn std::error::Error + Send + 
             "send-message",
             "--to",
             "agent-001",
-            &format!("History benchmark message {}", i),
+            &format!("History benchmark message {i}"),
             "--message-type",
             "Test",
             "--priority",
@@ -539,7 +539,7 @@ fn benchmark_high_load_agent_registration() -> Result<(), Box<dyn std::error::Er
             "agent",
             "register",
             "--name",
-            &format!("load-bench-agent-{}", i),
+            &format!("load-bench-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -550,7 +550,7 @@ fn benchmark_high_load_agent_registration() -> Result<(), Box<dyn std::error::Er
     let total_duration = start_time.elapsed();
 
     println!("=== High Load Agent Registration ===");
-    println!("Total time for 100 agents: {:?}", total_duration);
+    println!("Total time for 100 agents: {total_duration:?}");
     println!("Average time per agent: {:?}", total_duration / 100);
     println!("=====================================");
 
@@ -588,7 +588,7 @@ fn benchmark_high_load_message_sending() -> Result<(), Box<dyn std::error::Error
             "send-message",
             "--to",
             "agent-001",
-            &format!("Load test message {}", i),
+            &format!("Load test message {i}"),
             "--message-type",
             "Test",
             "--priority",
@@ -599,7 +599,7 @@ fn benchmark_high_load_message_sending() -> Result<(), Box<dyn std::error::Error
     let total_duration = start_time.elapsed();
 
     println!("=== High Load Message Sending ===");
-    println!("Total time for 200 messages: {:?}", total_duration);
+    println!("Total time for 200 messages: {total_duration:?}");
     println!("Average time per message: {:?}", total_duration / 200);
     println!("==================================");
 
@@ -622,7 +622,7 @@ fn benchmark_concurrent_operations() -> Result<(), Box<dyn std::error::Error + S
     let handles: Vec<_> = (0..10)
         .map(|i| {
             std::thread::spawn(move || {
-                let name = format!("concurrent-agent-{}", i);
+                let name = format!("concurrent-agent-{i}");
                 let args = if i % 2 == 0 {
                     vec![
                         "agent",
@@ -651,10 +651,7 @@ fn benchmark_concurrent_operations() -> Result<(), Box<dyn std::error::Error + S
     let total_duration = start_time.elapsed();
 
     println!("=== Concurrent Operations ===");
-    println!(
-        "Total time for 10 concurrent operations: {:?}",
-        total_duration
-    );
+    println!("Total time for 10 concurrent operations: {total_duration:?}");
     println!("Average time per operation: {:?}", total_duration / 10);
     println!("==============================");
 
@@ -683,7 +680,7 @@ fn benchmark_memory_usage_under_load() -> Result<(), Box<dyn std::error::Error +
             "agent",
             "register",
             "--name",
-            &format!("memory-bench-agent-{}", i),
+            &format!("memory-bench-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -699,16 +696,13 @@ fn benchmark_memory_usage_under_load() -> Result<(), Box<dyn std::error::Error +
                 "send-message",
                 "--to",
                 &format!("agent-{:03}", i + 1),
-                &format!("Memory test message {} from agent {}", j, i),
+                &format!("Memory test message {j} from agent {i}"),
                 "--message-type",
                 "Test",
                 "--priority",
                 "Normal",
                 "--payload",
-                &format!(
-                    "{{\"test\": \"memory\", \"agent\": {}, \"message\": {}}}",
-                    i, j
-                ),
+                &format!("{{\"test\": \"memory\", \"agent\": {i}, \"message\": {j}}}"),
             ])?;
         }
     }
@@ -717,8 +711,8 @@ fn benchmark_memory_usage_under_load() -> Result<(), Box<dyn std::error::Error +
     let final_memory = std::process::id();
 
     println!("=== Memory Usage Under Load ===");
-    println!("Initial process ID: {}", initial_memory);
-    println!("Final process ID: {}", final_memory);
+    println!("Initial process ID: {initial_memory}");
+    println!("Final process ID: {final_memory}");
     println!("Memory usage test completed");
     println!("================================");
 
@@ -749,7 +743,7 @@ fn benchmark_stress_test_rapid_operations() -> Result<(), Box<dyn std::error::Er
             "agent",
             "register",
             "--name",
-            &format!("stress-agent-{}", i),
+            &format!("stress-agent-{i}"),
             "--type",
             "TestAgent",
             "--scope",
@@ -769,13 +763,13 @@ fn benchmark_stress_test_rapid_operations() -> Result<(), Box<dyn std::error::Er
 
     println!("=== Stress Test Results ===");
     println!("Total operations: 500");
-    println!("Successful: {}", success_count);
-    println!("Errors: {}", error_count);
+    println!("Successful: {success_count}");
+    println!("Errors: {error_count}");
     println!(
         "Success rate: {:.2}%",
         (success_count as f64 / 500.0) * 100.0
     );
-    println!("Total time: {:?}", total_duration);
+    println!("Total time: {total_duration:?}");
     println!(
         "Operations per second: {:.2}",
         500.0 / total_duration.as_secs_f64()

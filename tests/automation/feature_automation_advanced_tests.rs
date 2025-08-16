@@ -1034,7 +1034,7 @@ impl Config {
         "JWT token pattern should be detected"
     );
 
-    println!("Found suspicious patterns: {:?}", found_patterns);
+    println!("Found suspicious patterns: {found_patterns:?}");
 
     Ok(())
 }
@@ -1935,8 +1935,8 @@ fn test_performance_validation_large_files_direct() -> Result<(), Box<dyn std::e
             .map(|e| e.file_name())
             .collect::<Vec<_>>()
     );
-    println!("Large file size: {} bytes", large_file_size);
-    println!("Normal file size: {} bytes", normal_file_size);
+    println!("Large file size: {large_file_size} bytes");
+    println!("Normal file size: {normal_file_size} bytes");
 
     Ok(())
 }
@@ -2018,7 +2018,7 @@ function queryDatabase(userId) {
         "XSS vulnerability should be detected"
     );
 
-    println!("Found suspicious patterns: {:?}", found_patterns);
+    println!("Found suspicious patterns: {found_patterns:?}");
 
     Ok(())
 }
@@ -2139,10 +2139,7 @@ fn main() {
         "Detected dependencies: {:?}",
         dependencies.keys().collect::<Vec<_>>()
     );
-    println!(
-        "Potentially vulnerable dependencies: {:?}",
-        potentially_vulnerable_deps
-    );
+    println!("Potentially vulnerable dependencies: {potentially_vulnerable_deps:?}");
 
     Ok(())
 }
@@ -2258,7 +2255,7 @@ impl InefficientCode {
         "Multiple HashMap lookups should be detected"
     );
 
-    println!("Found inefficient patterns: {:?}", found_patterns);
+    println!("Found inefficient patterns: {found_patterns:?}");
 
     Ok(())
 }
@@ -2403,7 +2400,7 @@ impl AntiPatternCode {
         "Dead code should be detected"
     );
 
-    println!("Found anti-patterns: {:?}", found_patterns);
+    println!("Found anti-patterns: {found_patterns:?}");
 
     Ok(())
 }
@@ -2526,8 +2523,7 @@ context:
     for file_path in &valid_context_files {
         assert!(
             file_path.exists(),
-            "Required context file should exist: {:?}",
-            file_path
+            "Required context file should exist: {file_path:?}"
         );
     }
 
@@ -2535,13 +2531,12 @@ context:
     for file_path in &missing_context_files {
         assert!(
             !file_path.exists(),
-            "Missing context file should not exist: {:?}",
-            file_path
+            "Missing context file should not exist: {file_path:?}"
         );
     }
 
-    println!("Valid context files: {:?}", valid_context_files);
-    println!("Missing context files: {:?}", missing_context_files);
+    println!("Valid context files: {valid_context_files:?}");
+    println!("Missing context files: {missing_context_files:?}");
 
     Ok(())
 }
@@ -2695,16 +2690,15 @@ fn test_healthy_code() {
 
     assert!(
         health_score >= 75,
-        "Branch health score should be at least 75, got {}",
-        health_score
+        "Branch health score should be at least 75, got {health_score}"
     );
 
     println!("Branch health metrics:");
-    println!("- Has documentation: {}", has_documentation);
-    println!("- Has tests: {}", has_tests);
-    println!("- Has clean structure: {}", has_clean_structure);
-    println!("- Has proper naming: {}", has_proper_naming);
-    println!("- Health score: {}/100", health_score);
+    println!("- Has documentation: {has_documentation}");
+    println!("- Has tests: {has_tests}");
+    println!("- Has clean structure: {has_clean_structure}");
+    println!("- Has proper naming: {has_proper_naming}");
+    println!("- Health score: {health_score}/100");
 
     Ok(())
 }
@@ -2856,7 +2850,7 @@ impl MergeTest {
         "Merge strategies available: {:?}",
         strategies.keys().collect::<Vec<_>>()
     );
-    println!("Default strategy: {}", default_strategy);
+    println!("Default strategy: {default_strategy}");
     println!(
         "Auto resolve conflicts: {}",
         conflict_resolution["auto_resolve"]
@@ -2992,8 +2986,7 @@ impl ConflictResolver {
     for conflict_type in &required_conflicts {
         assert!(
             strategies.contains_key(*conflict_type),
-            "Conflict type '{}' should be defined",
-            conflict_type
+            "Conflict type '{conflict_type}' should be defined"
         );
     }
 
@@ -3267,7 +3260,7 @@ impl BoundaryViolations {
     );
 
     println!("Boundary rules validation:");
-    println!("- Forbidden keywords found: {:?}", found_violations);
+    println!("- Forbidden keywords found: {found_violations:?}");
     println!("- Long lines found: {}", long_lines.len());
     println!(
         "- Max file size: {}MB",
@@ -3595,7 +3588,7 @@ fn test_edge_case_validation_direct() -> Result<(), Box<dyn std::error::Error>> 
 
     // Test edge case 2: Very large file names
     let long_filename = "a".repeat(200) + ".rs";
-    fixture.create_test_file(&format!("src/{}", long_filename), "// Very long filename")?;
+    fixture.create_test_file(&format!("src/{long_filename}"), "// Very long filename")?;
 
     // Test edge case 3: Files with special characters
     fixture.create_test_file(
@@ -3641,7 +3634,7 @@ fn test_edge_case_validation_direct() -> Result<(), Box<dyn std::error::Error>> 
 
     // Commit all files
     fixture.commit_file("src/empty_file.rs", "Add empty file")?;
-    fixture.commit_file(&format!("src/{}", long_filename), "Add long filename")?;
+    fixture.commit_file(&format!("src/{long_filename}"), "Add long filename")?;
     fixture.commit_file("src/special-char@file.rs", "Add special char file")?;
     fixture.commit_file("src/unicode_测试.rs", "Add unicode file")?;
     fixture.commit_file(
@@ -3668,7 +3661,7 @@ fn test_edge_case_validation_direct() -> Result<(), Box<dyn std::error::Error>> 
         "Empty file should exist"
     );
     assert!(
-        temp_dir.join(&format!("src/{}", long_filename)).exists(),
+        temp_dir.join(format!("src/{long_filename}")).exists(),
         "Long filename should exist"
     );
     assert!(
@@ -3734,7 +3727,7 @@ fn test_edge_case_validation_direct() -> Result<(), Box<dyn std::error::Error>> 
     assert_eq!(binary_file_size, 7, "Binary file should have size 7");
 
     // Test filename length edge case
-    let long_filename_path = temp_dir.join(&format!("src/{}", long_filename));
+    let long_filename_path = temp_dir.join(format!("src/{long_filename}"));
     let long_filename_metadata = std::fs::metadata(&long_filename_path)?;
     assert!(
         long_filename_metadata.is_file(),
@@ -3790,8 +3783,8 @@ fn test_edge_case_validation_direct() -> Result<(), Box<dyn std::error::Error>> 
     );
 
     println!("Edge case validation:");
-    println!("- Empty file size: {} bytes", empty_file_size);
-    println!("- Binary file size: {} bytes", binary_file_size);
+    println!("- Empty file size: {empty_file_size} bytes");
+    println!("- Binary file size: {binary_file_size} bytes");
     println!("- Long filename length: {} characters", long_filename.len());
     println!("- Hidden files found: {}", hidden_files.len());
     println!("- Nested directory depth: 5 levels");
@@ -4126,8 +4119,8 @@ fn test_configuration_validation_edge_cases_direct() -> Result<(), Box<dyn std::
     );
 
     println!("Configuration validation edge cases:");
-    println!("- Empty config size: {} bytes", empty_config_size);
-    println!("- Large config size: {} bytes", large_config_size);
+    println!("- Empty config size: {empty_config_size} bytes");
+    println!("- Large config size: {large_config_size} bytes");
     println!("- Malformed JSON detected: ✓");
     println!("- Circular references detected: ✓");
     println!("- Special characters handled: ✓");
@@ -5012,16 +5005,16 @@ impl GoodQualityCode {
     assert!(small_functions > 0, "Should have small, focused functions");
 
     println!("Code quality validation:");
-    println!("- Magic numbers detected: {}", magic_number_count);
-    println!("- Long lines detected: {}", long_lines);
-    println!("- Deep nesting detected: {}", deep_nesting);
-    println!("- Unused variables detected: {}", unused_variables);
-    println!("- Dead code detected: {}", dead_code);
-    println!("- Inconsistent naming detected: {}", inconsistent_naming);
-    println!("- Constants defined: {}", constants);
-    println!("- Error handling patterns: {}", error_handling);
-    println!("- Meaningful names: {}", meaningful_names);
-    println!("- Small functions: {}", small_functions);
+    println!("- Magic numbers detected: {magic_number_count}");
+    println!("- Long lines detected: {long_lines}");
+    println!("- Deep nesting detected: {deep_nesting}");
+    println!("- Unused variables detected: {unused_variables}");
+    println!("- Dead code detected: {dead_code}");
+    println!("- Inconsistent naming detected: {inconsistent_naming}");
+    println!("- Constants defined: {constants}");
+    println!("- Error handling patterns: {error_handling}");
+    println!("- Meaningful names: {meaningful_names}");
+    println!("- Small functions: {small_functions}");
     println!(
         "- Max function parameters: {}",
         rules["max_function_parameters"]
@@ -5722,16 +5715,16 @@ MIT License
     assert!(readme_usage > 0, "Should have usage section");
 
     println!("Documentation validation:");
-    println!("- Module documentation: {}", module_docs);
-    println!("- Function documentation: {}", function_docs);
-    println!("- Code examples: {}", examples);
-    println!("- Parameter documentation: {}", param_docs);
-    println!("- Return documentation: {}", return_docs);
-    println!("- Error documentation: {}", error_docs);
-    println!("- Example documentation: {}", test_docs);
-    println!("- Missing documentation: {}", missing_docs);
-    println!("- README sections: {}", readme_sections);
-    println!("- README examples: {}", readme_examples);
+    println!("- Module documentation: {module_docs}");
+    println!("- Function documentation: {function_docs}");
+    println!("- Code examples: {examples}");
+    println!("- Parameter documentation: {param_docs}");
+    println!("- Return documentation: {return_docs}");
+    println!("- Error documentation: {error_docs}");
+    println!("- Example documentation: {test_docs}");
+    println!("- Missing documentation: {missing_docs}");
+    println!("- README sections: {readme_sections}");
+    println!("- README examples: {readme_examples}");
     println!(
         "- Min public API coverage: {}",
         coverage["min_public_api_coverage"]

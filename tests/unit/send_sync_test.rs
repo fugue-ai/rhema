@@ -31,7 +31,7 @@ async fn test_repository_send_sync() {
             let path = repo_guard.path();
             assert!(path.exists());
 
-            println!("Task {} completed successfully", i);
+            println!("Task {i} completed successfully");
         });
         handles.push(handle);
     }

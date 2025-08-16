@@ -559,7 +559,7 @@ impl ApiDocumentation {
                         param.name, param.param_type, param.description
                     ));
                 }
-                markdown.push_str("\n");
+                markdown.push('\n');
             }
 
             for response in &endpoint.responses {
@@ -568,7 +568,7 @@ impl ApiDocumentation {
                     response.status_code, response.description
                 ));
             }
-            markdown.push_str("\n");
+            markdown.push('\n');
         }
 
         // Error codes
@@ -578,7 +578,7 @@ impl ApiDocumentation {
             markdown.push_str(&format!("**Status Code:** {}\n\n", error.status_code));
             markdown.push_str(&format!("{}\n\n", error.description));
             if let Some(ref resolution) = error.resolution {
-                markdown.push_str(&format!("**Resolution:** {}\n\n", resolution));
+                markdown.push_str(&format!("**Resolution:** {resolution}\n\n"));
             }
         }
 
@@ -596,15 +596,15 @@ impl ApiDocGenerator {
 
         // Save as YAML
         let yaml_content = serde_yaml::to_string(&docs)?;
-        std::fs::write(format!("{}.yaml", output_path), yaml_content)?;
+        std::fs::write(format!("{output_path}.yaml"), yaml_content)?;
 
         // Save as Markdown
         let markdown_content = docs.to_markdown();
-        std::fs::write(format!("{}.md", output_path), markdown_content)?;
+        std::fs::write(format!("{output_path}.md"), markdown_content)?;
 
         // Save as OpenAPI
         let openapi_content = serde_yaml::to_string(&docs.to_openapi())?;
-        std::fs::write(format!("{}-openapi.yaml", output_path), openapi_content)?;
+        std::fs::write(format!("{output_path}-openapi.yaml"), openapi_content)?;
 
         Ok(())
     }

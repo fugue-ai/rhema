@@ -511,14 +511,8 @@ impl TestRunner {
         }
 
         let duration = start_time.elapsed();
-        println!(
-            "✅ Coordination Integration Tests completed in {:?}",
-            duration
-        );
-        println!(
-            "   Passed: {}, Failed: {}, Skipped: {}",
-            passed, failed, skipped
-        );
+        println!("✅ Coordination Integration Tests completed in {duration:?}");
+        println!("   Passed: {passed}, Failed: {failed}, Skipped: {skipped}");
 
         if failed > 0 {
             Ok(SimpleTestResult::Failed)
@@ -562,14 +556,8 @@ impl TestRunner {
         }
 
         let duration = start_time.elapsed();
-        println!(
-            "✅ Coordination Performance Benchmarks completed in {:?}",
-            duration
-        );
-        println!(
-            "   Passed: {}, Failed: {}, Skipped: {}",
-            passed, failed, skipped
-        );
+        println!("✅ Coordination Performance Benchmarks completed in {duration:?}");
+        println!("   Passed: {passed}, Failed: {failed}, Skipped: {skipped}");
 
         if failed > 0 {
             Ok(SimpleTestResult::Failed)
@@ -613,11 +601,8 @@ impl TestRunner {
         }
 
         let duration = start_time.elapsed();
-        println!("✅ Coordination Security Tests completed in {:?}", duration);
-        println!(
-            "   Passed: {}, Failed: {}, Skipped: {}",
-            passed, failed, skipped
-        );
+        println!("✅ Coordination Security Tests completed in {duration:?}");
+        println!("   Passed: {passed}, Failed: {failed}, Skipped: {skipped}");
 
         if failed > 0 {
             Ok(SimpleTestResult::Failed)
@@ -715,7 +700,7 @@ impl TestRunner {
         let total_passed = report.total_passed();
         let total_failed = report.total_failed();
 
-        println!("Total Tests: {}", total_tests);
+        println!("Total Tests: {total_tests}");
         println!("Passed: {}", total_passed.to_string().green());
         println!("Failed: {}", total_failed.to_string().red());
 
@@ -740,6 +725,12 @@ pub struct TestRunnerReport {
     pub load_tests: Option<TestSuiteResult>,
     pub benchmarks: Option<TestSuiteResult>,
     pub total_duration: Duration,
+}
+
+impl Default for TestRunnerReport {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TestRunnerReport {
@@ -857,6 +848,6 @@ pub trait TestConfigExt {
 impl TestConfigExt for TestConfig {
     fn should_run_unit_tests(&self) -> bool {
         // Unit tests are always run unless explicitly disabled
-        !std::env::var("RHEMA_SKIP_UNIT_TESTS").is_ok()
+        std::env::var("RHEMA_SKIP_UNIT_TESTS").is_err()
     }
 }

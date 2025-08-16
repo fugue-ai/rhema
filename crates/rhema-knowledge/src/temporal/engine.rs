@@ -155,7 +155,7 @@ impl TemporalRelevanceEngine {
         };
 
         // Combine frequency and recency
-        let pattern_score = (access_frequency_score * 0.6 + recency_score * 0.4);
+        let pattern_score = access_frequency_score * 0.6 + recency_score * 0.4;
 
         trace!(
             "Access pattern score: frequency={:.3}, recency={:.3}, combined={:.3}",

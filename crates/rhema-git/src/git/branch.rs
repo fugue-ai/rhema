@@ -861,7 +861,7 @@ impl BranchContextManager {
 
         let mut merged_files = Vec::new();
         let mut messages = Vec::new();
-        let mut conflicts = Vec::new();
+        let conflicts = Vec::new();
 
         // Identify conflicts and prompt for resolution
         for file_path in &source_context.context_files {
@@ -984,7 +984,7 @@ impl BranchContextManager {
         // Squash strategy: combine all source changes into a single change
         // This creates a single commit that represents all the changes
 
-        let mut squashed_content: HashMap<String, String> = HashMap::new();
+        let squashed_content: HashMap<String, String> = HashMap::new();
 
         // Collect all source changes
         for file_path in &source_context.context_files {

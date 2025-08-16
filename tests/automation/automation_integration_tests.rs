@@ -378,7 +378,7 @@ fn test_empty_and_none_data() {
     // Test with None data
     let result = manager.trigger_workflow_automation("commit", None);
     if let Err(e) = &result {
-        println!("Error: {:?}", e);
+        println!("Error: {e:?}");
     }
     assert!(result.is_ok());
 

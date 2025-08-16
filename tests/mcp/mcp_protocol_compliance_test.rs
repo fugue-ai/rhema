@@ -89,8 +89,8 @@ async fn test_mcp_tool_result_operations() -> RhemaResult<()> {
 
     // Create multiple test files
     for i in 0..3 {
-        let file = test_path.join(format!("file_{}.txt", i));
-        std::fs::write(&file, format!("content {}", i))?;
+        let file = test_path.join(format!("file_{i}.txt"));
+        std::fs::write(&file, format!("content {i}"))?;
         assert!(file.exists());
     }
 
