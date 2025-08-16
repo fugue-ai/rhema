@@ -7,7 +7,7 @@ use crate::error::{Error, ImpactAnalysisResult, Result, ValidationResult};
 use crate::graph::DependencyGraph;
 use crate::health::{HealthMonitor, HealthMonitorConfig, HealthStatusWithMetrics};
 use crate::impact::ImpactAnalysis;
-use crate::types::{DependencyConfig, DependencyType, HealthMetrics, HealthStatus, ImpactScore};
+use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore};
 use crate::validation::{ValidationConfig, ValidationEngine};
 
 /// Main dependency manager that orchestrates all components

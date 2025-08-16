@@ -1,13 +1,13 @@
 use chrono::{DateTime, Duration, Utc};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
+use sha2::Digest;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, DependencyType, HealthStatus};
+use crate::error::Result;
+use crate::types::{DependencyConfig, DependencyType};
 
 /// Security vulnerability information
 #[derive(Debug, Clone, Serialize, Deserialize)]

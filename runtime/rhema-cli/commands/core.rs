@@ -17,7 +17,6 @@
 use crate::CliContext;
 use rhema_api::RhemaResult;
 use rhema_core::RhemaError;
-use rhema_query::QueryProvenance;
 use std::path::PathBuf;
 
 pub fn handle_init(

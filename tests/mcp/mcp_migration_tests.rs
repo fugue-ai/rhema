@@ -44,7 +44,7 @@ pub struct RhemaMcpServer;
 pub struct SdkPrompt {
     pub name: String,
     pub description: String,
-    pub segments: Vec<rhema_mcp::sdk::PromptSegment>,
+    pub segments: Vec<rhema_mcp::runtime::PromptSegment>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -458,7 +458,7 @@ async fn test_mcp_tool_structure() {
 
 #[tokio::test]
 async fn test_mcp_prompt_structure() {
-    use rhema_mcp::sdk::PromptSegment;
+    use rhema_mcp::runtime::PromptSegment;
 
     let prompt = SdkPrompt {
         name: "context_analysis".to_string(),

@@ -1,10 +1,10 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 use crate::error::{Error, ImpactAnalysisResult, Result, RiskLevel};
 use crate::graph::DependencyGraph;
-use crate::types::{DependencyConfig, DependencyType, HealthMetrics, HealthStatus, ImpactScore};
+use crate::types::DependencyType;
 
 /// Business impact metrics configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

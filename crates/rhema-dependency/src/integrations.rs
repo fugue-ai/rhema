@@ -1,11 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore};
+use crate::types::DependencyConfig;
 
 /// Package manager integration for dependency management
 pub struct PackageManagerIntegration {

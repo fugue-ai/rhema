@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+use rhema_mcp::auth::ClientType;
+use rhema_mcp::cache::CacheConfig;
 use rhema_mcp::{
     AuthManager, CacheManager, ContextProvider, EnhancedConnectionPool, FileWatcher, McpConfig,
     OfficialRhemaMcpServer, PerformanceMetrics,
@@ -21,7 +23,6 @@ use rhema_mcp::{
 use std::sync::Arc;
 use std::time::Duration;
 use tempfile::TempDir;
-use tokio::time::sleep;
 
 #[tokio::test]
 async fn test_enhanced_jwt_token_validation() {
@@ -190,7 +191,7 @@ async fn test_secure_session_management() {
     let client_info = rhema_mcp::ClientInfo {
         ip_address: Some("192.168.1.100".to_string()),
         user_agent: Some("TestClient/1.0".to_string()),
-        client_type: rhema_cli::auth::ClientType::Http,
+        client_type: ClientType::Http,
         fingerprint: Some("test-fingerprint".to_string()),
     };
 
@@ -226,7 +227,7 @@ async fn test_secure_session_management() {
     let different_client_info = rhema_mcp::ClientInfo {
         ip_address: Some("192.168.1.200".to_string()),
         user_agent: Some("TestClient/1.0".to_string()),
-        client_type: rhema_cli::auth::ClientType::Http,
+        client_type: ClientType::Http,
         fingerprint: Some("test-fingerprint".to_string()),
     };
 
@@ -519,7 +520,7 @@ async fn test_comprehensive_security_integration() {
 
     // Create all components
     let context_provider = Arc::new(ContextProvider::new(repo_root.clone()).unwrap());
-    let cache_config = rhema_cli::cache::CacheConfig::default();
+    let cache_config = CacheConfig::default();
     let cache_manager_future = CacheManager::new(&cache_config);
     let cache_manager = Arc::new(cache_manager_future.await.unwrap());
     let mcp_config = McpConfig::default();
@@ -560,7 +561,7 @@ async fn test_performance_optimization_features() {
 
     // Create components
     let context_provider = Arc::new(ContextProvider::new(repo_root.clone()).unwrap());
-    let cache_config = rhema_cli::cache::CacheConfig::default();
+    let cache_config = CacheConfig::default();
     let cache_manager_future = CacheManager::new(&cache_config);
     let cache_manager = Arc::new(cache_manager_future.await.unwrap());
     let mcp_config = McpConfig::default();

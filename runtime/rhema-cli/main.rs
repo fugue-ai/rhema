@@ -433,7 +433,7 @@ async fn main() -> RhemaResult<()> {
             // Implement actual health check logic
             let scopes = context.handle_error(context.rhema.discover_scopes())?;
             let mut healthy_scopes = 0;
-            let mut total_scopes = scopes.len();
+            let total_scopes = scopes.len();
 
             for scope_item in &scopes {
                 // If a specific scope was requested, only check that scope

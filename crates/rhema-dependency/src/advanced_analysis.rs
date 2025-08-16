@@ -1,11 +1,9 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use std::collections::HashMap;
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore};
+use crate::types::{DependencyConfig, HealthStatus};
 
 /// Dependency cluster representing a group of related dependencies
 #[derive(Debug, Clone, Serialize, Deserialize)]

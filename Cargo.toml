@@ -215,9 +215,7 @@ path = "crates/rhema-api/examples/simple_coordination_example.rs"
 name = "prompt_pattern_advanced_features_example"
 path = "examples/advanced/prompt_pattern_advanced_features_example.rs"
 
-[[example]]
-name = "p2_p3_advanced_features_example"
-path = "examples/advanced/p2_p3_advanced_features_example.rs" 
+ 
 [[bin]]
 name = "rhema"
 path = "runtime/rhema-cli/main.rs"

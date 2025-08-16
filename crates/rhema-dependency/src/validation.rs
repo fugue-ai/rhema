@@ -2,13 +2,11 @@ use chrono::{DateTime, Utc};
 use jsonschema::JSONSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::error::{Error, Result, ValidationResult};
 use crate::graph::DependencyGraph;
-use crate::types::{
-    DependencyConfig, DependencyType, PerformanceRequirements, SecurityRequirements,
-};
+use crate::types::DependencyConfig;
 
 /// Validation rule
 #[derive(Debug, Clone, Serialize, Deserialize)]

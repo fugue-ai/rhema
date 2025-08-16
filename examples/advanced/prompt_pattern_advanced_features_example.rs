@@ -134,23 +134,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 6: Testing usage tracking
     println!("\n6️⃣ Testing usage tracking:");
-    code_review_pattern.record_usage(true, Some("Excellent for security reviews".to_string()));
-    code_review_pattern.record_usage(true, Some("Very helpful for catching bugs".to_string()));
-    code_review_pattern.record_usage(
+    // Note: These methods don't exist on PromptPattern, using usage_analytics field instead
+    code_review_pattern
+        .usage_analytics
+        .record_usage(true, Some("Excellent for security reviews".to_string()));
+    code_review_pattern
+        .usage_analytics
+        .record_usage(true, Some("Very helpful for catching bugs".to_string()));
+    code_review_pattern.usage_analytics.record_usage(
         false,
         Some("Could be more specific about performance".to_string()),
     );
-    code_review_pattern.record_usage(true, Some("Perfect for our workflow".to_string()));
+    code_review_pattern
+        .usage_analytics
+        .record_usage(true, Some("Perfect for our workflow".to_string()));
 
     println!("   Usage statistics:");
-    println!("     - Total uses: {}", code_review_pattern.total_uses());
+    println!(
+        "     - Total uses: {}",
+        code_review_pattern.usage_analytics.total_uses
+    );
     println!(
         "     - Successful uses: {}",
-        code_review_pattern.successful_uses()
+        code_review_pattern.usage_analytics.successful_uses
     );
     println!(
         "     - Success rate: {:.1}%",
-        code_review_pattern.success_rate() * 100.0
+        code_review_pattern.usage_analytics.success_rate() * 100.0
     );
 
     // Example 7: Creating a complete prompts.yaml structure

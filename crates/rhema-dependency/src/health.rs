@@ -4,11 +4,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
-use tokio::time::{interval, sleep};
+use tokio::time::interval;
 
 use crate::error::{Error, Result};
 use crate::graph::DependencyGraph;
-use crate::types::{DependencyConfig, HealthCheckConfig, HealthMetrics, HealthStatus};
+use crate::types::{HealthCheckConfig, HealthMetrics, HealthStatus};
 
 /// Health check result with additional metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]

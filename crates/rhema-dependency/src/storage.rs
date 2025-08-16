@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{mysql::MySqlPool, postgres::PgPool, sqlite::SqlitePool, Database, Pool, Row};
+use sqlx::{mysql::MySqlPool, postgres::PgPool, sqlite::SqlitePool, Row};
 use std::collections::HashMap;
 
 use crate::config::DatabaseConfig;

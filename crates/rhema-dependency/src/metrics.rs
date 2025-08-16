@@ -1,15 +1,15 @@
 use chrono::{DateTime, Utc};
 use prometheus::core::Collector;
 use prometheus::{
-    Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounter, IntCounterVec,
-    IntGauge, IntGaugeVec, Opts, Registry,
+    GaugeVec, HistogramOpts, HistogramVec, IntCounter, IntCounterVec, IntGauge, IntGaugeVec, Opts,
+    Registry,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::graph::DependencyGraph;
-use crate::types::{DependencyType, HealthStatus, ImpactScore};
+use crate::types::{HealthStatus, ImpactScore};
 
 /// Metrics collector for the dependency management system
 pub struct MetricsCollector {

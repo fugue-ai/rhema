@@ -1,14 +1,12 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::collections::VecDeque;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::RwLock;
-use tokio::task::JoinSet;
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, DependencyType, HealthStatus, ImpactScore};
+use crate::types::{HealthStatus, ImpactScore};
 
 /// Cache entry for dependency analysis results
 #[derive(Debug, Clone, Serialize, Deserialize)]

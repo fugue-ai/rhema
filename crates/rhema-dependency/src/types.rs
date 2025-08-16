@@ -146,12 +146,12 @@ impl ImpactScore {
     /// Calculate the weighted average impact score
     pub fn weighted_average(&self) -> f64 {
         // Weighted average with business impact having highest weight
-        (self.business_impact * 0.3
+        self.business_impact * 0.3
             + self.revenue_impact * 0.25
             + self.user_experience_impact * 0.2
             + self.operational_cost_impact * 0.15
             + self.security_impact * 0.05
-            + self.compliance_impact * 0.05)
+            + self.compliance_impact * 0.05
     }
 }
 
@@ -241,7 +241,7 @@ impl HealthMetrics {
             0.2
         };
 
-        (availability_score * 0.5 + error_score * 0.3 + performance_score * 0.2)
+        availability_score * 0.5 + error_score * 0.3 + performance_score * 0.2
     }
 }
 

@@ -1,12 +1,11 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
-use std::f64::consts::PI;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, HealthMetrics, HealthStatus, ImpactScore};
+use crate::types::{HealthMetrics, HealthStatus};
 
 /// Prediction model types
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]

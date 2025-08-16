@@ -2,10 +2,10 @@ use chrono::{DateTime, Utc};
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, DependencyType, HealthStatus};
+use crate::types::DependencyConfig;
 
 /// Version constraint for dependencies
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

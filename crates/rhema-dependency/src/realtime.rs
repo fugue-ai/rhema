@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, RwLock};
-use tokio_tungstenite::{accept_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{accept_async, WebSocketStream};
 
 use crate::error::{Error, Result};
 use crate::graph::DependencyGraph;
@@ -259,7 +259,7 @@ impl RealtimeServer {
             .map_err(|e| Error::WebSocket(e.to_string()))?;
 
         let client_id = uuid::Uuid::new_v4().to_string();
-        let mut client = RealtimeClient {
+        let client = RealtimeClient {
             id: client_id.clone(),
             stream: ws_stream,
             subscriptions: Vec::new(),

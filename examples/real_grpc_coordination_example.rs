@@ -37,8 +37,7 @@
 
 use rhema_core::{
     coordination::{
-        create_coordination_manager, AgentInfo, AgentMessage, CoordinationConfig,
-        CoordinationManager, MessagePriority, MessageType,
+        create_coordination_manager, AgentInfo, AgentMessage, CoordinationConfig, MessageType,
     },
     RhemaResult,
 };

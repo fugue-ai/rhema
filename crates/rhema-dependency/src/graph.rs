@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use petgraph::algo::is_cyclic_directed;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::visit::{Dfs, EdgeRef};
+use petgraph::visit::EdgeRef;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 

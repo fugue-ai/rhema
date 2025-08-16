@@ -15,7 +15,7 @@
  */
 
 use rhema_core::lock::LockFileOps;
-use rhema_core::RhemaResult;
+use rhema_core::{LockFileValidation, RhemaResult};
 use std::fs;
 
 #[test]
