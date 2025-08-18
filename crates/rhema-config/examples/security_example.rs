@@ -259,7 +259,7 @@ async fn integrity_verification(security_manager: &SecurityManager) -> RhemaResu
     }
 
     // Test with modified configuration (simulating tampering)
-    let mut modified_config = config.clone();
+    let modified_config = config.clone();
     // In a real scenario, this would be actual modification
     info!("Simulating configuration modification...");
 

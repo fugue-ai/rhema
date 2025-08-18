@@ -35,7 +35,7 @@ async fn main() -> RhemaResult<()> {
     let global_config = create_sample_global_config()?;
 
     // Create comprehensive validator with strict validation
-    let mut validator = ComprehensiveValidator::with_settings(
+    let validator = ComprehensiveValidator::with_settings(
         &global_config,
         300, // 5 minute cache TTL
         ValidationLevel::Strict,

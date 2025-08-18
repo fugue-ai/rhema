@@ -1487,7 +1487,7 @@ mod tests {
         std::fs::write(temp_dir.join("knowledge.yaml"), knowledge_content).unwrap();
 
         // Create enhanced context injector
-        let mut injector = EnhancedContextInjector::new(temp_dir.clone());
+        let injector = EnhancedContextInjector::new(temp_dir.clone());
 
         // Create a test prompt pattern
         let pattern = PromptPattern {

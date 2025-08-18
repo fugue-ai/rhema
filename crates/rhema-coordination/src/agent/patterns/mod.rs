@@ -1426,7 +1426,7 @@ mod tests {
 
     #[test]
     fn test_pattern_registry() {
-        let mut registry = PatternRegistry::new();
+        let registry = PatternRegistry::new();
         assert_eq!(registry.list_patterns().len(), 0);
 
         // Test pattern registration would go here
