@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use tokio::time::{interval, Duration as TokioDuration};
 
 /// Enhanced monitoring configuration for Git integration
@@ -1150,22 +1149,19 @@ impl GitMonitoringManager {
         let config = self.config.clone();
         let metrics_collector = self.metrics_collector.clone();
 
-        thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let mut interval = interval(TokioDuration::from_secs(
-                    config.metrics.intervals.git_operations,
-                ));
+        tokio::spawn(async move {
+            let mut interval = interval(TokioDuration::from_secs(
+                config.metrics.intervals.git_operations,
+            ));
 
-                loop {
-                    interval.tick().await;
+            loop {
+                interval.tick().await;
 
-                    // Collect Git operation metrics
-                    if let Ok(mut collector) = metrics_collector.lock() {
-                        collector.collect_git_metrics();
-                    }
+                // Collect Git operation metrics
+                if let Ok(mut collector) = metrics_collector.lock() {
+                    collector.collect_git_metrics();
                 }
-            });
+            }
         });
 
         Ok(())
@@ -1176,22 +1172,19 @@ impl GitMonitoringManager {
         let config = self.config.clone();
         let performance_monitor = self.performance_monitor.clone();
 
-        thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let mut interval = interval(TokioDuration::from_secs(
-                    config.performance.thresholds.slow_operation_threshold,
-                ));
+        tokio::spawn(async move {
+            let mut interval = interval(TokioDuration::from_secs(
+                config.performance.thresholds.slow_operation_threshold,
+            ));
 
-                loop {
-                    interval.tick().await;
+            loop {
+                interval.tick().await;
 
-                    // Check performance thresholds
-                    if let Ok(mut monitor) = performance_monitor.lock() {
-                        monitor.check_thresholds();
-                    }
+                // Check performance thresholds
+                if let Ok(mut monitor) = performance_monitor.lock() {
+                    monitor.check_thresholds();
                 }
-            });
+            }
         });
 
         Ok(())
@@ -1202,14 +1195,11 @@ impl GitMonitoringManager {
         let _config = self.config.clone();
         let realtime_monitor = self.realtime_monitor.clone();
 
-        thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                // Start WebSocket server
-                if let Ok(mut monitor) = realtime_monitor.lock() {
-                    monitor.start_websocket_server();
-                }
-            });
+        tokio::spawn(async move {
+            // Start WebSocket server
+            if let Ok(mut monitor) = realtime_monitor.lock() {
+                monitor.start_websocket_server();
+            }
         });
 
         Ok(())
@@ -1220,20 +1210,17 @@ impl GitMonitoringManager {
         let _config = self.config.clone();
         let alert_manager = self.alert_manager.clone();
 
-        thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let mut interval = interval(TokioDuration::from_secs(60)); // Check every minute
+        tokio::spawn(async move {
+            let mut interval = interval(TokioDuration::from_secs(60)); // Check every minute
 
-                loop {
-                    interval.tick().await;
+            loop {
+                interval.tick().await;
 
-                    // Check alert rules
-                    if let Ok(mut manager) = alert_manager.lock() {
-                        manager.check_rules();
-                    }
+                // Check alert rules
+                if let Ok(mut manager) = alert_manager.lock() {
+                    manager.check_rules();
                 }
-            });
+            }
         });
 
         Ok(())

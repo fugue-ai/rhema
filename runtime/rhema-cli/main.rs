@@ -600,7 +600,7 @@ async fn main() -> RhemaResult<()> {
 
         Some(Commands::ScopeLoader { subcommand }) => {
             context.display_info("Executing scope loader command...")?;
-            handle_scope_loader(&context, subcommand.clone())
+            handle_scope_loader(&context, subcommand.clone()).await
         }
 
         None => {

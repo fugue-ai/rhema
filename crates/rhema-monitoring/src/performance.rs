@@ -183,6 +183,21 @@ pub struct PerformanceConfig {
     pub storage: StorageConfig,
 }
 
+impl Default for PerformanceConfig {
+    fn default() -> Self {
+        Self {
+            system_monitoring_enabled: true,
+            ux_monitoring_enabled: true,
+            usage_analytics_enabled: true,
+            performance_reporting_enabled: true,
+            metrics_interval: 60,
+            thresholds: PerformanceThresholds::default(),
+            reporting: ReportingConfig::default(),
+            storage: StorageConfig::default(),
+        }
+    }
+}
+
 /// Performance thresholds
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceThresholds {
@@ -208,6 +223,20 @@ pub struct PerformanceThresholds {
     pub error_rate_threshold: f64,
 }
 
+impl Default for PerformanceThresholds {
+    fn default() -> Self {
+        Self {
+            cpu_threshold: 80.0,
+            memory_threshold: 85.0,
+            disk_io_threshold: 100.0,
+            network_latency_threshold: 100.0,
+            command_execution_threshold: 5000,
+            response_time_threshold: 1000,
+            error_rate_threshold: 5.0,
+        }
+    }
+}
+
 /// Reporting configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReportingConfig {
@@ -225,6 +254,18 @@ pub struct ReportingConfig {
 
     /// Dashboard configuration
     pub dashboard: DashboardConfig,
+}
+
+impl Default for ReportingConfig {
+    fn default() -> Self {
+        Self {
+            automated_reports: true,
+            report_interval: 24,
+            formats: vec![ReportFormat::JSON, ReportFormat::HTML],
+            recipients: vec!["admin@example.com".to_string()],
+            dashboard: DashboardConfig::default(),
+        }
+    }
 }
 
 /// Report formats
@@ -255,6 +296,18 @@ pub struct DashboardConfig {
 
     /// Dashboard widgets
     pub widgets: Vec<DashboardWidget>,
+}
+
+impl Default for DashboardConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            port: 8080,
+            host: "localhost".to_string(),
+            auto_refresh: 30,
+            widgets: vec![],
+        }
+    }
 }
 
 /// Dashboard widget
@@ -299,6 +352,17 @@ pub struct StorageConfig {
     pub retention: RetentionPolicy,
 }
 
+impl Default for StorageConfig {
+    fn default() -> Self {
+        Self {
+            storage_type: StorageType::File,
+            storage_path: Some(PathBuf::from("./metrics")),
+            database_url: None,
+            retention: RetentionPolicy::default(),
+        }
+    }
+}
+
 /// Storage types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StorageType {
@@ -322,6 +386,17 @@ pub struct RetentionPolicy {
 
     /// Archive directory
     pub archive_directory: Option<PathBuf>,
+}
+
+impl Default for RetentionPolicy {
+    fn default() -> Self {
+        Self {
+            retention_days: 30,
+            aggregate_old_metrics: true,
+            archive_old_metrics: false,
+            archive_directory: None,
+        }
+    }
 }
 
 /// System performance data

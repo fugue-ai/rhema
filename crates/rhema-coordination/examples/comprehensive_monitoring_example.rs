@@ -18,10 +18,11 @@ use rhema_coordination::{
     advanced_features::{
         AlertingConfig, AlertingSystem, AuditConfig, AuditLogger, TracingConfig, TracingSystem,
     },
+    production_integration::ProductionConfig,
     testing::{
         ChaosTestingConfig, ChaosTestingSystem, SecurityTestingConfig, SecurityTestingSystem,
     },
-    AdvancedFeaturesConfig, ProductionConfig, ProductionIntegration,
+    AdvancedFeaturesConfig, ProductionIntegration,
 };
 use std::collections::HashMap;
 use tracing::{error, info, warn};
@@ -94,7 +95,41 @@ async fn create_monitoring_system(
 
     // Create production integration
     let production_config = ProductionConfig::default();
-    let production_integration = ProductionIntegration::new(production_config).await?;
+    let ai_service = rhema_coordination::ai_service::AIService::new(
+        rhema_coordination::ai_service::AIServiceConfig {
+            api_key: "test-key".to_string(),
+            base_url: "https://api.example.com".to_string(),
+            timeout_seconds: 30,
+            max_concurrent_requests: 10,
+            rate_limit_per_minute: 60,
+            cache_ttl_seconds: 3600,
+            model_version: "gpt-4".to_string(),
+            enable_caching: true,
+            enable_rate_limiting: true,
+            enable_monitoring: true,
+            enable_lock_file_awareness: false,
+            lock_file_path: None,
+            auto_validate_lock_file: false,
+            conflict_prevention_enabled: false,
+            dependency_version_consistency: false,
+            enable_agent_state_management: false,
+            max_concurrent_agents: 5,
+            max_block_time_seconds: 300,
+            agent_persistence_config: None,
+            enable_coordination_integration: false,
+            coordination_config: None,
+            enable_advanced_conflict_prevention: false,
+            advanced_conflict_prevention_config: None,
+        },
+    )
+    .await?;
+    let coordination = rhema_coordination::CoordinationIntegration::new(
+        rhema_coordination::RealTimeCoordinationSystem::new(),
+        Some(rhema_coordination::CoordinationConfig::default()),
+    )
+    .await?;
+    let production_integration =
+        ProductionIntegration::new(ai_service, coordination, production_config).await?;
 
     Ok(ComprehensiveMonitoringSystem {
         alerting_system,
@@ -116,7 +151,7 @@ async fn demonstrate_alerting_system(
         .create_alert(
             "High CPU Usage".to_string(),
             "CPU usage has exceeded 80% threshold".to_string(),
-            rhema_coordination::advanced_features::AlertSeverity::Warning,
+            rhema_coordination::advanced_features::alerting::AlertSeverity::Warning,
             "system_monitor".to_string(),
             "performance".to_string(),
             Some(HashMap::from([
@@ -130,7 +165,7 @@ async fn demonstrate_alerting_system(
         .create_alert(
             "Database Connection Failed".to_string(),
             "Failed to connect to primary database".to_string(),
-            rhema_coordination::advanced_features::AlertSeverity::Error,
+            rhema_coordination::advanced_features::alerting::AlertSeverity::Error,
             "database_monitor".to_string(),
             "connectivity".to_string(),
             Some(HashMap::from([

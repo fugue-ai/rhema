@@ -1261,7 +1261,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dependency_dashboard() {
-        let mut dashboard = DependencyDashboard::new();
+        let dashboard = DependencyDashboard::new();
         let dependencies = vec![DependencyConfig::new(
             "test-dep".to_string(),
             "Test Dependency".to_string(),

@@ -165,7 +165,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create monitoring instance
     info!("📈 Setting up monitoring and observability...");
-    let monitor = CoordinationMonitor::new(
+    let mut monitor = CoordinationMonitor::new(
         monitoring_config,
         client_metrics.clone(),
         connection_status.clone(),

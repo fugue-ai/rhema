@@ -21,7 +21,7 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 
-use crate::PerformanceMonitor;
+use crate::{PerformanceConfig, PerformanceMonitor};
 use rhema_core::RhemaResult;
 
 // Import actual LOCOMO types
@@ -52,6 +52,20 @@ pub struct LocomoIntegrationConfig {
     pub performance_thresholds: LocomoPerformanceThresholds,
     pub alert_configuration: LocomoAlertConfiguration,
     pub dashboard_config: DashboardConfig,
+}
+
+impl Default for LocomoIntegrationConfig {
+    fn default() -> Self {
+        Self {
+            enable_locomo_monitoring: true,
+            locomo_metrics_interval_seconds: 60,
+            locomo_benchmark_interval_hours: 24,
+            locomo_reporting_interval_hours: 1,
+            performance_thresholds: LocomoPerformanceThresholds::default(),
+            alert_configuration: LocomoAlertConfiguration::default(),
+            dashboard_config: DashboardConfig::default(),
+        }
+    }
 }
 
 /// Performance thresholds for LOCOMO metrics
@@ -836,9 +850,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_locomo_integration_creation() {
-        let performance_monitor = Arc::new(PerformanceMonitor::new_default().unwrap());
+        let performance_monitor =
+            Arc::new(PerformanceMonitor::new(PerformanceConfig::default()).unwrap());
         let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
-        let benchmark_engine = Arc::new(LocomoBenchmarkEngine::new());
+        let benchmark_engine = Arc::new(LocomoBenchmarkEngine::new_dummy());
         let reporting_system = Arc::new(LocomoReportingSystem::new(metrics_collector.clone()));
         let config = LocomoIntegrationConfig::default();
 
@@ -861,9 +876,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_integrated_metrics_collection() {
-        let performance_monitor = Arc::new(PerformanceMonitor::new_default().unwrap());
+        let performance_monitor =
+            Arc::new(PerformanceMonitor::new(PerformanceConfig::default()).unwrap());
         let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
-        let benchmark_engine = Arc::new(LocomoBenchmarkEngine::new());
+        let benchmark_engine = Arc::new(LocomoBenchmarkEngine::new_dummy());
         let reporting_system = Arc::new(LocomoReportingSystem::new(metrics_collector.clone()));
         let config = LocomoIntegrationConfig::default();
 
@@ -882,9 +898,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_integration_start_stop() {
-        let performance_monitor = Arc::new(PerformanceMonitor::new_default().unwrap());
+        let performance_monitor =
+            Arc::new(PerformanceMonitor::new(PerformanceConfig::default()).unwrap());
         let metrics_collector = Arc::new(LocomoMetricsCollector::new().unwrap());
-        let benchmark_engine = Arc::new(LocomoBenchmarkEngine::new());
+        let benchmark_engine = Arc::new(LocomoBenchmarkEngine::new_dummy());
         let reporting_system = Arc::new(LocomoReportingSystem::new(metrics_collector.clone()));
         let config = LocomoIntegrationConfig::default();
 

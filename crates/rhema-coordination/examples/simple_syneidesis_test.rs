@@ -19,9 +19,8 @@
 use rhema_coordination::agent::real_time_coordination::{
     AgentInfo, AgentStatus, RealTimeCoordinationSystem,
 };
-use rhema_coordination::coordination_integration::{
-    CoordinationConfig, CoordinationIntegration, SyneidesisConfig,
-};
+use rhema_coordination::coordination_integration::{CoordinationConfig, CoordinationIntegration};
+use rhema_coordination::grpc::coordination_client::SyneidesisConfig;
 use rhema_core::RhemaResult;
 use tracing::info;
 
@@ -36,17 +35,7 @@ async fn main() -> RhemaResult<()> {
     let rhema_coordination = RealTimeCoordinationSystem::new();
 
     // Configure Syneidesis integration
-    let syneidesis_config = SyneidesisConfig {
-        enabled: true,
-        server_address: Some("http://127.0.0.1:50051".to_string()),
-        auto_register_agents: true,
-        sync_messages: true,
-        enable_health_monitoring: true,
-        timeout_seconds: 30,
-        max_retries: 3,
-        enable_tls: false,
-        tls_cert_path: None,
-    };
+    let syneidesis_config = SyneidesisConfig::default();
 
     let integration_config = CoordinationConfig {
         run_local_server: true,
@@ -102,7 +91,7 @@ async fn main() -> RhemaResult<()> {
     );
 
     // Check if Syneidesis integration is enabled
-    if integration.has_syneidesis_integration() {
+    if integration.has_syneidesis_integration().await {
         info!("✅ Syneidesis integration is enabled");
 
         // Get connection status

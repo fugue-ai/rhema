@@ -1,9 +1,9 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::error::{Error, Result};
-use crate::types::{DependencyConfig, HealthStatus};
+use crate::types::{DependencyConfig, DependencyType, HealthStatus};
 
 /// Dependency cluster representing a group of related dependencies
 #[derive(Debug, Clone, Serialize, Deserialize)]

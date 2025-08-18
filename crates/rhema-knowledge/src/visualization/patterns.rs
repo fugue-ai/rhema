@@ -675,7 +675,7 @@ mod tests {
                 for _ in 0..count {
                     content_access.push(ContentAccess {
                         content_id: "test_content".to_string(),
-                        access_time: Utc.ymd(2023, 1, 1 + day).and_hms(hour, 0, 0),
+                        access_time: Utc.with_ymd_and_hms(2023, 1, 1 + day, hour, 0, 0).unwrap(),
                         access_type: crate::temporal::types::AccessType::Read,
                         user_id: Some("test_user".to_string()),
                         session_id: Some("test_session".to_string()),
@@ -701,7 +701,7 @@ mod tests {
             for _ in 0..count {
                 content_access.push(ContentAccess {
                     content_id: "test_content".to_string(),
-                    access_time: Utc.ymd(2023, 1, 1 + day).and_hms(12, 0, 0),
+                    access_time: Utc.with_ymd_and_hms(2023, 1, 1 + day, 12, 0, 0).unwrap(),
                     access_type: crate::temporal::types::AccessType::Read,
                     user_id: Some("test_user".to_string()),
                     session_id: Some("test_session".to_string()),
@@ -721,7 +721,7 @@ mod tests {
         let mut content_access = Vec::new();
 
         // Create test data with burst pattern
-        let mut current_time = Utc.ymd(2023, 1, 1).and_hms(0, 0, 0);
+        let mut current_time = Utc.with_ymd_and_hms(2023, 1, 1, 0, 0, 0).unwrap();
         for i in 0..20 {
             let interval = if i % 5 == 0 { 3600 } else { 60 }; // Burst every 5th access
             current_time = current_time + ChronoDuration::seconds(interval);

@@ -86,7 +86,7 @@ fn create_sample_global_config() -> RhemaResult<GlobalConfig> {
         }
     });
 
-    GlobalConfig::load_from_json(&config_json)
+    GlobalConfig::load_from_json(&config_json.to_string())
 }
 
 /// Example 1: Basic backup and restore
@@ -97,9 +97,7 @@ async fn basic_backup_restore(backup_manager: &mut BackupManager) -> RhemaResult
     let config = create_sample_config()?;
 
     // Create a backup
-    let backup_record = backup_manager
-        .backup_config(&config, "basic-backup-test")
-        .await?;
+    let backup_record = backup_manager.backup_config(&config, "basic-backup-test")?;
 
     info!("Basic backup created:");
     info!("  Backup ID: {}", backup_record.backup_id);
@@ -111,9 +109,8 @@ async fn basic_backup_restore(backup_manager: &mut BackupManager) -> RhemaResult
     info!("  Encryption: {}", backup_record.encryption_enabled);
 
     // Restore the configuration
-    let restored_config: RepositoryConfig = backup_manager
-        .restore_config("repository", &backup_record.backup_id)
-        .await?;
+    let restored_config: RepositoryConfig =
+        backup_manager.restore_config("repository", &backup_record.backup_id)?;
 
     info!("Configuration restored successfully");
     info!("  Restored version: {}", restored_config.version());
@@ -133,9 +130,7 @@ async fn backup_with_compression(backup_manager: &mut BackupManager) -> RhemaRes
     let large_config = create_large_config()?;
 
     // Create compressed backup
-    let backup_record = backup_manager
-        .backup_config(&large_config, "compression-test")
-        .await?;
+    let backup_record = backup_manager.backup_config(&large_config, "compression-test")?;
 
     info!("Compressed backup created:");
     info!("  Backup ID: {}", backup_record.backup_id);
@@ -171,9 +166,7 @@ async fn backup_with_encryption(backup_manager: &mut BackupManager) -> RhemaResu
     let sensitive_config = create_sensitive_config()?;
 
     // Create encrypted backup
-    let backup_record = backup_manager
-        .backup_config(&sensitive_config, "encryption-test")
-        .await?;
+    let backup_record = backup_manager.backup_config(&sensitive_config, "encryption-test")?;
 
     info!("Encrypted backup created:");
     info!("  Backup ID: {}", backup_record.backup_id);
@@ -182,7 +175,7 @@ async fn backup_with_encryption(backup_manager: &mut BackupManager) -> RhemaResu
 
     // Validate backup integrity
     let integrity_valid = backup_manager
-        .validate_backup_integrity(&backup_record.backup_path)
+        .validate_backup_integrity(&backup_record)
         .await?;
 
     info!("Backup integrity validation: {}", integrity_valid);
@@ -198,18 +191,16 @@ async fn backup_multiple_configs(backup_manager: &mut BackupManager) -> RhemaRes
     let configs = vec![
         ("repo1", create_sample_config()?),
         ("repo2", create_another_config()?),
-        ("scope1", create_scope_config()?),
     ];
 
     let mut backup_records = Vec::new();
 
     // Backup each configuration
     for (name, config) in configs {
-        let backup_record = backup_manager
-            .backup_config(&config, &format!("multi-backup-{}", name))
-            .await?;
+        let backup_record =
+            backup_manager.backup_config(&config, &format!("multi-backup-{}", name))?;
 
-        backup_records.push(backup_record);
+        backup_records.push(backup_record.clone());
         info!("Backed up {}: {}", name, backup_record.backup_id);
     }
 
@@ -292,7 +283,7 @@ async fn backup_integrity_checking(backup_manager: &mut BackupManager) -> RhemaR
 
     // Validate integrity
     let integrity_valid = backup_manager
-        .validate_backup_integrity(&backup_record.backup_path)
+        .validate_backup_integrity(&backup_record)
         .await?;
 
     info!("Backup integrity validation: {}", integrity_valid);
@@ -327,9 +318,8 @@ async fn backup_retention_management(backup_manager: &mut BackupManager) -> Rhem
     // Create multiple backups to test retention
     for i in 1..=10 {
         let config = create_sample_config()?;
-        let backup_record = backup_manager
-            .backup_config(&config, &format!("retention-test-{}", i))
-            .await?;
+        let backup_record =
+            backup_manager.backup_config(&config, &format!("retention-test-{}", i))?;
 
         info!("Created backup {}: {}", i, backup_record.backup_id);
     }
@@ -355,9 +345,8 @@ async fn backup_format_conversion(backup_manager: &mut BackupManager) -> RhemaRe
         backup_manager.set_backup_format(format.clone());
 
         let config = create_sample_config()?;
-        let backup_record = backup_manager
-            .backup_config(&config, &format!("format-test-{:?}", format))
-            .await?;
+        let backup_record =
+            backup_manager.backup_config(&config, &format!("format-test-{:?}", format))?;
 
         info!("Backup created in {:?} format:", format);
         info!("  Backup ID: {}", backup_record.backup_id);
@@ -365,9 +354,8 @@ async fn backup_format_conversion(backup_manager: &mut BackupManager) -> RhemaRe
         info!("  Size: {} bytes", backup_record.size_bytes);
 
         // Restore from this format
-        let restored_config: RepositoryConfig = backup_manager
-            .restore_config("repository", &backup_record.backup_id)
-            .await?;
+        let restored_config: RepositoryConfig =
+            backup_manager.restore_config("repository", &backup_record.backup_id)?;
 
         info!("  Successfully restored from {:?} format", format);
     }
@@ -441,7 +429,7 @@ async fn disaster_recovery_simulation(backup_manager: &mut BackupManager) -> Rhe
             )
             .await?;
 
-        backup_records.push((scenario.to_string(), backup_record));
+        backup_records.push((scenario.to_string(), backup_record.clone()));
         info!("Created {} backup: {}", scenario, backup_record.backup_id);
     }
 
@@ -457,7 +445,7 @@ async fn disaster_recovery_simulation(backup_manager: &mut BackupManager) -> Rhe
 
         // Validate backup integrity before recovery
         let integrity_valid = backup_manager
-            .validate_backup_integrity(&backup_record.backup_path)
+            .validate_backup_integrity(&backup_record)
             .await?;
 
         if integrity_valid {
@@ -489,7 +477,7 @@ fn create_sample_config() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create another configuration
@@ -503,7 +491,7 @@ fn create_another_config() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create a scope configuration
@@ -516,7 +504,7 @@ fn create_scope_config() -> RhemaResult<ScopeConfig> {
         }
     });
 
-    ScopeConfig::load_from_json(&config_json)
+    ScopeConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create a large configuration for compression testing
@@ -539,7 +527,7 @@ fn create_large_config() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create a sensitive configuration for encryption testing
@@ -566,7 +554,7 @@ fn create_sensitive_config() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create a critical configuration for disaster recovery testing
@@ -591,7 +579,7 @@ fn create_critical_config() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 #[cfg(test)]

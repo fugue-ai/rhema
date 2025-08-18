@@ -866,10 +866,12 @@ mod tests {
     #[tokio::test]
     async fn test_dashboard_server_creation() {
         let integration = Arc::new(LocomoPerformanceIntegration::new(
-            Arc::new(crate::PerformanceMonitor::new_default().unwrap()),
-            Arc::new(rhema_locomo::LocomoMetricsCollector),
-            Arc::new(rhema_locomo::LocomoBenchmarkEngine),
-            Arc::new(rhema_locomo::LocomoReportingSystem),
+            Arc::new(crate::PerformanceMonitor::new(crate::PerformanceConfig::default()).unwrap()),
+            Arc::new(rhema_locomo::LocomoMetricsCollector::new().unwrap()),
+            Arc::new(rhema_locomo::LocomoBenchmarkEngine::new_dummy()),
+            Arc::new(rhema_locomo::LocomoReportingSystem::new(Arc::new(
+                rhema_locomo::LocomoMetricsCollector::new().unwrap(),
+            ))),
             crate::locomo_integration::LocomoIntegrationConfig::default(),
         ));
 

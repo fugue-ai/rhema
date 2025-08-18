@@ -27,9 +27,11 @@ use rhema_coordination::{
         AgentInfo, AgentMessage, AgentStatus, MessagePriority, MessageType,
         RealTimeCoordinationSystem,
     },
-    coordination_integration::{CoordinationConfig, CoordinationIntegration, SyneidesisConfig},
+    coordination_integration::{CoordinationConfig, CoordinationIntegration},
+    grpc::coordination_client::SyneidesisConfig,
 };
 use rhema_core::RhemaResult;
+use std::collections::HashMap;
 use tracing::{info, warn};
 
 #[tokio::main]
@@ -43,17 +45,9 @@ async fn main() -> RhemaResult<()> {
     let rhema_coordination = RealTimeCoordinationSystem::new();
 
     // Configure Syneidesis integration
-    let syneidesis_config = SyneidesisConfig {
-        enabled: true,
-        server_address: Some("http://127.0.0.1:50051".to_string()),
-        auto_register_agents: true,
-        sync_messages: true,
-        enable_health_monitoring: true,
-        timeout_seconds: 30,
-        max_retries: 3,
-        enable_tls: false,
-        tls_cert_path: None,
-    };
+    let mut syneidesis_config = SyneidesisConfig::default();
+    syneidesis_config.enabled = true;
+    syneidesis_config.server_address = Some("http://127.0.0.1:50051".to_string());
 
     let integration_config = CoordinationConfig {
         run_local_server: true,
@@ -102,6 +96,7 @@ async fn main() -> RhemaResult<()> {
         timestamp: chrono::Utc::now(),
         requires_ack: false,
         expires_at: None,
+        metadata: HashMap::new(),
     };
 
     // Send message through integration
@@ -143,7 +138,7 @@ async fn main() -> RhemaResult<()> {
     info!("  Syneidesis Tasks: {}", updated_stats.syneidesis_tasks);
 
     // Check if Syneidesis integration is enabled
-    if integration.has_syneidesis_integration() {
+    if integration.has_syneidesis_integration().await {
         info!("✅ Syneidesis integration is enabled");
 
         // Get connection status

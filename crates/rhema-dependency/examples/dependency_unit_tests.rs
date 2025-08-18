@@ -176,7 +176,7 @@ async fn test_user_experience() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     // Test dashboard
-    let mut dashboard = DependencyDashboard::new();
+    let dashboard = DependencyDashboard::new();
     dashboard.update_data(&dependencies).await?;
     let data = dashboard.get_data().await?;
     assert_eq!(data.total_dependencies, 2);
@@ -245,7 +245,7 @@ async fn test_end_to_end_workflow() -> Result<(), Box<dyn std::error::Error>> {
     let scores = analyzer.score_dependencies(&dependencies).await?;
 
     // Test user experience features
-    let mut dashboard = DependencyDashboard::new();
+    let dashboard = DependencyDashboard::new();
     dashboard.update_data(&dependencies).await?;
 
     let generator = DependencyReportGenerator::new();

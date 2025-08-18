@@ -113,7 +113,7 @@ impl std::fmt::Display for OutputFormat {
     }
 }
 
-pub fn handle_scope_loader(
+pub async fn handle_scope_loader(
     context: &CliContext,
     subcommand: ScopeLoaderSubcommands,
 ) -> RhemaResult<()> {
@@ -122,27 +122,27 @@ pub fn handle_scope_loader(
             path,
             verbose,
             format,
-        } => handle_discover(context, path, verbose, format),
+        } => handle_discover(context, path, verbose, format).await,
         ScopeLoaderSubcommands::Suggest {
             path,
             confidence,
             verbose,
             format,
-        } => handle_suggest(context, path, confidence, verbose, format),
+        } => handle_suggest(context, path, confidence, verbose, format).await,
         ScopeLoaderSubcommands::Create {
             path,
             confidence,
             auto,
             dry_run,
-        } => handle_create(context, path, confidence, auto, dry_run),
+        } => handle_create(context, path, confidence, auto, dry_run).await,
         ScopeLoaderSubcommands::Plugins { verbose, format } => {
-            handle_plugins(context, verbose, format)
+            handle_plugins(context, verbose, format).await
         }
-        ScopeLoaderSubcommands::Stats { clear_cache } => handle_stats(context, clear_cache),
+        ScopeLoaderSubcommands::Stats { clear_cache } => handle_stats(context, clear_cache).await,
     }
 }
 
-fn handle_discover(
+async fn handle_discover(
     context: &CliContext,
     path: Option<PathBuf>,
     verbose: bool,
@@ -170,7 +170,7 @@ fn handle_discover(
     let service = ScopeLoaderService::new(registry, config);
 
     // Detect boundaries
-    match tokio::runtime::Runtime::new()?.block_on(service.detect_boundaries(&target_path)) {
+    match service.detect_boundaries(&target_path).await {
         Ok(boundaries) => {
             println!("✅ Discovered {} package boundaries", boundaries.len());
 
@@ -242,7 +242,7 @@ fn handle_discover(
     Ok(())
 }
 
-fn handle_suggest(
+async fn handle_suggest(
     context: &CliContext,
     path: Option<PathBuf>,
     confidence: f64,
@@ -272,7 +272,7 @@ fn handle_suggest(
     let service = ScopeLoaderService::new(registry, config);
 
     // Generate suggestions
-    match tokio::runtime::Runtime::new()?.block_on(service.suggest_scopes(&target_path)) {
+    match service.suggest_scopes(&target_path).await {
         Ok(suggestions) => {
             println!("✅ Generated {} scope suggestions", suggestions.len());
 
@@ -342,7 +342,7 @@ fn handle_suggest(
     Ok(())
 }
 
-fn handle_create(
+async fn handle_create(
     context: &CliContext,
     path: Option<PathBuf>,
     confidence: f64,
@@ -376,16 +376,15 @@ fn handle_create(
     let service = ScopeLoaderService::new(registry, config);
 
     // Generate suggestions first
-    let suggestions =
-        match tokio::runtime::Runtime::new()?.block_on(service.suggest_scopes(&target_path)) {
-            Ok(s) => s,
-            Err(e) => {
-                context
-                    .error_handler
-                    .display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
-                return Err(rhema_core::RhemaError::ConfigError(e.to_string()));
-            }
-        };
+    let suggestions = match service.suggest_scopes(&target_path).await {
+        Ok(s) => s,
+        Err(e) => {
+            context
+                .error_handler
+                .display_error(&rhema_core::RhemaError::ConfigError(e.to_string()))?;
+            return Err(rhema_core::RhemaError::ConfigError(e.to_string()));
+        }
+    };
 
     if suggestions.is_empty() {
         println!("ℹ️  No scope suggestions found with confidence >= {confidence:.2}");
@@ -409,7 +408,7 @@ fn handle_create(
     }
 
     // Create scopes
-    match tokio::runtime::Runtime::new()?.block_on(service.auto_create_scopes(&target_path)) {
+    match service.auto_create_scopes(&target_path).await {
         Ok(scopes) => {
             println!("✅ Successfully created {} scopes:", scopes.len());
             for scope in &scopes {
@@ -427,7 +426,11 @@ fn handle_create(
     Ok(())
 }
 
-fn handle_plugins(_context: &CliContext, verbose: bool, format: OutputFormat) -> RhemaResult<()> {
+async fn handle_plugins(
+    _context: &CliContext,
+    verbose: bool,
+    format: OutputFormat,
+) -> RhemaResult<()> {
     println!("🔌 Available Scope Loader Plugins");
 
     let registry = create_plugin_registry()?;
@@ -499,7 +502,7 @@ fn handle_plugins(_context: &CliContext, verbose: bool, format: OutputFormat) ->
     Ok(())
 }
 
-fn handle_stats(_context: &CliContext, clear_cache: bool) -> RhemaResult<()> {
+async fn handle_stats(_context: &CliContext, clear_cache: bool) -> RhemaResult<()> {
     println!("📊 Scope Loader Statistics");
 
     // Create scope loader service
@@ -517,7 +520,7 @@ fn handle_stats(_context: &CliContext, clear_cache: bool) -> RhemaResult<()> {
     let service = ScopeLoaderService::new(registry, config);
 
     // Get cache stats
-    let stats = tokio::runtime::Runtime::new()?.block_on(service.cache_stats());
+    let stats = service.cache_stats().await;
 
     println!("\n💾 Cache Statistics:");
     println!("  • Boundaries cached: {}", stats.boundaries_count);
@@ -526,7 +529,7 @@ fn handle_stats(_context: &CliContext, clear_cache: bool) -> RhemaResult<()> {
 
     if clear_cache {
         println!("\n🧹 Clearing cache...");
-        tokio::runtime::Runtime::new()?.block_on(service.clear_cache());
+        service.clear_cache().await;
         println!("✅ Cache cleared");
     }
 

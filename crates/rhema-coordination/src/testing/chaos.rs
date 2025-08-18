@@ -57,7 +57,7 @@ pub struct ChaosTestingConfig {
 }
 
 /// Chaos testing modes
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ChaosMode {
     /// Manual mode - experiments must be triggered manually
     Manual,

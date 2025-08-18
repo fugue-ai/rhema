@@ -22,50 +22,120 @@ pub mod types;
 pub mod user_experience;
 pub mod validation;
 
-pub use advanced_analysis::*;
-pub use config::*;
+// Re-export advanced_analysis types (excluding conflicts)
+pub use advanced_analysis::{
+    AdvancedAnalyzer,
+    ClusteringEngine,
+    CostAnalysis,
+    CostAnalyzer,
+    CostBreakdown,
+    CostModel,
+    DependencyCluster,
+    DependencyScore,
+    PerformanceAnalyzer,
+    PerformanceImpact,
+    PerformanceMetrics,
+    PerformanceThresholds,
+    RiskAssessment,
+    RiskAssessor,
+    RiskFactor,
+    RiskLevel as AdvancedRiskLevel,
+    ScoringEngine,
+    ScoringWeights,
+    SecurityAnalysis,
+    SecurityAnalyzer,
+    SecurityCheck,
+    SecurityIssue,
+    SecuritySeverity,
+    TrendAnalysis as AdvancedTrendAnalysis,
+    TrendAnalyzer,
+    TrendDataPoint,
+    TrendDirection as AdvancedTrendDirection,
+    // VulnerabilityAnalysis not found in advanced_analysis
+};
+
+// Re-export config types (excluding conflicts)
+pub use config::{
+    AlertChannelConfig,
+    AlertChannelType,
+    AlertConditionConfig,
+    AlertRuleConfig,
+    AlertSeverity,
+    CacheConfig,
+    Config,
+    HealthMonitoringConfig,
+    PerformanceConfig,
+    SecurityConfig,
+    ValidationConfig,
+    ValidationSeverity,
+    // Exclude RetryConfig to avoid conflicts
+};
+
 pub use error::{
     Error, HealthCheckResult, ImpactAnalysisResult, Result, RiskLevel, ValidationResult,
 };
 pub use graph::*;
 pub use health::*;
-pub use impact::*;
+
+// Re-export impact types (excluding conflicts)
+pub use impact::{
+    BusinessImpactMetrics, ImpactAnalysis as ImpactAnalysisModule, RiskFactors,
+    TrendAnalysis as ImpactTrendAnalysis, TrendDirection as ImpactTrendDirection,
+};
+
 pub use integrations::*;
 pub use manager::*;
 pub use metrics::*;
-pub use performance::*;
-pub use predictive::*;
+
+// Re-export performance types (excluding conflicts)
+pub use performance::{
+    CacheConfig as PerformanceCacheConfig, CacheEntry, CacheStatistics, DependencyCache,
+    MemoryConfig, MemoryMetrics, MemoryOptimizer, ParallelConfig, ParallelProcessor, QueryConfig,
+    QueryOptimizer,
+};
+
+// Re-export predictive types (excluding conflicts)
+pub use predictive::{
+    AnomalyResult, AnomalySeverity, AnomalyThresholds, AnomalyType, ModelConfig, PredictionModel,
+    PredictionResult, PredictionStatistics, PredictiveAnalytics,
+    RiskFactor as PredictiveRiskFactor, TrendAnalysis as PredictiveTrendAnalysis,
+    TrendDirection as PredictiveTrendDirection,
+};
+
 pub use realtime::*;
 pub use resolution::*;
-pub use security::*;
+
+// Re-export security types (excluding conflicts)
+pub use security::{
+    ComplianceCheck, ComplianceStandard, ImplementationEffort, RecommendationPriority,
+    RiskAssessment as SecRiskAssessment, RiskFactor as SecRiskFactor, RiskLevel as SecRiskLevel,
+    SecurityImpact, SecurityRecommendation, SecurityScanResult, SecurityScanner,
+    SecurityScannerConfig, SecurityStatistics, SecurityStatus, Vulnerability,
+    VulnerabilitySeverity, VulnerabilityType,
+};
+
 pub use storage::*;
 pub use types::*;
-pub use user_experience::*;
-pub use validation::*;
 
-// Re-export commonly used types
-pub use AdvancedAnalyzer;
-pub use CiCdIntegration;
-pub use DependencyAlertSystem;
-pub use DependencyCache;
-pub use DependencyDashboard;
-pub use DependencyGraph;
-pub use DependencyManager;
-pub use DependencyReportGenerator;
-pub use DependencyResolver;
-pub use DependencySearchEngine;
-pub use DependencyType;
-pub use HealthMonitor;
-pub use HealthStatus;
-pub use IdeIntegration;
-pub use ImpactAnalysis;
-pub use ImpactScore;
-pub use PackageManagerIntegration;
-pub use ParallelProcessor;
-pub use PredictiveAnalytics;
-pub use ResolutionStrategy;
-pub use SecurityScanner;
-pub use ValidationEngine;
+// Re-export user_experience types (excluding conflicts)
+pub use user_experience::{
+    Alert, AlertAction, AlertChannel, AlertCondition, AlertConfig, AlertRule,
+    AlertSeverity as UXAlertSeverity, AlertStatus, AlertThresholds, CriticalIssue, DashboardConfig,
+    DashboardData, DashboardView, DependencyAlertSystem, DependencyDashboard, DependencyReport,
+    DependencyReportGenerator, DependencySearchEngine, EmailConfig, HealthData, HealthStatusWidget,
+    HealthTrend, IndexedDependency, IssueSeverity, ReportConfig, ReportFormat, ReportMetadata,
+    ReportTemplate, SearchConfig, SearchIndex, SearchResult, SlackConfig, TicketConfig,
+    VulnerabilitySeverity as UXVulnerabilitySeverity, WebhookConfig, WidgetConfig, WidgetData,
+    WidgetType,
+};
+
+// Re-export validation types (excluding conflicts)
+pub use validation::{
+    ValidationConfig as ValConfig, ValidationEngine, ValidationIssue, ValidationRule,
+    ValidationRuleType, ValidationSeverity as ValSeverity, ValidationStatistics,
+};
+
+// Note: All commonly used types are already re-exported above through the specific module imports
 
 /// Initialize the dependency management system
 pub async fn init() -> Result<DependencyManager> {

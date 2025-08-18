@@ -401,7 +401,7 @@ mod tests {
     #[tokio::test]
     async fn test_feedback_generation() {
         let provider = ConfigFeedbackProvider::new();
-        let config = GlobalConfig::default();
+        let config = GlobalConfig::new();
         let validation_result = ValidationResult {
             valid: true,
             issues: Vec::new(),
@@ -422,13 +422,13 @@ mod tests {
     #[tokio::test]
     async fn test_validation_feedback_with_issues() {
         let provider = ConfigFeedbackProvider::new();
-        let config = GlobalConfig::default();
+        let config = GlobalConfig::new();
 
         let issues = vec![ConfigIssue {
-            path: "test.path".to_string(),
-            message: "Test error message".to_string(),
             severity: ConfigIssueSeverity::Error,
-            category: "validation".to_string(),
+            message: "Test error message".to_string(),
+            location: Some("test.path".to_string()),
+            suggestion: Some("Fix the validation error".to_string()),
         }];
 
         let validation_result = ValidationResult {

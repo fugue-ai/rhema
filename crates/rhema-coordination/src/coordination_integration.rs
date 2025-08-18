@@ -977,7 +977,7 @@ mod tests {
         // For now, we just verify the integration was created successfully
         info!(
             "Integration created successfully, Syneidesis client status: {}",
-            integration.has_syneidesis_integration()
+            integration.has_syneidesis_integration().await
         );
     }
 }

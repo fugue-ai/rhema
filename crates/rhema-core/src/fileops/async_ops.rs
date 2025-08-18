@@ -16,7 +16,7 @@
 
 use crate::audit::log_file_operation;
 use crate::cache::AsyncCache;
-use crate::schema::{Priority, TodoEntry, TodoStatus, Todos};
+use crate::schema::knowledge::{TodoEntry, Todos};
 use crate::validation::ValidationRules;
 use crate::{RhemaError, RhemaResult};
 use chrono::Utc;
@@ -478,7 +478,7 @@ pub async fn move_file_async(source: &Path, destination: &Path) -> RhemaResult<(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::schema::{Priority, TodoEntry, TodoStatus, Todos};
+    use crate::schema::knowledge::{Priority, TodoEntry, TodoStatus, Todos};
     use tempfile::tempdir;
 
     #[tokio::test]

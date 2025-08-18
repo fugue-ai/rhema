@@ -15,9 +15,9 @@
  */
 
 use rhema_config::{
-    AccessControlSettings, AccessDecision, AuditSettings, ComplianceReport, ComplianceSettings,
-    ComplianceStatus, Config, EncryptionSettings, GlobalConfig, RepositoryConfig, RhemaResult,
-    SecurityConfig, SecurityManager,
+    security::AuditEvent, AccessControlSettings, AccessDecision, AuditSettings, ComplianceReport,
+    ComplianceSettings, ComplianceStatus, Config, EncryptionSettings, GlobalConfig,
+    RepositoryConfig, RhemaResult, SecurityConfig, SecurityManager,
 };
 use serde_json::json;
 use std::path::PathBuf;
@@ -84,7 +84,7 @@ fn create_sample_global_config() -> RhemaResult<GlobalConfig> {
         }
     });
 
-    GlobalConfig::load_from_json(&config_json)
+    GlobalConfig::load_from_json(&config_json.to_string())
 }
 
 /// Example 1: Configuration encryption and decryption
@@ -176,7 +176,7 @@ async fn audit_logging(security_manager: &SecurityManager) -> RhemaResult<()> {
     for (event_type, details) in audit_events {
         security_manager
             .audit_logger()
-            .log_event(&event_type.parse().unwrap_or_default(), details)?;
+            .log_event(&AuditEvent::Custom(event_type.to_string()), details)?;
 
         info!("Audit event logged: {} - {}", event_type, details);
     }
@@ -515,7 +515,7 @@ fn create_sample_config() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create a sensitive configuration
@@ -546,7 +546,7 @@ fn create_sensitive_config() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 #[cfg(test)]

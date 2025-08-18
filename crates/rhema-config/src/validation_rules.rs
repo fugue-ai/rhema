@@ -769,8 +769,8 @@ mod tests {
         assert!(result);
     }
 
-    #[test]
-    fn test_rule_evaluation() {
+    #[tokio::test]
+    async fn test_rule_evaluation() {
         let mut config = ValidationRulesConfig::new();
 
         let rule = ValidationRule {
@@ -801,10 +801,7 @@ mod tests {
             "test_field": "test_value"
         });
 
-        let results = tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(manager.evaluate_rules(&config_value, "test"))
-            .unwrap();
+        let results = manager.evaluate_rules(&config_value, "test").await.unwrap();
 
         assert_eq!(results.len(), 1);
         assert!(results[0].conditions_met);

@@ -10,7 +10,7 @@ use rhema_config::{
     documentation::{ConfigDocumentationGenerator, DocumentationFormat, DocumentationSettings},
     feedback::{ConfigFeedbackProvider, SuggestionPriority},
     wizard::{ConfigWizard, WizardSettings},
-    Config, ConfigIssue, ConfigIssueSeverity, ValidationResult,
+    Config, ConfigEnvironment, ConfigIssue, ConfigIssueSeverity, GlobalConfig, ValidationResult,
 };
 use serde_json::json;
 use std::path::PathBuf;
@@ -115,7 +115,13 @@ async fn await_feedback_example() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test with valid configuration
     println!("Generating feedback for valid configuration...");
-    let validation_result = ValidationResult::Valid;
+    let validation_result = ValidationResult {
+        valid: true,
+        issues: vec![],
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
         .await;
@@ -128,7 +134,13 @@ async fn await_feedback_example() -> Result<(), Box<dyn std::error::Error>> {
     // Test with invalid configuration
     println!("Generating feedback for configuration with issues...");
     let issues = create_example_issues();
-    let validation_result = ValidationResult::Invalid { issues };
+    let validation_result = ValidationResult {
+        valid: false,
+        issues,
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    };
     let feedback = provider
         .generate_feedback(&config, &validation_result)
         .await;
@@ -197,7 +209,7 @@ async fn await_documentation_example() -> Result<(), Box<dyn std::error::Error>>
 
         let result = generator.generate_documentation(&config, format).await;
 
-        println!("✅ {:?} documentation generated:");
+        println!("✅ Documentation generated:");
         println!("   - Sections: {}", result.documentation.sections.len());
         println!("   - Files: {}", result.statistics.files_generated);
         println!(
@@ -258,7 +270,13 @@ async fn await_integration_example() -> Result<(), Box<dyn std::error::Error>> {
 
     // 2. Validate configuration
     println!("2. Validating configuration...");
-    let validation_result = ValidationResult::Valid; // In real scenario, use actual validation
+    let validation_result = ValidationResult {
+        valid: true,
+        issues: vec![],
+        warnings: vec![],
+        timestamp: chrono::Utc::now(),
+        duration_ms: 0,
+    }; // In real scenario, use actual validation
 
     println!("   ✅ Configuration validation passed");
 
@@ -310,26 +328,20 @@ async fn await_integration_example() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Create an example configuration
-fn create_example_config() -> Config {
-    let mut config = Config::default();
+fn create_example_config() -> GlobalConfig {
+    let mut config = GlobalConfig::new();
 
     // Set user information
-    config.global.user.id = "example_user".to_string();
-    config.global.user.name = "Example User".to_string();
-    config.global.user.email = "example@rhema.ai".to_string();
+    config.user.id = "example_user".to_string();
+    config.user.name = "Example User".to_string();
+    config.user.email = "example@rhema.ai".to_string();
 
     // Set application information
-    config.global.application.name = "Example Rhema Project".to_string();
-    config.global.application.environment = "development".to_string();
-
-    // Set repository information
-    config.repository.repository_type = "git".to_string();
-    config.repository.url = "https://github.com/example/rhema-project".to_string();
+    config.application.name = "Example Rhema Project".to_string();
+    config.environment.current = ConfigEnvironment::Development;
 
     // Set security settings
     config.security.encryption.enabled = true;
-    config.security.access_control.enabled = true;
-    config.security.audit_logging.enabled = true;
 
     config
 }
@@ -338,22 +350,22 @@ fn create_example_config() -> Config {
 fn create_example_issues() -> Vec<ConfigIssue> {
     vec![
         ConfigIssue {
-            path: "global.user.id".to_string(),
-            message: "User ID is too short".to_string(),
             severity: ConfigIssueSeverity::Error,
-            category: "validation".to_string(),
+            message: "User ID is too short".to_string(),
+            location: Some("global.user.id".to_string()),
+            suggestion: Some("Use a longer user ID".to_string()),
         },
         ConfigIssue {
-            path: "security.encryption.algorithm".to_string(),
-            message: "Encryption algorithm not specified".to_string(),
             severity: ConfigIssueSeverity::Warning,
-            category: "security".to_string(),
+            message: "Encryption algorithm not specified".to_string(),
+            location: Some("security.encryption.algorithm".to_string()),
+            suggestion: Some("Specify an encryption algorithm".to_string()),
         },
         ConfigIssue {
-            path: "backup.schedule".to_string(),
-            message: "No backup schedule configured".to_string(),
             severity: ConfigIssueSeverity::Info,
-            category: "backup".to_string(),
+            message: "No backup schedule configured".to_string(),
+            location: Some("backup.schedule".to_string()),
+            suggestion: Some("Configure a backup schedule".to_string()),
         },
     ]
 }

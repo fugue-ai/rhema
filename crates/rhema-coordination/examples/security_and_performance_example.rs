@@ -3,8 +3,7 @@ use rhema_coordination::agent::real_time_coordination::{
 };
 use rhema_coordination::grpc::{
     CompressionAlgorithm, CoordinationMonitor, LoggingAlertHandler, MonitoringConfig,
-    PerformanceConfig, SecurityConfig, SlackAlertHandler, SyneidesisConfig,
-    SyneidesisCoordinationClient, WebhookAlertHandler,
+    PerformanceConfig, SecurityConfig, SyneidesisConfig, SyneidesisCoordinationClient,
 };
 use tracing::{error, info, warn};
 use tracing_subscriber;
@@ -73,28 +72,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create monitoring configuration
     let monitoring_config = MonitoringConfig {
-        enable_health_monitoring: true,
-        health_check_interval: 30,
-        enable_performance_monitoring: true,
-        performance_check_interval: 60,
-        enable_connection_monitoring: true,
-        connection_check_interval: 15,
-        enable_alerting: true,
+        enabled: true,
+        health_check_interval_seconds: 30,
+        performance_monitoring_enabled: true,
+        metrics_collection_interval_seconds: 60,
+        connection_monitoring_enabled: true,
+        alerting_enabled: true,
+        enable_tracing: true,
+        log_level: "info".to_string(),
+        metrics_export_enabled: false,
+        metrics_export_endpoint: None,
+        tracing_sampling_rate: 0.1,
         performance_thresholds: rhema_coordination::grpc::PerformanceThresholds {
             max_response_time_ms: 1000,
             max_error_rate: 0.05,
-            max_connection_failures: 3,
-            min_throughput_ops_per_sec: 10,
+            min_success_rate: 0.95,
+            max_connection_time_ms: 3000,
+            max_reconnection_attempts: 3,
         },
         health_thresholds: rhema_coordination::grpc::HealthThresholds {
-            max_latency_ms: 500,
-            min_success_rate: 0.95,
+            max_response_time_ms: 500,
+            max_error_rate: 0.05,
             max_consecutive_failures: 2,
+            min_connection_uptime_seconds: 300,
         },
     };
 
     // Create monitoring instance
-    let monitor = CoordinationMonitor::new(
+    let mut monitor = CoordinationMonitor::new(
         monitoring_config,
         std::sync::Arc::new(rhema_coordination::grpc::ClientMetrics::new()),
         std::sync::Arc::new(tokio::sync::RwLock::new(
@@ -103,21 +108,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Add alert handlers
-    monitor.add_alert_handler(Box::new(LoggingAlertHandler::new()));
+    monitor.add_alert_handler(Box::new(LoggingAlertHandler));
 
-    // Add webhook alert handler (for production)
-    let webhook_handler = WebhookAlertHandler::new(
-        "https://your-webhook-url.com/alerts".to_string(),
-        "your-webhook-secret".to_string(),
-    );
-    monitor.add_alert_handler(Box::new(webhook_handler));
-
-    // Add Slack alert handler (for production)
-    let slack_handler = SlackAlertHandler::new(
-        "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK".to_string(),
-        "#alerts".to_string(),
-    );
-    monitor.add_alert_handler(Box::new(slack_handler));
+    // Add additional alert handlers would go here in production
+    // monitor.add_alert_handler(Box::new(webhook_handler));
+    // monitor.add_alert_handler(Box::new(slack_handler));
 
     // Start monitoring
     monitor.start().await;
@@ -207,7 +202,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!(
                 "  - Average Response Time: {}ms",
                 metrics
-                    .average_response_time_ms
+                    .average_response_time
                     .load(std::sync::atomic::Ordering::Relaxed)
             );
 

@@ -15,9 +15,9 @@
  */
 
 use rhema_config::{
-    ComprehensiveValidationResult, ComprehensiveValidator, Config, ConfigIssueSeverity,
-    GlobalConfig, RepositoryConfig, RhemaResult, SchemaType, ScopeConfig, ValidationCategory,
-    ValidationLevel,
+    comprehensive_validator::ValidationLevel, ComprehensiveValidationResult,
+    ComprehensiveValidator, Config, ConfigIssueSeverity, GlobalConfig, RepositoryConfig,
+    RhemaResult, SchemaType, ScopeConfig, ValidationCategory,
 };
 use serde_json::json;
 use std::path::PathBuf;

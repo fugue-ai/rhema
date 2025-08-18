@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-use crate::{
-    log_file_operation, Conventions, DecisionEntry, DecisionStatus, Decisions, Knowledge,
-    KnowledgeEntry, PatternEntry, PatternUsage, PatternUsageStats, Patterns, Priority, RhemaError,
-    RhemaResult, TodoEntry, TodoStatus, Todos, ValidationRules,
+use crate::schema::knowledge::{
+    DecisionEntry, DecisionStatus, Decisions, Knowledge, KnowledgeEntry, PatternEntry,
+    PatternUsage, PatternUsageStats, Patterns, Priority, TodoEntry, TodoStatus, Todos,
 };
+use crate::{log_file_operation, RhemaError, RhemaResult, ValidationRules};
 use chrono::Utc;
 use serde_yaml;
 use std::collections::HashMap;

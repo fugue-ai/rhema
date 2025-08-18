@@ -42,10 +42,10 @@ async fn main() -> RhemaResult<()> {
     basic_version_migration(&migration_manager).await?;
 
     // Example 2: Complex migration with multiple steps
-    complex_migration(&migration_manager).await?;
+    complex_migration(&mut migration_manager).await?;
 
     // Example 3: Conditional migration
-    conditional_migration(&migration_manager).await?;
+    conditional_migration(&mut migration_manager).await?;
 
     // Example 4: Migration rollback
     migration_rollback(&migration_manager).await?;
@@ -54,13 +54,13 @@ async fn main() -> RhemaResult<()> {
     migration_validation(&migration_manager).await?;
 
     // Example 6: Custom migration
-    custom_migration(&migration_manager).await?;
+    custom_migration(&mut migration_manager).await?;
 
     // Example 7: Migration history
     migration_history(&migration_manager).await?;
 
     // Example 8: Migration with backup
-    migration_with_backup(&migration_manager).await?;
+    migration_with_backup(&mut migration_manager).await?;
 
     // Example 9: Migration scheduling
     migration_scheduling(&migration_manager).await?;
@@ -84,7 +84,7 @@ fn create_sample_global_config() -> RhemaResult<GlobalConfig> {
         }
     });
 
-    GlobalConfig::load_from_json(&config_json)
+    GlobalConfig::load_from_json(&config_json.to_string())
 }
 
 /// Example 1: Basic version migration
@@ -95,7 +95,7 @@ async fn basic_version_migration(migration_manager: &MigrationManager) -> RhemaR
     let old_config = create_old_version_config()?;
 
     // Migrate to current version
-    let migration_report = migration_manager
+    let (migration_report, _updated_config) = migration_manager
         .migrate_version(&old_config, CURRENT_CONFIG_VERSION)
         .await?;
 
@@ -122,7 +122,7 @@ async fn basic_version_migration(migration_manager: &MigrationManager) -> RhemaR
 }
 
 /// Example 2: Complex migration with multiple steps
-async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<()> {
+async fn complex_migration(migration_manager: &mut MigrationManager) -> RhemaResult<()> {
     info!("=== Example 2: Complex Migration with Multiple Steps ===");
 
     // Create a complex migration
@@ -142,7 +142,9 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
                 })
                 .as_object()
                 .unwrap()
-                .clone(),
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
                 condition: None,
                 rollback: None,
             },
@@ -155,7 +157,9 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
                 })
                 .as_object()
                 .unwrap()
-                .clone(),
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
                 condition: None,
                 rollback: None,
             },
@@ -168,7 +172,9 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
                 })
                 .as_object()
                 .unwrap()
-                .clone(),
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
                 condition: None,
                 rollback: None,
             },
@@ -181,7 +187,9 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
             })
             .as_object()
             .unwrap()
-            .clone(),
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect(),
             condition: None,
             rollback: None,
         }],
@@ -190,14 +198,13 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
     };
 
     // Add the migration to the manager
-    let mut manager = migration_manager.clone();
-    manager.add_migration(complex_migration);
+    migration_manager.add_migration(complex_migration);
 
     // Create a config to migrate
     let config = create_sample_config()?;
 
     // Perform the migration
-    let migration_report = manager.migrate_config(&config, "complex-migration-test")?;
+    let migration_report = migration_manager.migrate_config(&config, "complex-migration-test")?;
 
     info!("Complex migration completed:");
     info!(
@@ -213,7 +220,7 @@ async fn complex_migration(migration_manager: &MigrationManager) -> RhemaResult<
 }
 
 /// Example 3: Conditional migration
-async fn conditional_migration(migration_manager: &MigrationManager) -> RhemaResult<()> {
+async fn conditional_migration(migration_manager: &mut MigrationManager) -> RhemaResult<()> {
     info!("=== Example 3: Conditional Migration ===");
 
     // Create a conditional migration
@@ -226,15 +233,17 @@ async fn conditional_migration(migration_manager: &MigrationManager) -> RhemaRes
             step_type: MigrationStepType::AddField,
             description: "Add feature flag if not present".to_string(),
             parameters: json!({
-                "path": "features",
-                "field": "new_feature",
-                "value": true
+              "path": "features",
+              "field": "new_feature",
+              "value": true
             })
             .as_object()
             .unwrap()
-            .clone(),
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect(),
             condition: Some(MigrationCondition {
-                field: "features.new_feature",
+                field: "features.new_feature".to_string(),
                 operator: MigrationConditionOperator::NotExists,
                 value: json!(null),
             }),
@@ -246,16 +255,16 @@ async fn conditional_migration(migration_manager: &MigrationManager) -> RhemaRes
     };
 
     // Add the migration to the manager
-    let mut manager = migration_manager.clone();
-    manager.add_migration(conditional_migration);
+    migration_manager.add_migration(conditional_migration);
 
     // Create configs with and without the condition
     let config_with_feature = create_config_with_feature()?;
     let config_without_feature = create_config_without_feature()?;
 
     // Migrate both configs
-    let report_with = manager.migrate_config(&config_with_feature, "with-feature")?;
-    let report_without = manager.migrate_config(&config_without_feature, "without-feature")?;
+    let report_with = migration_manager.migrate_config(&config_with_feature, "with-feature")?;
+    let report_without =
+        migration_manager.migrate_config(&config_without_feature, "without-feature")?;
 
     info!("Conditional migration results:");
     info!(
@@ -327,7 +336,7 @@ async fn migration_validation(migration_manager: &MigrationManager) -> RhemaResu
 }
 
 /// Example 6: Custom migration
-async fn custom_migration(migration_manager: &MigrationManager) -> RhemaResult<()> {
+async fn custom_migration(migration_manager: &mut MigrationManager) -> RhemaResult<()> {
     info!("=== Example 6: Custom Migration ===");
 
     // Create a custom migration with custom step type
@@ -352,7 +361,9 @@ async fn custom_migration(migration_manager: &MigrationManager) -> RhemaResult<(
             })
             .as_object()
             .unwrap()
-            .clone(),
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect(),
             condition: None,
             rollback: None,
         }],
@@ -362,12 +373,11 @@ async fn custom_migration(migration_manager: &MigrationManager) -> RhemaResult<(
     };
 
     // Add the migration to the manager
-    let mut manager = migration_manager.clone();
-    manager.add_migration(custom_migration);
+    migration_manager.add_migration(custom_migration);
 
     // Perform the migration
     let config = create_sample_config()?;
-    let migration_report = manager.migrate_config(&config, "custom-migration-test")?;
+    let migration_report = migration_manager.migrate_config(&config, "custom-migration-test")?;
 
     info!("Custom migration completed:");
     info!(
@@ -407,23 +417,22 @@ async fn migration_history(migration_manager: &MigrationManager) -> RhemaResult<
 }
 
 /// Example 8: Migration with backup
-async fn migration_with_backup(migration_manager: &MigrationManager) -> RhemaResult<()> {
+async fn migration_with_backup(migration_manager: &mut MigrationManager) -> RhemaResult<()> {
     info!("=== Example 8: Migration with Backup ===");
 
     // Enable backup before migration
-    let mut manager = migration_manager.clone();
-    manager.set_backup_before_migration(true);
+    migration_manager.set_backup_before_migration(true);
 
     // Create a config and migrate it
     let config = create_sample_config()?;
-    let migration_report = manager.migrate_config(&config, "backup-test")?;
+    let migration_report = migration_manager.migrate_config(&config, "backup-test")?;
 
     info!("Migration with backup completed:");
     info!(
         "  Migrations applied: {}",
         migration_report.migrations_applied.len()
     );
-    info!("  Backup created: {}", manager.backup_before_migration);
+    info!("  Backup created: true");
 
     Ok(())
 }
@@ -505,7 +514,7 @@ fn create_old_version_config() -> RhemaResult<RepositoryConfig> {
         "old_field": "deprecated_value"
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create a sample configuration
@@ -519,7 +528,7 @@ fn create_sample_config() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create a configuration with a feature
@@ -536,7 +545,7 @@ fn create_config_with_feature() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 /// Create a configuration without a feature
@@ -550,7 +559,7 @@ fn create_config_without_feature() -> RhemaResult<RepositoryConfig> {
         }
     });
 
-    RepositoryConfig::load_from_json(&config_json)
+    RepositoryConfig::load_from_json(&config_json.to_string())
 }
 
 #[cfg(test)]

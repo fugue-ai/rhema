@@ -1,5 +1,5 @@
 use rhema_dependency::{
-    BusinessImpactMetrics, DependencyManager, DependencyType, ImpactAnalysis, RiskFactors,
+    impact::ImpactAnalysis, BusinessImpactMetrics, DependencyManager, DependencyType, RiskFactors,
     RiskLevel,
 };
 

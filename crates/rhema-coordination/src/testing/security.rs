@@ -59,7 +59,7 @@ pub struct SecurityTestingConfig {
 }
 
 /// Security testing modes
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SecurityTestingMode {
     /// Manual mode - tests must be triggered manually
     Manual,

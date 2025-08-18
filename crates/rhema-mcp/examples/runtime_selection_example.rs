@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use rhema_mcp::mcp::McpConfig;
 use rhema_mcp::runtime::{choose_runtime, create_runtime, create_runtime_with_daemon, RuntimeType};
+use rhema_mcp::{
+    AuthConfig, CacheConfig, FileWatcherConfig, LoggingConfig, McpConfig, StartupConfig,
+    WatcherConfig,
+};
 use std::sync::Arc;
 
 #[tokio::main]
@@ -29,12 +32,12 @@ async fn main() -> rhema_core::RhemaResult<()> {
         port: 8080,
         unix_socket: None,
         redis_url: None,
-        auth: rhema_mcp::auth::AuthConfig::default(),
-        watcher: rhema_mcp::watcher::WatcherConfig::default(),
-        cache: rhema_mcp::cache::CacheConfig::default(),
-        logging: rhema_mcp::logging::LoggingConfig::default(),
+        auth: AuthConfig::default(),
+        watcher: WatcherConfig::default(),
+        cache: CacheConfig::default(),
+        logging: LoggingConfig::default(),
         use_official_sdk: false,
-        startup: rhema_mcp::mcp::StartupConfig::default(),
+        startup: StartupConfig::default(),
         max_connections: Some(1000),
     };
 
@@ -51,12 +54,12 @@ async fn main() -> rhema_core::RhemaResult<()> {
         port: 0, // No HTTP port
         unix_socket: None,
         redis_url: Some("redis://localhost:6379".to_string()),
-        auth: rhema_mcp::auth::AuthConfig::default(),
-        watcher: rhema_mcp::watcher::WatcherConfig::default(),
-        cache: rhema_mcp::cache::CacheConfig::default(),
-        logging: rhema_mcp::logging::LoggingConfig::default(),
+        auth: AuthConfig::default(),
+        watcher: WatcherConfig::default(),
+        cache: CacheConfig::default(),
+        logging: LoggingConfig::default(),
         use_official_sdk: true,
-        startup: rhema_mcp::mcp::StartupConfig::default(),
+        startup: StartupConfig::default(),
         max_connections: None,
     };
 
@@ -76,12 +79,12 @@ async fn main() -> rhema_core::RhemaResult<()> {
         port: 0, // No HTTP port
         unix_socket: None,
         redis_url: None,
-        auth: rhema_mcp::auth::AuthConfig::default(),
-        watcher: rhema_mcp::watcher::WatcherConfig::default(),
-        cache: rhema_mcp::cache::CacheConfig::default(),
-        logging: rhema_mcp::logging::LoggingConfig::default(),
+        auth: AuthConfig::default(),
+        watcher: WatcherConfig::default(),
+        cache: CacheConfig::default(),
+        logging: LoggingConfig::default(),
         use_official_sdk: false,
-        startup: rhema_mcp::mcp::StartupConfig::default(),
+        startup: StartupConfig::default(),
         max_connections: None,
     };
 

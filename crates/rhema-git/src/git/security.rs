@@ -2123,7 +2123,11 @@ impl SecurityManager {
         }
 
         // Store key data in a simple format
-        let key_entry = format!("{}:{}\n", key_id, base64::encode(key_data));
+        let key_entry = format!(
+            "{}:{}\n",
+            key_id,
+            base64::engine::general_purpose::STANDARD.encode(key_data)
+        );
 
         std::fs::OpenOptions::new()
             .create(true)
@@ -2154,7 +2158,11 @@ impl SecurityManager {
         }
 
         // Store key data in cloud format
-        let key_entry = format!("{}:{}\n", key_id, base64::encode(key_data));
+        let key_entry = format!(
+            "{}:{}\n",
+            key_id,
+            base64::engine::general_purpose::STANDARD.encode(key_data)
+        );
 
         std::fs::OpenOptions::new()
             .create(true)

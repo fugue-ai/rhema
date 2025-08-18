@@ -55,7 +55,7 @@ impl LockFileAIIntegration {
     }
 
     /// Generate AI prompt with lock file context for dependency updates
-    pub fn generate_dependency_update_prompt(
+    pub async fn generate_dependency_update_prompt(
         &self,
         scope_path: &str,
         prompt_template: &str,
@@ -92,16 +92,13 @@ impl LockFileAIIntegration {
             include_transitive_deps: true,
         };
 
-        // Use async runtime for the async method
-        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
-            &pattern,
-            scope_path,
-            &lock_requirement,
-        ))
+        self.context_injector
+            .inject_lock_file_context(&pattern, scope_path, &lock_requirement)
+            .await
     }
 
     /// Generate AI prompt with lock file context for conflict resolution
-    pub fn generate_conflict_resolution_prompt(
+    pub async fn generate_conflict_resolution_prompt(
         &self,
         prompt_template: &str,
     ) -> RhemaResult<String> {
@@ -149,15 +146,16 @@ impl LockFileAIIntegration {
             .to_string_lossy()
             .to_string();
 
-        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
-            &pattern,
-            &project_root,
-            &lock_requirement,
-        ))
+        self.context_injector
+            .inject_lock_file_context(&pattern, &project_root, &lock_requirement)
+            .await
     }
 
     /// Generate AI prompt with lock file context for health assessment
-    pub fn generate_health_assessment_prompt(&self, prompt_template: &str) -> RhemaResult<String> {
+    pub async fn generate_health_assessment_prompt(
+        &self,
+        prompt_template: &str,
+    ) -> RhemaResult<String> {
         let pattern = PromptPattern {
             id: "health_assessment".to_string(),
             name: "Health Assessment".to_string(),
@@ -201,15 +199,13 @@ impl LockFileAIIntegration {
             .to_string_lossy()
             .to_string();
 
-        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
-            &pattern,
-            &project_root,
-            &lock_requirement,
-        ))
+        self.context_injector
+            .inject_lock_file_context(&pattern, &project_root, &lock_requirement)
+            .await
     }
 
     /// Generate AI prompt with lock file context for security review
-    pub fn generate_security_review_prompt(
+    pub async fn generate_security_review_prompt(
         &self,
         scope_path: &str,
         prompt_template: &str,
@@ -246,15 +242,13 @@ impl LockFileAIIntegration {
             include_transitive_deps: true,
         };
 
-        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
-            &pattern,
-            scope_path,
-            &lock_requirement,
-        ))
+        self.context_injector
+            .inject_lock_file_context(&pattern, scope_path, &lock_requirement)
+            .await
     }
 
     /// Generate AI prompt with lock file context for performance optimization
-    pub fn generate_performance_prompt(
+    pub async fn generate_performance_prompt(
         &self,
         scope_path: &str,
         prompt_template: &str,
@@ -291,11 +285,9 @@ impl LockFileAIIntegration {
             include_transitive_deps: true,
         };
 
-        tokio::runtime::Runtime::new()?.block_on(self.context_injector.inject_lock_file_context(
-            &pattern,
-            scope_path,
-            &lock_requirement,
-        ))
+        self.context_injector
+            .inject_lock_file_context(&pattern, scope_path, &lock_requirement)
+            .await
     }
 
     /// Get dependency recommendations for AI agents
@@ -336,7 +328,7 @@ pub mod examples {
     use super::*;
 
     /// Example: Generate a dependency update prompt for AI agents
-    pub fn example_dependency_update_prompt() -> RhemaResult<String> {
+    pub async fn example_dependency_update_prompt() -> RhemaResult<String> {
         let mut integration = LockFileAIIntegration::new(PathBuf::from("."));
         integration.initialize()?;
 
@@ -353,11 +345,13 @@ Consider:
 Provide specific version recommendations and migration steps.
 "#;
 
-        integration.generate_dependency_update_prompt("crates/rhema-core", prompt_template)
+        integration
+            .generate_dependency_update_prompt("crates/rhema-core", prompt_template)
+            .await
     }
 
     /// Example: Generate a conflict resolution prompt for AI agents
-    pub fn example_conflict_resolution_prompt() -> RhemaResult<String> {
+    pub async fn example_conflict_resolution_prompt() -> RhemaResult<String> {
         let mut integration = LockFileAIIntegration::new(PathBuf::from("."));
         integration.initialize()?;
 
@@ -374,11 +368,13 @@ Provide specific recommendations for:
 Provide actionable steps for each identified issue.
 "#;
 
-        integration.generate_conflict_resolution_prompt(prompt_template)
+        integration
+            .generate_conflict_resolution_prompt(prompt_template)
+            .await
     }
 
     /// Example: Generate a security review prompt for AI agents
-    pub fn example_security_review_prompt() -> RhemaResult<String> {
+    pub async fn example_security_review_prompt() -> RhemaResult<String> {
         let mut integration = LockFileAIIntegration::new(PathBuf::from("."));
         integration.initialize()?;
 
@@ -394,11 +390,13 @@ Please analyze the dependencies for:
 Provide a security assessment and recommendations for addressing any issues found.
 "#;
 
-        integration.generate_security_review_prompt("crates/rhema-core", prompt_template)
+        integration
+            .generate_security_review_prompt("crates/rhema-core", prompt_template)
+            .await
     }
 
     /// Example: Generate a performance optimization prompt for AI agents
-    pub fn example_performance_prompt() -> RhemaResult<String> {
+    pub async fn example_performance_prompt() -> RhemaResult<String> {
         let mut integration = LockFileAIIntegration::new(PathBuf::from("."));
         integration.initialize()?;
 
@@ -414,7 +412,9 @@ Please analyze the dependencies for:
 Provide recommendations for optimizing the dependency tree and improving build/run performance.
 "#;
 
-        integration.generate_performance_prompt("crates/rhema-core", prompt_template)
+        integration
+            .generate_performance_prompt("crates/rhema-core", prompt_template)
+            .await
     }
 
     /// Example: Get comprehensive lock file analysis for AI agents

@@ -12,7 +12,14 @@ pub mod validation;
 
 pub use audit::*;
 pub use cache::*;
-pub use coordination::*;
+
+// Re-export coordination types (excluding conflicts)
+pub use coordination::{
+    AgentInfo, AgentMessage, AgentPerformanceMetrics, AgentStatus, ConnectionStats,
+    CoordinationConfig, CoordinationManager, GrpcCoordinationClient, HealthCheckConfig,
+    MessagePriority, MessageType, MockCoordinationClient, RetryConfig, TlsConfig,
+};
+
 pub use error::{RhemaError, RhemaResult};
 pub use lock::*;
 pub use schema::*;

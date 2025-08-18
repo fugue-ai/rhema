@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 
 use crate::error::{Error, Result};
-use crate::types::DependencyConfig;
+use crate::types::{DependencyConfig, DependencyType};
 
 /// Version constraint for dependencies
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -1220,6 +1220,7 @@ impl Default for DocumentationSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::GlobalConfig;
 
     #[tokio::test]
     async fn test_documentation_generator_creation() {
@@ -1232,7 +1233,7 @@ mod tests {
     async fn test_documentation_generation() {
         let settings = DocumentationSettings::default();
         let generator = ConfigDocumentationGenerator::new(settings);
-        let config = Config::default();
+        let config = GlobalConfig::new();
 
         let result = generator
             .generate_documentation(&config, DocumentationFormat::Markdown)
@@ -1247,7 +1248,7 @@ mod tests {
     async fn test_markdown_rendering() {
         let settings = DocumentationSettings::default();
         let generator = ConfigDocumentationGenerator::new(settings);
-        let config = Config::default();
+        let config = GlobalConfig::new();
 
         let documentation = generator
             .generate_documentation(&config, DocumentationFormat::Markdown)
